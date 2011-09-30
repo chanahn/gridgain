@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * DHT cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Near cache. */
@@ -1503,6 +1503,10 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                     try {
                         fut.addEntry(entry);
 
+                        // Possible in case of cancellation or time out.
+                        if (fut.isDone())
+                            return fut;
+
                         break;
                     }
                     catch (GridCacheEntryRemovedException ignore) {
@@ -1586,8 +1590,10 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                                     throw new IllegalStateException("Duplicate future ID: " + fut);
                             }
 
+                            boolean timedout = false;
+
                             if (keys == null) {
-                                for (int i = 0; i < keyBytes.size(); i++) {
+                                for (int i = 0; i < keyBytes.size() && !timedout; i++) {
                                     byte[] bytes = keyBytes.get(i);
 
                                     if (bytes == null)
@@ -1605,8 +1611,15 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                                             if (bytes != null)
                                                 entry.keyBytes(bytes);
 
-                                            if (fut != null)
+                                            if (fut != null) {
                                                 fut.addEntry(key == null ? null : entry);
+
+                                                if (fut.isDone()) {
+                                                    timedout = true;
+
+                                                    break;
+                                                }
+                                            }
 
                                             entries.add(entry);
 
@@ -1631,12 +1644,22 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                             }
                             else {
                                 for (K key : keys) {
+                                    if (timedout)
+                                        break;
+
                                     while (true) {
                                         GridDhtCacheEntry<K, V> entry = entryExx(key, req.topologyVersion());
 
                                         try {
-                                            if (fut != null)
+                                            if (fut != null) {
                                                 fut.addEntry(key == null ? null : entry);
+
+                                                if (fut.isDone()) {
+                                                    timedout = true;
+
+                                                    break;
+                                                }
+                                            }
 
                                             entries.add(entry);
 

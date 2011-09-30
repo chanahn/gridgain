@@ -37,12 +37,13 @@ import static org.gridgain.grid.GridDeploymentMode.*;
 import static org.gridgain.grid.cache.GridCacheConfiguration.*;
 import static org.gridgain.grid.cache.GridCacheMode.*;
 import static org.gridgain.grid.cache.GridCachePreloadMode.*;
+import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
 
 /**
  * Cache processor.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridCacheProcessor extends GridProcessorAdapter {
     /** Null cache name. */
@@ -166,6 +167,13 @@ public class GridCacheProcessor extends GridProcessorAdapter {
             assertParameter(cfg.getPreloadThreadPoolSize() > 0, "preloadThreadPoolSize > 0");
             assertParameter(cfg.getPreloadBatchSize() > 0, "preloadBatchSize > 0");
         }
+
+        if (!cfg.isTxSerializableEnabled() && cfg.getDefaultTxIsolation() == SERIALIZABLE)
+            U.warn(log,
+                "Serializable transactions are disabled while default transaction isolation is SERIALIZABLE " +
+                    "(most likely misconfiguration - either update 'isTxSerializableEnabled' or " +
+                    "'defaultTxIsolationLevel' properties)",
+                "Serializable transactions are disabled while default transaction isolation is SERIALIZABLE.");
     }
 
     /**

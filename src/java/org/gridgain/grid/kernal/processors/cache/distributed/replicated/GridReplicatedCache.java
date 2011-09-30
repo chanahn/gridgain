@@ -13,6 +13,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.kernal.processors.cache.distributed.*;
+import org.gridgain.grid.kernal.processors.cache.distributed.replicated.preloader.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.*;
@@ -23,7 +24,6 @@ import org.jetbrains.annotations.*;
 import java.io.*;
 import java.util.*;
 
-import static org.gridgain.grid.cache.GridCachePreloadMode.*;
 import static org.gridgain.grid.cache.GridCacheTxConcurrency.*;
 import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
 
@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Fully replicated cache implementation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Preloader. */
@@ -125,8 +125,7 @@ public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V>
             }
         });
 
-        preldr = cacheCfg.getPreloadMode() != NONE ? new GridReplicatedPreloader<K, V>(ctx) :
-            new GridCachePreloaderAdapter<K, V>(ctx);
+        preldr = new GridReplicatedPreloader<K, V>(ctx);
 
         preldr.start();
     }

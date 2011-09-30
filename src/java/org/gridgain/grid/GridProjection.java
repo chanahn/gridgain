@@ -41,9 +41,105 @@ import java.util.concurrent.*;
  * in {@link NullPointerException} and may be harder to catch.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAware {
+    /**
+     * Executes given closure locally in optimistic topology transaction, i.e. ensuring that projection
+     * topology doesn't change during the closure execution. If projection topology did change - optional
+     * rollback closure will be executed and given closure will be re-executed again up to specified
+     * number of attempts.
+     * <p>
+     * Note that this method will block until closure execution is complete (successfully or not).
+     * Note also that transactional semantic of this method is optimistic. No locking of grid topology is performed
+     * but the topology version is checked before and after the closure execution and compared to be the same.
+     * <p>
+     * Note also that if given closure or rollback closure throw runtime exception it will be propagated
+     * to the caller without any special handling. Specifically, a rollback closure won't be called if the
+     * executing closure throws runtime exception.
+     *
+     * @param c Closure to execute on unchanged topology.
+     * @param attempts Number of re-execution attempts. Must be greater than zero.
+     * @param rollback Optional rollback closure to execute in case when topology did indeed change during
+     *      closure execution. If not provided - the given closure will simply execute again.
+     * @return {@code True} if closure successfully executed on unchanged topology - {@code false} if number
+     *      of attempts is exceeded.
+     * @see #runOptimisticAsync(GridAbsClosure, int, GridAbsClosure)
+     */
+    public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback);
+
+    /**
+     * Executes given closure in optimistic topology transaction, i.e. ensuring that grid topology doesn't
+     * change during the closure execution. If it did - optional rollback closure will be executed
+     * and given closure will be re-executed again up to specified number of attempts.
+     * <p>
+     * Note that this method will  block until closure execution is complete (successfully or not).
+     * Note also that transactional semantic of this method is optimistic. No locking of grid topology is performed
+     * but the topology version is checked before and after the closure execution and compared to be the same.
+     * <p>
+     * Note also that if given closure or rollback closure throw runtime exception it will be propagated
+     * to the caller without any special handling. Specifically, a rollback closure won't be called if the
+     * executing closure throws runtime exception.
+     *
+     * @param c Closure to execute on unchanged topology.
+     * @param attempts Number of re-execution attempts. Must be greater than zero.
+     * @param dfltVal Default to return when number of attempts is exceeded.
+     * @param rollback Optional rollback closure to execute in case when topology did indeed change during
+     *      closure execution. If not provided - the given closure will simply execute again.
+     * @return Closure return value.
+     * @see #callOptimisticAsync(GridOutClosure, int, Object, GridAbsClosure)
+     * @param <R> Type of the closure return value.
+     */
+    public <R> R callOptimistic(GridOutClosure<R> c, int attempts, R dfltVal, @Nullable GridAbsClosure rollback);
+
+    /**
+     * Executes given closure in optimistic topology transaction, i.e. ensuring that grid topology doesn't
+     * change during the closure execution. If it did - optional rollback closure will be executed
+     * and given closure will be re-executed again up to specified number of attempts.
+     * <p>
+     * Note that this method will not block until closure execution is complete (successfully or not).
+     * Note also that transactional semantic of this method is optimistic. No locking of grid topology is performed
+     * but the topology version is checked before and after the closure execution and compared to be the same.
+     * <p>
+     * Note also that if given closure or rollback closure throw runtime exception it will be propagated
+     * to the caller without any special handling. Specifically, a rollback closure won't be called if the
+     * executing closure throws runtime exception.
+     *
+     * @param c Closure to execute on unchanged topology.
+     * @param attempts Number of re-execution attempts. Must be greater than zero.
+     * @param rollback Optional rollback closure to execute in case when topology did indeed change during
+     *      closure execution. If not provided - the given closure will simply execute again.
+     * @return Future with either {@code true} if closure successfully executed on unchanged
+     *      topology, or {@code false} if number of attempts is exceeded.
+     * @see #runOptimistic(GridAbsClosure, int, GridAbsClosure)
+     */
+    public GridFuture<Boolean> runOptimisticAsync(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback);
+
+    /**
+     * Executes given closure locally in optimistic topology transaction, i.e. ensuring that grid topology doesn't
+     * change during the closure execution. If it did - optional rollback closure will be executed
+     * and given closure will be re-executed again up to specified number of attempts.
+     * <p>
+     * Note that this method will not block until closure execution is complete (successfully or not).
+     * Note also that transactional semantic of this method is optimistic. No locking of grid topology is performed
+     * but the topology version is checked before and after the closure execution and compared to be the same.
+     * <p>
+     * Note also that if given closure or rollback closure throw runtime exception it will be propagated
+     * to the caller without any special handling. Specifically, a rollback closure won't be called if the
+     * executing closure throws runtime exception.
+     *
+     * @param c Closure to execute on unchanged topology.
+     * @param attempts Number of re-execution attempts. Must be greater than zero.
+     * @param dfltVal Default to return when number of attempts is exceeded.
+     * @param rollback Optional rollback closure to execute in case when topology did indeed change during
+     *      closure execution. If not provided - the given closure will simply execute again.
+     * @return Future with return value.
+     * @see #callOptimistic(GridOutClosure, int, Object, GridAbsClosure)
+     * @param <R> Type of the closure return value.
+     */
+    public <R> GridFuture<R> callOptimisticAsync(GridOutClosure<R> c, int attempts, R dfltVal,
+        @Nullable GridAbsClosure rollback);
+
     /**
      * Executes given closure on the node where data for provided affinity key is located. This
      * is known as affinity co-location between compute grid (a closure) and in-memory data grid

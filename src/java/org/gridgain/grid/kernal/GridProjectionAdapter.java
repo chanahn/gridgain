@@ -35,7 +35,7 @@ import static org.gridgain.grid.util.nodestart.GridNodeStartUtils.*;
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements GridProjection {
     /** Empty rich node predicate array. */
@@ -1568,6 +1568,29 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
         }
 
         return this;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback) {
+        return false; // TODO
+    }
+
+    /** {@inheritDoc} */
+    @Override public <R> R callOptimistic(GridOutClosure<R> c, int attempts, R dfltVal,
+        @Nullable GridAbsClosure rollback) {
+        return null; // TODO
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridFuture<Boolean> runOptimisticAsync(GridAbsClosure c, int attempts,
+        @Nullable GridAbsClosure rollback) {
+        return null; // TODO
+    }
+
+    /** {@inheritDoc} */
+    @Override public <R> GridFuture<R> callOptimisticAsync(GridOutClosure<R> c, int attempts, R dfltVal,
+        @Nullable GridAbsClosure rollback) {
+        return null; // TODO
     }
 
     /** {@inheritDoc} */

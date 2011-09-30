@@ -61,7 +61,7 @@ import java.util.concurrent.*;
  * <p>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, DisposableBean, InitializingBean,
     ApplicationContextAware {
@@ -191,39 +191,82 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
     }
 
     /** {@inheritDoc} */
+    @Override public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback) {
+        assert g != null;
+
+        return g.runOptimistic(c, attempts, rollback);
+    }
+
+    /** {@inheritDoc} */
+    @Override public <R> R callOptimistic(GridOutClosure<R> c, int attempts, R dfltVal,
+        @Nullable GridAbsClosure rollback) {
+        assert g != null;
+
+        return g.callOptimistic(c, attempts, dfltVal, rollback);
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridFuture<Boolean> runOptimisticAsync(GridAbsClosure c, int attempts,
+        @Nullable GridAbsClosure rollback) {
+        assert g != null;
+
+        return g.runOptimisticAsync(c, attempts, rollback);
+    }
+
+    /** {@inheritDoc} */
+    @Override public <R> GridFuture<R> callOptimisticAsync(GridOutClosure<R> c, int attempts, R dfltVal,
+        @Nullable GridAbsClosure rollback) {
+        assert g != null;
+
+        return g.callOptimisticAsync(c, attempts, dfltVal, rollback);
+    }
+
+    /** {@inheritDoc} */
     @Override public void affinityRun(String cacheName, @Nullable Collection<?> affKeys, @Nullable Runnable job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
-        // TODO
+        assert g != null;
+
+        g.affinityRun(cacheName, affKeys, job, p);
     }
 
     /** {@inheritDoc} */
     @Override public GridFuture<?> affinityRunAsync(String cacheName, @Nullable Collection<?> affKeys,
         @Nullable Runnable job, @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
-        return null; // TODO
+        assert g != null;
+
+        return g.affinityRunAsync(cacheName, affKeys, job, p);
     }
 
     /** {@inheritDoc} */
     @Override public <R> R affinityCall(String cacheName, @Nullable Object affKey, @Nullable Callable<R> job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
-        return null; // TODO
+        assert g != null;
+
+        return g.affinityCall(cacheName, affKey, job, p);
     }
 
     /** {@inheritDoc} */
     @Override public <R> Collection<R> affinityCall(String cacheName, @Nullable Collection<?> affKeys,
         @Nullable Callable<R> job, @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
-        return null; // TODO
+        assert g != null;
+
+        return g.affinityCall(cacheName, affKeys, job, p);
     }
 
     /** {@inheritDoc} */
     @Override public <R> GridFuture<R> affinityCallAsync(String cacheName, @Nullable Object affKey,
         @Nullable Callable<R> job, @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
-        return null; // TODO
+        assert g != null;
+
+        return g.affinityCallAsync(cacheName, affKey, job, p);
     }
 
     /** {@inheritDoc} */
     @Override public <R> GridFuture<Collection<R>> affinityCallAsync(String cacheName, @Nullable Collection<?> affKeys,
         @Nullable Callable<R> job, @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
-        return null; // TODO
+        assert g != null;
+
+        return g.affinityCallAsync(cacheName, affKeys, job, p);
     }
 
     /** {@inheritDoc} */

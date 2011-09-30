@@ -21,7 +21,7 @@ import org.gridgain.grid._
  * Demonstrates various closure executions on the cloud using Scalar.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 object ScalarClosureExample {
     /**
@@ -77,7 +77,7 @@ object ScalarClosureExample {
      */
     // Same as 'count2' but with for-expression.
     def count(msg: String): Int =
-        grid$ @< (SPREAD, for (w <- msg.split(" ")) yield () => w.length, (_: Seq[Int]).sum)
+        grid$ reduce$ (SPREAD, for (w <- msg.split(" ")) yield () => w.length, (_: Seq[Int]).sum)
 
     /**
      * Count non-whitespace characters by spreading workload to the cloud and reducing

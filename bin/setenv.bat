@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 3.5.0c.22092011
+:: Version: 3.5.0c.30092011
 ::
 
 ::
@@ -18,6 +18,9 @@
 ::
 
 @echo off
+
+:: USER_LIBS variable can optionally contain user's JARs/libs.
+:: set USER_LIBS=
 
 ::
 :: Check GRIDGAIN_HOME.

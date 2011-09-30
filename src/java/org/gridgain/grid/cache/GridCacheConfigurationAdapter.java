@@ -32,7 +32,7 @@ import java.util.*;
  * should only change what they need.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** Cache name. */
@@ -71,6 +71,9 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** Cache concurrency. */
     private GridCacheTxConcurrency dfltConcurrency = DFLT_TX_CONCURRENCY;
 
+    /** Default transaction serializable flag. */
+    private boolean txSerEnabled = DFLT_TX_SERIALIZABLE_ENABLED;
+
     /** Default transaction timeout. */
     private long dfltTxTimeout = DFLT_TRANSACTION_TIMEOUT;
 
@@ -85,6 +88,12 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
 
     /** Near cache flag. */
     private boolean nearEnabled = DFLT_NEAR_ENABLED;
+
+    /** Eviction flag. */
+    private boolean evictEnabled = DFLT_EVICTION_ENABLED;
+
+    /** Near eviction flag. */
+    private boolean nearEvictEnabled = DFLT_NEAR_EVICTION_ENABLED;
 
     /** */
     private GridCacheStore<?, ?> store;
@@ -189,60 +198,63 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /**
      * Copy constructor.
      *
-     * @param cacheCfg Configuration to copy.
+     * @param cc Configuration to copy.
      */
-    public GridCacheConfigurationAdapter(GridCacheConfiguration cacheCfg) {
+    public GridCacheConfigurationAdapter(GridCacheConfiguration cc) {
         /*
          * NOTE: MAKE SURE TO PRESERVE ALPHABETIC ORDER!
          * ==============================================
          */
-        aff = cacheCfg.getAffinity();
-        autoIndexTypes = cacheCfg.getAutoIndexQueryTypes();
-        cacheMode = cacheCfg.getCacheMode();
-        cloner = cacheCfg.getCloner();
-        dfltConcurrency = cacheCfg.getDefaultTxConcurrency();
-        dfltIsolation = cacheCfg.getDefaultTxIsolation();
-        dfltLockTimeout = cacheCfg.getDefaultLockTimeout();
-        dfltTxTimeout = cacheCfg.getDefaultTxTimeout();
-        dgcFreq = cacheCfg.getDgcFrequency();
-        dgcRmvLocks = cacheCfg.isDgcRemoveLocks();
-        dgcSuspectLockTimeout = cacheCfg.getDgcSuspectLockTimeout();
-        evictSync = cacheCfg.isEvictSynchronized();
-        evictPolicy = cacheCfg.getEvictionPolicy();
-        evictNearSync = cacheCfg.isEvictNearSynchronized();
-        evictKeyBufferSize = cacheCfg.getEvictionKeyBufferSize();
-        idxH2Opt = cacheCfg.getIndexH2Options();
-        idxAnalyzeFreq = cacheCfg.getIndexAnalyzeFrequency();
-        idxAnalyzeSampleSize = cacheCfg.getIndexAnalyzeSampleSize();
-        idxCleanup = cacheCfg.isIndexCleanup();
-        idxFixedTyping = cacheCfg.isIndexFixedTyping();
-        idxFullClassName = cacheCfg.isIndexFullClassName();
-        idxMaxOperationMem = cacheCfg.getIndexMaxOperationMemory();
-        idxMemOnly = cacheCfg.isIndexMemoryOnly();
-        idxPath = cacheCfg.getIndexPath();
-        idxPswd = cacheCfg.getIndexPassword();
-        idxUser = cacheCfg.getIndexUsername();
-        invalidate = cacheCfg.isInvalidate();
-        storeValueBytes = cacheCfg.isStoreValueBytes();
-        txBatchUpdate = cacheCfg.isBatchUpdateOnCommit();
-        name = cacheCfg.getName();
-        nearStartSize = cacheCfg.getNearStartSize();
-        nearEnabled = cacheCfg.isNearEnabled();
-        nearEvictPolicy = cacheCfg.getNearEvictionPolicy();
-        maxEvictionOverflowRatio = cacheCfg.getMaxEvictionOverflowRatio();
-        preloadMode = cacheCfg.getPreloadMode();
-        preloadBatchSize = cacheCfg.getPreloadBatchSize();
-        preloadPoolSize = cacheCfg.getPreloadThreadPoolSize();
-        refreshAheadRatio = cacheCfg.getRefreshAheadRatio();
-        seqReserveSize = cacheCfg.getAtomicSequenceReserveSize();
-        startSize = cacheCfg.getStartSize();
-        store = cacheCfg.getStore();
-        storeEnabled = cacheCfg.isStoreEnabled();
-        swapEnabled = cacheCfg.isSwapEnabled();
-        syncCommit = cacheCfg.isSynchronousCommit();
-        syncRollback = cacheCfg.isSynchronousRollback();
-        tmLookup = cacheCfg.getTransactionManagerLookup();
-        ttl = cacheCfg.getDefaultTimeToLive();
+        aff = cc.getAffinity();
+        autoIndexTypes = cc.getAutoIndexQueryTypes();
+        cacheMode = cc.getCacheMode();
+        cloner = cc.getCloner();
+        dfltConcurrency = cc.getDefaultTxConcurrency();
+        dfltIsolation = cc.getDefaultTxIsolation();
+        dfltLockTimeout = cc.getDefaultLockTimeout();
+        dfltTxTimeout = cc.getDefaultTxTimeout();
+        dgcFreq = cc.getDgcFrequency();
+        dgcRmvLocks = cc.isDgcRemoveLocks();
+        dgcSuspectLockTimeout = cc.getDgcSuspectLockTimeout();
+        evictEnabled = cc.isEvictionEnabled();
+        evictSync = cc.isEvictSynchronized();
+        evictPolicy = cc.getEvictionPolicy();
+        evictNearSync = cc.isEvictNearSynchronized();
+        evictKeyBufferSize = cc.getEvictionKeyBufferSize();
+        idxH2Opt = cc.getIndexH2Options();
+        idxAnalyzeFreq = cc.getIndexAnalyzeFrequency();
+        idxAnalyzeSampleSize = cc.getIndexAnalyzeSampleSize();
+        idxCleanup = cc.isIndexCleanup();
+        idxFixedTyping = cc.isIndexFixedTyping();
+        idxFullClassName = cc.isIndexFullClassName();
+        idxMaxOperationMem = cc.getIndexMaxOperationMemory();
+        idxMemOnly = cc.isIndexMemoryOnly();
+        idxPath = cc.getIndexPath();
+        idxPswd = cc.getIndexPassword();
+        idxUser = cc.getIndexUsername();
+        invalidate = cc.isInvalidate();
+        storeValueBytes = cc.isStoreValueBytes();
+        txBatchUpdate = cc.isBatchUpdateOnCommit();
+        txSerEnabled = cc.isTxSerializableEnabled();
+        name = cc.getName();
+        nearStartSize = cc.getNearStartSize();
+        nearEnabled = cc.isNearEnabled();
+        nearEvictEnabled = cc.isNearEvictionEnabled();
+        nearEvictPolicy = cc.getNearEvictionPolicy();
+        maxEvictionOverflowRatio = cc.getMaxEvictionOverflowRatio();
+        preloadMode = cc.getPreloadMode();
+        preloadBatchSize = cc.getPreloadBatchSize();
+        preloadPoolSize = cc.getPreloadThreadPoolSize();
+        refreshAheadRatio = cc.getRefreshAheadRatio();
+        seqReserveSize = cc.getAtomicSequenceReserveSize();
+        startSize = cc.getStartSize();
+        store = cc.getStore();
+        storeEnabled = cc.isStoreEnabled();
+        swapEnabled = cc.isSwapEnabled();
+        syncCommit = cc.isSynchronousCommit();
+        syncRollback = cc.isSynchronousRollback();
+        tmLookup = cc.getTransactionManagerLookup();
+        ttl = cc.getDefaultTimeToLive();
     }
 
     /** {@inheritDoc} */
@@ -290,6 +302,21 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     }
 
     /** {@inheritDoc} */
+    @Override public boolean isEvictionEnabled() {
+        return evictEnabled;
+    }
+
+    /**
+     * Sets flag to enable/disable eviction policy. See {@link #isEvictionEnabled()}
+     * for more information.
+     *
+     * @param evictEnabled Flag to enable/disable eviction policy.
+     */
+    public void setEvictionEnabled(boolean evictEnabled) {
+        this.evictEnabled = evictEnabled;
+    }
+
+    /** {@inheritDoc} */
     @SuppressWarnings({"unchecked"})
     @Override public <K, V> GridCacheEvictionPolicy<K, V> getNearEvictionPolicy() {
         return nearEvictPolicy;
@@ -303,6 +330,21 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      */
     public void setNearEvictionPolicy(GridCacheEvictionPolicy nearEvictPolicy) {
         this.nearEvictPolicy = nearEvictPolicy;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isNearEvictionEnabled() {
+        return nearEvictEnabled;
+    }
+
+    /**
+     * Sets flag to enable/disable near eviction policy. See {@link #isNearEvictionEnabled()}
+     * for more information.
+     *
+     * @param nearEvictEnabled Flag to enable/disable near eviction policy.
+     */
+    public void setNearEvictionEnabled(boolean nearEvictEnabled) {
+        this.nearEvictEnabled = nearEvictEnabled;
     }
 
     /** {@inheritDoc} */
@@ -374,6 +416,21 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      */
     public void setDefaultTxConcurrency(GridCacheTxConcurrency dfltConcurrency) {
         this.dfltConcurrency = dfltConcurrency;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isTxSerializableEnabled() {
+        return txSerEnabled;
+    }
+
+    /**
+     * Enables/disables serializable cache transactions. See {@link #isTxSerializableEnabled()}
+     * for more information.
+     *
+     * @param txSerEnabled Flag to enable/disable serializable cache transactions.
+     */
+    public void setTxSerializableEnabled(boolean txSerEnabled) {
+        this.txSerEnabled = txSerEnabled;
     }
 
     /** {@inheritDoc} */
@@ -669,8 +726,8 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     }
 
     /**
-     * Sets fixed typing flag. See {@link #isIndexFixedTyping()} documentation for
-     * explanation about this parameter.
+     * Sets fixed typing flag. See {@link #isIndexFixedTyping()} for
+     * more information.
      *
      * @param idxFixedTyping {@code True} for fixed typing.
      * @see #isIndexFixedTyping()

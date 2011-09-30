@@ -78,14 +78,14 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * misspelling.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridKernal extends GridProjectionAdapter implements Grid, GridKernalMBean, Externalizable {
     /** Ant-augmented version number. */
     private static final String VER = "3.5.0c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "22092011";
+    private static final String BUILD = "30092011";
 
     /** Ant-augmented copyright blurb. */
     private static final String COPYRIGHT = "2005-2011 Copyright (C) GridGain Systems, Inc.";
@@ -463,13 +463,15 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     private void notifyLifecycleBeans(GridLifecycleEventType evt) {
         if (cfg.getLifecycleBeans() != null) {
             for (GridLifecycleBean bean : cfg.getLifecycleBeans()) {
-                try {
-                    bean.onLifecycleEvent(evt);
-                }
-                // Catch generic throwable to secure against user assertions.
-                catch (Throwable e) {
-                    U.error(log, "Failed to notify lifecycle bean (safely ignored) [evt=" + evt +
-                        ", gridName=" + gridName + ", bean=" + bean + ']', e);
+                if (bean != null) {
+                    try {
+                        bean.onLifecycleEvent(evt);
+                    }
+                    // Catch generic throwable to secure against user assertions.
+                    catch (Throwable e) {
+                        U.error(log, "Failed to notify lifecycle bean (safely ignored) [evt=" + evt +
+                            ", gridName=" + gridName + ", bean=" + bean + ']', e);
+                    }
                 }
             }
         }
@@ -615,7 +617,8 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             // Inject resources into lifecycle beans.
             if (cfg.getLifecycleBeans() != null)
                 for (GridLifecycleBean bean : cfg.getLifecycleBeans())
-                    rsrcProc.inject(bean);
+                    if (bean != null)
+                        rsrcProc.inject(bean);
 
             // Lifecycle notification.
             notifyLifecycleBeans(GridLifecycleEventType.BEFORE_GRID_START);

@@ -27,7 +27,7 @@ import java.util.*;
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collection<GridCacheEntryInfo<K, V>>>
     implements GridDhtFuture<Collection<GridCacheEntryInfo<K, V>>> {
@@ -168,7 +168,7 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
     private void map(final Collection<? extends K> keys) {
         GridDhtFuture<Object> fut = ctx.dht().dhtPreloader().request(keys);
 
-        if (fut.invalidPartitions() != null)
+        if (!F.isEmpty(fut.invalidPartitions()))
             retries.addAll(fut.invalidPartitions());
 
         add(new GridEmbeddedFuture<Collection<GridCacheEntryInfo<K, V>>, Object>(ctx.kernalContext(), fut,

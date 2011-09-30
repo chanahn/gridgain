@@ -42,7 +42,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Adapter for different cache implementations.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter implements GridCache<K, V>,
     Externalizable {
@@ -2788,6 +2788,10 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         if (concurrency == EVENTUALLY_CONSISTENT && isolation == SERIALIZABLE)
             throw new IllegalArgumentException("EVENTUALLY_CONSISTENT transactions cannot have SERIALIZABLE " +
                 "isolation.");
+
+        if (!ctx.config().isTxSerializableEnabled() && isolation == SERIALIZABLE)
+            throw new IllegalArgumentException("SERIALIZABLE isolation level is disabled (to enable change " +
+                "'txSerializableEnabled' configuration property)");
 
         if (!ctx.isEnterprise() && concurrency == EVENTUALLY_CONSISTENT)
             throw new GridEnterpriseFeatureException("Eventually Consistent Transactions");

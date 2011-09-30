@@ -32,7 +32,7 @@ import java.util.concurrent.locks.*;
  * Future for exchanging partition maps.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Object>
     implements Comparable<GridDhtPartitionsExchangeFuture<K, V>> {
@@ -546,7 +546,7 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
     private boolean allReceived() {
         Collection<UUID> rmtIds = this.rmtIds;
 
-        assert rmtIds != null;
+        assert rmtIds != null : "Remote Ids can't be null: " + this;
 
         return rcvdIds.containsAll(rmtIds);
     }
@@ -581,38 +581,46 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
         else {
             initFut.listenAsync(new CI1<GridFuture<Boolean>>() {
                 @Override public void apply(GridFuture<Boolean> t) {
-                    AtomicReference<GridNode> oldestRef = oldestNode;
+                    try {
+                        if (!t.get()) // Just to check if there was an error.
+                            return;
 
-                    GridNode loc = cctx.localNode();
+                        AtomicReference<GridNode> oldestRef = oldestNode;
 
-                    msgs.put(nodeId, msg);
+                        GridNode loc = cctx.localNode();
 
-                    boolean match = true;
+                        msgs.put(nodeId, msg);
 
-                    // Check if oldest node has changed.
-                    if (!oldestRef.get().equals(loc)) {
-                        match = false;
+                        boolean match = true;
 
-                        synchronized (mux) {
-                            // Double check.
-                            if (oldestRef.get().equals(loc))
-                                match = true;
+                        // Check if oldest node has changed.
+                        if (!oldestRef.get().equals(loc)) {
+                            match = false;
+
+                            synchronized (mux) {
+                                // Double check.
+                                if (oldestRef.get().equals(loc))
+                                    match = true;
+                            }
+                        }
+
+                        if (match) {
+                            if (rcvdIds.add(nodeId))
+                                top.update(exchId, msg.partitions());
+
+                            // If got all replies, and initialization finished, and reply has not been sent yet.
+                            if (allReceived() && ready.get() && replied.compareAndSet(false, true)) {
+                                spreadPartitions(top.partitionMap(true));
+
+                                onDone();
+                            }
+                            else if (log.isDebugEnabled())
+                                log.debug("Exchange future full map is not sent [allReceived=" + allReceived() + ", ready=" +
+                                    ready + ", replied=" + replied.get() + ", init=" + init.get() + ", fut=" + this + ']');
                         }
                     }
-
-                    if (match) {
-                        if (rcvdIds.add(nodeId))
-                            top.update(exchId, msg.partitions());
-
-                        // If got all replies, and initialization finished, and reply has not been sent yet.
-                        if (allReceived() && ready.get() && replied.compareAndSet(false, true)) {
-                            spreadPartitions(top.partitionMap(true));
-
-                            onDone();
-                        }
-                        else if (log.isDebugEnabled())
-                            log.debug("Exchange future full map is not sent [allReceived=" + allReceived() + ", ready=" +
-                                ready + ", replied=" + replied.get() + ", init=" + init.get() + ", fut=" + this + ']');
+                    catch (GridException e) {
+                        log.error("Failed to initialize exchange future: " + this, e);
                     }
                 }
             });

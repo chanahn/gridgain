@@ -16,7 +16,7 @@ import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.cache.distributed.dht.*;
-import org.gridgain.grid.kernal.processors.cache.distributed.replicated.*;
+import org.gridgain.grid.kernal.processors.cache.distributed.replicated.preloader.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.lang.utils.*;
@@ -41,14 +41,14 @@ import static org.gridgain.grid.lang.utils.GridConcurrentLinkedDeque.*;
  * Cache eviction manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /** Number of entries in the queue before unwinding happens. */
     private static final int ENTRY_UNWIND_THRESHOLD = Integer.getInteger(GG_EVICT_UNWIND_THRESHOLD, 100);
 
-    /** Number of transactions in the queue before unwind happens. */
-    private static final int TX_UNWIND_THRESHOLD = ENTRY_UNWIND_THRESHOLD / 3 == 0 ? 1 : ENTRY_UNWIND_THRESHOLD / 3;
+    /** How much are queues allowed to outgrow their maximums before they are forced to downsize. */
+    private static final int QUEUE_OUTGROW_RATIO = 3;
 
     /** Number of entries to store in the eviction cache (for handling simultaneous preloading and evictions). */
     private static final int EVICT_HIST_SIZE = Integer.getInteger(GG_EVICTION_HISTORY_SIZE, 100000);
@@ -56,24 +56,22 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /** Eviction policy. */
     private GridCacheEvictionPolicy<K, V> policy;
 
-    /** Transaction queue. */
-    private final ConcurrentLinkedQueue<GridCacheTxEx<K, V>> txs = new ConcurrentLinkedQueue<GridCacheTxEx<K, V>>();
+    /** Entries queue. */
+    private final GridConcurrentLinkedDeque<GridCacheEntryEx<K, V>> entries =
+            new GridConcurrentLinkedDeque<GridCacheEntryEx<K, V>>();
 
-    /** Unlock queue. */
-    private final ConcurrentLinkedQueue<GridCacheEntryEx<K, V>> entries =
-        new ConcurrentLinkedQueue<GridCacheEntryEx<K, V>>();
+    /** Transactions queue. */
+    private final GridConcurrentLinkedDeque<GridCacheTxEx<K, V>> txs =
+            new GridConcurrentLinkedDeque<GridCacheTxEx<K, V>>();
+
+    /** Entries queue size (including transaction entries). */
+    private final AtomicInteger entryCnt = new AtomicInteger();
 
     /** Controlling lock for unwinding entries. */
     private final ReadWriteLock unwindLock = new ReentrantReadWriteLock();
 
     /** Unwinding flag. */
     private final AtomicBoolean unwinding = new AtomicBoolean(false);
-
-    /** Transaction queue size. */
-    private final AtomicInteger txCnt = new AtomicInteger();
-
-    /** Entry queue size. */
-    private final AtomicInteger entryCnt = new AtomicInteger();
 
     /** */
     private final GridConcurrentLinkedDeque<EvictionInfo> buffEvictQ = new GridConcurrentLinkedDeque<EvictionInfo>();
@@ -92,9 +90,6 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
 
     /** Entry unwind threshold. */
     private int entryUnwindThreshold = ENTRY_UNWIND_THRESHOLD;
-
-    /** Transaction unwind threshold. */
-    private int txUnwindThreshold = TX_UNWIND_THRESHOLD;
 
     /** Evict backup synchronized flag. */
     private boolean evictSync;
@@ -166,6 +161,14 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
+     * @return {@code True} if indexing is enabled.
+     */
+    private boolean enabled() {
+        return cctx.isNear() && cctx.config().isNearEvictionEnabled() ||
+            !cctx.isNear() && cctx.config().isEvictionEnabled();
+    }
+
+    /**
      * Outputs warnings if potential configuration problems are detected.
      */
     private void reportConfigurationProblems() {
@@ -207,8 +210,6 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         assert entryUnwindThreshold > 0;
 
         this.entryUnwindThreshold = entryUnwindThreshold;
-
-        txUnwindThreshold = entryUnwindThreshold / 3 > 0 ? entryUnwindThreshold / 3 : 1;
     }
 
     /**
@@ -216,7 +217,6 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
      */
     public void resetEntryUnwindThreshold() {
         entryUnwindThreshold = ENTRY_UNWIND_THRESHOLD;
-        txUnwindThreshold = TX_UNWIND_THRESHOLD;
     }
 
     /**
@@ -414,21 +414,23 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         assert key != null;
         assert ver != null;
 
-        Node<GridTuple2<K, GridCacheVersion>> node = evictHist.get(key);
+        if (enabled()) {
+            Node<GridTuple2<K, GridCacheVersion>> node = evictHist.get(key);
 
-        if (node != null) {
-            GridTuple2<K, GridCacheVersion> t = node.item();
+            if (node != null) {
+                GridTuple2<K, GridCacheVersion> t = node.item();
 
-            if (t != null && ver.isLessEqual(t.get2())) {
-                if (log.isDebugEnabled())
-                    log.debug("Preloading is not permitted for entry [key=" + key + ", ver=" + ver + ']');
+                if (t != null && ver.isLessEqual(t.get2())) {
+                    if (log.isDebugEnabled())
+                        log.debug("Preloading is not permitted for entry [key=" + key + ", ver=" + ver + ']');
 
-                return false;
+                    return false;
+                }
             }
-        }
 
-        if (log.isDebugEnabled())
-            log.debug("Preloading is permitted for entry [key=" + key + ", ver=" + ver + ']');
+            if (log.isDebugEnabled())
+                log.debug("Preloading is permitted for entry [key=" + key + ", ver=" + ver + ']');
+        }
 
         return true;
     }
@@ -695,7 +697,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         }
         else {
             if (touch)
-                cache.context().evicts().touch(entry);
+                cache.context().evicts().touch(entry, true); // Make sure to go through cache context.
 
             if (log.isDebugEnabled())
                 log.debug("Entry was not evicted [entry=" + entry + ", localNode=" + cctx.nodeId() + ']');
@@ -706,8 +708,12 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
 
     /**
      * @param tx Transaction to register for eviction policy notifications.
+     * @param explicit {@code True} if evict was called explicitly.
      */
-    public void touch(GridCacheTxEx<K, V> tx) {
+    public void touch(GridCacheTxEx<K, V> tx, boolean explicit) {
+        if (!enabled() && !explicit)
+            return;
+
         if (log.isDebugEnabled())
             log.debug("Touching transaction [tx=" + CU.txString(tx) + ", localNode=" + cctx.nodeId() + ']');
 
@@ -716,7 +722,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         try {
             txs.add(tx);
 
-            txCnt.incrementAndGet();
+            entryCnt.addAndGet(tx.allEntries().size());
         }
         finally {
             unwindLock.readLock().unlock();
@@ -737,8 +743,12 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
 
     /**
      * @param entry Entry for eviction policy notification.
+     * @param explicit {@code True} if evict was called explicitly.
      */
-    public void touch(GridCacheEntryEx<K, V> entry) {
+    public void touch(GridCacheEntryEx<K, V> entry, boolean explicit) {
+        if (!enabled() && !explicit)
+            return;
+
         if (log.isDebugEnabled())
             log.debug("Touching entry [entry=" + entry + ", localNode=" + cctx.nodeId() + ']');
 
@@ -896,7 +906,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                         U.error(log, "Eviction future finished with error (all entries will be touched): " + fut, e);
 
                         for (EvictionInfo info : fut.entries())
-                            touch(info.entry());
+                            touch(info.entry(), true);
 
                         return;
                     }
@@ -939,7 +949,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                             log.debug("Touching rejected entry [entry=" + info.entry() + ", localNode="
                                 + cctx.nodeId() + ']');
 
-                        touch(info.entry());
+                        touch(info.entry(), true);
                     }
                 }
                 finally {
@@ -1024,55 +1034,26 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
      * Notifications.
      */
     public void unwind() {
-        if (entryCnt.get() >= entryUnwindThreshold || txCnt.get() >= txUnwindThreshold) {
+        if (entryCnt.get() >= entryUnwindThreshold) {
             // Only one thread should unwind for efficiency.
             if (unwinding.compareAndSet(false, true)) {
                 GridCacheFlag[] old = cctx.forceLocal();
 
-                unwindLock.writeLock().lock();
-
                 try {
-                    // Touch first.
-                    for (GridCacheEntryEx<K, V> e = entries.poll(); e != null; e = entries.poll()) {
-                        entryCnt.decrementAndGet();
+                    if (!unwindSafe(true)) {
+                        unwindLock.writeLock().lock();
 
-                        // Internal entry can't be checked in policy.
-                        if (!(e.key() instanceof GridCacheInternal))
-                            policy.onEntryAccessed(e.obsolete(), e.evictWrap());
-                    }
+                        try {
+                            boolean ret = unwindSafe(false); // Unwind within lock.
 
-                    int entryCntr = entryCnt.get();
-
-                    assert entryCntr == 0 : "Invalid entry count [cnt=" + entryCntr +
-                        ", size=" + entries.size() + ", entries=" + entries + ']';
-
-                    for (Iterator<GridCacheTxEx<K, V>> it = txs.iterator(); it.hasNext(); ) {
-                        GridCacheTxEx<K, V> tx = it.next();
-
-                        if (!tx.done())
-                            return;
-
-                        it.remove();
-
-                        txCnt.decrementAndGet();
-
-                        if (!tx.internal()) {
-                            notify(tx.readEntries());
-                            notify(tx.writeEntries());
+                            assert ret;
+                        }
+                        finally {
+                            unwindLock.writeLock().unlock();
                         }
                     }
-
-                    int txCntr = txCnt.get();
-
-                    assert txCntr == 0 : "Invalid tx count [cnt=" + txCntr + ", size=" + txs.size() +
-                        ", txs=" + txs + ']';
                 }
                 finally {
-                    unwindLock.writeLock().unlock();
-
-                    // This call will clear memory for tx queue.
-                    txs.peek();
-
                     cctx.forceFlags(old);
 
                     unwinding.set(false);
@@ -1081,6 +1062,53 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         }
 
         checkEvictionQueue();
+    }
+
+    /**
+     * @param cap {@code True} if unwind process should cap after queue grows to certain limit.
+     * @return {@code True} if unwind thread was able to succeed, {@code false} if queue
+     *      kept growing during unwind.
+     */
+    private boolean unwindSafe(boolean cap) {
+        int cnt = 0;
+
+        int startCnt = entryCnt.get();
+
+        // Touch first.
+        for (GridCacheEntryEx<K, V> e = entries.poll(); e != null; e = entries.poll()) {
+            cnt = entryCnt.decrementAndGet();
+
+            // Internal entry can't be checked in policy.
+            if (!(e.key() instanceof GridCacheInternal))
+                policy.onEntryAccessed(e.obsolete(), e.evictWrap());
+
+            if (cap && cnt >= startCnt * QUEUE_OUTGROW_RATIO)
+                return false;
+        }
+
+        for (Iterator<GridCacheTxEx<K, V>> it = txs.iterator(); it.hasNext(); ) {
+            GridCacheTxEx<K, V> tx = it.next();
+
+            if (!tx.done())
+                return true;
+
+            it.remove();
+
+            Collection<GridCacheTxEntry<K, V>> txEntries = tx.allEntries();
+
+            cnt = entryCnt.addAndGet(-txEntries.size());
+
+            if (!tx.internal())
+                notify(txEntries);
+
+            if (cap && cnt >= startCnt * QUEUE_OUTGROW_RATIO)
+                return false;
+        }
+
+        assert cap || cnt == 0 : "Invalid entry count [cnt=" + cnt + ", size=" + txs.size() + ", txs=" + txs +
+            ", entries=" + entries + ']';
+
+        return true;
     }
 
     /**

@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.*;
  * typedef.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridFunc {
     /** */
@@ -1901,9 +1901,8 @@ public class GridFunc {
     public static <T> T[] concat(@Nullable T[] arr, T... obj) {
         T[] newArr;
 
-        if (isEmpty(arr)) {
+        if (arr == null || arr.length == 0)
             newArr = obj;
-        }
         else {
             newArr = Arrays.copyOf(arr, arr.length + obj.length);
 
@@ -6416,7 +6415,7 @@ public class GridFunc {
      *      {@code c2}.
      */
     public static <T> boolean containsAny(@Nullable Collection<? extends T> c1, @Nullable Iterable<? extends T> c2) {
-        if (!isEmpty(c1) && !isEmpty(c2))
+        if (c1 != null && !c1.isEmpty() && c2 != null && c2.iterator().hasNext())
             for (T t : c2)
                 if (c1.contains(t))
                     return true;
@@ -6434,7 +6433,7 @@ public class GridFunc {
      *      {@code c2}.
      */
     public static <T> boolean containsAny(@Nullable Collection<? extends T> c1, @Nullable T... c2) {
-        if (!isEmpty(c1) && !isEmpty(c2))
+        if (c1 != null && !c1.isEmpty() && c2 != null && c2.length > 0)
             for (T t : c2)
                 if (c1.contains(t))
                     return true;

@@ -19,6 +19,7 @@ import org.gridgain.grid.thread.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.*;
+import org.gridgain.grid.util.tostring.*;
 import org.gridgain.grid.util.worker.*;
 import org.h2.fulltext.*;
 import org.jetbrains.annotations.*;
@@ -40,7 +41,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * Cache query index. Manages full life-cycle of query index database (h2).
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 @SuppressWarnings({"UnnecessaryFullyQualifiedName"})
 public class GridCacheQueryIndex<K, V> {
@@ -232,9 +233,6 @@ public class GridCacheQueryIndex<K, V> {
 
         GridCacheConfigurationAdapter cfg = cctx.config();
 
-        if (cfg.getIndexAnalyzeFrequency() <= 0)
-            throw new GridException("Configuration parameter 'indexAnalyzeFrequency' must be greater than 0.");
-
         if (cfg.getIndexAnalyzeSampleSize() <= 0)
             throw new GridException("Configuration parameter 'indexAnalyzeSampleSize' must be greater than 0.");
 
@@ -309,11 +307,13 @@ public class GridCacheQueryIndex<K, V> {
             throw new GridException("Failed to find org.h2.Driver class", e);
         }
 
-        analyzeThread = new GridThread(new AnalyzeWorker());
+        if (cctx.config().getIndexAnalyzeFrequency() > 0) {
+            analyzeThread = new GridThread(new AnalyzeWorker());
 
-        analyzeThread.setPriority(Thread.NORM_PRIORITY - 1);
+            analyzeThread.setPriority(Thread.NORM_PRIORITY - 1);
 
-        analyzeThread.start();
+            analyzeThread.start();
+        }
 
         if (log.isDebugEnabled())
             log.debug("Cache query index started [grid=" + cctx.gridName() + "]");
@@ -1280,11 +1280,15 @@ public class GridCacheQueryIndex<K, V> {
         assert keyCls != null;
         assert valCls != null;
 
+        QueryType type = clsMap.get(valCls);
+
+        if (type != null)
+            return type;
+
         schemaWriteLock();
 
         try {
-            QueryType type = clsMap.get(valCls);
-
+            type = clsMap.get(valCls);
 
             if (type == null) {
                 type = new QueryType(keyCls, valCls, cctx);
@@ -2085,6 +2089,7 @@ public class GridCacheQueryIndex<K, V> {
         private Class<?> valCls;
 
         /** */
+        @GridToStringInclude
         private final List<QueryTypeProperty> props = new LinkedList<QueryTypeProperty>();
 
         /** */
@@ -2643,7 +2648,7 @@ public class GridCacheQueryIndex<K, V> {
                     stmt.execute("ANALYZE SAMPLE_SIZE " + cctx.config().getIndexAnalyzeSampleSize());
                 }
                 catch (SQLException e) {
-                    U.error(log, "Failed to execute ANALYZE.", e);
+                    U.warn(log, "Failed to execute ANALYZE: " + e.toString(), "Failed to execute ANALYZE.");
                 }
                 finally {
                     U.close(stmt, log);

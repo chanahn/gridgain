@@ -7,10 +7,11 @@
  *  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
  */
 
-package org.gridgain.grid.kernal.processors.cache.distributed.replicated;
+package org.gridgain.grid.kernal.processors.cache.distributed.replicated.preloader;
 
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.typedef.internal.*;
+
 import java.io.*;
 
 /**
@@ -19,22 +20,31 @@ import java.io.*;
  * cache entries split into batches.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
-public class GridReplicatedPreloadRequest<K, V> extends GridCacheMessage<K, V> {
+class GridReplicatedPreloadDemandMessage<K, V> extends GridCacheMessage<K, V> {
     /** Partition. */
     private int part;
 
-    /** */
+    /** Mod. */
     private int mod;
 
-    /** */
+    /** Node count. */
     private int cnt;
+
+    /** Topic. */
+    private String topic;
+
+    /** Timeout. */
+    private long timeout;
+
+    /** Worker ID. */
+    private int workerId = -1;
 
     /**
      * Required by {@link Externalizable}.
      */
-    public GridReplicatedPreloadRequest() {
+    public GridReplicatedPreloadDemandMessage() {
         // No-op.
     }
 
@@ -42,11 +52,29 @@ public class GridReplicatedPreloadRequest<K, V> extends GridCacheMessage<K, V> {
      * @param part Partition.
      * @param mod Mod to use.
      * @param cnt Size to use.
+     * @param topic Topic.
+     * @param timeout Timeout.
+     * @param workerId Worker ID.
      */
-    public GridReplicatedPreloadRequest(int part, int mod, int cnt) {
+    GridReplicatedPreloadDemandMessage(int part, int mod, int cnt, String topic, long timeout, int workerId) {
         this.part = part;
         this.mod = mod;
         this.cnt = cnt;
+        this.topic = topic;
+        this.timeout = timeout;
+        this.workerId = workerId;
+    }
+
+    /**
+     * @param msg Message to copy from.
+     */
+    GridReplicatedPreloadDemandMessage(GridReplicatedPreloadDemandMessage msg) {
+        part = msg.partition();
+        mod = msg.mod();
+        cnt = msg.nodeCount();
+        topic = msg.topic();
+        timeout = msg.timeout();
+        workerId = msg.workerId();
     }
 
     /** {@inheritDoc} */
@@ -57,15 +85,14 @@ public class GridReplicatedPreloadRequest<K, V> extends GridCacheMessage<K, V> {
     /**
      * @return Partition.
      */
-    public int partition() {
+    int partition() {
         return part;
     }
 
     /**
-     *
      * @return Mod to use for key selection.
      */
-    public int mod() {
+    int mod() {
         return mod;
     }
 
@@ -73,8 +100,50 @@ public class GridReplicatedPreloadRequest<K, V> extends GridCacheMessage<K, V> {
      *
      * @return Number to use as a denominator when calculating a mod.
      */
-    public int nodeCount() {
+    int nodeCount() {
         return cnt;
+    }
+
+    /**
+     * @return Topic.
+     */
+    String topic() {
+        return topic;
+    }
+
+    /**
+     * @param topic Topic.
+     */
+    void topic(String topic) {
+        this.topic = topic;
+    }
+
+    /**
+     * @return Timeout.
+     */
+    long timeout() {
+        return timeout;
+    }
+
+    /**
+     * @param timeout Timeout.
+     */
+    void timeout(long timeout) {
+        this.timeout = timeout;
+    }
+
+    /**
+     * @return Worker ID.
+     */
+    int workerId() {
+        return workerId;
+    }
+
+    /**
+     * @param workerId Worker ID.
+     */
+    void workerId(int workerId) {
+        this.workerId = workerId;
     }
 
     /** {@inheritDoc} */
@@ -84,6 +153,9 @@ public class GridReplicatedPreloadRequest<K, V> extends GridCacheMessage<K, V> {
         out.writeInt(part);
         out.writeInt(mod);
         out.writeInt(cnt);
+        U.writeString(out, topic);
+        out.writeLong(timeout);
+        out.writeInt(workerId);
     }
 
     /** {@inheritDoc} */
@@ -93,10 +165,13 @@ public class GridReplicatedPreloadRequest<K, V> extends GridCacheMessage<K, V> {
         part = in.readInt();
         mod = in.readInt();
         cnt = in.readInt();
+        topic = U.readString(in);
+        timeout = in.readLong();
+        workerId = in.readInt();
     }
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(GridReplicatedPreloadRequest.class, this);
+        return S.toString(GridReplicatedPreloadDemandMessage.class, this);
     }
 }

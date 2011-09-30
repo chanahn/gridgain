@@ -35,7 +35,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Cache transaction manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     /** Maximum number of transactions that have completed (initialized to 100K). */
@@ -53,12 +53,10 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
         new ConcurrentSkipListMap<GridCacheVersion, GridCacheTxEx<K, V>>();
 
     /** All transactions. */
-    private final ConcurrentLinkedQueue<GridCacheTxEx<K, V>> committedQ =
-        new ConcurrentLinkedQueue<GridCacheTxEx<K, V>>();
+    private final Queue<GridCacheTxEx<K, V>> committedQ = new GridConcurrentLinkedDeque<GridCacheTxEx<K, V>>();
 
     /** Preparing transactions. */
-    private final ConcurrentLinkedQueue<GridCacheTxEx<K, V>> prepareQ =
-        new ConcurrentLinkedQueue<GridCacheTxEx<K, V>>();
+    private final Queue<GridCacheTxEx<K, V>> prepareQ = new GridConcurrentLinkedDeque<GridCacheTxEx<K, V>>();
 
     /** Minimum start version. */
     private final ConcurrentNavigableMap<GridCacheVersion, AtomicInt> startVerCnts =
@@ -349,26 +347,28 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
             return null;
         }
 
-        while (true) {
-            AtomicInt prev = startVerCnts.putIfAbsent(tx.startVersion(), new AtomicInt(1));
+        if (cctx.config().isTxSerializableEnabled()) {
+            while (true) {
+                AtomicInt prev = startVerCnts.putIfAbsent(tx.startVersion(), new AtomicInt(1));
 
-            // If there was a previous counter.
-            if (prev != null) {
-                assert prev.get() >= 0;
+                // If there was a previous counter.
+                if (prev != null) {
+                    assert prev.get() >= 0;
 
-                // Previous value was 0, which means that it will be deleted
-                // by another thread in "decrementStartVersionCount(..)" method.
-                // In that case, we delete here too, so we can safely try again.
-                if (prev.incrementAndGet() == 1) {
-                    if (startVerCnts.remove(tx.startVersion(), prev))
-                        if (log.isDebugEnabled())
-                            log.debug("Removed count from onCreated callback: " + tx);
+                    // Previous value was 0, which means that it will be deleted
+                    // by another thread in "decrementStartVersionCount(..)" method.
+                    // In that case, we delete here too, so we can safely try again.
+                    if (prev.incrementAndGet() == 1) {
+                        if (startVerCnts.remove(tx.startVersion(), prev))
+                            if (log.isDebugEnabled())
+                                log.debug("Removed count from onCreated callback: " + tx);
 
-                    continue;
+                        continue;
+                    }
                 }
-            }
 
-            break;
+                break;
+            }
         }
 
         if (tx.timeout() > 0) {
@@ -578,7 +578,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
 
         // Clean up committed transactions queue.
         if (tx.pessimistic() || tx.ec()) {
-            if (tx.enforceSerializable()) {
+            if (tx.enforceSerializable() && cctx.config().isTxSerializableEnabled()) {
                 for (Iterator<GridCacheTxEx<K, V>> it = committedQ.iterator(); it.hasNext();) {
                     GridCacheTxEx<K, V> committedTx = it.next();
 
@@ -588,9 +588,6 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
                     if (isSafeToForget(committedTx))
                         it.remove();
                 }
-
-                // Clean memory.
-                committedQ.peek();
             }
 
             if (tx.pessimistic())
@@ -598,7 +595,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
                 return;
         }
 
-        if (tx.optimistic() && tx.enforceSerializable()) {
+        if (cctx.config().isTxSerializableEnabled() && tx.optimistic() && tx.enforceSerializable()) {
             Set<K> readSet = tx.readSet();
             Set<K> writeSet = tx.writeSet();
 
@@ -686,9 +683,6 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
                     }
                 }
             }
-
-            // Clean memory.
-            prepareQ.peek();
         }
 
         assert tx.ec() || tx.optimistic();
@@ -923,7 +917,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
             processCompletedEntries(tx);
 
             // 3. Add to eviction policy queue prior to unlocking for proper ordering.
-            cctx.evicts().touch(tx);
+            cctx.evicts().touch(tx, false);
 
             // 3.1 Call dataStructures manager.
             cctx.dataStructures().onTxCommitted(tx);
@@ -942,11 +936,12 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
             tx.endVersion(cctx.versions().next());
 
             // 8. Clean start transaction number for this transaction.
-            decrementStartVersionCount(tx);
+            if (cctx.config().isTxSerializableEnabled())
+                decrementStartVersionCount(tx);
 
             // 9. Add to committed queue only if it is possible
             //    that this transaction can affect other ones.
-            if (!isSafeToForget(tx) && tx.enforceSerializable())
+            if (cctx.config().isTxSerializableEnabled() && tx.enforceSerializable() && !isSafeToForget(tx))
                 committedQ.add(tx);
 
             // 10. Remove from per-thread storage.
@@ -998,7 +993,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
 
         if (idMap.remove(tx.xidVersion(), tx)) {
             // 2. Add to eviction policy queue prior to unlocking for proper ordering.
-            cctx.evicts().touch(tx);
+            cctx.evicts().touch(tx, false);
 
             // 3. Unlock write resources.
             unlockMultiple(tx, tx.writeEntries());
@@ -1008,7 +1003,8 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
                 unlockMultiple(tx, tx.readEntries());
 
             // 5. Clean start transaction number for this transaction.
-            decrementStartVersionCount(tx);
+            if (cctx.config().isTxSerializableEnabled())
+                decrementStartVersionCount(tx);
 
             // 6. Remove from per-thread storage.
             threadMap.remove(tx.threadId(), tx);

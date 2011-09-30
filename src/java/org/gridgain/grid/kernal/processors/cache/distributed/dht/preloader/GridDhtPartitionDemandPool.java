@@ -41,13 +41,10 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * and populating local cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 @SuppressWarnings( {"NonConstantFieldWithUpperCaseName"})
 public class GridDhtPartitionDemandPool<K, V> {
-    /** Pause to wait for topology change. */
-    private static final long TOP_PAUSE = 1000;
-
     /** Dummy message to wake up a blocking queue if a node leaves. */
     private final SupplyMessage<K, V> DUMMY_TOP = new SupplyMessage<K, V>();
 
@@ -83,6 +80,9 @@ public class GridDhtPartitionDemandPool<K, V> {
 
     /** Allows demand threads to synchronize their step. */
     private final CyclicBarrier barrier;
+
+    /** Demand lock. */
+    private final ReadWriteLock demandLock = new ReentrantReadWriteLock();
 
     /** */
     private int poolSize;
@@ -419,9 +419,6 @@ public class GridDhtPartitionDemandPool<K, V> {
         /** Counter. */
         private long cntr;
 
-        /** Pause latch. */
-        private volatile CountDownLatch pauseLatch;
-
         /**
          * @param id Worker ID.
          */
@@ -440,11 +437,6 @@ public class GridDhtPartitionDemandPool<K, V> {
             assert assigns != null;
 
             assignQ.offer(assigns);
-
-            CountDownLatch l = pauseLatch;
-
-            if (l != null)
-                l.countDown();
 
             if (log.isDebugEnabled())
                 log.debug("Added assignments to worker: " + this);
@@ -807,17 +799,8 @@ public class GridDhtPartitionDemandPool<K, V> {
             }
         }
 
-        /**
-         * @throws InterruptedException If interrupted.
-         */
-        private void pause() throws InterruptedException {
-            CountDownLatch l = pauseLatch = new CountDownLatch(1);
-
-            l.await(TOP_PAUSE, MILLISECONDS);
-        }
-
         /** {@inheritDoc} */
-        @SuppressWarnings( {"ThrowFromFinallyBlock"})
+        @SuppressWarnings({"ThrowFromFinallyBlock", "LockAcquiredButNotSafelyReleased"})
         @Override protected void body() throws InterruptedException, GridInterruptedException {
             syncFut.addWatch("PRELOAD_SYNC");
 
@@ -836,11 +819,28 @@ public class GridDhtPartitionDemandPool<K, V> {
                     }
 
                     // Sync up all demand threads at this step.
-                    Assignments assigns = take(assignQ);
+                    Assignments assigns = null;
 
-                    exchFut = assigns.exchangeFuture();
+                    while (assigns == null) {
+                        assigns = poll(assignQ, cctx.gridConfig().getNetworkTimeout());
+
+                        if (assigns == null) {
+                            if (demandLock.writeLock().tryLock()) {
+                                try {
+                                    cctx.deploy().unwind();
+                                }
+                                finally {
+                                    demandLock.writeLock().unlock();
+                                }
+                            }
+                        }
+                    }
+
+                    demandLock.readLock().lock();
 
                     try {
+                        exchFut = assigns.exchangeFuture();
+
                         // Assignments are empty if preloading is disabled.
                         if (assigns.isEmpty())
                             continue;
@@ -906,6 +906,8 @@ public class GridDhtPartitionDemandPool<K, V> {
                         }
                     }
                     finally {
+                        demandLock.readLock().unlock();
+
                         syncFut.onWorkerDone(this);
                     }
                 }

@@ -34,7 +34,7 @@ import java.util.*;
  * default configuration.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.22092011
+ * @version 3.5.0c.30092011
  */
 public interface GridCacheConfiguration {
     /** Default query log name. */
@@ -85,6 +85,15 @@ public interface GridCacheConfiguration {
 
     /** Default value for 'nearEnabled' flag. */
     public static final boolean DFLT_NEAR_ENABLED = true;
+
+    /** Default value for 'nearEvictionEnabled' flag. */
+    public static final boolean DFLT_NEAR_EVICTION_ENABLED = true;
+
+    /** Default value for 'evictionEnabled' flag. */
+    public static final boolean DFLT_EVICTION_ENABLED = true;
+
+    /** Default value for 'txSerializableEnabled' flag. */
+    public static final boolean DFLT_TX_SERIALIZABLE_ENABLED = false;
 
     /** Default value for 'txBatchUpdate' flag. */
     public static final boolean DFLT_TX_BATCH_UPDATE = true;
@@ -159,7 +168,7 @@ public interface GridCacheConfiguration {
     public static final boolean DFLT_SYNC_ROLLBACK = false;
 
     /** Default value for 'swapEnabled' flag. */
-    public static final boolean DFLT_SWAP_ENABLED = true;
+    public static final boolean DFLT_SWAP_ENABLED = false;
 
     /** Default value for 'storeEnabled' flag. */
     public static final boolean DFLT_STORE_ENABLED = true;
@@ -327,6 +336,15 @@ public interface GridCacheConfiguration {
     public <K> GridCacheAffinity<K> getAffinity();
 
     /**
+     * Gets flag to enable/disable {@link GridCacheTxIsolation#SERIALIZABLE} isolation
+     * level for cache transactions. Serializable level does carry certain overhead and
+     * if not used, should be disabled. Default value is {@code false}.
+     *
+     * @return {@code True} if serializable transactions are enabled, {@code false} otherwise.
+     */
+    public boolean isTxSerializableEnabled();
+
+    /**
      * If {@code true}, then all transactional values will be written to persistent
      * storage at {@link GridCacheTx#commit()} phase. If {@code false}, then values
      * will be persisted after every operation. Default value is {@code true}.
@@ -400,7 +418,8 @@ public interface GridCacheConfiguration {
     /**
      * Gets size (in number bytes) to be loaded within a single preload message.
      * Preloading algorithm will split total data set on every node into multiple
-     * batches prior to sending data.
+     * batches prior to sending data. Default value is defined by
+     * {@link #DFLT_PRELOAD_BATCH_SIZE}.
      *
      * @return Size in bytes of a single preload message.
      */
@@ -508,6 +527,8 @@ public interface GridCacheConfiguration {
      * Gets frequency of running H2 "ANALYZE" command in order to update
      * selectivity statistics of H2 database tables. Default value is
      * defined by {@link #DFLT_IDX_ANALYZE_FREQ} and equals to 10 minutes.
+     * <p>
+     * To disable query analyzing, set to {@code 0}
      *
      * @return Frequency (in milliseconds) for running H2 "ANALYZE" command.
      */
@@ -595,14 +616,13 @@ public interface GridCacheConfiguration {
     public boolean isSynchronousRollback();
 
     /**
-     * Flag indicating whether GridGain should use swap storage by default if user did not
-     * specify this explicitly using those methods whether it is possible.
+     * Flag indicating whether GridGain should use swap storage by default. By default
+     * swap is disabled which is defined via {@link #DFLT_SWAP_ENABLED} constant.
      * <p>
      * Note that this flag may be overridden for cache projection created with flag
      * {@link GridCacheFlag#SKIP_SWAP}.
      *
-     * @return {@code true} if swap storage is used by default for those methods that may
-     *      read from or write to it.
+     * @return {@code True} if swap storage is enabled by default.
      */
     public boolean isSwapEnabled();
 
@@ -655,4 +675,27 @@ public interface GridCacheConfiguration {
      * @return Atomic sequence reservation size.
      */
     public int getAtomicSequenceReserveSize();
+
+    /**
+     * Flag to enable/disable near cache eviction policy. Default is {@code true}, which means that
+     * eviction policy for near cache is enabled. If set to {@code false}, then evictions for
+     * near cache will not happen even if {@link #getNearEvictionPolicy()} was set.
+     * <p>
+     * Note that this property only makes sense for {@link GridCacheMode#PARTITIONED PARTITIONED} caches.
+     *
+     * @return {@code True} if near eviction policy is enabled, {@code false} otherwise.
+     */
+    public boolean isNearEvictionEnabled();
+
+    /**
+     * Flag to enable/disable cache eviction policy. Default is {@code true}, which means that
+     * eviction policy for cache is enabled. If set to {@code false}, then evictions
+     * will not happen even if {@link #getEvictionPolicy()} was set.
+     * <p>
+     * Note that handling evictions does carry certain overhead, so it is recommended to set
+     * this property to {@code false} if you are not planning to evict entries from cache.
+     *
+     * @return {@code True} if eviction policy is enabled, {@code false} otherwise.
+     */
+    public boolean isEvictionEnabled();
 }
