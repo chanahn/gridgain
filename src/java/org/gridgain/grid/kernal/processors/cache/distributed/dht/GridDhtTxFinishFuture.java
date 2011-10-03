@@ -30,10 +30,13 @@ import java.util.concurrent.atomic.*;
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridDhtTxFinishFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTx>
+public final class GridDhtTxFinishFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTx>
     implements GridCacheFuture<GridCacheTx> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Context. */
     private GridCacheContext<K, V> cctx;
 
@@ -98,7 +101,7 @@ public class GridDhtTxFinishFuture<K, V> extends GridCompoundIdentityFuture<Grid
 
         futId = GridUuid.randomUuid();
 
-        log = cctx.logger(getClass());
+        log = U.logger(ctx, logRef, GridDhtTxFinishFuture.class);
     }
 
     /** {@inheritDoc} */

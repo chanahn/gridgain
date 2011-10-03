@@ -30,14 +30,14 @@ import static java.util.concurrent.TimeUnit.*;
  * Future adapter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements GridFuture<R>, Externalizable {
     /** Synchronous notification flag. */
-    private static final boolean SYNC_NOTIFY = U.isFutureNotificationSynchronous();
+    private static final boolean SYNC_NOTIFY = U.isFutureNotificationSynchronous("true");
 
     /** Concurrent notification flag. */
-    private static final boolean CONCUR_NOTIFY = U.isFutureNotificationConcurrent();
+    private static final boolean CONCUR_NOTIFY = U.isFutureNotificationConcurrent("false");
 
     /** Done flag. */
     private boolean done;

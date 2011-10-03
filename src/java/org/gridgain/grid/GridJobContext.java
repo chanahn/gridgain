@@ -51,7 +51,7 @@ import java.util.concurrent.*;
  * Attribute names that start with {@code "gridgain:"} are reserved for internal system use.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public interface GridJobContext extends GridJobContinuation, GridMetadataAware {
     /**
@@ -84,7 +84,7 @@ public interface GridJobContext extends GridJobContinuation, GridMetadataAware {
      * @see GridProjection#affinityRunAsync(String, Collection, Runnable, GridPredicate[])
      * @see GridProjection#affinityRunAsync(String, Collection, Runnable, GridPredicate[])
      */
-    public Object affinityKey();
+    public <T> T affinityKey();
 
     /**
      * Gets ID of the job this context belongs to.

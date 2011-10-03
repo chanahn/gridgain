@@ -22,15 +22,19 @@ import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.atomic.*;
 
 /**
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collection<GridCacheEntryInfo<K, V>>>
+public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collection<GridCacheEntryInfo<K, V>>>
     implements GridDhtFuture<Collection<GridCacheEntryInfo<K, V>>> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Message ID. */
     private long msgId;
 
@@ -41,7 +45,7 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
     private boolean reload;
 
     /** Context. */
-    private GridCacheContext<K, V> ctx;
+    private GridCacheContext<K, V> cctx;
 
     /** Keys. */
     private Collection<? extends K> keys;
@@ -74,7 +78,7 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
     }
 
     /**
-     * @param ctx Context.
+     * @param cctx Context.
      * @param msgId Message ID.
      * @param reader Reader.
      * @param keys Keys.
@@ -83,22 +87,21 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
      * @param filters Filters.
      */
     public GridDhtGetFuture(
-        GridCacheContext<K, V> ctx,
+        GridCacheContext<K, V> cctx,
         long msgId,
         UUID reader,
         Collection<? extends K> keys,
         boolean reload,
         @Nullable GridCacheTxLocalEx<K, V> tx,
-        @Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filters
-    ) {
-        super(ctx.kernalContext(), CU.<GridCacheEntryInfo<K, V>>collectionsReducer());
+        @Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filters) {
+        super(cctx.kernalContext(), CU.<GridCacheEntryInfo<K, V>>collectionsReducer());
 
         assert reader != null;
-        assert ctx != null;
+        assert cctx != null;
         assert !F.isEmpty(keys);
 
         this.reader = reader;
-        this.ctx = ctx;
+        this.cctx = cctx;
         this.msgId = msgId;
         this.keys = keys;
         this.reload = reload;
@@ -107,9 +110,9 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
 
         futId = GridUuid.randomUuid();
 
-        ver = tx == null ? ctx.versions().next() : tx.xidVersion();
+        ver = tx == null ? cctx.versions().next() : tx.xidVersion();
 
-        log = ctx.logger(getClass());
+        log = U.logger(ctx, logRef, GridDhtGetFuture.class);
 
         syncNotify(true);
     }
@@ -166,12 +169,12 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
      * @param keys Keys.
      */
     private void map(final Collection<? extends K> keys) {
-        GridDhtFuture<Object> fut = ctx.dht().dhtPreloader().request(keys);
+        GridDhtFuture<Object> fut = cctx.dht().dhtPreloader().request(keys);
 
         if (!F.isEmpty(fut.invalidPartitions()))
             retries.addAll(fut.invalidPartitions());
 
-        add(new GridEmbeddedFuture<Collection<GridCacheEntryInfo<K, V>>, Object>(ctx.kernalContext(), fut,
+        add(new GridEmbeddedFuture<Collection<GridCacheEntryInfo<K, V>>, Object>(cctx.kernalContext(), fut,
             new GridClosure2<Object, Exception, Collection<GridCacheEntryInfo<K, V>>>() {
                 @Override public Collection<GridCacheEntryInfo<K, V>> apply(Object o, Exception e) {
                     if (e != null) { // Check error first.
@@ -186,7 +189,7 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
                     // Assign keys to primary nodes.
                     for (K key : keys)
                         if (!map(key, parts, mappedKeys))
-                            retries.add(ctx.partition(key));
+                            retries.add(cctx.partition(key));
 
                     // Add new future.
                     add(getAsync(mappedKeys));
@@ -231,7 +234,7 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
     @SuppressWarnings( {"unchecked", "IfMayBeConditional"})
     private GridFuture<Collection<GridCacheEntryInfo<K, V>>> getAsync(final Collection<K> keys) {
         if (F.isEmpty(keys))
-            return new GridFinishedFuture<Collection<GridCacheEntryInfo<K, V>>>(ctx.kernalContext(),
+            return new GridFinishedFuture<Collection<GridCacheEntryInfo<K, V>>>(cctx.kernalContext(),
                 Collections.<GridCacheEntryInfo<K, V>>emptyList());
 
         final Collection<GridCacheEntryInfo<K, V>> infos = new LinkedList<GridCacheEntryInfo<K, V>>();
@@ -255,7 +258,7 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
 
                     if (f != null) {
                         if (txFut == null)
-                            txFut = new GridCompoundFuture<Boolean, Boolean>(ctx.kernalContext(), CU.boolReducer());
+                            txFut = new GridCompoundFuture<Boolean, Boolean>(cctx.kernalContext(), CU.boolReducer());
 
                         txFut.add(f);
                     }
@@ -299,10 +302,10 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
                             return tx == null ? cache().getAllAsync(keys, filters) : tx.getAllAsync(keys, filters);
                     }
                 },
-                ctx.kernalContext());
+                cctx.kernalContext());
         }
 
-        return new GridEmbeddedFuture<Collection<GridCacheEntryInfo<K, V>>, Map<K, V>>(ctx.kernalContext(), fut,
+        return new GridEmbeddedFuture<Collection<GridCacheEntryInfo<K, V>>, Map<K, V>>(cctx.kernalContext(), fut,
             new C2<Map<K, V>, Exception, Collection<GridCacheEntryInfo<K, V>>>() {
                 @Override public Collection<GridCacheEntryInfo<K, V>> apply(Map<K, V> map, Exception e) {
                     if (e != null) {
@@ -332,6 +335,6 @@ public class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collectio
      * @return DHT cache.
      */
     private GridDhtCache<K, V> cache() {
-        return (GridDhtCache<K, V>)ctx.cache();
+        return (GridDhtCache<K, V>)cctx.cache();
     }
 }

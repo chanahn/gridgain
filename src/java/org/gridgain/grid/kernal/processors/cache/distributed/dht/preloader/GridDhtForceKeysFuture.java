@@ -31,10 +31,13 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * Force keys request future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Object, Collection<K>>
+public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Object, Collection<K>>
     implements GridDhtFuture<Collection<K>> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Wait for 1 second for topology to change. */
     private static final long REMAP_PAUSE = 1000;
 
@@ -74,7 +77,7 @@ public class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Object, Col
 
         top = cctx.dht().topology();
 
-        log = cctx.logger(getClass());
+        log = U.logger(ctx, logRef, GridDhtForceKeysFuture.class);
 
         syncNotify(true);
     }

@@ -17,14 +17,18 @@ import org.gridgain.grid.util.future.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * Future which waits for completion of one or more transactions.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridCacheMultiTxFuture<K, V> extends GridFutureAdapter<Boolean> {
+public final class GridCacheMultiTxFuture<K, V> extends GridFutureAdapter<Boolean> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Transactions to wait for. */
     private final Set<GridCacheTxEx<K, V>> txs = new GridLeanSet<GridCacheTxEx<K, V>>();
 
@@ -40,7 +44,7 @@ public class GridCacheMultiTxFuture<K, V> extends GridFutureAdapter<Boolean> {
     public GridCacheMultiTxFuture(GridCacheContext<K, V> cctx) {
         super(cctx.kernalContext());
 
-        log = cctx.logger(getClass());
+        log = U.logger(ctx,  logRef, GridCacheMultiTxFuture.class);
 
         // Notify listeners in different threads.
         concurrentNotify(true);

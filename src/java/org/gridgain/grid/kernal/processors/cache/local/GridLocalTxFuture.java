@@ -28,16 +28,19 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Replicated cache transaction future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
+final class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
     implements GridCacheMvccFuture<K, V, GridCacheTxEx<K, V>> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Future ID. */
     private GridUuid futId = GridUuid.randomUuid();
 
     /** Cache. */
     @GridToStringExclude
-    private GridCacheContext<K, V> ctx;
+    private GridCacheContext<K, V> cctx;
 
     /** Cache transaction. */
     @GridToStringExclude // Need to exclude due to circular dependencies.
@@ -61,21 +64,21 @@ class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
     }
 
     /**
-     * @param ctx Context.
+     * @param cctx Context.
      * @param tx Cache transaction.
      */
     GridLocalTxFuture(
-        GridCacheContext<K, V> ctx,
+        GridCacheContext<K, V> cctx,
         GridLocalTx<K, V> tx) {
-        super(ctx.kernalContext());
+        super(cctx.kernalContext());
 
-        assert ctx != null;
+        assert cctx != null;
         assert tx != null;
 
-        this.ctx = ctx;
+        this.cctx = cctx;
         this.tx = tx;
 
-        log = ctx.logger(getClass());
+        log = U.logger(ctx, logRef,  GridLocalTxFuture.class);
     }
 
     /** {@inheritDoc} */
@@ -197,7 +200,7 @@ class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
                             log.debug("Got removed entry in checkLocks method (will retry): " + txEntry);
                         }
 
-                        txEntry.cached(ctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
+                        txEntry.cached(cctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
                     }
                 }
             }
@@ -249,7 +252,7 @@ class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
                             log.debug("Got removed entry in onOwnerChanged method (will retry): " + txEntry);
                         }
 
-                        txEntry.cached(ctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
+                        txEntry.cached(cctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
                     }
                 }
             }
@@ -346,7 +349,7 @@ class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
      */
     private void onComplete() {
         if (onDone(tx, err.get())) {
-            ctx.mvcc().removeFuture(this);
+            cctx.mvcc().removeFuture(this);
         }
     }
 

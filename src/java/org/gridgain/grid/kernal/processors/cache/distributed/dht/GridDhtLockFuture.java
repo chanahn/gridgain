@@ -33,10 +33,13 @@ import java.util.concurrent.atomic.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
+public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
     implements GridCacheMvccLockFuture<K, V, Boolean>, GridDhtFuture<Boolean>, GridCacheMappedVersion {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Cache registry. */
     @GridToStringExclude
     private GridCacheContext<K, V> cctx;
@@ -169,7 +172,7 @@ public class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
 
         entries = new ArrayList<GridDhtCacheEntry<K, V>>(cnt);
 
-        log = cctx.logger(getClass());
+        log = U.logger(ctx, logRef, GridDhtLockFuture.class);
 
         if (timeout > 0) {
             timeoutObj = new LockTimeoutObject();

@@ -30,16 +30,19 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Replicated cache transaction future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
+public final class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
     implements GridCacheFuture<GridCacheTxEx<K, V>> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Future ID. */
     private GridUuid futId = GridUuid.randomUuid();
 
     /** Cache registry. */
     @GridToStringExclude
-    private GridCacheContext<K, V> ctx;
+    private GridCacheContext<K, V> cctx;
 
     /** Cache transaction. */
     @GridToStringExclude // Need to exclude due to circular dependencies.
@@ -71,20 +74,20 @@ public class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter<GridC
     }
 
     /**
-     * @param ctx Cache context.
+     * @param cctx Cache context.
      * @param tx Cache transaction.
      * @param nodes Nodes to expect replies from.
      */
     public GridReplicatedTxPrepareFuture(
-        GridCacheContext<K, V> ctx,
+        GridCacheContext<K, V> cctx,
         GridCacheTxLocalEx<K, V> tx,
         Collection<GridRichNode> nodes) {
-        super(ctx.kernalContext());
+        super(cctx.kernalContext());
 
         assert tx != null;
         assert nodes != null;
 
-        this.ctx = ctx;
+        this.cctx = cctx;
         this.tx = tx;
         this.nodes = nodes;
 
@@ -92,7 +95,7 @@ public class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter<GridC
 
         replyCnt = new AtomicInteger(nodes.size());
 
-        log = ctx.logger(getClass());
+        log = U.logger(ctx, logRef, GridReplicatedTxPrepareFuture.class);
     }
 
     /** {@inheritDoc} */
@@ -246,7 +249,7 @@ public class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter<GridC
                                 log.debug("Got removed entry in future onResult method (will retry): " + txEntry);
                             }
 
-                            txEntry.cached(ctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
+                            txEntry.cached(cctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
                         }
                     }
                 }
@@ -285,7 +288,7 @@ public class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter<GridC
                             log.debug("Got removed entry in future onAllReplies method (will retry): " + txEntry);
                         }
 
-                        txEntry.cached(ctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
+                        txEntry.cached(cctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
                     }
                 }
             }
@@ -303,7 +306,7 @@ public class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter<GridC
         // Attempt rollback.
         if (onCancelled()) {
             // Clean up.
-            ctx.mvcc().removeFuture(this);
+            cctx.mvcc().removeFuture(this);
 
             try {
                 tx.rollback();
@@ -328,7 +331,7 @@ public class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter<GridC
     private void onComplete() {
         if (onDone(tx, err.get())) {
             // Clean up.
-            ctx.mvcc().removeFuture(this);
+            cctx.mvcc().removeFuture(this);
         }
     }
 

@@ -35,10 +35,13 @@ import static org.gridgain.grid.GridEventType.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
+public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
     implements GridCacheMvccLockFuture<K, V, Boolean> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Cache registry. */
     @GridToStringExclude
     private GridCacheContext<K, V> cctx;
@@ -147,7 +150,7 @@ public class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean
 
         entries = new ArrayList<GridDistributedCacheEntry<K, V>>(keys.size());
 
-        log = cctx.logger(getClass());
+        log = U.logger(ctx, logRef, GridNearLockFuture.class);
 
         if (timeout > 0) {
             timeoutObj = new LockTimeoutObject();

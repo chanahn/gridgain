@@ -25,15 +25,19 @@ import org.jetbrains.annotations.*;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 /**
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Map<K, V>>
+public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Map<K, V>>
     implements GridCacheFuture<Map<K, V>> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Context. */
     private GridCacheContext<K, V> cctx;
 
@@ -89,7 +93,7 @@ public class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Map<K, V
 
         ver = tx == null ? cctx.versions().next() : tx.xidVersion();
 
-        log = cctx.logger(getClass());
+        log = U.logger(ctx, logRef, GridNearGetFuture.class);
     }
 
     /**

@@ -23,21 +23,25 @@ import org.gridgain.grid.util.future.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * Query future adapter.
  *
  * @param <R> Result type.
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAdapter<Collection<R>>
     implements GridCacheQueryFuture<R>, GridTimeoutObject {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** */
     private static final Object NULL = new Object();
 
     /** Cache context. */
-    protected GridCacheContext<K, V> ctx;
+    protected GridCacheContext<K, V> cctx;
 
     /** Logger. */
     protected GridLogger log;
@@ -95,7 +99,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
     }
 
     /**
-     * @param ctx Context.
+     * @param cctx Context.
      * @param qry Query.
      * @param loc Local query or not.
      * @param single Single result or not.
@@ -104,23 +108,23 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
      * @param pageLsnr Page listener which is executed each time on page arrival.
      */
     @SuppressWarnings("unchecked")
-    protected GridCacheQueryFutureAdapter(GridCacheContext<K, V> ctx, GridCacheQueryBaseAdapter<K, V> qry,
+    protected GridCacheQueryFutureAdapter(GridCacheContext<K, V> cctx, GridCacheQueryBaseAdapter<K, V> qry,
         boolean loc, boolean single, boolean rmtRdcOnly, @Nullable GridInClosure2<UUID, Collection<R>> pageLsnr) {
-        super(ctx.kernalContext());
+        super(cctx.kernalContext());
 
-        this.ctx = ctx;
+        this.cctx = cctx;
         this.qry = qry;
         this.loc = loc;
         this.single = single;
         this.pageLsnr = pageLsnr;
 
-        log = ctx.logger(getClass());
+        log = U.logger(ctx, logRef, GridCacheQueryFutureAdapter.class);
 
         startTime = System.currentTimeMillis();
 
         endTime = startTime + qry.timeout();
 
-        ctx.time().addTimeoutObject(this);
+        cctx.time().addTimeoutObject(this);
 
         if (qry instanceof GridCacheReduceQueryAdapter) {
             GridCacheReduceQueryAdapter rdcQry = (GridCacheReduceQueryAdapter)qry;
@@ -142,7 +146,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
 
     /** {@inheritDoc} */
     @Override public boolean onDone(Collection<R> res, Throwable err) {
-        ctx.time().removeTimeoutObject(this);
+        cctx.time().removeTimeoutObject(this);
 
         qry.onExecuted(res, err, startTime(), duration());
 

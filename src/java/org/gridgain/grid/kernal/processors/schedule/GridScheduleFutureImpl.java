@@ -32,7 +32,7 @@ import static java.util.concurrent.TimeUnit.*;
  * Implementation of {@link GridScheduleFuture} interface.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 class GridScheduleFutureImpl<R> extends GridMetadataAwareAdapter implements GridScheduleFuture<R>, Externalizable {
     /** Empty time array. */
@@ -101,10 +101,10 @@ class GridScheduleFutureImpl<R> extends GridMetadataAwareAdapter implements Grid
     private int lastLsnrExecCnt;
 
     /** Synchronous notification flag. */
-    private volatile boolean syncNotify = U.isFutureNotificationSynchronous();
+    private volatile boolean syncNotify = U.isFutureNotificationSynchronous("true");
 
     /** Concurrent notification flag. */
-    private volatile boolean concurNotify = U.isFutureNotificationConcurrent();
+    private volatile boolean concurNotify = U.isFutureNotificationConcurrent("false");
 
     /** Mutex. */
     private final Object mux = new Object();

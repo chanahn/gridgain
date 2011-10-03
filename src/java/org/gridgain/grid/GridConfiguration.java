@@ -52,7 +52,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * property.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public interface GridConfiguration {
     /**
@@ -111,6 +111,9 @@ public interface GridConfiguration {
 
     /** Default value for all segmentation resolvers pass required. */
     public static final boolean DFLT_ALL_SEG_RESOLVERS_PASS_REQ = true;
+
+    /** Default value segmentation resolve attempts count. */
+    public static final int DFLT_SEG_RESOLVE_ATTEMPTS = 2;
 
     /** Default segment check frequency in discovery manager. */
     public static final int DFLT_SEG_CHK_FREQ = 10000;
@@ -443,13 +446,24 @@ public interface GridConfiguration {
     public GridDiscoverySpi getDiscoverySpi();
 
     /**
+     * Gets segmentation resolve attempts. Each configured resolver will have
+     * this attempts number to pass segmentation check prior to check failure.
+     *
+     * Default is {@link #DFLT_SEG_RESOLVE_ATTEMPTS}.
+     *
+     * @return Segmentation resolve attempts.
+     */
+    @GridEnterpriseFeature
+    public int getSegmentationResolveAttempts();
+
+    /**
      * Returns a collection of segmentation resolvers.
      * If array is {@code null} or empty, segmentation check is disabled.
      *
      * @return Segmentation resolvers.
      */
     @GridEnterpriseFeature
-    public GridSegmentationResolver[] getSegmentationResolvers();
+    @Nullable public GridSegmentationResolver[] getSegmentationResolvers();
 
     /**
      * Gets wait for segment on startup flag. Default is {@link #DFLT_WAIT_FOR_SEG_ON_START}.

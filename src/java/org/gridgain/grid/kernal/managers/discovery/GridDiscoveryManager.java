@@ -37,7 +37,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * Discovery SPI manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     /** System line separator. */
@@ -93,8 +93,11 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     /** Interrupt reconnect thread flag. */
     private final AtomicBoolean intReconThread = new AtomicBoolean();
 
+    /** Last segment check result. */
+    private final AtomicBoolean lastSegChkRes = new AtomicBoolean(true);
+
     /** */
-    private AtomicReference<DiscoCache> discoCache = new AtomicReference<DiscoCache>();
+    private final AtomicReference<DiscoCache> discoCache = new AtomicReference<DiscoCache>();
 
     /**
      * @param ctx Context.
@@ -240,18 +243,11 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
             log.debug("Starting network segment check.");
 
         while (true) {
-            GridException err = null;
-
-            try {
-                if (ctx.segmentation().isValidSegment())
-                    break;
-            }
-            catch (GridException e) {
-                err = e;
-            }
+            if (ctx.segmentation().isValidSegment())
+                break;
 
             if (ctx.config().isWaitForSegmentOnStart()) {
-                LT.error(log, err, "Failed to check network segment (retrying every 2000 ms).");
+                LT.warn(log, null, "Failed to check network segment (retrying every 2000 ms).");
 
                 // Wait and check again.
                 try {
@@ -262,8 +258,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                 }
             }
             else
-                throw new GridException("Failed to check network segment.", err);
-
+                throw new GridException("Failed to check network segment.");
         }
 
         if (log.isDebugEnabled())
@@ -683,37 +678,17 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
             assert timeout > 0;
 
             while (!isCancelled()) {
-                if (log.isDebugEnabled())
-                    log.debug("Starting background segment check.");
+                if (lastSegChkRes.get()) {
+                    boolean segValid = ctx.segmentation().isValidSegment();
 
-                boolean segValid = false;
+                    if (!segValid) {
+                        discoWrk.addEvent(EVT_NODE_SEGMENTED, getSpi().getLocalNode());
 
-                try {
-                    segValid = ctx.segmentation().isValidSegment();
+                        lastSegChkRes.set(false);
+                    }
                 }
-                catch (GridException e) {
-                    LT.error(log, e, "Failed to check network segment.");
-                }
-
-                if (!segValid)
-                    discoWrk.addEvent(EVT_NODE_SEGMENTED, getSpi().getLocalNode());
-
-                if (log.isDebugEnabled())
-                    log.debug("Finished background segment check with result: " + segValid);
 
                 Thread.sleep(timeout);
-
-                if (ctx.config().getSegmentationPolicy() == NOOP && segGuard.get()) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Stopping network segment check worker since segment is incorrect " +
-                            "and policy is 'NOOP'");
-                    }
-
-                    return;
-                }
-
-                // If reconnect initiated, wait until it ends.
-                U.join(reconThread, log);
             }
         }
 
@@ -728,11 +703,8 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
      */
     private class DiscoveryWorker extends GridWorker {
         /** Event queue. */
-        private final BlockingDeque<GridTuple2<Integer, GridNode>> evts =
-            new LinkedBlockingDeque<GridTuple2<Integer, GridNode>>();
-
-        /* Ignore events if network segment is incorrect. */
-        private boolean ignore;
+        private final BlockingQueue<GridTuple2<Integer, GridNode>> evts =
+            new LinkedBlockingQueue<GridTuple2<Integer, GridNode>>();
 
         /** Node segmented event fired flag. */
         private boolean nodeSegFired;
@@ -782,22 +754,22 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
 
                 if (type == EVT_NODE_METRICS_UPDATED)
                     evt.message("Metrics were updated: " + node);
+
                 else if (type == EVT_NODE_JOINED)
                     evt.message("Node joined: " + node);
+
                 else if (type == EVT_NODE_LEFT)
                     evt.message("Node left: " + node);
+
                 else if (type == EVT_NODE_FAILED)
                     evt.message("Node failed: " + node);
-                else if (type == EVT_NODE_SEGMENTED) {
+
+                else if (type == EVT_NODE_SEGMENTED)
                     evt.message("Node segmented: " + node);
 
-                    nodeSegFired = true;
-                }
-                else if (type == EVT_NODE_RECONNECTED) {
+                else if (type == EVT_NODE_RECONNECTED)
                     evt.message("Node reconnected: " + node);
 
-                    nodeSegFired = false;
-                }
                 else
                     assert false;
 
@@ -812,10 +784,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         void addEvent(int type, GridNode node) {
             assert node != null;
 
-            if (type == EVT_NODE_SEGMENTED)
-                evts.addFirst(F.t(EVT_NODE_SEGMENTED, node));
-            else
-                evts.add(F.t(type, node));
+            evts.add(F.t(type, node));
         }
 
         /**
@@ -833,35 +802,22 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
 
         /**
          * Checks whether network segment is correct.
-         *
-         * @return {@code True} if segment is correct.
+         * <p>
+         * This check is intended to be performed on nodes leaves/failures.
          */
-        private boolean isSegmentValid() {
+        private void checkSegment() {
             if (!segChkEnabled)
-                return true;
+                return;
 
-            boolean segValid = false;
+            if (lastSegChkRes.get()) {
+                boolean segValid = ctx.segmentation().isValidSegment();
 
-            try {
-                segValid = ctx.segmentation().isValidSegment();
+                if (!segValid) {
+                    addEvent(EVT_NODE_SEGMENTED, localNode());
+
+                    lastSegChkRes.set(false);
+                }
             }
-            catch (GridException e) {
-                LT.error(log, e, "Failed to check network segment.");
-            }
-
-            if (!segValid) {
-                // Ignore further disco events, unless reconnect received.
-                ignore = ctx.config().getSegmentationPolicy() != NOOP;
-
-                onSegmentation();
-
-                // Record event here, prior to NODE_LEFT/NODE_FAILURE.
-                U.warn(log, "Local node SEGMENTED: " + localNode());
-
-                recordEvent(EVT_NODE_SEGMENTED, localNode());
-            }
-
-            return segValid;
         }
 
         /** {@inheritDoc} */
@@ -878,13 +834,6 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
 
                 switch (type) {
                     case EVT_NODE_JOINED: {
-                        if (ignore) {
-                            if (log.isDebugEnabled())
-                                log.debug("Ignored notification from SPI [type=EVT_NODE_JOINED, node=" + node + ']');
-
-                            continue;
-                        }
-
                         if (!isDaemon)
                             if (!isLocDaemon) {
                                 if (log.isQuiet())
@@ -905,12 +854,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                     }
 
                     case EVT_NODE_LEFT: {
-                        if (ignore || !isSegmentValid()) {
-                            if (log.isDebugEnabled())
-                                log.debug("Ignored notification from SPI [type=EVT_NODE_LEFT, node=" + node + ']');
-
-                            continue;
-                        }
+                        checkSegment();
 
                         if (!isDaemon)
                             if (!isLocDaemon) {
@@ -930,12 +874,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                     }
 
                     case EVT_NODE_FAILED: {
-                        if (ignore || !isSegmentValid()) {
-                            if (log.isDebugEnabled())
-                                log.debug("Ignored notification from SPI [type=EVT_NODE_FAILED, node=" + node + ']');
-
-                            continue;
-                        }
+                        checkSegment();
 
                         if (!isDaemon)
                             if (!isLocDaemon) {
@@ -954,16 +893,18 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                     case EVT_NODE_SEGMENTED: {
                         assert F.eqNodes(locNode, node);
 
-                        if (ignore || nodeSegFired) {
+                        if (nodeSegFired) {
                             if (log.isDebugEnabled()) {
-                                log.debug("Ignored node disconnected event [type=EVT_NODE_DISCONNECTED, " +
+                                log.debug("Ignored node segmented event [type=EVT_NODE_SEGMENTED, " +
                                     "node=" + node + ']');
                             }
 
                             continue;
                         }
-                        else
-                            ignore = ctx.config().getSegmentationPolicy() != NOOP;
+
+                        // Ignore all further EVT_NODE_SEGMENTED events
+                        // until EVT_NODE_RECONNECTED is fired.
+                        nodeSegFired = true;
 
                         lastLoggedTop.set(0);
 
@@ -978,12 +919,19 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                     }
 
                     case EVT_NODE_RECONNECTED: {
-                        ignore = false;
-
                         // Refresh local node.
                         locNode = getSpi().getLocalNode();
 
                         assert F.eqNodes(locNode, node);
+
+                        // Re-init disco cache.
+                        discoCache.set(new DiscoCache(localNode(), getSpi().getRemoteNodes()));
+
+                        // Do not ignore EVT_NODE_SEGMENTED events any more.
+                        nodeSegFired = false;
+
+                        // Allow background segment check.
+                        lastSegChkRes.set(true);
 
                         if (!isLocDaemon) {
                             if (log.isQuiet())
@@ -1018,20 +966,18 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
             if (segGuard.compareAndSet(false, true)) {
                 GridSegmentationPolicy segPlc = ctx.config().getSegmentationPolicy();
 
-                if (segPlc != NOOP) {
-                    try {
-                        getSpi().disconnect();
-                    }
-                    catch (GridSpiException e) {
-                        U.error(log, "Failed to disconnect discovery SPI.", e);
-                    }
-
-                    discoCache.set(null);
-                }
-
                 switch (segPlc) {
                     case RECONNECT:
-                        reconnectSpi();
+                        // Disconnect SPI synchronously to maintain consistent
+                        // local topology.
+                        try {
+                            getSpi().disconnect();
+
+                            reconnectSpi();
+                        }
+                        catch (GridSpiException e) {
+                            U.error(log, "Failed to disconnect discovery SPI.", e);
+                        }
 
                         break;
 

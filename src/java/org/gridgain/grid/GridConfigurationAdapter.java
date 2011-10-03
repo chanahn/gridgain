@@ -39,7 +39,7 @@ import java.util.concurrent.*;
  * will automatically pick default values for all values that are not set.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public class GridConfigurationAdapter implements GridConfiguration {
     /** Optional grid name. */
@@ -125,6 +125,9 @@ public class GridConfigurationAdapter implements GridConfiguration {
 
     /** Segmentation resolvers. */
     private GridSegmentationResolver[] segResolvers;
+
+    /** Segmentation resolve attempts count. */
+    private int segResolveAttempts = DFLT_SEG_RESOLVE_ATTEMPTS;
 
     /** Wait for segment on startup flag. */
     private boolean waitForSegOnStart = DFLT_WAIT_FOR_SEG_ON_START;
@@ -904,6 +907,20 @@ public class GridConfigurationAdapter implements GridConfiguration {
      */
     public void setAllSegmentationResolversPassRequired(boolean allResolversPassReq) {
         this.allResolversPassReq = allResolversPassReq;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getSegmentationResolveAttempts() {
+        return segResolveAttempts;
+    }
+
+    /**
+     * Sets segmentation resolve attempts count.
+     *
+     * @param segResolveAttempts Segmentation resolve attempts.
+     */
+    public void setSegmentationResolveAttempts(int segResolveAttempts) {
+        this.segResolveAttempts = segResolveAttempts;
     }
 
     /** {@inheritDoc} */

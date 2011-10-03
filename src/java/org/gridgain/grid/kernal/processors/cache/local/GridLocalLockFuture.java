@@ -29,12 +29,16 @@ import java.util.concurrent.atomic.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean> implements GridCacheMvccFuture<K, V, Boolean> {
+public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
+    implements GridCacheMvccFuture<K, V, Boolean> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Cache registry. */
     @GridToStringExclude
-    private GridCacheContext<K, V> ctx;
+    private GridCacheContext<K, V> cctx;
 
     /** Underlying cache. */
     @GridToStringExclude
@@ -82,7 +86,7 @@ public class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean> implem
     }
 
     /**
-     * @param ctx Registry.
+     * @param cctx Registry.
      * @param keys Keys to lock.
      * @param tx Transaction.
      * @param cache Underlying cache.
@@ -90,18 +94,18 @@ public class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean> implem
      * @param filter Filter.
      */
     GridLocalLockFuture(
-        GridCacheContext<K, V> ctx,
+        GridCacheContext<K, V> cctx,
         Collection<? extends K> keys,
         GridCacheTxLocalEx<K, V> tx,
         GridLocalCache<K, V> cache,
         long timeout,
         GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
-        super(ctx.kernalContext());
+        super(cctx.kernalContext());
 
         assert keys != null;
         assert cache != null;
 
-        this.ctx = ctx;
+        this.cctx = cctx;
         this.cache = cache;
         this.timeout = timeout;
         this.filter = filter;
@@ -109,18 +113,18 @@ public class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean> implem
 
         threadId = tx == null ? Thread.currentThread().getId() : tx.threadId();
 
-        lockVer = tx != null ? tx.xidVersion() : ctx.versions().next();
+        lockVer = tx != null ? tx.xidVersion() : cctx.versions().next();
 
         futId = GridUuid.randomUuid();
 
         entries = new ArrayList<GridLocalCacheEntry<K, V>>(keys.size());
 
-        log = ctx.logger(getClass());
+        log = U.logger(ctx, logRef, GridLocalLockFuture.class);
 
         if (timeout > 0) {
             timeoutObj = new LockTimeoutObject();
 
-            ctx.time().addTimeoutObject(timeoutObj);
+            cctx.time().addTimeoutObject(timeoutObj);
         }
     }
 
@@ -255,7 +259,7 @@ public class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean> implem
      */
     private boolean filter(GridCacheEntryEx<K, V> cached) {
         try {
-            if (!ctx.isAll(cached, filter)) {
+            if (!cctx.isAll(cached, filter)) {
                 if (log.isDebugEnabled()) {
                     log.debug("Filter didn't pass for entry (will fail lock): " + cached);
                 }
@@ -379,7 +383,7 @@ public class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean> implem
             cache.onFutureDone(this);
 
             if (timeoutObj != null) {
-                ctx.time().removeTimeoutObject(timeoutObj);
+                cctx.time().removeTimeoutObject(timeoutObj);
             }
 
             wakeUpEntries();

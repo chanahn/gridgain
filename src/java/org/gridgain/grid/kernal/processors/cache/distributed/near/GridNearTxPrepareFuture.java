@@ -33,12 +33,15 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTxEx<K, V>>
+public final class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTxEx<K, V>>
     implements GridCacheMvccFuture<K, V, GridCacheTxEx<K, V>> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Context. */
-    private GridCacheContext<K, V> cacheCtx;
+    private GridCacheContext<K, V> cctx;
 
     /** Future ID. */
     private GridUuid futId;
@@ -62,11 +65,11 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
     }
 
     /**
-     * @param cacheCtx Context.
+     * @param cctx Context.
      * @param tx Transaction.
      */
-    public GridNearTxPrepareFuture(GridCacheContext<K, V> cacheCtx, final GridNearTxLocal<K, V> tx) {
-        super(cacheCtx.kernalContext(), new GridReducer<GridCacheTxEx<K, V>, GridCacheTxEx<K, V>>() {
+    public GridNearTxPrepareFuture(GridCacheContext<K, V> cctx, final GridNearTxLocal<K, V> tx) {
+        super(cctx.kernalContext(), new GridReducer<GridCacheTxEx<K, V>, GridCacheTxEx<K, V>>() {
             @Override public boolean collect(GridCacheTxEx<K, V> e) {
                 return true;
             }
@@ -77,15 +80,15 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
             }
         });
 
-        assert cacheCtx != null;
+        assert cctx != null;
         assert tx != null;
 
-        this.cacheCtx = cacheCtx;
+        this.cctx = cctx;
         this.tx = tx;
 
         futId = GridUuid.randomUuid();
 
-        log = cacheCtx.logger(getClass());
+        log = U.logger(ctx, logRef, GridNearTxPrepareFuture.class);
     }
 
     /** {@inheritDoc} */
@@ -109,7 +112,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
                         return ((MiniFuture)f).node();
                     }
 
-                    return cacheCtx.rich().rich(cacheCtx.discovery().localNode());
+                    return cctx.rich().rich(cctx.discovery().localNode());
                 }
             });
     }
@@ -157,7 +160,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
                     if (log.isDebugEnabled())
                         log.debug("Got removed entry in future onAllReplies method (will retry): " + txEntry);
 
-                    txEntry.cached(cacheCtx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
+                    txEntry.cached(cctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
                 }
             }
         }
@@ -246,7 +249,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
 
         if (super.onDone(tx, err)) {
             // Don't forget to clean up.
-            cacheCtx.mvcc().removeFuture(this);
+            cctx.mvcc().removeFuture(this);
 
             return true;
         }
@@ -268,7 +271,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
     private void onComplete() {
         if (super.onDone(tx, err.get()))
             // Don't forget to clean up.
-            cacheCtx.mvcc().removeFuture(this);
+            cctx.mvcc().removeFuture(this);
     }
 
     /**
@@ -297,13 +300,13 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
     @SuppressWarnings({"unchecked"})
     private void prepare(Iterable<GridCacheTxEntry<K, V>> reads, Iterable<GridCacheTxEntry<K, V>> writes,
         Map<UUID, GridDistributedTxMapping<K, V>> mapped) {
-        Collection<GridRichNode> nodes = CU.allNodes(cacheCtx);
+        Collection<GridRichNode> nodes = CU.allNodes(cctx);
 
         ConcurrentMap<UUID, GridDistributedTxMapping<K, V>> mappings =
             new ConcurrentHashMap<UUID, GridDistributedTxMapping<K, V>>(nodes.size());
 
         // Read lock partition topology.
-        cacheCtx.topology().readLock();
+        cctx.topology().readLock();
 
         try {
             // Assign keys to primary nodes.
@@ -314,7 +317,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
                 map(write, mappings, nodes, mapped);
         }
         finally {
-            cacheCtx.topology().readUnlock();
+            cctx.topology().readUnlock();
         }
 
         if (isDone()) {
@@ -326,7 +329,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
 
         tx.addEntryMapping(mappings);
 
-        cacheCtx.mvcc().recheckPendingLocks();
+        cctx.mvcc().recheckPendingLocks();
 
         // Create mini futures.
         for (final GridDistributedTxMapping<K, V> m : mappings.values()) {
@@ -344,18 +347,18 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
             // If this is the primary node for the keys.
             if (n.isLocal()) {
                 // Make sure not to provide Near entries to DHT cache.
-                req.cloneEntries(cacheCtx);
+                req.cloneEntries(cctx);
 
                 req.miniId(GridUuid.randomUuid());
 
                 // At this point, if any new node joined, then it is
                 // waiting for this transaction to complete, so
                 // partition reassignments are not possible here.
-                GridFuture<GridCacheTxEx<K, V>> fut = cacheCtx.near().dht().prepareTx(n, req);
+                GridFuture<GridCacheTxEx<K, V>> fut = cctx.near().dht().prepareTx(n, req);
 
                 // Add new future.
                 add(new GridEmbeddedFuture<GridCacheTxEx<K, V>, GridCacheTxEx<K, V>>(
-                    cacheCtx.kernalContext(),
+                    cctx.kernalContext(),
                     fut,
                     new C2<GridCacheTxEx<K, V>, Exception, GridCacheTxEx<K, V>>() {
                         @Override public GridCacheTxEx<K, V> apply(GridCacheTxEx<K, V> t, Exception ex) {
@@ -388,7 +391,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
 
                                 GridCacheVersion min = dhtTx.minVersion();
 
-                                GridCacheTxManager<K, V> tm = cacheCtx.near().dht().context().tm();
+                                GridCacheTxManager<K, V> tm = cctx.near().dht().context().tm();
 
                                 tx.orderCompleted(m, tm.committedVersions(min), tm.rolledbackVersions(min));
                             }
@@ -406,7 +409,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
                 add(fut); // Append new future.
 
                 try {
-                    cacheCtx.io().send(n, req);
+                    cctx.io().send(n, req);
                 }
                 catch (GridTopologyException e) {
                     fut.onResult(e);
@@ -427,10 +430,10 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
      */
     private void map(GridCacheTxEntry<K, V> entry, ConcurrentMap<UUID, GridDistributedTxMapping<K, V>> mappings,
         Collection<GridRichNode> nodes, Map<UUID, GridDistributedTxMapping<K, V>> mapped) {
-        GridRichNode primary = CU.primary0(cacheCtx.affinity(entry.key(), nodes));
+        GridRichNode primary = CU.primary0(cctx.affinity(entry.key(), nodes));
 
         if (log.isDebugEnabled())
-            log.debug("Mapped key to primary node [key=" + entry.key() + ", part=" + cacheCtx.partition(entry.key()) +
+            log.debug("Mapped key to primary node [key=" + entry.key() + ", part=" + cctx.partition(entry.key()) +
                 ", primary=" + U.toShortString(primary) + ", allNodes=" + U.toShortString(nodes) + ']');
 
         if (mapped != null && mapped.containsKey(primary.id())) {
@@ -458,7 +461,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
                 break;
             }
             catch (GridCacheEntryRemovedException ignore) {
-                entry.cached(cacheCtx.near().entryEx(entry.key()), entry.keyBytes());
+                entry.cached(cctx.near().entryEx(entry.key()), entry.keyBytes());
             }
         }
     }
@@ -476,7 +479,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
 
             GridCacheEntryEx<K, V> cached = e.cached();
 
-            int part = cached == null ? cacheCtx.partition(e.key()) : cached.partition();
+            int part = cached == null ? cctx.partition(e.key()) : cached.partition();
 
             if (invalidParts.contains(part)) {
                 it.remove();
@@ -519,7 +522,7 @@ public class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<Gr
          * @param m Mapping.
          */
         MiniFuture(GridDistributedTxMapping<K, V> m) {
-            super(cacheCtx.kernalContext());
+            super(cctx.kernalContext());
 
             this.m = m;
         }

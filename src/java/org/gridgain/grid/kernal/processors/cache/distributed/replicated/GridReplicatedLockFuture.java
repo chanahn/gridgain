@@ -32,13 +32,16 @@ import java.util.concurrent.atomic.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
+public final class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
     implements GridCacheMvccLockFuture<K, V, Boolean> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Cache registry. */
     @GridToStringExclude
-    private GridCacheContext<K, V> ctx;
+    private GridCacheContext<K, V> cctx;
 
     /** Underlying cache. */
     @GridToStringExclude
@@ -107,7 +110,7 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
     }
 
     /**
-     * @param ctx Registry.
+     * @param cctx Registry.
      * @param keys Keys to lock.
      * @param tx Transaction, if any.
      * @param cache Underlying cache.
@@ -116,21 +119,21 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
      * @param filter Filter.
      */
     public GridReplicatedLockFuture(
-        GridCacheContext<K, V> ctx,
+        GridCacheContext<K, V> cctx,
         Collection<? extends K> keys,
         @Nullable GridCacheTxLocalEx<K, V> tx,
         GridReplicatedCache<K, V> cache,
         Collection<GridRichNode> nodes,
         long timeout,
         GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
-        super(ctx.kernalContext());
+        super(cctx.kernalContext());
 
-        assert ctx != null;
+        assert cctx != null;
         assert keys != null;
         assert cache != null;
         assert nodes != null;
 
-        this.ctx = ctx;
+        this.cctx = cctx;
         this.keys = keys;
         this.cache = cache;
         this.nodes = nodes;
@@ -140,7 +143,7 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
 
         threadId = tx == null ? Thread.currentThread().getId() : tx.threadId();
 
-        lockVer = tx != null ? tx.xidVersion() : ctx.versions().next();
+        lockVer = tx != null ? tx.xidVersion() : cctx.versions().next();
 
         futId = GridUuid.randomUuid();
 
@@ -150,18 +153,18 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
 
         leftRess = new AtomicInteger(nodes.size());
 
-        log = ctx.logger(getClass());
+        log = U.logger(ctx, logRef, GridReplicatedLockFuture.class);
 
         if (timeout > 0) {
             timeoutObj = new LockTimeoutObject();
 
-            ctx.time().addTimeoutObject(timeoutObj);
+            cctx.time().addTimeoutObject(timeoutObj);
         }
     }
 
     /** {@inheritDoc} */
     @Override public UUID nodeId() {
-        return ctx.nodeId();
+        return cctx.nodeId();
     }
 
     /**
@@ -241,7 +244,7 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
      */
     private boolean locked(GridCacheEntryEx<K, V> cached, GridCacheMvccCandidate<K> owner) {
         // Reentry-aware check (if filter failed, lock is failed).
-        return owner != null && owner.matches(lockVer, ctx.nodeId(), threadId) && filter(cached);
+        return owner != null && owner.matches(lockVer, cctx.nodeId(), threadId) && filter(cached);
     }
 
     /**
@@ -312,7 +315,7 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
                 catch (GridCacheEntryRemovedException ignored) {
                     while (true)
                         try {
-                            e = ctx.cache().peekEx(e.key());
+                            e = cctx.cache().peekEx(e.key());
 
                             if (e != null)
                                 e.removeLock(lockVer);
@@ -385,7 +388,7 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
      */
     private boolean filter(GridCacheEntryEx<K, V> cached) {
         try {
-            if (!ctx.isAll(cached, filter)) {
+            if (!cctx.isAll(cached, filter)) {
                 if (log.isDebugEnabled())
                     log.debug("Filter didn't pass for entry (will fail lock): " + cached);
 
@@ -444,7 +447,7 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
                             log.debug("Got removed entry in onOwnerChanged method (will retry): " + cached);
 
                         // Replace old entry with new one.
-                        entries.set(i, (GridDistributedCacheEntry<K, V>)ctx.cache().entryEx(cached.key()));
+                        entries.set(i, (GridDistributedCacheEntry<K, V>)cctx.cache().entryEx(cached.key()));
                     }
                 }
             }
@@ -516,7 +519,7 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
                                 log.debug("Failed to add candidates because entry was removed (will renew).");
 
                             // Replace old entry with new one.
-                            entries.set(i, (GridDistributedCacheEntry<K, V>)ctx.cache().entryEx(entry.key()));
+                            entries.set(i, (GridDistributedCacheEntry<K, V>)cctx.cache().entryEx(entry.key()));
                         }
                         catch (GridException e) {
                             onError(e);
@@ -570,7 +573,7 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
                     if (log.isDebugEnabled())
                         log.debug("Failed to ready lock because entry was removed (will renew).");
 
-                    entries.set(i, (GridDistributedCacheEntry<K, V>)ctx.cache().entryEx(entry.key()));
+                    entries.set(i, (GridDistributedCacheEntry<K, V>)cctx.cache().entryEx(entry.key()));
                 }
             }
         }
@@ -598,7 +601,7 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
      */
     private void onComplete(boolean success) {
         if (tx != null)
-            ctx.tm().txContext(tx);
+            cctx.tm().txContext(tx);
 
         if (onDone(success, err.get())) {
             if (!success)
@@ -608,10 +611,10 @@ public class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
                 log.debug("Completing future: " + this);
 
             // Clean up.
-            ctx.mvcc().removeFuture(this);
+            cctx.mvcc().removeFuture(this);
 
             if (timeoutObj != null)
-                ctx.time().removeTimeoutObject(timeoutObj);
+                cctx.time().removeTimeoutObject(timeoutObj);
 
             wakeUpEntries();
         }

@@ -145,14 +145,14 @@ import static org.gridgain.grid.spi.discovery.tcp.topologystore.GridTcpDiscovery
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  * @see GridDiscoverySpi
  */
 @GridSpiInfo(
     author = "GridGain Systems, Inc.",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.5.0c.30092011")
+    version = "3.5.0c.03102011")
 @GridSpiMultipleInstancesSupport(true)
 @GridDiscoverySpiOrderSupport(true)
 @GridDiscoverySpiReconnectSupport(true)
@@ -935,6 +935,8 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
         U.interrupt(statsPrinter);
         U.join(statsPrinter, log);
 
+        Collection<GridTcpDiscoveryNode> rmts = null;
+
         if (!restart) {
             // This is final stop.
             unregisterMBean();
@@ -944,10 +946,26 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
             if (log.isDebugEnabled())
                 log.debug(stopInfo());
         }
-        else
+        else {
             getSpiContext().deregisterPorts();
 
+            rmts = ring.remoteNodes();
+        }
+
         ring.clear();
+
+        if (rmts != null && !rmts.isEmpty()) {
+            // This is restart and remote nodes are not empty.
+            // We need to fire FAIL event for each.
+            GridDiscoverySpiListener lsnr = this.lsnr;
+
+            if (lsnr != null) {
+                for (GridTcpDiscoveryNode n : rmts) {
+                    if (n.visible())
+                        lsnr.onDiscovery(EVT_NODE_FAILED, n);
+                }
+            }
+        }
 
         synchronized (mux) {
             spiState = DISCONNECTED;
@@ -978,7 +996,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
                     return true;
             }
             catch (UnknownHostException ignored) {
-                U.warn(log, "Failed to resolve address from IpFinder (host is unknown): " + addr);
+                U.warn(log, "Failed to resolve address from IP finder (host is unknown): " + addr);
             }
 
         return false;

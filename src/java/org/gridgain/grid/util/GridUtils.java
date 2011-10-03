@@ -67,7 +67,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Collection of utility methods used throughout the system.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -1477,7 +1477,7 @@ public abstract class GridUtils {
      * Verifier always returns successful result for any host.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.30092011
+     * @version 3.5.0c.03102011
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.
@@ -5312,17 +5312,19 @@ public abstract class GridUtils {
     }
 
     /**
+     * @param dflt Default value.
      * @return {@code true} if future notification should work synchronously.
      */
-    public static boolean isFutureNotificationSynchronous() {
-        return "true".equalsIgnoreCase(X.getSystemOrEnv(GridSystemProperties.GG_FUT_SYNC_NOTIFICATION));
+    public static boolean isFutureNotificationSynchronous(String dflt) {
+        return "true".equalsIgnoreCase(X.getSystemOrEnv(GridSystemProperties.GG_FUT_SYNC_NOTIFICATION, dflt));
     }
 
     /**
+     * @param dflt Default value.
      * @return {@code true} if future notification should work concurrently.
      */
-    public static boolean isFutureNotificationConcurrent() {
-        return "true".equalsIgnoreCase(X.getSystemOrEnv(GridSystemProperties.GG_FUT_CONCURRENT_NOTIFICATION));
+    public static boolean isFutureNotificationConcurrent(String dflt) {
+        return "true".equalsIgnoreCase(X.getSystemOrEnv(GridSystemProperties.GG_FUT_CONCURRENT_NOTIFICATION, dflt));
     }
 
     /**
@@ -5489,6 +5491,26 @@ public abstract class GridUtils {
 
         if (log == null) {
             logRef.compareAndSet(null, ctx.log(obj.getClass()));
+
+            log = logRef.get();
+        }
+
+        return log;
+    }
+
+    /**
+     * Initializes logger into/from log reference passed in.
+     *
+     * @param ctx Context.
+     * @param logRef Log reference.
+     * @param cls Class to get logger for.
+     * @return Logger for the object.
+     */
+    public static GridLogger logger(GridKernalContext ctx, AtomicReference<GridLogger> logRef, Class<?> cls) {
+        GridLogger log = logRef.get();
+
+        if (log == null) {
+            logRef.compareAndSet(null, ctx.log(cls));
 
             log = logRef.get();
         }

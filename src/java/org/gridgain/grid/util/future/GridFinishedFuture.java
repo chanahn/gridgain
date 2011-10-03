@@ -23,9 +23,12 @@ import java.util.concurrent.*;
  * Future that is completed at creation time.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public class GridFinishedFuture<T> extends GridMetadataAwareAdapter implements GridFuture<T>, Externalizable {
+    /** Synchronous notification flag. */
+    private static final boolean SYNC_NOTIFY = U.isFutureNotificationSynchronous("true");
+
     /** Complete value. */
     private T t;
 
@@ -39,7 +42,7 @@ public class GridFinishedFuture<T> extends GridMetadataAwareAdapter implements G
     private final long startTime = System.currentTimeMillis();
 
     /** Synchronous notification flag. */
-    private volatile boolean syncNotify = U.isFutureNotificationSynchronous();
+    private volatile boolean syncNotify = SYNC_NOTIFY;
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -141,6 +144,7 @@ public class GridFinishedFuture<T> extends GridMetadataAwareAdapter implements G
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings({"NullableProblems"})
     @Override public GridAbsPredicate predicate() {
         return F.alwaysTrue().curry(null);
     }

@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.GridCacheFlag.*;
  * Concurrent implementation of cache map.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public class GridCacheConcurrentMap<K, V> {
     /** Debug flag. */
@@ -1534,6 +1534,7 @@ public class GridCacheConcurrentMap<K, V> {
         @Override public void writeExternal(ObjectOutput out) throws IOException {
             out.writeObject(ctx);
             out.writeObject(filter);
+            out.writeBoolean(isVal);
         }
 
         /** {@inheritDoc} */
@@ -1541,6 +1542,7 @@ public class GridCacheConcurrentMap<K, V> {
         @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             ctx = (GridCacheContext<K, V>)in.readObject();
             filter = (GridPredicate<? super GridCacheEntry<K, V>>[])in.readObject();
+            isVal = in.readBoolean();
         }
 
         /**
@@ -1550,7 +1552,7 @@ public class GridCacheConcurrentMap<K, V> {
          * @throws ObjectStreamException Thrown in case of demarshalling error.
          */
         protected Object readResolve() throws ObjectStreamException {
-            return ctx.cache().map().entries0(filter).iterator();
+            return new Iterator0<K, V>(ctx.cache().map(), isVal, filter);
         }
     }
 
@@ -1714,8 +1716,16 @@ public class GridCacheConcurrentMap<K, V> {
         @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             ctx = (GridCacheContext<K, V>)in.readObject();
             filter = (GridPredicate<? super GridCacheEntry<K, V>>[])in.readObject();
+        }
 
-            map = ctx.cache().map();
+        /**
+         * Reconstructs object on demarshalling.
+         *
+         * @return Reconstructed object.
+         * @throws ObjectStreamException Thrown in case of demarshalling error.
+         */
+        protected Object readResolve() throws ObjectStreamException {
+            return new Set0<K, V>(ctx.cache().map(), filter);
         }
     }
 
@@ -1795,6 +1805,8 @@ public class GridCacheConcurrentMap<K, V> {
         @Override public void writeExternal(ObjectOutput out) throws IOException {
             out.writeObject(it);
             out.writeObject(ctx);
+            out.writeObject(prjPerCall);
+            out.writeObject(forcedFlags);
         }
 
         /** {@inheritDoc} */
@@ -1802,6 +1814,8 @@ public class GridCacheConcurrentMap<K, V> {
         @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             it = (Iterator0<K, V>)in.readObject();
             ctx = (GridCacheContext<K, V>)in.readObject();
+            prjPerCall = (GridCacheProjectionImpl<K, V>)in.readObject();
+            forcedFlags = (GridCacheFlag[])in.readObject();
         }
     }
 
@@ -1872,12 +1886,16 @@ public class GridCacheConcurrentMap<K, V> {
         /** {@inheritDoc} */
         @Override public void writeExternal(ObjectOutput out) throws IOException {
             out.writeObject(it);
+            out.writeObject(ctx);
+            out.writeBoolean(clone);
         }
 
         /** {@inheritDoc} */
         @SuppressWarnings({"unchecked"})
         @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             it = (Iterator0)in.readObject();
+            ctx = (GridCacheContext<K, V>)in.readObject();
+            clone = in.readBoolean();
         }
     }
 

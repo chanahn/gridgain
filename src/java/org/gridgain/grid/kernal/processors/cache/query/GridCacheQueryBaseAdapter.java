@@ -34,10 +34,13 @@ import static org.gridgain.grid.cache.GridCacheFlag.*;
  * Query adapter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareAdapter implements
     GridCacheQueryBase<K, V> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Sequence of query id. */
     protected static final AtomicInteger idGen = new AtomicInteger();
 
@@ -156,7 +159,7 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
 
         validateSql();
 
-        log = cacheCtx.logger(getClass());
+        log = U.logger(cacheCtx.kernalContext(), logRef, GridCacheQueryBaseAdapter.class);
 
         qryLog = cacheCtx.logger(DFLT_QUERY_LOGGER_NAME);
 
@@ -190,7 +193,7 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
         readThrough = qry.readThrough;
         clone = qry.clone;
 
-        log = cacheCtx.logger(getClass());
+        log = U.logger(cacheCtx.kernalContext(), logRef, GridCacheQueryBaseAdapter.class);
 
         qryLog = cacheCtx.kernalContext().config().getGridLogger().getLogger(DFLT_QUERY_LOGGER_NAME);
 

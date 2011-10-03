@@ -16,6 +16,7 @@ import org.gridgain.grid.util.tostring.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * Replicated lock based on MVCC paradigm. This class ensures that locks are acquired
@@ -26,12 +27,15 @@ import java.util.*;
  * generated to prevent starvation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
-public class GridCacheMvcc<K> {
+public final class GridCacheMvcc<K> {
+    /** Logger reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Cache context. */
     @GridToStringExclude
-    private final GridCacheContext<K, ?> ctx;
+    private final GridCacheContext<K, ?> cctx;
 
     /** Logger. */
     @GridToStringExclude
@@ -46,14 +50,14 @@ public class GridCacheMvcc<K> {
     private LinkedList<GridCacheMvccCandidate<K>> rmts;
 
     /**
-     * @param ctx Cache context.
+     * @param cctx Cache context.
      */
-    public GridCacheMvcc(GridCacheContext<K, ?> ctx) {
-        assert ctx != null;
+    public GridCacheMvcc(GridCacheContext<K, ?> cctx) {
+        assert cctx != null;
 
-        this.ctx = ctx;
+        this.cctx = cctx;
 
-        log = ctx.logger(getClass());
+        log = U.logger(cctx.kernalContext(), logRef, GridCacheMvcc.class);
     }
 
     /**
@@ -282,9 +286,9 @@ public class GridCacheMvcc<K> {
                     reassign();
 
                     if (!cand.local())
-                        ctx.mvcc().removeRemote(cand);
+                        cctx.mvcc().removeRemote(cand);
                     else
-                        ctx.mvcc().removeLocal(cand);
+                        cctx.mvcc().removeLocal(cand);
 
                     return true;
                 }
@@ -520,13 +524,13 @@ public class GridCacheMvcc<K> {
             }
         }
 
-        UUID locNodeId = ctx.nodeId();
+        UUID locNodeId = cctx.nodeId();
 
         // If this is a reentry, then reentry flag will be flipped within 'add0(..)' method.
         GridCacheMvccCandidate<K> cand = new GridCacheMvccCandidate<K>(parent, locNodeId, nearNodeId, nearVer, threadId,
             ver, timeout, /*local*/true, /*reenter*/false, /*EC*/ec, /*TX*/tx, false, dhtLocal);
 
-        ctx.mvcc().addLocal(cand);
+        cctx.mvcc().addLocal(cand);
 
         if (ec)
             cand.setReady();
@@ -570,11 +574,11 @@ public class GridCacheMvcc<K> {
         if (log.isDebugEnabled())
             log.debug("Adding remote candidate [mvcc=" + this + ", cand=" + cand + "]");
 
-        ctx.versions().onReceived(cand.nodeId(), cand.version());
+        cctx.versions().onReceived(cand.nodeId(), cand.version());
 
         add0(cand);
 
-        ctx.mvcc().addRemote(cand);
+        cctx.mvcc().addRemote(cand);
     }
 
     /**
@@ -1003,7 +1007,7 @@ public class GridCacheMvcc<K> {
     public synchronized boolean isLocallyOwnedByThread(long threadId, GridCacheVersion... exclude) {
         GridCacheMvccCandidate<K> owner = localOwner();
 
-        return owner != null && owner.threadId() == threadId && owner.nodeId().equals(ctx.nodeId()) &&
+        return owner != null && owner.threadId() == threadId && owner.nodeId().equals(cctx.nodeId()) &&
             !U.containsObjectArray(exclude, owner.version());
     }
 

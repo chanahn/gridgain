@@ -26,7 +26,7 @@ import java.util.*;
  * when this typedef <b>does not sacrifice</b> the code readability.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public final class X {
     /** Time span dividers. */
@@ -118,6 +118,22 @@ public final class X {
             v = System.getenv(name);
 
         return v;
+    }
+
+    /**
+     * Gets either system property or environment variable with given name.
+     *
+     * @param name Name of the system property or environment variable.
+     * @param dflt Default value.
+     * @return Value of the system property or environment variable. Returns
+     *      {@code null} if neither can be found for given name.
+     */
+    @Nullable public static String getSystemOrEnv(String name, String dflt) {
+        assert name != null;
+
+        String v = getSystemOrEnv(name);
+
+        return F.isEmpty(v) ? dflt : v;
     }
 
     /**

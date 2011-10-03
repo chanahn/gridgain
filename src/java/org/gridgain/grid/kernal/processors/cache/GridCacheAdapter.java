@@ -42,7 +42,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Adapter for different cache implementations.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.30092011
+ * @version 3.5.0c.03102011
  */
 public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter implements GridCache<K, V>,
     Externalizable {
@@ -2910,29 +2910,29 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     /** {@inheritDoc} */
     @Override public void loadCache(final GridPredicate2<K, V> p, long ttl, Object[] args) throws GridException {
         CU.loadCache(ctx, log, new CI2<K, V>() {
-                // Version for all loaded entries.
-                private GridCacheVersion ver = ctx.versions().next();
+            // Version for all loaded entries.
+            private GridCacheVersion ver = ctx.versions().next();
 
-                @Override public void apply(K key, V val) {
-                    if (p != null && !p.apply(key, val)) {
-                        return;
-                    }
+            @Override public void apply(K key, V val) {
+                if (p != null && !p.apply(key, val)) {
+                    return;
+                }
 
-                    GridCacheEntryEx<K, V> entry = entryEx(key);
+                GridCacheEntryEx<K, V> entry = entryEx(key);
 
-                    try {
-                        entry.versionedValue(val, null, ver);
-                    }
-                    catch (GridException e) {
-                        throw new GridRuntimeException("Failed to put cache value: " + entry, e);
-                    }
-                    catch (GridCacheEntryRemovedException ignore) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Got removed entry during loadCache (will ignore): " + entry);
-                        }
+                try {
+                    entry.versionedValue(val, null, ver);
+                }
+                catch (GridException e) {
+                    throw new GridRuntimeException("Failed to put cache value: " + entry, e);
+                }
+                catch (GridCacheEntryRemovedException ignore) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Got removed entry during loadCache (will ignore): " + entry);
                     }
                 }
-            }, args);
+            }
+        }, args);
     }
 
     /** {@inheritDoc} */
