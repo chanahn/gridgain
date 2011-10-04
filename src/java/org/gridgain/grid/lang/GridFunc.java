@@ -1906,9 +1906,7 @@ public class GridFunc {
         else {
             newArr = Arrays.copyOf(arr, arr.length + obj.length);
 
-            for (int i = 0; i < obj.length; i++) {
-                newArr[arr.length + i] = obj[i];
-            }
+            System.arraycopy(obj, 0, newArr, arr.length, obj.length);
         }
 
         return newArr;
@@ -4053,7 +4051,16 @@ public class GridFunc {
                         while (iter.hasNext()) {
                             elem = iter.next();
 
-                            if (isAll(elem, p)) {
+                            boolean isAll = true;
+
+                            for (GridPredicate<? super T1> r : p)
+                                if (r != null && !r.apply(elem)) {
+                                    isAll = false;
+
+                                    break;
+                                }
+
+                            if (isAll) {
                                 more = true;
                                 moved = false;
 
@@ -4157,42 +4164,6 @@ public class GridFunc {
      */
     public static boolean isAlwaysFalse(@Nullable GridPredicate[] p) {
         return p != null && p.length == 1 && isAlwaysFalse(p[0]);
-    }
-
-    /**
-     * Tests whether or not given set of predicates consists only of one predicate returned from
-     * {@link #alwaysFalse()} method.
-     *
-     * @param p Predicate to check.
-     * @return {@code true} if given contains only {@code ALWAYS_FALSE} predicate.
-     */
-    private static boolean isAlwaysFalse(@Nullable Iterable<? extends GridPredicate> p) {
-        if (p == null || !p.iterator().hasNext())
-            return false;
-
-        Iterator<? extends GridPredicate> iter = p.iterator();
-
-        GridPredicate first = iter.next();
-
-        return !iter.hasNext() && isAlwaysFalse(first);
-    }
-
-    /**
-     * Tests whether or not given set of predicates consists only of one predicate returned from
-     * {@link #alwaysTrue()} method.
-     *
-     * @param p Predicate to check.
-     * @return {@code true} if given contains only {@code ALWAYS_FALSE} predicate.
-     */
-    private static boolean isAlwaysTrue(@Nullable Iterable<? extends GridPredicate> p) {
-        if (p == null || !p.iterator().hasNext())
-            return false;
-
-        Iterator<? extends GridPredicate> iter = p.iterator();
-
-        GridPredicate first = iter.next();
-
-        return !iter.hasNext() && isAlwaysTrue(first);
     }
 
     /**
@@ -5927,11 +5898,16 @@ public class GridFunc {
      * @param p Optional set of predicates to use for evaluation. If no predicates provides
      *      this method will always return {@code true}.
      * @param <T> Type of the value and free variable of the predicates.
-     * @return Returns {@code true} if all predicates evaluate to {@code true} for given
-     *      value, {@code false} otherwise.
+     * @return Returns {@code true} if given set of predicates is {@code null}, is empty, or all predicates
+     *      evaluate to {@code true} for given value, {@code false} otherwise.
      */
     public static <T> boolean isAll(@Nullable T t, @Nullable GridPredicate<? super T>... p) {
-        return isEmpty(p) || isAll(t, asList(p));
+        if (p != null)
+            for (GridPredicate<? super T> r : p)
+                if (r != null && !r.apply(t))
+                    return false;
+
+        return true;
     }
 
     /**
@@ -5941,21 +5917,14 @@ public class GridFunc {
      * @param t Value to test.
      * @param p Optional set of predicates to use for evaluation.
      * @param <T> Type of the value and free variable of the predicates.
-     * @return Returns {@code true} if all predicates evaluate to {@code true} for given value, {@code false}
-     *         otherwise.
+     * @return Returns {@code true} if given set of predicates is {@code null}, is empty, or all predicates
+     *      evaluate to {@code true} for given value, {@code false} otherwise.
      */
     public static <T> boolean isAll(@Nullable T t, @Nullable Iterable<? extends GridPredicate<? super T>> p) {
-        if (isAlwaysFalse(p))
-            return false;
-        else if (isAlwaysTrue(p))
-            return true;
-        else if (!isEmpty(p)) {
-            assert p != null;
-
+        if (p != null)
             for (GridPredicate<? super T> r : p)
                 if (r != null && !r.apply(t))
                     return false;
-        }
 
         return true;
     }
@@ -6083,10 +6052,16 @@ public class GridFunc {
      * @param p Optional set of predicates to use for evaluation.
      * @param <T> Type of the value and free variable of the predicates.
      * @return Returns {@code true} if any of predicates evaluates to {@code true} for given
-     *      value, {@code false} otherwise.
+     *      value, {@code false} otherwise. Returns {@code false} if given set of predicates
+     *      is {@code null} or empty.
      */
     public static <T> boolean isAny(@Nullable T t, @Nullable GridPredicate<? super T>... p) {
-        return isAny(t, asList(p));
+        if (p != null)
+            for (GridPredicate<? super T> r : p)
+                if (r != null && r.apply(t))
+                    return true;
+
+        return false;
     }
 
     /**
@@ -6098,24 +6073,14 @@ public class GridFunc {
      * @param p Optional set of predicates to use for evaluation.
      * @param <T> Type of the value and free variable of the predicates.
      * @return Returns {@code true} if any of predicates evaluates to {@code true} for given
-     *      value, {@code false} otherwise.
+     *      value, {@code false} otherwise. Returns {@code false} if given set of predicates
+     *      is {@code null} or empty.
      */
     public static <T> boolean isAny(@Nullable T t, @Nullable Iterable<? extends GridPredicate<? super T>> p) {
-        if (isAlwaysFalse(p)) {
-            return false;
-        }
-        else if (isAlwaysTrue(p)) {
-            return true;
-        }
-        else if (!isEmpty(p)) {
-            assert p != null;
-
-            for (GridPredicate<? super T> r : p) {
-                if (r != null && r.apply(t)) {
+        if (p != null)
+            for (GridPredicate<? super T> r : p)
+                if (r != null && r.apply(t))
                     return true;
-                }
-            }
-        }
 
         return false;
     }
@@ -8662,8 +8627,7 @@ public class GridFunc {
      */
     public static <K, V> GridPredicate<GridCacheEntry<K, V>> cacheMetrics(
         @Nullable final Collection<? extends GridPredicate<? super GridCacheMetrics>> p) {
-        return isEmpty(p) || isAlwaysTrue(p) ? F.<GridCacheEntry<K, V>>alwaysTrue() :
-            isAlwaysFalse(p) ? F.<GridCacheEntry<K, V>>alwaysFalse() :
+        return isEmpty(p) ? F.<GridCacheEntry<K, V>>alwaysTrue() :
             new GridPredicate<GridCacheEntry<K, V>>() {
                 {
                     peerDeployLike(U.peerDeployAware0(p));
@@ -8913,16 +8877,14 @@ public class GridFunc {
      */
     @Nullable public static <T, R> R awaitAll(long timeout, @Nullable GridReducer<T, R> rdc,
         @Nullable Collection<GridFuture<T>> futs) throws GridException {
-        if (futs == null || futs.isEmpty()) {
+        if (futs == null || futs.isEmpty())
             return null;
-        }
 
         long end = timeout == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + timeout;
 
         // Overflow.
-        if (end < 0) {
+        if (end < 0)
             end = Long.MAX_VALUE;
-        }
 
         // Note that it is important to wait in the natural order of collection and
         // not via listen method, because caller may actually add to this collection
@@ -8933,19 +8895,16 @@ public class GridFunc {
             if (timeout > 0) {
                 long left = end - System.currentTimeMillis();
 
-                if (end <= 0 && !fut.isDone()) {
+                if (end <= 0 && !fut.isDone())
                     throw new GridFutureTimeoutException("Timed out waiting for all futures: " + futs);
-                }
 
                 t = fut.get(left);
             }
-            else {
+            else
                 t = fut.get();
-            }
 
-            if (rdc != null) {
+            if (rdc != null)
                 rdc.collect(t);
-            }
         }
 
         return rdc == null ? null : rdc.apply();
@@ -8981,7 +8940,7 @@ public class GridFunc {
         GridInClosure<GridFuture<T>> c = null;
 
         for (GridFuture<T> fut : futs)
-            if (fut != null) {
+            if (fut != null)
                 if (!fut.isDone()) {
                     if (c == null) {
                         c = new CI1<GridFuture<T>>() {
@@ -8995,10 +8954,8 @@ public class GridFunc {
 
                     fut.listenAsync(c);
                 }
-                else {
+                else
                     return fut;
-                }
-            }
 
         while (latch.getCount() > 0)
             try {

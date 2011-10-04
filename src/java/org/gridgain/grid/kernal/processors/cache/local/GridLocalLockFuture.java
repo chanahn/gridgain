@@ -385,25 +385,6 @@ public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
             if (timeoutObj != null) {
                 cctx.time().removeTimeoutObject(timeoutObj);
             }
-
-            wakeUpEntries();
-        }
-    }
-
-    /**
-     * Wake up all entries.
-     */
-    private void wakeUpEntries() {
-        for (GridLocalCacheEntry<K, V> entry : entries) {
-            try {
-                entry.wakeUp();
-            }
-            catch (GridCacheEntryRemovedException ignore) {
-                // At this point lock could have been removed and entry may truly be obsolete.
-                if (log.isDebugEnabled()) {
-                    log.debug("Got removed entry when calling wakeUp (ignoring): " + entry);
-                }
-            }
         }
     }
 

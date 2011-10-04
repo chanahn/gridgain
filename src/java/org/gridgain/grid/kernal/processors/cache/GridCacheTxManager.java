@@ -46,11 +46,11 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
 
     /** Per-thread transaction map. */
     private final ConcurrentMap<Long, GridCacheTxEx<K, V>> threadMap =
-        new ConcurrentHashMap<Long, GridCacheTxEx<K, V>>(512);
+        new ConcurrentHashMap<Long, GridCacheTxEx<K, V>>();
 
     /** Per-ID map. */
-    private final ConcurrentNavigableMap<GridCacheVersion, GridCacheTxEx<K, V>> idMap =
-        new ConcurrentSkipListMap<GridCacheVersion, GridCacheTxEx<K, V>>();
+    private final ConcurrentMap<GridCacheVersion, GridCacheTxEx<K, V>> idMap =
+        new ConcurrentHashMap<GridCacheVersion, GridCacheTxEx<K,V>>();
 
     /** All transactions. */
     private final Queue<GridCacheTxEx<K, V>> committedQ = new GridConcurrentLinkedDeque<GridCacheTxEx<K, V>>();

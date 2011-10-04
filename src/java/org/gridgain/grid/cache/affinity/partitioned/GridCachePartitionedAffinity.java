@@ -363,6 +363,9 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
 
             addIfAbsent(nodes);
 
+            if (nodes.size() == 1) // Minor optimization.
+                return nodes;
+
             Collection<UUID> nodeIds = F.nodeIds(nodes);
 
             final Map<UUID, GridRichNode> lookup = new GridLeanMap<UUID, GridRichNode>(nodes.size());

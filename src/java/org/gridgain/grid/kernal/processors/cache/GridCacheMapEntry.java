@@ -1410,16 +1410,6 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
     }
 
     /** {@inheritDoc} */
-    @SuppressWarnings({"NakedNotify", "NotifyWithoutCorrespondingWait"})
-    @Override public void wakeUp() throws GridCacheEntryRemovedException {
-        synchronized (mux) {
-            checkObsolete();
-
-            mux.notifyAll();
-        }
-    }
-
-    /** {@inheritDoc} */
     @Override public boolean hasLockCandidate(GridCacheVersion ver) throws GridCacheEntryRemovedException {
         synchronized (mux) {
             checkObsolete();

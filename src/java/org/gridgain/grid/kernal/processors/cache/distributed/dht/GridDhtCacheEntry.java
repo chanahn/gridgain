@@ -155,9 +155,6 @@ public class GridDhtCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
             boolean emptyAfter = mvcc.isEmpty();
 
-            if (prev != owner)
-                mux.notifyAll();
-
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = rawGet();

@@ -42,7 +42,7 @@ public class GridCacheConcurrentMap<K, V> {
     private static final float DFLT_LOAD_FACTOR = 0.75f;
 
     /** The default concurrency level for this map. */
-    private static final int DFLT_CONCUR_LEVEL = 256;
+    private static final int DFLT_CONCUR_LEVEL = 2048;
 
     /**
      * The maximum capacity, used if a higher value is implicitly specified by either
@@ -182,6 +182,9 @@ public class GridCacheConcurrentMap<K, V> {
 
         while (cap < c)
             cap <<= 1;
+
+        if (cap < 16)
+            cap = 16;
 
         for (int i = 0; i < segs.length; ++i)
             segs[i] = new Segment(cap, loadFactor);

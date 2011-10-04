@@ -20,7 +20,9 @@ import org.gridgain.grid.util.tostring.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
 
 import static org.gridgain.grid.cache.GridCacheTxConcurrency.*;
 import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
@@ -129,7 +131,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
      * methods.
      */
     @GridToStringInclude
-    private GridCacheTxState state = ACTIVE;
+    private volatile GridCacheTxState state = ACTIVE;
 
     /** Timed out flag. */
     private volatile boolean timedOut;
@@ -140,7 +142,10 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     private AtomicLong topVer = new AtomicLong(-1);
 
     /** Mutex. */
-    private final Object mux = new Object();
+    private final Lock lock = new ReentrantLock();
+
+    /** Lock condition. */
+    private final Condition cond = lock.newCondition();
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -242,6 +247,48 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         threadName = Thread.currentThread().getName();
 
         log = cctx.logger(getClass());
+    }
+
+    /**
+     * Acquires lock.
+     */
+    @SuppressWarnings({"LockAcquiredButNotSafelyReleased"})
+    protected final void lock() {
+        lock.lock();
+    }
+
+    /**
+     * Releases lock.
+     */
+    protected final void unlock() {
+        lock.unlock();
+    }
+
+    /**
+     * Signals all waiters.
+     */
+    protected final void signalAll() {
+        cond.signalAll();
+    }
+
+    /**
+     * Waits for signal.
+     *
+     * @throws InterruptedException If interrupted.
+     */
+    protected final void awaitSignal() throws InterruptedException {
+        cond.await();
+    }
+
+    /**
+     * Waits for signal.
+     *
+     * @param ms Time to wait.
+     * @return {@code True} if signal occurred.
+     * @throws InterruptedException If interrupted.
+     */
+    protected final boolean awaitSignal(long ms) throws InterruptedException {
+        return cond.await(ms, TimeUnit.MILLISECONDS);
     }
 
     /** {@inheritDoc} */
@@ -455,9 +502,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
 
     /** {@inheritDoc} */
     @Override public GridCacheTxState state() {
-        synchronized (mux) {
-            return state;
-        }
+        return state;
     }
 
     /** {@inheritDoc} */
@@ -469,9 +514,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
      * @return {@code True} if rollback only flag is set.
      */
     @Override public boolean isRollbackOnly() {
-        synchronized (mux) {
-            return state == MARKED_ROLLBACK || state == ROLLING_BACK || state == ROLLED_BACK;
-        }
+        return state == MARKED_ROLLBACK || state == ROLLING_BACK || state == ROLLED_BACK;
     }
 
     /** {@inheritDoc} */
@@ -534,15 +577,18 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
      * @throws GridException If waiting failed.
      */
     protected void awaitCompletion() throws GridException {
+        lock();
+
         try {
-            synchronized (mux) {
-                while (!done())
-                    mux.wait();
-            }
+            while (!done())
+                awaitSignal();
         }
         catch (InterruptedException e) {
             if (!done())
                 throw new GridException("Got interrupted while waiting for transaction to complete: " + this, e);
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -601,10 +647,13 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings({"TooBroadScope"})
     @Override public void addFinishListener(GridInClosure<GridCacheTxEx<K, V>> lsnr) {
         boolean notify = false;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             if (finishLsnrs == null)
                 finishLsnrs = new LinkedList<GridInClosure<GridCacheTxEx<K, V>>>();
 
@@ -612,6 +661,9 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
                 notify = true;
             else
                 finishLsnrs.add(lsnr);
+        }
+        finally {
+            unlock();
         }
 
         if (notify)
@@ -624,7 +676,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
      * @param timedOut Timeout flag.
      * @return {@code True} if state changed.
      */
-    @SuppressWarnings({"NotifyWithoutCorrespondingWait", "NonPrivateFieldAccessedInSynchronizedContext"})
+    @SuppressWarnings({"NotifyWithoutCorrespondingWait", "NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
     private boolean state(GridCacheTxState state, boolean timedOut) {
         boolean valid = false;
 
@@ -632,7 +684,9 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
 
         List<GridInClosure<GridCacheTxEx<K, V>>> lsnrs = null;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             prev = this.state;
 
             boolean notify = false;
@@ -705,7 +759,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
                     log.debug("Changed transaction state [prev=" + prev + ", new=" + this.state + ", tx=" + this + ']');
 
                 // Notify of state change.
-                mux.notifyAll();
+                signalAll();
             }
             else {
                 if (log.isDebugEnabled())
@@ -717,6 +771,9 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
             if (notify)
                 lsnrs = finishLsnrs == null ? Collections.<GridInClosure<GridCacheTxEx<K, V>>>emptyList() :
                     new LinkedList<GridInClosure<GridCacheTxEx<K, V>>>(finishLsnrs);
+        }
+        finally {
+            unlock();
         }
 
         // Notify finish listeners.
@@ -882,9 +939,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         isolation = GridCacheTxIsolation.fromOrdinal(in.read());
         concurrency = GridCacheTxConcurrency.fromOrdinal(in.read());
 
-        synchronized (mux) {
-            state = GridCacheTxState.fromOrdinal(in.read());
-        }
+        state = GridCacheTxState.fromOrdinal(in.read());
     }
 
     /**

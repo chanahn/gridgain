@@ -11,7 +11,6 @@ package org.gridgain.grid.kernal.processors.cache;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
-import org.gridgain.grid.lang.*;
 import org.gridgain.grid.lang.utils.*;
 
 import java.util.*;
@@ -40,7 +39,10 @@ public class GridCacheVersionManager<K, V> extends GridCacheManager<K, V> {
     private final AtomicLong order = new AtomicLong(System.currentTimeMillis());
 
     /** Last version. */
-    private final GridTuple<GridCacheVersion> last = new GridTuple<GridCacheVersion>();
+    private final AtomicReference<GridCacheVersion> last = new AtomicReference<GridCacheVersion>();
+
+    /** Serializable transaction flag. */
+    private boolean txSerEnabled;
 
     /** */
     private final GridLocalEventListener discoLsnr = new GridLocalEventListener() {
@@ -65,6 +67,8 @@ public class GridCacheVersionManager<K, V> extends GridCacheManager<K, V> {
 
     /** {@inheritDoc} */
     @Override public void start0() throws GridException {
+        txSerEnabled = cctx.config().isTxSerializableEnabled();
+
         last.set(new GridCacheVersion(order.get(), uuid()));
 
         cctx.gridEvents().addLocalEventListener(discoLsnr, EVT_NODE_METRICS_UPDATED);
@@ -137,7 +141,16 @@ public class GridCacheVersionManager<K, V> extends GridCacheManager<K, V> {
     public GridCacheVersion next() {
         GridUuid id = uuid();
 
-        synchronized (last) {
+        if (txSerEnabled) {
+            synchronized (last) {
+                GridCacheVersion next = new GridCacheVersion(order.incrementAndGet(), id);
+
+                last.set(next);
+
+                return next;
+            }
+        }
+        else {
             GridCacheVersion next = new GridCacheVersion(order.incrementAndGet(), id);
 
             last.set(next);
@@ -152,8 +165,12 @@ public class GridCacheVersionManager<K, V> extends GridCacheManager<K, V> {
      * @return Last generated version.
      */
     public GridCacheVersion last() {
-        synchronized (last) {
-            return last.get();
+        if (txSerEnabled) {
+            synchronized (last) {
+                return last.get();
+            }
         }
+        else
+            return last.get();
     }
 }

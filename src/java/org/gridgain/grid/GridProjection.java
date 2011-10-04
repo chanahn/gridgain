@@ -62,11 +62,14 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param attempts Number of re-execution attempts. Must be greater than zero.
      * @param rollback Optional rollback closure to execute in case when topology did indeed change during
      *      closure execution. If not provided - the given closure will simply execute again.
+     * @param p Optional set of predicates filtering execution topology. If not
+     *      provided - all nodes in this projection will be included.
      * @return {@code True} if closure successfully executed on unchanged topology - {@code false} if number
      *      of attempts is exceeded.
-     * @see #runOptimisticAsync(GridAbsClosure, int, GridAbsClosure)
+     * @see #runOptimisticAsync(GridAbsClosure, int, GridAbsClosure, GridPredicate[]) 
      */
-    public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback);
+    public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback, 
+        @Nullable GridPredicate<? super GridRichNode>... p);
 
     /**
      * Executes given closure in optimistic topology transaction, i.e. ensuring that grid topology doesn't
@@ -86,11 +89,14 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param dfltVal Default to return when number of attempts is exceeded.
      * @param rollback Optional rollback closure to execute in case when topology did indeed change during
      *      closure execution. If not provided - the given closure will simply execute again.
+     * @param p Optional set of predicates filtering execution topology. If not
+     *      provided - all nodes in this projection will be included.
      * @return Closure return value.
-     * @see #callOptimisticAsync(GridOutClosure, int, Object, GridAbsClosure)
+     * @see #callOptimisticAsync(GridOutClosure, int, Object, GridAbsClosure, GridPredicate[])
      * @param <R> Type of the closure return value.
      */
-    public <R> R callOptimistic(GridOutClosure<R> c, int attempts, R dfltVal, @Nullable GridAbsClosure rollback);
+    public <R> R callOptimistic(GridOutClosure<R> c, int attempts, R dfltVal, @Nullable GridAbsClosure rollback, 
+        @Nullable GridPredicate<? super GridRichNode>... p);
 
     /**
      * Executes given closure in optimistic topology transaction, i.e. ensuring that grid topology doesn't
@@ -109,11 +115,14 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param attempts Number of re-execution attempts. Must be greater than zero.
      * @param rollback Optional rollback closure to execute in case when topology did indeed change during
      *      closure execution. If not provided - the given closure will simply execute again.
+     * @param p Optional set of predicates filtering execution topology. If not
+     *      provided - all nodes in this projection will be included.
      * @return Future with either {@code true} if closure successfully executed on unchanged
      *      topology, or {@code false} if number of attempts is exceeded.
-     * @see #runOptimistic(GridAbsClosure, int, GridAbsClosure)
+     * @see #runOptimistic(GridAbsClosure, int, GridAbsClosure, GridPredicate[])
      */
-    public GridFuture<Boolean> runOptimisticAsync(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback);
+    public GridFuture<Boolean> runOptimisticAsync(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback, 
+        @Nullable GridPredicate<? super GridRichNode>... p);
 
     /**
      * Executes given closure locally in optimistic topology transaction, i.e. ensuring that grid topology doesn't
@@ -133,12 +142,14 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param dfltVal Default to return when number of attempts is exceeded.
      * @param rollback Optional rollback closure to execute in case when topology did indeed change during
      *      closure execution. If not provided - the given closure will simply execute again.
+     * @param p Optional set of predicates filtering execution topology. If not
+     *      provided - all nodes in this projection will be included.
      * @return Future with return value.
-     * @see #callOptimistic(GridOutClosure, int, Object, GridAbsClosure)
+     * @see #callOptimistic(GridOutClosure, int, Object, GridAbsClosure, GridPredicate[])
      * @param <R> Type of the closure return value.
      */
     public <R> GridFuture<R> callOptimisticAsync(GridOutClosure<R> c, int attempts, R dfltVal,
-        @Nullable GridAbsClosure rollback);
+        @Nullable GridAbsClosure rollback, @Nullable GridPredicate<? super GridRichNode>... p);
 
     /**
      * Executes given closure on the node where data for provided affinity key is located. This
@@ -2850,7 +2861,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *
      * @param mapper Mapper used to map jobs to nodes. If {@code null} - this method is no-op.
      * @param jobs Jobs to run. If {@code null} or empty - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R> Type of job result.
      * @return Collection of job results.
@@ -2884,7 +2895,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *
      * @param mapper Mapper used to map jobs to nodes. If {@code null} - this method is no-op.
      * @param jobs Jobs to run. If {@code null} or empty - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R> Type of job result.
      * @return Future of job results collection.
@@ -2910,7 +2921,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *
      * @param mode Distribution mode.
      * @param jobs Jobs to run. If {@code null} or empty - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param args Jobs' arguments (closure free variables).
      * @param <T> Type of job argument.
@@ -2946,7 +2957,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *
      * @param mode Distribution mode.
      * @param jobs Jobs to run. If {@code null} or empty - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param args Jobs' arguments (closure free variables).
      * @param <T> Type of job argument.
@@ -2977,7 +2988,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *
      * @param mode Distribution mode.
      * @param job Job to run. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param args Job arguments (closure free variables).
      * @param <T> Type of job argument.
@@ -3015,7 +3026,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *
      * @param mode Distribution mode.
      * @param job Job to run. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param args Job arguments (closure free variables).
      * @param <T> Type of job argument.
@@ -3048,7 +3059,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param pdc Producer of job arguments.
      * @param cnt Number of arguments to produce.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <T> Type of job argument.
      * @param <R> Type of job result.
@@ -3088,7 +3099,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param pdc Producer of job arguments. If {@code null} - this method is no-op.
      * @param cnt Number of arguments to produce.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <T> Type of job argument.
      * @param <R> Type of job result.
@@ -3116,7 +3127,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param mode Distribution mode.
      * @param jobs Jobs to run. If {@code null} or empty - this method is no-op.
      * @param args Job arguments.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <T> Type of job argument.
      * @throws GridException Thrown in case of any failure.
@@ -3146,7 +3157,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param mode Distribution mode.
      * @param jobs Jobs to run. If {@code null} or empty - this method is no-op.
      * @param args Job arguments.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <T> Type of job argument.
      * @return Future for jobs' execution.
@@ -3176,7 +3187,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param mode Distribution mode.
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param args Job arguments.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <T> Type of job argument.
      * @throws GridException Thrown in case of any failure.
@@ -3213,7 +3224,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param mode Distribution mode.
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param args Job arguments.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <T> Type of job argument.
      * @return Future for job execution.
@@ -3243,7 +3254,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param pdc Producer of job arguments. If {@code null} - this method is no-op.
      * @param cnt Number of arguments to produce.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <T> Type of job argument.
      * @throws GridException Thrown in case of any failure.
@@ -3277,7 +3288,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param pdc Producer of job arguments. If {@code null} - this method is no-op.
      * @param cnt Number of arguments to produce.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <T> Type of job argument.
      * @return Future for job execution.
@@ -3306,7 +3317,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param jobs Jobs to run. If {@code null} or empty - this method is no-op.
      * @param args Job arguments.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3348,7 +3359,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param jobs Jobs to run. If {@code null} or empty - this method is no-op.
      * @param args Job arguments.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3383,7 +3394,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param args Job arguments.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3427,7 +3438,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param args Job arguments.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3463,7 +3474,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param pdc Producer of job arguments. If {@code null} - this method is no-op.
      * @param cnt Number of arguments to produce.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3508,7 +3519,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param pdc Producer of job arguments. If {@code null} - this method is no-op.
      * @param cnt Number of arguments to produce.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3541,7 +3552,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param jobs Jobs to run. If {@code null} or empty - this method is no-op.
      * @param args Job arguments.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3584,7 +3595,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param jobs Jobs to run. If {@code null} or empty - this method is no-op.
      * @param args Job arguments.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3622,7 +3633,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param args Job arguments.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3669,7 +3680,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param job  If {@code null} - this method is no-op.
      * @param args Job arguments.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3706,7 +3717,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param pdc Producer of job arguments. If {@code null} - this method is no-op.
      * @param cnt Number of arguments to produce.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3752,7 +3763,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param pdc Producer of job arguments. If {@code null} - this method is no-op.
      * @param cnt Number of arguments to produce.
      * @param rdc Job result reducer. If {@code null} - this method is no-op.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R1> Type of job result.
      * @param <R2> Type of reduced result.
@@ -3779,7 +3790,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param mode Distribution mode.
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param arg Job argument.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <T> Type of job argument.
      * @throws GridException Thrown in case of any failure.
@@ -3806,7 +3817,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param mode Distribution mode.
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param arg Job argument.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <T> Type of job argument.
      * @return Future for job execution.
@@ -3830,7 +3841,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param mode Distribution mode.
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param arg Job argument.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R> Type of job result.
      * @param <T> Type of job argument.
@@ -3866,7 +3877,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @param mode Distribution mode.
      * @param job Job to run. If {@code null} - this method is no-op.
      * @param arg Job argument.
-     * @param p Optional set of predicates describing execution topology. If not
+     * @param p Optional set of predicates filtering execution topology. If not
      *      provided - all nodes in this projection will be included.
      * @param <R> Type of job result.
      * @param <T> Type of job argument.

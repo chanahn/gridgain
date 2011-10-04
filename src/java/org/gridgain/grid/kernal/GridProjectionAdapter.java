@@ -1571,26 +1571,104 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
     }
 
     /** {@inheritDoc} */
-    @Override public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback) {
-        return false; // TODO
+    @Override public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback,
+        @Nullable GridPredicate<? super GridRichNode>[] p) {
+        A.notNull(c, "c");
+        A.ensure(attempts >= 1, "attempts >= 1");
+
+        guard();
+
+        try {
+            for (int i = 0; i < attempts; i++) {
+                long h1 = topologyHash(p);
+
+                c.apply();
+
+                long h2 = topologyHash(p);
+
+                if (h1 == h2)
+                    return true;
+
+                if (rollback != null)
+                    rollback.apply();
+            }
+
+            return false;
+        }
+        finally {
+            unguard();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public <R> R callOptimistic(GridOutClosure<R> c, int attempts, R dfltVal,
-        @Nullable GridAbsClosure rollback) {
-        return null; // TODO
+        @Nullable GridAbsClosure rollback, @Nullable GridPredicate<? super GridRichNode>[] p) {
+        A.notNull(c, "c");
+        A.ensure(attempts >= 1, "attempts >= 1");
+
+        guard();
+
+        try {
+            for (int i = 0; i < attempts; i++) {
+                long h1 = topologyHash(p);
+
+                R r = c.apply();
+
+                long h2 = topologyHash(p);
+
+                if (h1 == h2)
+                    return r;
+
+                if (rollback != null)
+                    rollback.apply();
+            }
+
+            return dfltVal;
+        }
+        finally {
+            unguard();
+        }
     }
 
     /** {@inheritDoc} */
-    @Override public GridFuture<Boolean> runOptimisticAsync(GridAbsClosure c, int attempts,
-        @Nullable GridAbsClosure rollback) {
-        return null; // TODO
+    @Override public GridFuture<Boolean> runOptimisticAsync(final GridAbsClosure c, final int attempts,
+        @Nullable final GridAbsClosure rollback, @Nullable final GridPredicate<? super GridRichNode>[] p) {
+        A.notNull(c, "c");
+        A.ensure(attempts >= 1, "attempts >= 1");
+
+        guard();
+
+        try {
+            return ctx.closure().callLocalSafe(new GridOutClosure<Boolean>() {
+                @Override public Boolean apply() {
+                    return runOptimistic(c, attempts, rollback, p);
+                }
+            });
+        }
+        finally {
+            unguard();
+        }
     }
 
     /** {@inheritDoc} */
-    @Override public <R> GridFuture<R> callOptimisticAsync(GridOutClosure<R> c, int attempts, R dfltVal,
-        @Nullable GridAbsClosure rollback) {
-        return null; // TODO
+    @Override public <R> GridFuture<R> callOptimisticAsync(final GridOutClosure<R> c, final int attempts,
+        final R dfltVal, @Nullable final GridAbsClosure rollback,
+        @Nullable final GridPredicate<? super GridRichNode>[] p) {
+        A.notNull(c, "c");
+        A.ensure(attempts >= 1, "attempts >= 1");
+
+        guard();
+
+        try {
+            return ctx.closure().callLocalSafe(new GridOutClosure<R>() {
+                @Override public R apply() {
+                    return callOptimistic(c, attempts, dfltVal, rollback, p);
+                }
+            });
+        }
+        finally {
+            unguard();
+        }
     }
 
     /** {@inheritDoc} */

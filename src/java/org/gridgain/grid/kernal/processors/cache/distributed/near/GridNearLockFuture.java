@@ -600,29 +600,10 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
             if (timeoutObj != null)
                 cctx.time().removeTimeoutObject(timeoutObj);
 
-            // TODO: Check if we still need this.
-            wakeUpEntries();
-
             return true;
         }
 
         return false;
-    }
-
-    /**
-     * Wake up all entries.
-     */
-    private void wakeUpEntries() {
-        for (GridDistributedCacheEntry<K, V> entry : entriesCopy()) {
-            try {
-                entry.wakeUp();
-            }
-            catch (GridCacheEntryRemovedException ignore) {
-                // At this point locks could have been removed, so we must ignore.
-                if (log.isDebugEnabled())
-                    log.debug("Ignoring 'wakeUp' call on removed entry: " + entry);
-            }
-        }
     }
 
     /**

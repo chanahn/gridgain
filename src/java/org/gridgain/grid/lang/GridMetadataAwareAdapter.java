@@ -60,7 +60,7 @@ public class GridMetadataAwareAdapter implements GridMetadataAware, Cloneable {
     /**
      * Ensures that internal data storage is created.
      *
-     * @param size Ammout of data to ensure.
+     * @param size Amount of data to ensure.
      * @return {@code true} if data storage was created.
      */
     private boolean ensureData(int size) {

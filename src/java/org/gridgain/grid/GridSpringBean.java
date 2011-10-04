@@ -191,34 +191,35 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
     }
 
     /** {@inheritDoc} */
-    @Override public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback) {
+    @Override public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback,
+        @Nullable GridPredicate<? super GridRichNode>... p) {
         assert g != null;
 
-        return g.runOptimistic(c, attempts, rollback);
+        return g.runOptimistic(c, attempts, rollback, p);
     }
 
     /** {@inheritDoc} */
     @Override public <R> R callOptimistic(GridOutClosure<R> c, int attempts, R dfltVal,
-        @Nullable GridAbsClosure rollback) {
+        @Nullable GridAbsClosure rollback, @Nullable GridPredicate<? super GridRichNode>... p) {
         assert g != null;
 
-        return g.callOptimistic(c, attempts, dfltVal, rollback);
+        return g.callOptimistic(c, attempts, dfltVal, rollback, p);
     }
 
     /** {@inheritDoc} */
     @Override public GridFuture<Boolean> runOptimisticAsync(GridAbsClosure c, int attempts,
-        @Nullable GridAbsClosure rollback) {
+        @Nullable GridAbsClosure rollback, @Nullable GridPredicate<? super GridRichNode>... p) {
         assert g != null;
 
-        return g.runOptimisticAsync(c, attempts, rollback);
+        return g.runOptimisticAsync(c, attempts, rollback, p);
     }
 
     /** {@inheritDoc} */
     @Override public <R> GridFuture<R> callOptimisticAsync(GridOutClosure<R> c, int attempts, R dfltVal,
-        @Nullable GridAbsClosure rollback) {
+        @Nullable GridAbsClosure rollback, @Nullable GridPredicate<? super GridRichNode>... p) {
         assert g != null;
 
-        return g.callOptimisticAsync(c, attempts, dfltVal, rollback);
+        return g.callOptimisticAsync(c, attempts, dfltVal, rollback, p);
     }
 
     /** {@inheritDoc} */

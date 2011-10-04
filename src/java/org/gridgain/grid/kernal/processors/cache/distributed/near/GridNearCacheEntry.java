@@ -454,9 +454,6 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
                 boolean emptyAfter = mvcc.isEmpty();
 
-                if (prev != owner)
-                    mux.notifyAll();
-
                 checkCallbacks(emptyBefore, emptyAfter);
 
                 val = this.val;
@@ -522,9 +519,6 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
                 owner = mvcc.anyOwner();
 
                 boolean emptyAfter = mvcc.isEmpty();
-
-                if (prev != owner)
-                    mux.notifyAll();
 
                 checkCallbacks(emptyBefore, emptyAfter);
 
@@ -624,9 +618,6 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
                 return null;
 
             boolean emptyAfter = mvcc.isEmpty();
-
-            if (owner != prev)
-                mux.notifyAll();
 
             checkCallbacks(emptyBefore, emptyAfter);
 

@@ -401,12 +401,6 @@ public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
         throws GridException, GridCacheEntryRemovedException;
 
     /**
-     * Wakes up all threads waiting on the mux.
-     * @throws GridCacheEntryRemovedException If entry was removed.
-     */
-    public void wakeUp() throws GridCacheEntryRemovedException;
-
-    /**
      * Checks if the candidate is either owner or pending.
      *
      * @param ver Candidate version to check.

@@ -33,7 +33,7 @@ public class GridTaskFutureImpl<R> extends GridFutureAdapter<R> implements GridT
     private transient GridTaskSession ses;
 
     /** Mapped flag. */
-    private boolean mapped;
+    private volatile boolean mapped;
 
     /** */
     private transient GridKernalContext ctx;
@@ -51,7 +51,7 @@ public class GridTaskFutureImpl<R> extends GridFutureAdapter<R> implements GridT
      */
     public GridTaskFutureImpl(GridTaskSession ses, GridKernalContext ctx) {
         super(ctx);
-        
+
         assert ses != null;
         assert ctx != null;
 
@@ -74,10 +74,10 @@ public class GridTaskFutureImpl<R> extends GridFutureAdapter<R> implements GridT
     /** {@inheritDoc} */
     @Override public boolean cancel() throws GridException {
         checkValid();
-        
+
         if (onCancelled()) {
             assert ctx != null;
-            
+
             ctx.io().send(ctx.discovery().allNodes(), TOPIC_CANCEL, new GridJobCancelRequest(ses.getId()), SYSTEM_POOL);
 
             return true;
@@ -88,35 +88,44 @@ public class GridTaskFutureImpl<R> extends GridFutureAdapter<R> implements GridT
 
     /** {@inheritDoc} */
     @Override public boolean isMapped() {
-        synchronized (mutex()) {
-            return mapped;
-        }
+        return mapped;
     }
 
     /**
      * Callback for completion of task mapping stage.
      */
     public void onMapped() {
-        synchronized (mutex()) {
+        lock();
+
+        try {
             mapped = true;
 
-            mutex().notifyAll();
+            signalAll();
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean waitForMap() throws GridException {
-        synchronized (mutex()) {
-            while (!mapped && !isDone())
+        lock();
+
+        try {
+            while (!mapped && !isDone()) {
                 try {
-                    mutex().wait();
+                    awaitSignal();
                 }
                 catch (InterruptedException e) {
                     throw new GridInterruptedException("Got interrupted while waiting for map completion.", e);
                 }
-
-            return mapped;
+            }
         }
+        finally {
+            unlock();
+        }
+
+        return mapped;
     }
 
     /** {@inheritDoc} */
@@ -134,10 +143,12 @@ public class GridTaskFutureImpl<R> extends GridFutureAdapter<R> implements GridT
         if (end < 0)
             end = Long.MAX_VALUE;
 
-        synchronized (mutex()) {
+        lock();
+
+        try {
             while (!mapped && !isDone() && now < end) {
                 try {
-                    mutex().wait(end - now);
+                    awaitSignal(end - now);
                 }
                 catch (InterruptedException e) {
                     throw new GridInterruptedException("Got interrupted while waiting for map completion.", e);
@@ -147,6 +158,9 @@ public class GridTaskFutureImpl<R> extends GridFutureAdapter<R> implements GridT
             }
 
             return mapped;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -165,8 +179,13 @@ public class GridTaskFutureImpl<R> extends GridFutureAdapter<R> implements GridT
         if (isValid()) {
             boolean mapped = in.readBoolean();
 
-            synchronized (mutex()) {
+            lock();
+
+            try {
                 this.mapped = mapped;
+            }
+            finally {
+                unlock();
             }
         }
 

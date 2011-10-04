@@ -92,9 +92,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             boolean emptyAfter = mvcc.isEmpty();
 
-            if (prev != owner)
-                mux.notifyAll();
-
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
@@ -166,9 +163,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             boolean emptyAfter = mvcc.isEmpty();
 
-            if (prev != owner)
-                mux.notifyAll();
-
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
@@ -213,9 +207,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             boolean emptyAfter = mvcc.isEmpty();
 
-            if (prev != owner)
-                mux.notifyAll();
-
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
@@ -248,9 +239,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             boolean emptyAfter = mvcc.isEmpty();
 
-            if (owner != prev)
-                mux.notifyAll();
-
             checkCallbacks(emptyBefore, emptyAfter);
 
             refreshRemotes();
@@ -279,9 +267,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             owner = mvcc.releaseLocal();
 
             boolean emptyAfter = mvcc.isEmpty();
-
-            if (owner != prev)
-                mux.notifyAll();
 
             checkCallbacks(emptyBefore, emptyAfter);
 
@@ -326,9 +311,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
                 owner = mvcc.remove(doomed.version());
 
                 boolean emptyAfter = mvcc.isEmpty();
-
-                if (owner != prev)
-                    mux.notifyAll();
 
                 if (!doomed.local())
                     refreshRemotes();
@@ -398,9 +380,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             boolean emptyAfter = mvcc.isEmpty();
 
-            if (prev != owner)
-                mux.notifyAll();
-
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
@@ -437,9 +416,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             assert owner == null || owner.owner() : "Owner flag not set for owner: " + owner;
 
             boolean emptyAfter = mvcc.isEmpty();
-
-            if (prev != owner)
-                mux.notifyAll();
 
             checkCallbacks(emptyBefore, emptyAfter);
 
@@ -479,9 +455,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
                 owner = mvcc.orderCompleted(baseVer, committedVers, rolledbackVers);
 
                 boolean emptyAfter = mvcc.isEmpty();
-
-                if (prev != owner)
-                    mux.notifyAll();
 
                 checkCallbacks(emptyBefore, emptyAfter);
 
@@ -550,9 +523,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             boolean emptyAfter = mvcc.isEmpty();
 
-            if (prev != owner)
-                mux.notifyAll();
-
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
@@ -583,9 +553,6 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             owner = mvcc.recheck();
 
             boolean emptyAfter = mvcc.isEmpty();
-
-            if (owner != prev)
-                mux.notifyAll();
 
             checkCallbacks(emptyBefore, emptyAfter);
 

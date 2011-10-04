@@ -615,24 +615,6 @@ public final class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Bool
 
             if (timeoutObj != null)
                 cctx.time().removeTimeoutObject(timeoutObj);
-
-            wakeUpEntries();
-        }
-    }
-
-    /**
-     * Wake up all entries.
-     */
-    private void wakeUpEntries() {
-        for (GridDistributedCacheEntry<K, V> entry : entriesCopy()) {
-            try {
-                entry.wakeUp();
-            }
-            catch (GridCacheEntryRemovedException ignore) {
-                // At this point locks could have been removed, so we must ignore.
-                if (log.isDebugEnabled())
-                    log.debug("Ignoring 'wakeUp' call on removed entry: " + entry);
-            }
         }
     }
 

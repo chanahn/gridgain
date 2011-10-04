@@ -12,8 +12,6 @@ package org.gridgain.grid.kernal.processors.cache.local;
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.jetbrains.annotations.*;
 
-import java.util.*;
-
 import static org.gridgain.grid.GridEventType.*;
 
 /**
@@ -97,10 +95,6 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             prev = mvcc.localOwner();
 
             owner = mvcc.readyLocal(cand);
-
-            if (owner != prev) {
-                mux.notifyAll();
-            }
         }
 
         checkOwnerChanged(prev, owner);
@@ -121,10 +115,6 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             prev = mvcc.localOwner();
 
             owner = mvcc.readyLocal(ver);
-
-            if (owner != prev) {
-                mux.notifyAll();
-            }
         }
 
         checkOwnerChanged(prev, owner);
@@ -159,10 +149,6 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             prev = mvcc.localOwner();
 
             owner = mvcc.recheck();
-
-            if (owner != prev) {
-                mux.notifyAll();
-            }
         }
 
         checkOwnerChanged(prev, owner);
@@ -220,42 +206,6 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
     /**
      * Unlocks lock if it is currently owned.
      *
-     * @param lockId Lock ID to unlock.
-     */
-    public void unlock(UUID lockId) {
-        GridCacheMvccCandidate<K> prev;
-
-        GridCacheMvccCandidate<K> owner = null;
-
-        V val;
-
-        synchronized (mux) {
-            prev = mvcc.localOwner();
-
-            if (prev != null && prev.id().equals(lockId)) {
-                owner = mvcc.releaseLocal();
-
-                if (owner != prev) {
-                    mux.notifyAll();
-                }
-            }
-
-            val = this.val;
-        }
-
-        if (prev != null && prev.id().equals(lockId)) {
-            checkThreadChain(prev);
-
-            // Event notification.
-            cctx.events().addEvent(partition(), key, prev.nodeId(), prev, EVT_CACHE_OBJECT_UNLOCKED, val, val);
-        }
-
-        checkOwnerChanged(prev, owner);
-    }
-
-    /**
-     * Unlocks lock if it is currently owned.
-     *
      * @param tx Transaction to unlock.
      */
     @Override public void txUnlock(GridCacheTxEx<K, V> tx) throws GridCacheEntryRemovedException {
@@ -284,10 +234,6 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             prev = mvcc.localOwner();
 
             owner = mvcc.releaseLocal(threadId);
-
-            if (owner != prev) {
-                mux.notifyAll();
-            }
 
             val = this.val;
         }
@@ -333,10 +279,6 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
                 prev = mvcc.localOwner();
 
                 owner = mvcc.remove(ver);
-
-                if (owner != prev) {
-                    mux.notifyAll();
-                }
             }
 
             val = this.val;
