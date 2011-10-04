@@ -11,6 +11,7 @@ package org.gridgain.grid.kernal.processors.cache;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
 import org.jetbrains.annotations.*;
@@ -23,7 +24,7 @@ import java.util.concurrent.*;
  * Cache transaction proxy.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheTxProxyImpl implements GridCacheTxProxy, Externalizable {
     /** Wrapped transaction. */
@@ -70,7 +71,7 @@ public class GridCacheTxProxyImpl implements GridCacheTxProxy, Externalizable {
     }
 
     /** {@inheritDoc} */
-    @Override public UUID xid() {
+    @Override public GridUuid xid() {
         return tx.xid();
     }
 

@@ -10,6 +10,7 @@
 package org.gridgain.grid.kernal;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 import java.util.*;
@@ -18,7 +19,7 @@ import java.util.*;
  * Class provides implementation for job result.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridJobResultImpl implements GridJobResult {
     /** */
@@ -54,7 +55,7 @@ public class GridJobResultImpl implements GridJobResult {
      * @param node Node from where this result was received.
      * @param sibling Sibling associated with this result.
      */
-    public GridJobResultImpl(GridJob job, UUID jobId, GridNode node, GridJobSiblingImpl sibling) {
+    public GridJobResultImpl(GridJob job, GridUuid jobId, GridNode node, GridJobSiblingImpl sibling) {
         assert jobId != null;
         assert node != null;
         assert sibling != null;

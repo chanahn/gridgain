@@ -25,7 +25,7 @@ import java.util.*;
  * Replicated cache entry.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDhtCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     /** Gets node value from reader ID. */
@@ -84,6 +84,31 @@ public class GridDhtCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     }
 
     /**
+     * @param nearVer Near version.
+     * @param rmv If {@code true}, then add to removed list if not found.
+     * @return Local candidate by near version.
+     * @throws GridCacheEntryRemovedException If removed.
+     */
+    @Nullable public GridCacheMvccCandidate<K> localCandidateByNearVersion(GridCacheVersion nearVer, boolean rmv)
+        throws GridCacheEntryRemovedException {
+        synchronized (mux) {
+            checkObsolete();
+
+            for (GridCacheMvccCandidate<K> c : mvcc.localCandidatesNoCopy(false)) {
+                GridCacheVersion ver = c.otherVersion();
+
+                if (ver != null && ver.equals(nearVer))
+                    return c;
+            }
+
+            if (rmv)
+                addRemoved(nearVer);
+
+            return null;
+        }
+    }
+
+    /**
      * Add local candidate.
      *
      * @param nearNodeId Near node ID.
@@ -111,6 +136,7 @@ public class GridDhtCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
         synchronized (mux) {
             // Check removed locks prior to obsolete flag.
             checkRemoved(ver);
+            checkRemoved(nearVer);
 
             checkObsolete();
 

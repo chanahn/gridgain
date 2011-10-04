@@ -14,6 +14,7 @@ import org.gridgain.grid.events.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.managers.deployment.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.marshaller.*;
 import org.gridgain.grid.resources.*;
@@ -35,7 +36,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
  * Grid task worker. Handles full task life cycle.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  * @param <T> Task argument type.
  * @param <R> Task return value type.
  */
@@ -84,7 +85,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
     private final GridTaskEventListener evtLsnr;
 
     /** */
-    private Map<UUID, GridJobResultImpl> jobRes;
+    private Map<GridUuid, GridJobResultImpl> jobRes;
 
     /** */
     private State state = State.WAITING;
@@ -218,7 +219,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
     /**
      * @return Task session ID.
      */
-    UUID getTaskSessionId() {
+    GridUuid getTaskSessionId() {
         return ses.getId();
     }
 
@@ -260,7 +261,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
     }
 
     /** {@inheritDoc} */
-    @Override public UUID timeoutId() {
+    @Override public GridUuid timeoutId() {
         return ses.getId();
     }
 
@@ -436,7 +437,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
             if (node == null)
                 throw new GridException("Node can not be null [mappedJob=" + mappedJob + ", ses=" + ses + ']');
 
-            UUID jobId = UUID.randomUUID();
+            GridUuid jobId = GridUuid.randomUuid();
 
             GridJobSiblingImpl sib = new GridJobSiblingImpl(ses.getId(), jobId, node.id(), ctx);
 
@@ -454,7 +455,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
             ses.addJobSiblings(sibs);
 
             if (jobRes == null)
-                jobRes = new HashMap<UUID, GridJobResultImpl>();
+                jobRes = new HashMap<GridUuid, GridJobResultImpl>();
 
             // Populate all remote mappedJobs into map, before mappedJobs are sent.
             // This is done to avoid race condition when we start
@@ -1147,7 +1148,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
      * @param evtNodeId Event node ID.
      * @param msg Event message.
      */
-    private void recordJobEvent(int evtType, UUID jobId, UUID evtNodeId, String msg) {
+    private void recordJobEvent(int evtType, GridUuid jobId, UUID evtNodeId, String msg) {
         if (ctx.event().isRecordable(evtType)) {
             GridJobEvent evt = new GridJobEvent();
 

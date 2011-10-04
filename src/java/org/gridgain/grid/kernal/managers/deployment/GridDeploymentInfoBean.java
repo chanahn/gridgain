@@ -11,6 +11,7 @@ package org.gridgain.grid.kernal.managers.deployment;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
 
@@ -21,11 +22,11 @@ import java.util.*;
  * Deployment info bean.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDeploymentInfoBean implements GridDeploymentInfo, Externalizable {
     /** */
-    private UUID clsLdrId;
+    private GridUuid clsLdrId;
 
     /** */
     private GridDeploymentMode depMode;
@@ -35,7 +36,7 @@ public class GridDeploymentInfoBean implements GridDeploymentInfo, Externalizabl
 
     /** Node class loader participant map. */
     @GridToStringInclude
-    private Map<UUID, GridTuple2<UUID, Long>> participants;
+    private Map<UUID, GridTuple2<GridUuid, Long>> participants;
 
     /**
      * Required by {@link Externalizable}.
@@ -50,8 +51,8 @@ public class GridDeploymentInfoBean implements GridDeploymentInfo, Externalizabl
      * @param userVer User version.
      * @param participants Participants.
      */
-    public GridDeploymentInfoBean(UUID clsLdrId, GridDeploymentMode depMode, String userVer,
-        Map<UUID, GridTuple2<UUID, Long>> participants) {
+    public GridDeploymentInfoBean(GridUuid clsLdrId, GridDeploymentMode depMode, String userVer,
+        Map<UUID, GridTuple2<GridUuid, Long>> participants) {
         this.clsLdrId = clsLdrId;
         this.depMode = depMode;
         this.userVer = userVer;
@@ -69,7 +70,7 @@ public class GridDeploymentInfoBean implements GridDeploymentInfo, Externalizabl
     }
 
     /** {@inheritDoc} */
-    @Override public UUID classLoaderId() {
+    @Override public GridUuid classLoaderId() {
         return clsLdrId;
     }
 
@@ -84,7 +85,7 @@ public class GridDeploymentInfoBean implements GridDeploymentInfo, Externalizabl
     }
 
     /** {@inheritDoc} */
-    @Override public Map<UUID, GridTuple2<UUID, Long>> participants() {
+    @Override public Map<UUID, GridTuple2<GridUuid, Long>> participants() {
         return participants;
     }
 
@@ -100,7 +101,7 @@ public class GridDeploymentInfoBean implements GridDeploymentInfo, Externalizabl
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
-        U.writeUuid(out, clsLdrId);
+        U.writeGridUuid(out, clsLdrId);
 
         U.writeString(out, userVer);
 
@@ -111,7 +112,7 @@ public class GridDeploymentInfoBean implements GridDeploymentInfo, Externalizabl
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        clsLdrId = U.readUuid(in);
+        clsLdrId = U.readGridUuid(in);
 
         userVer = U.readString(in);
 

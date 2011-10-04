@@ -41,7 +41,7 @@ import java.util.concurrent.*;
  * in {@link NullPointerException} and may be harder to catch.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAware {
     /**
@@ -170,7 +170,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      nodes at the time of this call, apply all filtering predicates, if any, and if the
      *      resulting collection of nodes is empty - the exception will be thrown.
      * @throws GridInterruptedException Subclass of {@link GridException} thrown if the wait was interrupted.
-     * @throws GridFutureCancelledException Subclass of {@link GridException} throws if computation was cancelled.
+     * @throws GridFutureCancelledException Subclass of {@link GridException} thrown if computation was cancelled.
      * @see #affinityRunAsync(String, Object, Runnable, GridPredicate[])
      * @see #withCheckpointSpi(String)
      * @see #withFailoverSpi(String)
@@ -219,7 +219,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      nodes at the time of this call, apply all filtering predicates, if any, and if the
      *      resulting collection of nodes is empty - the exception will be thrown.
      * @throws GridInterruptedException Subclass of {@link GridException} thrown if the wait was interrupted.
-     * @throws GridFutureCancelledException Subclass of {@link GridException} throws if computation was cancelled.
+     * @throws GridFutureCancelledException Subclass of {@link GridException} thrown if computation was cancelled.
      * @see #affinityRunAsync(String, Collection, Runnable, GridPredicate[])
      * @see #withCheckpointSpi(String)
      * @see #withFailoverSpi(String)
@@ -273,7 +273,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      resulting collection of nodes is empty - the exception will be thrown.
      * @return Non-cancellable future of this execution.
      * @throws GridInterruptedException Subclass of {@link GridException} thrown if the wait was interrupted.
-     * @throws GridFutureCancelledException Subclass of {@link GridException} throws if computation was cancelled.
+     * @throws GridFutureCancelledException Subclass of {@link GridException} thrown if computation was cancelled.
      * @see #affinityRun(String, Object, Runnable, GridPredicate[])
      * @see #withCheckpointSpi(String)
      * @see #withFailoverSpi(String)
@@ -330,7 +330,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      resulting collection of nodes is empty - the exception will be thrown.
      * @return Non-cancellable future of this execution.
      * @throws GridInterruptedException Subclass of {@link GridException} thrown if the wait was interrupted.
-     * @throws GridFutureCancelledException Subclass of {@link GridException} throws if computation was cancelled.
+     * @throws GridFutureCancelledException Subclass of {@link GridException} thrown if computation was cancelled.
      * @see #affinityRun(String, Object, Runnable, GridPredicate[])
      * @see #withCheckpointSpi(String)
      * @see #withFailoverSpi(String)
@@ -377,7 +377,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      nodes at the time of this call, apply all filtering predicates, if any, and if the
      *      resulting collection of nodes is empty - the exception will be thrown.
      * @throws GridInterruptedException Subclass of {@link GridException} thrown if the wait was interrupted.
-     * @throws GridFutureCancelledException Subclass of {@link GridException} throws if computation was cancelled.
+     * @throws GridFutureCancelledException Subclass of {@link GridException} thrown if computation was cancelled.
      * @see #affinityRunAsync(String, Object, Runnable, GridPredicate[])
      * @see #withCheckpointSpi(String)
      * @see #withFailoverSpi(String)
@@ -427,7 +427,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      nodes at the time of this call, apply all filtering predicates, if any, and if the
      *      resulting collection of nodes is empty - the exception will be thrown.
      * @throws GridInterruptedException Subclass of {@link GridException} thrown if the wait was interrupted.
-     * @throws GridFutureCancelledException Subclass of {@link GridException} throws if computation was cancelled.
+     * @throws GridFutureCancelledException Subclass of {@link GridException} thrown if computation was cancelled.
      * @see #affinityRunAsync(String, Object, Runnable, GridPredicate[])
      * @see #withCheckpointSpi(String)
      * @see #withFailoverSpi(String)
@@ -474,7 +474,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      nodes at the time of this call, apply all filtering predicates, if any, and if the
      *      resulting collection of nodes is empty - the exception will be thrown.
      * @throws GridInterruptedException Subclass of {@link GridException} thrown if the wait was interrupted.
-     * @throws GridFutureCancelledException Subclass of {@link GridException} throws if computation was cancelled.
+     * @throws GridFutureCancelledException Subclass of {@link GridException} thrown if computation was cancelled.
      * @see #affinityRunAsync(String, Object, Runnable, GridPredicate[])
      * @see #withCheckpointSpi(String)
      * @see #withFailoverSpi(String)

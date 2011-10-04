@@ -9,26 +9,26 @@
 
 package org.gridgain.grid.kernal;
 
-import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.lang.utils.*;
+import org.gridgain.grid.typedef.internal.*;
+
 import java.io.*;
-import java.util.*;
 
 /**
- * TODO: add file description.
+ * Task session request.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridTaskSessionRequest implements GridTaskMessage, Externalizable {
     /** Changed attributes. */
     private GridByteArrayList attrs;
 
     /** Task session ID. */
-    private UUID sesId;
+    private GridUuid sesId;
 
     /** ID of job within a task. */
-    private UUID jobId;
+    private GridUuid jobId;
 
     /**
      * Empty constructor required by {@link Externalizable}.
@@ -42,7 +42,7 @@ public class GridTaskSessionRequest implements GridTaskMessage, Externalizable {
      * @param jobId Job ID within the session.
      * @param attrs Changed attribute.
      */
-    public GridTaskSessionRequest(UUID sesId, UUID jobId, GridByteArrayList attrs) {
+    public GridTaskSessionRequest(GridUuid sesId, GridUuid jobId, GridByteArrayList attrs) {
         assert sesId != null;
         assert attrs != null;
 
@@ -61,14 +61,14 @@ public class GridTaskSessionRequest implements GridTaskMessage, Externalizable {
     /**
      * @return Session ID.
      */
-    @Override public UUID getSessionId() {
+    @Override public GridUuid getSessionId() {
         return sesId;
     }
 
     /**
      * @return Job ID.
      */
-    public UUID getJobId() {
+    public GridUuid getJobId() {
         return jobId;
     }
 
@@ -76,16 +76,16 @@ public class GridTaskSessionRequest implements GridTaskMessage, Externalizable {
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(attrs);
 
-        U.writeUuid(out, sesId);
-        U.writeUuid(out, jobId);
+        U.writeGridUuid(out, sesId);
+        U.writeGridUuid(out, jobId);
     }
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         attrs = (GridByteArrayList)in.readObject();
 
-        sesId = U.readUuid(in);
-        jobId = U.readUuid(in);
+        sesId = U.readGridUuid(in);
+        jobId = U.readGridUuid(in);
     }
 
     /** {@inheritDoc} */

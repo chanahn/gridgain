@@ -32,7 +32,7 @@ import java.util.concurrent.locks.*;
  * Future for exchanging partition maps.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Object>
     implements Comparable<GridDhtPartitionsExchangeFuture<K, V>> {
@@ -808,12 +808,12 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
 
             GridTimeoutObject timeoutObj = new GridTimeoutObject() {
                 /** */
-                private final UUID timeoutId = UUID.randomUUID();
+                private final GridUuid timeoutId = GridUuid.randomUuid();
 
                 /** */
                 private final long startTime = System.currentTimeMillis();
 
-                @Override public UUID timeoutId() {
+                @Override public GridUuid timeoutId() {
                     return timeoutId;
                 }
 

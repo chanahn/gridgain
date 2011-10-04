@@ -10,6 +10,7 @@
 package org.gridgain.grid.events;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
 
@@ -57,7 +58,7 @@ import java.util.*;
  * event storage SPI if they are disabled in GridGain configuration.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  * @see GridEventType#EVT_CACHE_ENTRY_CREATED
  * @see GridEventType#EVT_CACHE_ENTRY_DESTROYED
  * @see GridEventType#EVT_CACHE_ENTRY_EVICTED
@@ -78,16 +79,16 @@ public class GridCacheEvent extends GridEventAdapter {
     private int partition;
 
     /** Cache entry. */
-    @GridToStringExclude
+    @GridToStringInclude
     private Object key;
 
     /** Event ID. */
     @GridToStringInclude
-    private final UUID xid;
+    private final GridUuid xid;
 
     /** Lock ID. */
     @GridToStringInclude
-    private final UUID lockId;
+    private final GridUuid lockId;
 
     /** New value. */
     @GridToStringInclude
@@ -110,14 +111,14 @@ public class GridCacheEvent extends GridEventAdapter {
      * @param msg Event message.
      * @param type Event type.
      * @param partition Partition for the event (usually the partition the key belongs to).
+     * @param key Cache key.
      * @param xid Transaction ID.
      * @param lockId Lock ID.
-     * @param key Cache key.
      * @param newVal New value.
      * @param oldVal Old value.
      */
     public GridCacheEvent(String cacheName, UUID nodeId, UUID evtNodeId, String msg, int type, int partition,
-        Object key, UUID xid, UUID lockId, Object newVal, Object oldVal) {
+        Object key, GridUuid xid, GridUuid lockId, Object newVal, Object oldVal) {
         super(nodeId, msg, type);
         this.cacheName = cacheName;
         this.evtNodeId = evtNodeId;
@@ -172,7 +173,7 @@ public class GridCacheEvent extends GridEventAdapter {
      *
      * @return ID of surrounding cache transaction.
      */
-    public UUID xid() {
+    public GridUuid xid() {
         return xid;
     }
 
@@ -181,7 +182,7 @@ public class GridCacheEvent extends GridEventAdapter {
      *
      * @return ID of the lock if held.
      */
-    public UUID lockId() {
+    public GridUuid lockId() {
         return lockId;
     }
 

@@ -9,17 +9,17 @@
 
 package org.gridgain.grid.kernal.processors.cache;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
-import java.util.*;
 
 /**
  * Swap entry.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheSwapEntry<V> implements Externalizable {
     /** Value bytes. */
@@ -29,7 +29,7 @@ public class GridCacheSwapEntry<V> implements Externalizable {
     private V val;
 
     /** Class loader id. */
-    private UUID clsLdrId;
+    private GridUuid clsLdrId;
 
     /** Version. */
     private GridCacheVersion ver;
@@ -60,7 +60,7 @@ public class GridCacheSwapEntry<V> implements Externalizable {
      * @param clsLdrId Class loader id for entry value (can be {@code null} for local class loader).
      */
     public GridCacheSwapEntry(byte[] valBytes, GridCacheVersion ver, long ttl, long expireTime,
-        GridCacheMetricsAdapter metrics, @Nullable UUID clsLdrId) {
+        GridCacheMetricsAdapter metrics, @Nullable GridUuid clsLdrId) {
         assert ver != null;
         assert metrics != null;
 
@@ -122,7 +122,7 @@ public class GridCacheSwapEntry<V> implements Externalizable {
     /**
      * @return Class loader id for entry value.
      */
-    public UUID classLoaderId() {
+    public GridUuid classLoaderId() {
         return clsLdrId;
     }
 
@@ -136,7 +136,7 @@ public class GridCacheSwapEntry<V> implements Externalizable {
         out.writeLong(ttl);
         out.writeLong(expireTime);
 
-        U.writeUuid(out, clsLdrId);
+        U.writeGridUuid(out, clsLdrId);
     }
 
     /** {@inheritDoc} */
@@ -149,7 +149,7 @@ public class GridCacheSwapEntry<V> implements Externalizable {
         ttl = in.readLong();
         expireTime = in.readLong();
 
-        clsLdrId = U.readUuid(in);
+        clsLdrId = U.readGridUuid(in);
 
         assert ver != null;
         assert metrics != null;

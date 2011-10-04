@@ -30,7 +30,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Managed transaction adapter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     implements GridCacheTxEx<K, V>, Externalizable {
@@ -337,7 +337,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     }
 
     /** {@inheritDoc} */
-    @Override public UUID xid() {
+    @Override public GridUuid xid() {
         return xidVer.id();
     }
 
@@ -751,7 +751,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     }
 
     /** {@inheritDoc} */
-    @Override public UUID timeoutId() {
+    @Override public GridUuid timeoutId() {
         return xidVer.id();
     }
 
@@ -930,7 +930,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
      */
     private static class TxShadow extends GridMetadataAwareAdapter implements GridCacheTx {
         /** Xid. */
-        private final UUID xid;
+        private final GridUuid xid;
 
         /** Node ID. */
         private final UUID nodeId;
@@ -975,7 +975,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
          * @param state Transaction state.
          * @param rollbackOnly Rollback-only flag.
          */
-        TxShadow(UUID xid, UUID nodeId, long threadId, long startTime, GridCacheTxIsolation isolation,
+        TxShadow(GridUuid xid, UUID nodeId, long threadId, long startTime, GridCacheTxIsolation isolation,
             GridCacheTxConcurrency concurrency, boolean invalidate, boolean implicit, long timeout,
             GridCacheTxState state, boolean rollbackOnly) {
             this.xid = xid;
@@ -992,7 +992,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         }
 
         /** {@inheritDoc} */
-        @Override public UUID xid() {
+        @Override public GridUuid xid() {
             return xid;
         }
 

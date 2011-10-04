@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * DHT cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Near cache. */
@@ -1289,7 +1289,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
         // Register listener just so we print out errors.
         // Exclude lock timeout exception since it's not a fatal exception.
-        f.listenAsync(CU.errorLogger(log, GridCacheLockTimeoutException.class));
+        f.listenAsync(CU.errorLogger(log, GridCacheLockTimeoutException.class,
+            GridDistributedLockCancelledException.class));
     }
 
     /**
@@ -1835,6 +1836,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                 for (ListIterator<GridCacheEntryEx<K, V>> it = entries.listIterator(); it.hasNext();) {
                     GridCacheEntryEx<K, V> e = it.next();
 
+                    assert e != null;
+
                     while (true) {
                         try {
                             // Don't return anything for invalid partitions.
@@ -1852,8 +1855,9 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                                             /*update-metrics*/true, /*event notification*/req.returnValue(i),
                                             CU.<K, V>empty());
 
-                                    assert e.candidate(mappedVer).owner() : "Entry does not own lock for tx [entry=" + e +
-                                        ", tx=" + tx + ", req=" + req + ", err=" + err + ']';
+                                    assert e.lockedBy(mappedVer) : "Entry does not own lock for tx [entry=" + e +
+                                        ", mappedVer=" + mappedVer + ", ver=" + ver + ", tx=" + tx + ", req=" + req +
+                                        ", err=" + err + ']';
 
                                     // We include values into response since they are required for local
                                     // calls and won't be serialized. We are also including DHT version.
@@ -2084,51 +2088,74 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      * @param nodeId Node ID.
      * @param ver Version.
      * @param keys Keys.
-     * @param unmap Flag for unmapping version.
+     * @param unmap Flag for un-mapping version.
      */
     public void removeLocks(UUID nodeId, GridCacheVersion ver, Iterable<? extends K> keys, boolean unmap) {
+        assert nodeId != null;
+        assert ver != null;
+
         if (F.isEmpty(keys))
             return;
 
         // Remove mapped versions.
         GridCacheVersion dhtVer = unmap ? ctx.mvcc().unmapVersion(ver) : ver;
 
-        if (dhtVer == null) {
-            U.warn(log, "Attempting to remove locks for unknown DHT version (will ignore) [nodeId=" + nodeId +
-                ", ver=" + ver + ", keys=" + keys + ']');
-
-            return;
-        }
-
         Map<GridNode, List<T2<K, byte[]>>> dhtMap = new HashMap<GridNode, List<T2<K, byte[]>>>();
         Map<GridNode, List<T2<K, byte[]>>> nearMap = new HashMap<GridNode, List<T2<K, byte[]>>>();
 
         for (K key : keys) {
             while (true) {
+                boolean created = false;
+
                 GridDhtCacheEntry<K, V> entry = peekExx(key);
 
+                if (entry == null) {
+                    entry = entryExx(key);
+
+                    created = true;
+                }
+
                 try {
-                    if (entry != null) {
-                        GridCacheMvccCandidate<K> cand = entry.candidate(dhtVer);
+                    GridCacheMvccCandidate<K> cand = null;
 
-                        long topVer = cand == null ? -1 : cand.topologyVersion();
+                    if (dhtVer == null) {
+                        cand = entry.localCandidateByNearVersion(ver, true);
 
-                        // Note that we don't reorder completed versions here,
-                        // as there is no point to reorder relative to the version
-                        // we are about to remove.
-                        if (entry.removeLock(dhtVer)) {
-                            // Map to backups and near readers.
-                            map(nodeId, topVer, entry, dhtMap, nearMap);
-
+                        if (cand != null)
+                            dhtVer = cand.version();
+                        else {
                             if (log.isDebugEnabled())
-                                log.debug("Removed lock [lockId=" + ver + ", key=" + key + ']');
+                                log.debug("Failed to locate lock candidate based on dht or near versions [nodeId=" +
+                                    nodeId + ", ver=" + ver + ", unmap=" + unmap + ", keys=" + keys + ']');
+
+                            if (created && entry.markObsolete(ctx.versions().next()))
+                                removeIfObsolete(entry.key());
+
+                            break;
                         }
-                        else if (log.isDebugEnabled())
-                            log.debug("Received unlock request for unknown candidate " +
-                                "(added to cancelled locks set) [ver=" + ver + ", entry=" + entry + ']');
+                    }
+
+                    if (cand == null)
+                        cand = entry.candidate(dhtVer);
+
+                    long topVer = cand == null ? -1 : cand.topologyVersion();
+
+                    // Note that we don't reorder completed versions here,
+                    // as there is no point to reorder relative to the version
+                    // we are about to remove.
+                    if (entry.removeLock(dhtVer)) {
+                        // Map to backups and near readers.
+                        map(nodeId, topVer, entry, dhtMap, nearMap);
+
+                        if (log.isDebugEnabled())
+                            log.debug("Removed lock [lockId=" + ver + ", key=" + key + ']');
                     }
                     else if (log.isDebugEnabled())
-                        log.debug("Received unlock request for entry that could not be found: " + key);
+                        log.debug("Received unlock request for unknown candidate " +
+                            "(added to cancelled locks set) [ver=" + ver + ", entry=" + entry + ']');
+
+                    if (created && entry.markObsolete(dhtVer))
+                        removeIfObsolete(entry.key());
 
                     break;
                 }

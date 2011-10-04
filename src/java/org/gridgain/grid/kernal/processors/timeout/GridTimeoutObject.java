@@ -9,19 +9,19 @@
 
 package org.gridgain.grid.kernal.processors.timeout;
 
-import java.util.*;
+import org.gridgain.grid.lang.utils.*;
 
 /**
  * All objects that can timeout should implement this interface.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridTimeoutObject {
     /**
      * @return ID of the object.
      */
-    public UUID timeoutId();
+    public GridUuid timeoutId();
 
     /**
      * @return End time.

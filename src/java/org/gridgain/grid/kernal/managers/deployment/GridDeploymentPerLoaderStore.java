@@ -14,6 +14,7 @@ import org.gridgain.grid.events.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.managers.eventstorage.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.spi.deployment.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
@@ -27,11 +28,11 @@ import static org.gridgain.grid.GridEventType.*;
  * {@link GridDeploymentMode#ISOLATED} modes.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
     /** Cache keyed by class loader ID. */
-    private Map<UUID, IsolatedDeployment> cache = new HashMap<UUID, IsolatedDeployment>();
+    private Map<GridUuid, IsolatedDeployment> cache = new HashMap<GridUuid, IsolatedDeployment>();
 
     /** Discovery listener. */
     private GridLocalEventListener discoLsnr;
@@ -164,7 +165,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override public GridDeployment getDeployment(UUID ldrId) {
+    @Override public GridDeployment getDeployment(GridUuid ldrId) {
         synchronized (mux) {
             return cache.get(ldrId);
         }
@@ -332,7 +333,9 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
                 private final long endTime = System.currentTimeMillis() + timeout;
 
                 /** {@inheritDoc} */
-                @Override public UUID timeoutId() { return dep.classLoaderId(); }
+                @Override public GridUuid timeoutId() {
+                    return dep.classLoaderId();
+                }
 
                 /** {@inheritDoc} */
                 @Override public long endTime() {
@@ -410,8 +413,8 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
          * @param senderNodeId Sender node ID.
          * @param sampleClsName Sample class name.
          */
-        IsolatedDeployment(GridDeploymentMode depMode, ClassLoader clsLdr, UUID clsLdrId, long seqNum, String userVer,
-            UUID senderNodeId, String sampleClsName) {
+        IsolatedDeployment(GridDeploymentMode depMode, ClassLoader clsLdr, GridUuid clsLdrId, long seqNum,
+            String userVer, UUID senderNodeId, String sampleClsName) {
             super(depMode, clsLdr, clsLdrId, seqNum, userVer, sampleClsName, false);
 
             this.senderNodeId = senderNodeId;

@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Fully replicated cache implementation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Preloader. */
@@ -149,6 +149,9 @@ public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V>
     /** {@inheritDoc} */
     @Override public void onKernalStop() {
         super.onKernalStop();
+
+        if (preldr != null)
+            preldr.onKernalStop();
     }
 
     /** {@inheritDoc} */
@@ -364,12 +367,13 @@ public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V>
     }
 
     /**
+     *
      * @param lockId Lock ID.
      * @param futId Future ID.
      * @return Lock future.
      */
     @SuppressWarnings({"unchecked"})
-    @Nullable private GridReplicatedLockFuture<K, V> futurex(UUID lockId, GridUuid futId) {
+    @Nullable private GridReplicatedLockFuture<K, V> futurex(GridUuid lockId, GridUuid futId) {
         return (GridReplicatedLockFuture)ctx.mvcc().future(lockId, futId);
     }
 
@@ -415,31 +419,36 @@ public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V>
                 K key = (K)U.unmarshal(ctx.marshaller(), new ByteArrayInputStream(keyBytes), ldr);
 
                 while (true) {
+                    boolean created = false;
+
                     GridDistributedCacheEntry<K, V> entry = peekexx(key);
 
-                    try {
-                        if (entry != null) {
-                            entry.doneRemote(
-                                req.version(),
-                                req.version(),
-                                req.committedVersions(),
-                                req.rolledbackVersions());
+                    if (entry == null) {
+                        entry = entryexx(key);
 
-                            // Note that we don't reorder completed versions here,
-                            // as there is no point to reorder relative to the version
-                            // we are about to remove.
-                            if (entry.removeLock(req.version())) {
-                                if (log.isDebugEnabled())
-                                    log.debug("Removed lock [lockId=" + req.version() + ", key=" + key + ']');
-                            }
-                            else {
-                                if (log.isDebugEnabled())
-                                    log.debug("Received unlock request for unknown candidate " +
-                                        "(added to cancelled locks set): " + req);
-                            }
+                        created = true;
+                    }
+
+                    try {
+                        entry.doneRemote(
+                            req.version(),
+                            req.version(),
+                            req.committedVersions(),
+                            req.rolledbackVersions());
+
+                        // Note that we don't reorder completed versions here,
+                        // as there is no point to reorder relative to the version
+                        // we are about to remove.
+                        if (entry.removeLock(req.version())) {
+                            if (log.isDebugEnabled())
+                                log.debug("Removed lock [lockId=" + req.version() + ", key=" + key + ']');
+
+                            if (created && entry.markObsolete(req.version()))
+                                removeIfObsolete(entry.key());
                         }
                         else if (log.isDebugEnabled())
-                            log.debug("Received unlock request for entry that could not be found: " + req);
+                            log.debug("Received unlock request for unknown candidate " +
+                                "(added to cancelled locks set): " + req);
 
                         break;
                     }

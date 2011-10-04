@@ -12,6 +12,7 @@ package org.gridgain.grid.kernal.managers.communication;
 import org.gridgain.grid.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.internal.*;
 
@@ -21,7 +22,7 @@ import java.util.*;
  * Future for synchronous communication messages.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridIoFuture implements Iterable<GridIoResult>, GridTimeoutObject {
     /** */
@@ -34,7 +35,7 @@ public class GridIoFuture implements Iterable<GridIoResult>, GridTimeoutObject {
     private final GridIoResultListener lsnr;
 
     /** */
-    private final UUID timeoutObjId;
+    private final GridUuid timeoutObjId;
 
     /** Timeout processor. */
     private final GridTimeoutProcessor timeoutProc;
@@ -69,7 +70,7 @@ public class GridIoFuture implements Iterable<GridIoResult>, GridTimeoutObject {
         }
 
         if (timeout > 0 && !resMap.isEmpty()) {
-            timeoutObjId = UUID.randomUUID();
+            timeoutObjId = GridUuid.randomUuid();
 
             endTime = System.currentTimeMillis() + timeout;
 
@@ -82,13 +83,13 @@ public class GridIoFuture implements Iterable<GridIoResult>, GridTimeoutObject {
         }
         else {
             timeoutObjId = null;
-            
+
             endTime = Long.MAX_VALUE;
         }
     }
 
     /** {@inheritDoc} */
-    @Override public UUID timeoutId() {
+    @Override public GridUuid timeoutId() {
         return timeoutObjId;
     }
 

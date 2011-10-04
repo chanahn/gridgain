@@ -9,6 +9,7 @@
 
 package org.gridgain.grid;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.spi.checkpoint.*;
 import org.gridgain.grid.spi.topology.*;
@@ -94,7 +95,7 @@ import java.util.*;
  * on Wiki.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridTaskSession extends GridMetadataAware {
     /**
@@ -131,7 +132,7 @@ public interface GridTaskSession extends GridMetadataAware {
      *
      * @return Session ID of the task being executed.
      */
-    public UUID getId();
+    public GridUuid getId();
 
     /**
      * Gets class loader responsible for loading all classes within task.
@@ -176,11 +177,12 @@ public interface GridTaskSession extends GridMetadataAware {
      * If task uses continuous mapper (i.e. it injected into task class) then
      * job sibling will be requested from task node for each apply.
      *
+     *
      * @param jobId Job ID to get the sibling for.
      * @return Grid job sibling for a given ID.
      * @throws GridException If job sibling can not be received from task node.
      */
-    @Nullable public GridJobSibling getJobSibling(UUID jobId) throws GridException;
+    @Nullable public GridJobSibling getJobSibling(GridUuid jobId) throws GridException;
 
     /**
      * Sets session attributed. Note that task session is distributed and

@@ -53,7 +53,7 @@ import org.jetbrains.annotations.*;
  * to undefined behavior and explicitly not supported.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridCheckpointSpi extends GridSpi {
     /**

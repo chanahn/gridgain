@@ -21,14 +21,14 @@ import java.util.*;
  * User message wrapper.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 class GridIoUserMessage implements Serializable {
     /** */
     private final GridByteArrayList src;
 
     /** */
-    private final UUID clsLdrId;
+    private final GridUuid clsLdrId;
 
     /** */
     private final GridDeploymentMode depMode;
@@ -44,7 +44,7 @@ class GridIoUserMessage implements Serializable {
 
     /** Node class loader participants. */
     @GridToStringInclude
-    private Map<UUID, GridTuple2<UUID, Long>> ldrParties;
+    private Map<UUID, GridTuple2<GridUuid, Long>> ldrParties;
 
     /**
      * @param src Source message.
@@ -58,11 +58,11 @@ class GridIoUserMessage implements Serializable {
     GridIoUserMessage(
         GridByteArrayList src,
         String srcClsName,
-        UUID clsLdrId,
+        GridUuid clsLdrId,
         GridDeploymentMode depMode,
         long seqNum,
         String userVer,
-        Map<UUID, GridTuple2<UUID, Long>> ldrParties) {
+        Map<UUID, GridTuple2<GridUuid, Long>> ldrParties) {
         this.src = src;
         this.srcClsName = srcClsName;
         this.depMode = depMode;
@@ -82,7 +82,7 @@ class GridIoUserMessage implements Serializable {
     /**
      * @return the Class loader ID.
      */
-    public UUID getClassLoaderId() {
+    public GridUuid getClassLoaderId() {
         return clsLdrId;
     }
 
@@ -117,7 +117,7 @@ class GridIoUserMessage implements Serializable {
     /**
      * @return Node class loader participant map.
      */
-    public Map<UUID, GridTuple2<UUID, Long>> getLoaderParticipants() {
+    public Map<UUID, GridTuple2<GridUuid, Long>> getLoaderParticipants() {
         return ldrParties != null ? Collections.unmodifiableMap(ldrParties) : null;
     }
 

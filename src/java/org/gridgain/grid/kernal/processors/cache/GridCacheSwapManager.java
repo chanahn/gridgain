@@ -12,6 +12,7 @@ package org.gridgain.grid.kernal.processors.cache;
 import org.gridgain.grid.*;
 import org.gridgain.grid.kernal.managers.swapspace.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.spi.swapspace.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
@@ -24,7 +25,7 @@ import java.util.*;
  * Handles all swap operations.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
     /** Swap manager. */
@@ -193,17 +194,18 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
     /**
      * Writes a versioned value to swap.
      *
+     *
      * @param key Key.
      * @param val Value.
      * @param ver Version.
-     * @param metrics Metrics.
      * @param ttl Entry time to live.
      * @param expireTime Swap entry expiration time.
+     * @param metrics Metrics.
      * @param clsLdrId Class loader id for entry value.
      * @throws GridException If failed.
      */
     void write(byte[] key, byte[] val, GridCacheVersion ver, long ttl, long expireTime,
-        GridCacheMetricsAdapter metrics, UUID clsLdrId) throws GridException {
+        GridCacheMetricsAdapter metrics, GridUuid clsLdrId) throws GridException {
         if (!enabled)
             return;
 

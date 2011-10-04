@@ -38,7 +38,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Responsible for all grid job execution and communication.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 @SuppressWarnings({"deprecation"})
 public class GridJobProcessor extends GridProcessorAdapter {
@@ -49,16 +49,16 @@ public class GridJobProcessor extends GridProcessorAdapter {
     private final GridMarshaller marsh;
 
     /** */
-    private final Map<UUID, GridJobWorker> activeJobs = new LinkedHashMap<UUID, GridJobWorker>(1024);
+    private final Map<GridUuid, GridJobWorker> activeJobs = new LinkedHashMap<GridUuid, GridJobWorker>(1024);
 
     /** */
-    private final Map<UUID, GridJobWorker> passiveJobs = new LinkedHashMap<UUID, GridJobWorker>(1024);
+    private final Map<GridUuid, GridJobWorker> passiveJobs = new LinkedHashMap<GridUuid, GridJobWorker>(1024);
 
     /** */
-    private final Map<UUID, GridJobWorker> cancelledJobs = new LinkedHashMap<UUID, GridJobWorker>(1024);
+    private final Map<GridUuid, GridJobWorker> cancelledJobs = new LinkedHashMap<GridUuid, GridJobWorker>(1024);
 
     /** */
-    private final Collection<UUID> cancelReqs = new GridBoundedLinkedHashSet<UUID>(CANCEL_REQS_NUM);
+    private final Collection<GridUuid> cancelReqs = new GridBoundedLinkedHashSet<GridUuid>(CANCEL_REQS_NUM);
 
     /** */
     private final GridJobEventListener evtLsnr;
@@ -286,10 +286,11 @@ public class GridJobProcessor extends GridProcessorAdapter {
     /**
      * Gets active job.
      *
+     *
      * @param jobId Job ID.
      * @return Active job.
      */
-    public GridJobWorker activeJob(UUID jobId) {
+    public GridJobWorker activeJob(GridUuid jobId) {
         assert jobId != null;
 
         synchronized (mux) {
@@ -948,7 +949,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
      * Handles job execution requests.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.03102011
+     * @version 3.5.0c.04102011
      */
     private class JobExecutionListener implements GridMessageListener {
         @SuppressWarnings({"unchecked", "ThrowableInstanceNeverThrown"})
@@ -1280,7 +1281,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
      * Listener to node discovery events.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.03102011
+     * @version 3.5.0c.04102011
      */
     private class JobDiscoveryListener implements GridLocalEventListener {
         /**

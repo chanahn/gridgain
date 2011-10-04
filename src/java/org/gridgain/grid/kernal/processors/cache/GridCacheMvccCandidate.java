@@ -9,6 +9,7 @@
 
 package org.gridgain.grid.kernal.processors.cache;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.*;
 import org.gridgain.grid.util.tostring.*;
@@ -24,7 +25,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheMvccCandidate.M
  * Lock candidate.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<GridCacheMvccCandidate<K>> {
     /** ID generator. */
@@ -286,7 +287,7 @@ public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<Gri
     /**
      * @return Gets unique lock identifier.
      */
-    public UUID id() {
+    public GridUuid id() {
         return ver.id();
     }
 

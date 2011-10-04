@@ -23,7 +23,7 @@ import java.util.*;
  * Response to prepare request.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDistributedTxPrepareResponse<K, V> extends GridDistributedBaseMessage<K, V> {
     /** Collections of local lock candidates. */
@@ -65,7 +65,7 @@ public class GridDistributedTxPrepareResponse<K, V> extends GridDistributedBaseM
      *
      * @return Lock ID.
      */
-    public UUID xid() {
+    public GridUuid xid() {
         return ver.id();
     }
 

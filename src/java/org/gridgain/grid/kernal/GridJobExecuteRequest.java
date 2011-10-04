@@ -21,14 +21,14 @@ import java.util.*;
  * This class defines externalizable job execution request.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
     /** */
-    private UUID sesId;
+    private GridUuid sesId;
 
     /** */
-    private UUID jobId;
+    private GridUuid jobId;
 
     /** */
     @GridToStringExclude
@@ -53,7 +53,7 @@ public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
     private String taskClsName;
 
     /** Node class loader participants. */
-    private Map<UUID, GridTuple2<UUID, Long>> ldrParticipants;
+    private Map<UUID, GridTuple2<GridUuid, Long>> ldrParticipants;
 
     /** ID of the node that initiated the task. */
     private UUID taskNodeId;
@@ -77,7 +77,7 @@ public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
     private final transient long createTime = System.currentTimeMillis();
 
     /** */
-    private UUID clsLdrId;
+    private GridUuid clsLdrId;
 
     /** */
     private GridDeploymentMode depMode;
@@ -111,13 +111,12 @@ public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
      * @param depMode Task deployment mode.
      * @param dynamicSiblings {@code True} if siblings are dynamic.
      * @param ldrParticipants Other node class loader IDs that can also load classes
-     *      for this task.
      */
-    public GridJobExecuteRequest(UUID sesId, UUID jobId, String taskName, String userVer, long seqNum,
+    public GridJobExecuteRequest(GridUuid sesId, GridUuid jobId, String taskName, String userVer, long seqNum,
         String taskClsName, GridByteArrayList jobBytes, long startTaskTime, long timeout, UUID taskNodeId,
         Collection<GridJobSibling> siblings, GridByteArrayList sesAttrs, GridByteArrayList jobAttrs, String cpSpi,
-        UUID clsLdrId, GridDeploymentMode depMode, boolean dynamicSiblings,
-        Map<UUID, GridTuple2<UUID, Long>> ldrParticipants) {
+        GridUuid clsLdrId, GridDeploymentMode depMode, boolean dynamicSiblings,
+        Map<UUID, GridTuple2<GridUuid, Long>> ldrParticipants) {
         assert sesId != null;
         assert jobId != null;
         assert taskName != null;
@@ -153,14 +152,14 @@ public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
     }
 
     /** {@inheritDoc} */
-    @Override public UUID getSessionId() {
+    @Override public GridUuid getSessionId() {
         return sesId;
     }
 
     /**
      * @return Job session ID.
      */
-    public UUID getJobId() {
+    public GridUuid getJobId() {
         return jobId;
     }
 
@@ -253,19 +252,19 @@ public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
     /**
      * @return Task local class loader id.
      */
-    public UUID getClassLoaderId() {
+    public GridUuid getClassLoaderId() {
         return clsLdrId;
     }
 
     /**
-     * @return TODO
+     * @return Sequence number.
      */
     public Long getSequenceNumber() {
         return seqNum;
     }
 
     /**
-     * @return TODO
+     * @return Deployment mode.
      */
     public GridDeploymentMode getDeploymentMode() {
         return depMode;
@@ -283,14 +282,14 @@ public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
     /**
      * @return Node class loader participant map.
      */
-    public Map<UUID, GridTuple2<UUID, Long>> getLoaderParticipants() {
+    public Map<UUID, GridTuple2<GridUuid, Long>> getLoaderParticipants() {
         return ldrParticipants;
     }
 
     /**
      * @param ldrParticipants Node class loader participant map.
      */
-    public void setLoaderParticipants(Map<UUID, GridTuple2<UUID, Long>> ldrParticipants) {
+    public void setLoaderParticipants(Map<UUID, GridTuple2<GridUuid, Long>> ldrParticipants) {
         this.ldrParticipants = ldrParticipants;
     }
 
@@ -315,10 +314,10 @@ public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
         U.writeString(out, taskName);
         U.writeString(out, taskClsName);
 
-        U.writeUuid(out, sesId);
-        U.writeUuid(out, jobId);
+        U.writeGridUuid(out, sesId);
+        U.writeGridUuid(out, jobId);
         U.writeUuid(out, taskNodeId);
-        U.writeUuid(out, clsLdrId);
+        U.writeGridUuid(out, clsLdrId);
     }
 
     /** {@inheritDoc} */
@@ -334,7 +333,7 @@ public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
         jobBytes = (GridByteArrayList)in.readObject();
         sesAttrs = (GridByteArrayList)in.readObject();
         jobAttrs = (GridByteArrayList)in.readObject();
-        ldrParticipants = (Map<UUID, GridTuple2<UUID, Long>>)in.readObject();
+        ldrParticipants = (Map<UUID, GridTuple2<GridUuid, Long>>)in.readObject();
 
         dynamicSiblings = in.readBoolean();
 
@@ -343,10 +342,10 @@ public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
         taskName = U.readString(in);
         taskClsName = U.readString(in);
 
-        sesId = U.readUuid(in);
-        jobId = U.readUuid(in);
+        sesId = U.readGridUuid(in);
+        jobId = U.readGridUuid(in);
         taskNodeId = U.readUuid(in);
-        clsLdrId = U.readUuid(in);
+        clsLdrId = U.readGridUuid(in);
     }
 
     /** {@inheritDoc} */

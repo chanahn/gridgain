@@ -10,6 +10,7 @@
 package org.gridgain.grid;
 
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.spi.collision.*;
 import org.gridgain.grid.spi.failover.*;
@@ -51,7 +52,7 @@ import java.util.concurrent.*;
  * Attribute names that start with {@code "gridgain:"} are reserved for internal system use.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridJobContext extends GridJobContinuation, GridMetadataAware {
     /**
@@ -91,7 +92,7 @@ public interface GridJobContext extends GridJobContinuation, GridMetadataAware {
      *
      * @return ID of the job this context belongs to.
      */
-    public UUID getJobId();
+    public GridUuid getJobId();
 
     /**
      * Sets an attribute into this job context.

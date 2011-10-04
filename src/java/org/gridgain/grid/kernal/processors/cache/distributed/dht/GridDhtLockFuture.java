@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
     implements GridCacheMvccLockFuture<K, V, Boolean>, GridDhtFuture<Boolean>, GridCacheMappedVersion {
@@ -990,7 +990,7 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
         private final long endTime = System.currentTimeMillis() + timeout;
 
         /** {@inheritDoc} */
-        @Override public UUID timeoutId() {
+        @Override public GridUuid timeoutId() {
             return lockVer.id();
         }
 

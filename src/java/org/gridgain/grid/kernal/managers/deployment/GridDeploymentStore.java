@@ -10,6 +10,7 @@
 package org.gridgain.grid.kernal.managers.deployment;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.lang.utils.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
@@ -18,7 +19,7 @@ import java.util.*;
  * Interface for all deployment stores.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridDeploymentStore {
     /**
@@ -54,10 +55,11 @@ public interface GridDeploymentStore {
     /**
      * Gets class loader based on ID.
      *
+     *
      * @param ldrId Class loader ID.
      * @return Class loader of {@code null} if not found.
      */
-    @Nullable public GridDeployment getDeployment(UUID ldrId);
+    @Nullable public GridDeployment getDeployment(GridUuid ldrId);
 
     /**
      * @return All current deployments.

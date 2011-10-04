@@ -14,6 +14,7 @@ import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.managers.deployment.*;
 import org.gridgain.grid.kernal.processors.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.*;
 import org.jetbrains.annotations.*;
 
@@ -23,12 +24,12 @@ import java.util.concurrent.*;
 /**
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridTaskSessionProcessor extends GridProcessorAdapter {
     /** Sessions (initialized to 2K number of concurrent sessions). */
-    private final ConcurrentMap<UUID, GridTuple2<GridTaskSessionImpl, Integer>> sesMap =
-        new ConcurrentHashMap<UUID, GridTuple2<GridTaskSessionImpl, Integer>>(2048);
+    private final ConcurrentMap<GridUuid, GridTuple2<GridTaskSessionImpl, Integer>> sesMap =
+        new ConcurrentHashMap<GridUuid, GridTuple2<GridTaskSessionImpl, Integer>>(2048);
 
     /**
      * @param ctx Grid kernal context.
@@ -56,6 +57,7 @@ public class GridTaskSessionProcessor extends GridProcessorAdapter {
     }
 
     /**
+     *
      * @param sesId Session ID.
      * @param taskNodeId Task node ID.
      * @param taskName Task name.
@@ -69,7 +71,7 @@ public class GridTaskSessionProcessor extends GridProcessorAdapter {
      */
     @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
     public GridTaskSessionImpl createTaskSession(
-        UUID sesId,
+        GridUuid sesId,
         UUID taskNodeId,
         String taskName,
         @Nullable GridDeployment dep,
@@ -126,10 +128,11 @@ public class GridTaskSessionProcessor extends GridProcessorAdapter {
     }
 
     /**
+     *
      * @param sesId Session ID.
      * @return Session for a given session ID.
      */
-    @Nullable public GridTaskSessionImpl getSession(UUID sesId) {
+    @Nullable public GridTaskSessionImpl getSession(GridUuid sesId) {
         GridTuple2<GridTaskSessionImpl, Integer> sesTup = sesMap.get(sesId);
 
         return sesTup == null ? null : sesTup.get1();
@@ -138,11 +141,12 @@ public class GridTaskSessionProcessor extends GridProcessorAdapter {
     /**
      * Removes session for a given session ID.
      *
+     *
      * @param sesId ID of session to remove.
      * @return {@code True} if session was removed.
      */
     @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
-    public boolean removeSession(UUID sesId) {
+    public boolean removeSession(GridUuid sesId) {
         GridTuple2<GridTaskSessionImpl, Integer> sesTup = sesMap.get(sesId);
 
         if (sesTup != null) {

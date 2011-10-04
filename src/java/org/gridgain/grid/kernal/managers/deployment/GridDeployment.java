@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.*;
  * Represents single class deployment.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDeployment extends GridMetadataAwareAdapter implements GridDeploymentInfo {
     /** Timestamp. */
@@ -40,7 +40,7 @@ public class GridDeployment extends GridMetadataAwareAdapter implements GridDepl
     private final ClassLoader clsLdr;
 
     /** Class loader ID. */
-    private final UUID clsLdrId;
+    private final GridUuid clsLdrId;
 
     /** User version. */
     private final String userVer;
@@ -98,7 +98,7 @@ public class GridDeployment extends GridMetadataAwareAdapter implements GridDepl
      * @param sampleClsName Sample class name.
      * @param local {@code True} if local deployment.
      */
-    GridDeployment(GridDeploymentMode depMode, ClassLoader clsLdr, UUID clsLdrId, long seqNum, String userVer,
+    GridDeployment(GridDeploymentMode depMode, ClassLoader clsLdr, GridUuid clsLdrId, long seqNum, String userVer,
         String sampleClsName, boolean local) {
         assert depMode != null;
         assert clsLdr != null;
@@ -170,7 +170,7 @@ public class GridDeployment extends GridMetadataAwareAdapter implements GridDepl
      *
      * @return Property clsLdrId.
      */
-    @Override public UUID classLoaderId() {
+    @Override public GridUuid classLoaderId() {
         return clsLdrId;
     }
 
@@ -275,7 +275,7 @@ public class GridDeployment extends GridMetadataAwareAdapter implements GridDepl
     /**
      * @return Node participant map.
      */
-    @Nullable @Override public Map<UUID, GridTuple2<UUID, Long>> participants() {
+    @Nullable @Override public Map<UUID, GridTuple2<GridUuid, Long>> participants() {
         if (clsLdr instanceof GridDeploymentClassLoader) {
             return ((GridDeploymentInfo)clsLdr).participants();
         }

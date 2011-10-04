@@ -10,6 +10,7 @@
 package org.gridgain.grid.events;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 
 import java.util.*;
@@ -54,9 +55,9 @@ import java.util.*;
  * {@link GridConfiguration#getIncludeEventTypes()} methods in GridGain configuration. Note that certain
  * events are required for GridGain's internal operations and such events will still be generated but not stored by
  * event storage SPI if they are disabled in GridGain configuration.
- * 
+ *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  * @see GridEventType#EVT_JOB_CANCELLED
  * @see GridEventType#EVT_JOB_FAILED
  * @see GridEventType#EVT_JOB_FAILED_OVER
@@ -74,10 +75,10 @@ public class GridJobEvent extends GridEventAdapter {
     private String taskName;
 
     /** */
-    private UUID sesId;
+    private GridUuid sesId;
 
     /** */
-    private UUID jobId;
+    private GridUuid jobId;
 
     /** */
     private UUID taskNodeId;
@@ -119,7 +120,7 @@ public class GridJobEvent extends GridEventAdapter {
      *
      * @return Task session ID of the task that triggered the event.
      */
-    public UUID taskSessionId() {
+    public GridUuid taskSessionId() {
         return sesId;
     }
 
@@ -128,7 +129,7 @@ public class GridJobEvent extends GridEventAdapter {
      *
      * @return Job ID.
      */
-    public UUID jobId() {
+    public GridUuid jobId() {
         return jobId;
     }
 
@@ -148,7 +149,7 @@ public class GridJobEvent extends GridEventAdapter {
      *
      * @param sesId Task session ID to set.
      */
-    public void taskSessionId(UUID sesId) {
+    public void taskSessionId(GridUuid sesId) {
         assert sesId != null;
 
         this.sesId = sesId;
@@ -159,7 +160,7 @@ public class GridJobEvent extends GridEventAdapter {
      *
      * @param jobId Job ID to set.
      */
-    public void jobId(UUID jobId) {
+    public void jobId(GridUuid jobId) {
         assert jobId != null;
 
         this.jobId = jobId;

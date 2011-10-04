@@ -35,7 +35,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
     implements GridCacheMvccLockFuture<K, V, Boolean> {
@@ -1002,7 +1002,7 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
         private final long endTime = System.currentTimeMillis() + timeout;
 
         /** {@inheritDoc} */
-        @Override public UUID timeoutId() {
+        @Override public GridUuid timeoutId() {
             return lockVer.id();
         }
 

@@ -33,7 +33,7 @@ import java.util.*;
  * <tt>public</tt> due to certain limitations of Java technology.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridTcpDiscoveryNode extends GridMetadataAwareAdapter implements GridNode,
     GridTcpDiscoveryTopologyStoreNode, Comparable<GridNode>, Externalizable {
@@ -288,7 +288,7 @@ public class GridTcpDiscoveryNode extends GridMetadataAwareAdapter implements Gr
             return 1;
 
         if (order() == node.order())
-            assert id().equals(node.id());
+            assert id().equals(node.id()) : "Duplicate order [node1=" + this + ", node2=" + node + ']';
 
         return order() < node.order() ? -1 : order() > node.order() ? 1 : id().compareTo(node.id());
     }

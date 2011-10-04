@@ -33,7 +33,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Cache utility methods.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public abstract class GridCacheUtils {
     /** Peek flags. */
@@ -145,8 +145,8 @@ public abstract class GridCacheUtils {
     };
 
     /** Converts transaction to XID. */
-    private static final GridClosure<GridCacheTx, UUID> tx2xid = new C1<GridCacheTx, UUID>() {
-        @Override public UUID apply(GridCacheTx tx) {
+    private static final GridClosure<GridCacheTx, GridUuid> tx2xid = new C1<GridCacheTx, GridUuid>() {
+        @Override public GridUuid apply(GridCacheTx tx) {
             return tx.xid();
         }
 
@@ -236,7 +236,7 @@ public abstract class GridCacheUtils {
         out.writeBoolean(ver == null);
 
         if (ver != null) {
-            U.writeUuid(out, ver.id());
+            U.writeGridUuid(out, ver.id());
 
             out.writeLong(ver.order());
         }
@@ -253,7 +253,7 @@ public abstract class GridCacheUtils {
     @Nullable public static GridCacheVersion readVersion(DataInput in) throws IOException {
         // If UUID is not null.
         if (!in.readBoolean()) {
-            UUID id = U.readUuid(in);
+            GridUuid id = U.readGridUuid(in);
 
             long order = in.readLong();
 
@@ -927,7 +927,7 @@ public abstract class GridCacheUtils {
     /**
      * @return Closure which converts transaction to xid.
      */
-    public static GridClosure<GridCacheTx, UUID> tx2xid() {
+    public static GridClosure<GridCacheTx, GridUuid> tx2xid() {
         return tx2xid;
     }
 

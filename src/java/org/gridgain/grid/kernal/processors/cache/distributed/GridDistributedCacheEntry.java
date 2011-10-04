@@ -22,7 +22,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Entry for distributed (replicated/partitioned) cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext"})
 public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
@@ -366,10 +366,11 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
     /**
      * @param ver Lock version.
+     * @return {@code True} if removed.
      */
-    protected void addRemoved(GridCacheVersion ver) {
+    public boolean addRemoved(GridCacheVersion ver) {
         synchronized (mux) {
-            cctx.mvcc().addRemoved(ver);
+            return cctx.mvcc().addRemoved(ver);
         }
     }
 

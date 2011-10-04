@@ -23,7 +23,7 @@ import java.util.*;
  * Event storage message.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 class GridEventStorageMessage implements Serializable {
     /** */
@@ -39,7 +39,7 @@ class GridEventStorageMessage implements Serializable {
     private final Throwable ex;
 
     /** */
-    private final UUID clsLdrId;
+    private final GridUuid clsLdrId;
 
     /** */
     private final GridDeploymentMode depMode;
@@ -55,7 +55,7 @@ class GridEventStorageMessage implements Serializable {
 
     /** Node class loader participants. */
     @GridToStringInclude
-    private Map<UUID, GridTuple2<UUID, Long>> ldrParties;
+    private Map<UUID, GridTuple2<GridUuid, Long>> ldrParties;
 
     /**
      * @param resTopic Response topic,
@@ -71,11 +71,11 @@ class GridEventStorageMessage implements Serializable {
         String resTopic,
         GridByteArrayList filter,
         String filterClsName,
-        UUID clsLdrId,
+        GridUuid clsLdrId,
         GridDeploymentMode depMode,
         long seqNum,
         String userVer,
-        Map<UUID, GridTuple2<UUID, Long>> ldrParties) {
+        Map<UUID, GridTuple2<GridUuid, Long>> ldrParties) {
         this.resTopic = resTopic;
         this.filter = filter;
         this.filterClsName = filterClsName;
@@ -130,7 +130,7 @@ class GridEventStorageMessage implements Serializable {
     /**
      * @return the Class loader ID.
      */
-    public UUID classLoaderId() {
+    public GridUuid classLoaderId() {
         return clsLdrId;
     }
 
@@ -165,14 +165,14 @@ class GridEventStorageMessage implements Serializable {
     /**
      * @return Node class loader participant map.
      */
-    @Nullable public Map<UUID, GridTuple2<UUID, Long>> loaderParticipants() {
+    @Nullable public Map<UUID, GridTuple2<GridUuid, Long>> loaderParticipants() {
         return ldrParties != null ? Collections.unmodifiableMap(ldrParties) : null;
     }
 
     /**
      * @param ldrParties Node class loader participant map.
      */
-    public void loaderParticipants(Map<UUID, GridTuple2<UUID, Long>> ldrParties) {
+    public void loaderParticipants(Map<UUID, GridTuple2<GridUuid, Long>> ldrParties) {
         this.ldrParties = ldrParties;
     }
 

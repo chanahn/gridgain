@@ -9,19 +9,20 @@
 
 package org.gridgain.grid.kernal;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
+
 import java.io.*;
-import java.util.*;
 
 /**
  * Job siblings request.
- * 
+ *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridJobSiblingsRequest implements Externalizable {
     /** */
-    private UUID sesId;
+    private GridUuid sesId;
 
     /**
      * Empty constructor required by {@link Externalizable}.
@@ -33,24 +34,24 @@ public class GridJobSiblingsRequest implements Externalizable {
     /**
      * @param sesId Session ID.
      */
-    public GridJobSiblingsRequest(UUID sesId) {
+    public GridJobSiblingsRequest(GridUuid sesId) {
         assert sesId != null;
 
         this.sesId = sesId;
     }
 
-    public UUID getSessionId() {
+    public GridUuid getSessionId() {
         return sesId;
     }
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        sesId = U.readUuid(in);
+        sesId = U.readGridUuid(in);
     }
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
-        U.writeUuid(out, sesId);
+        U.writeGridUuid(out, sesId);
     }
 
     /** {@inheritDoc} */

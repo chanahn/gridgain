@@ -9,6 +9,7 @@
 
 package org.gridgain.grid.kernal;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.*;
 import org.jetbrains.annotations.*;
@@ -19,7 +20,7 @@ import java.util.*;
  * Communication topic.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public enum GridTopic {
     /** */
@@ -104,13 +105,88 @@ public enum GridTopic {
         try {
             sb.a(name());
 
-            for (UUID id : ids)
-                sb.a('-').a(id.getLeastSignificantBits()).a('-').a(id.getMostSignificantBits());
+            for (UUID id : ids) {
+                sb.a('-');
+
+                append(sb, id);
+            }
 
             return sb.toString();
         }
         finally {
             GridStringBuilderFactory.release(sb);
         }
+    }
+
+    /**
+     * This method uses cached instances of {@link StringBuilder} to avoid
+     * constant resizing and object creation.
+     *
+     * @param id1 ID1
+     * @param id2 ID2
+     * @return Grid message topic with specified IDs.
+     */
+    public String name(GridUuid id1, UUID id2) {
+        SB sb = GridStringBuilderFactory.acquire();
+
+        try {
+            sb.a(name());
+
+            sb.a('-');
+
+            append(sb, id1);
+
+            sb.a('-');
+
+            append(sb, id2);
+
+            return sb.toString();
+        }
+        finally {
+            GridStringBuilderFactory.release(sb);
+        }
+    }
+
+    /**
+     * This method uses cached instances of {@link StringBuilder} to avoid
+     * constant resizing and object creation.
+     *
+     * @param ids Topic IDs.
+     * @return Grid message topic with specified IDs.
+     */
+    public String name(GridUuid... ids) {
+        SB sb = GridStringBuilderFactory.acquire();
+
+        try {
+            sb.a(name());
+
+            for (GridUuid id : ids) {
+                sb.a('-');
+
+                append(sb, id);
+            }
+
+            return sb.toString();
+        }
+        finally {
+            GridStringBuilderFactory.release(sb);
+        }
+    }
+
+    /**
+     * @param sb String builder.
+     * @param id ID.
+     */
+    private void append(SB sb, UUID id) {
+        sb.a(id.getLeastSignificantBits()).a('-').a(id.getMostSignificantBits());
+    }
+
+    /**
+     * @param sb String builder.
+     * @param id ID.
+     */
+    private void append(SB sb, GridUuid id) {
+        sb.a(id.globalId().getLeastSignificantBits()).a('-').a(id.globalId().getMostSignificantBits()).
+            a('-').a(id.localId());
     }
 }

@@ -32,7 +32,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
  * This class defines task processor.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridTaskProcessor extends GridProcessorAdapter {
     /** Wait for 5 seconds to allow discovery to take effect (best effort). */
@@ -42,7 +42,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
     private final GridMarshaller marshaller;
 
     /** */
-    private final Map<UUID, GridTaskWorker<?, ?>> tasks = new HashMap<UUID, GridTaskWorker<?, ?>>();
+    private final Map<GridUuid, GridTaskWorker<?, ?>> tasks = new HashMap<GridUuid, GridTaskWorker<?, ?>>();
 
     /** */
     private boolean stopping;
@@ -328,7 +328,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
         }
 
         try {
-            return startTask(null, taskCls, null, UUID.randomUUID(), timeout, lsnr, arg, false);
+            return startTask(null, taskCls, null, GridUuid.randomUuid(), timeout, lsnr, arg, false);
         }
         finally {
             synchronized (mux) {
@@ -377,7 +377,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
         }
 
         try {
-            return startTask(null, null, task, UUID.randomUUID(), timeout, lsnr, arg, sys);
+            return startTask(null, null, task, GridUuid.randomUuid(), timeout, lsnr, arg, sys);
         }
         finally {
             synchronized (mux) {
@@ -413,7 +413,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
         }
 
         try {
-            return startTask(taskName, null, null, UUID.randomUUID(), timeout, lsnr, arg, false);
+            return startTask(taskName, null, null, GridUuid.randomUuid(), timeout, lsnr, arg, false);
         }
         finally {
             synchronized (mux) {
@@ -426,6 +426,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
     }
 
     /**
+     *
      * @param taskName Task name.
      * @param taskCls Task class.
      * @param task Task.
@@ -435,15 +436,13 @@ public class GridTaskProcessor extends GridProcessorAdapter {
      * @param arg Optional task argument.
      * @param sys If {@code true}, then system pool will be used.
      * @return Task future.
-     * @param <T> Task argument type.
-     * @param <R> Task return value type.
      */
     @SuppressWarnings({"unchecked", "deprecation"})
     private <T, R> GridTaskFuture<R> startTask(
         @Nullable String taskName,
         @Nullable Class<?> taskCls,
         @Nullable GridTask<T, R> task,
-        UUID sesId,
+        GridUuid sesId,
         long timeout,
         @Nullable GridTaskListener lsnr,
         @Nullable T arg,
@@ -1060,7 +1059,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
      * Listener to node discovery events.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.03102011
+     * @version 3.5.0c.04102011
      */
     private class TaskDiscoveryListener implements GridLocalEventListener {
         /** {@inheritDoc} */
@@ -1107,7 +1106,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
         GridIoSyncMessageHandler<GridJobSiblingsRequest, Collection<GridJobSibling>> {
         /** {@inheritDoc} */
         @Nullable @Override public Collection<GridJobSibling> handleMessage(UUID nodeId, GridJobSiblingsRequest msg) {
-            UUID sesId = msg.getSessionId();
+            GridUuid sesId = msg.getSessionId();
 
             GridTaskWorker<?, ?> worker;
 

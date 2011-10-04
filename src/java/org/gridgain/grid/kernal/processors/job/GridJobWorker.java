@@ -36,7 +36,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Job worker.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridJobWorker extends GridWorker implements GridTimeoutObject {
     /** Per-thread halted flag. */
@@ -202,8 +202,8 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
     /**
      * @return Unique job ID.
      */
-    public UUID getJobId() {
-        UUID jobId = ses.getJobId();
+    public GridUuid getJobId() {
+        GridUuid jobId = ses.getJobId();
 
         assert jobId != null;
 
@@ -283,8 +283,8 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
     }
 
     /** {@inheritDoc} */
-    @Override public UUID timeoutId() {
-        UUID jobId = ses.getJobId();
+    @Override public GridUuid timeoutId() {
+        GridUuid jobId = ses.getJobId();
 
         assert jobId != null;
 
@@ -747,8 +747,8 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
 
         assert obj instanceof GridJobWorker;
 
-        UUID jobId1 = ses.getJobId();
-        UUID jobId2 = ((GridJobWorker)obj).ses.getJobId();
+        GridUuid jobId1 = ses.getJobId();
+        GridUuid jobId2 = ((GridJobWorker)obj).ses.getJobId();
 
         assert jobId1 != null;
         assert jobId2 != null;
@@ -758,7 +758,7 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        UUID jobId = ses.getJobId();
+        GridUuid jobId = ses.getJobId();
 
         assert jobId != null;
 

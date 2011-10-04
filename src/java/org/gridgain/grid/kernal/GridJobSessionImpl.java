@@ -11,6 +11,7 @@ package org.gridgain.grid.kernal;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
@@ -20,14 +21,14 @@ import java.util.*;
  * Job session implementation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridJobSessionImpl extends GridMetadataAwareAdapter implements GridTaskSessionInternal {
     /** Wrapped task session. */
     private final GridTaskSessionImpl ses;
 
     /** Job ID. */
-    private final UUID jobId;
+    private final GridUuid jobId;
 
     /** Processor registry. */
     private final GridKernalContext ctx;
@@ -37,7 +38,7 @@ public class GridJobSessionImpl extends GridMetadataAwareAdapter implements Grid
      * @param ses Task session.
      * @param jobId Job ID.
      */
-    public GridJobSessionImpl(GridKernalContext ctx, GridTaskSessionImpl ses, UUID jobId) {
+    public GridJobSessionImpl(GridKernalContext ctx, GridTaskSessionImpl ses, GridUuid jobId) {
         assert ctx != null;
         assert ses != null;
         assert jobId != null;
@@ -55,7 +56,7 @@ public class GridJobSessionImpl extends GridMetadataAwareAdapter implements Grid
     }
 
     /** {@inheritDoc} */
-    @Override public UUID getJobId() {
+    @Override public GridUuid getJobId() {
         return jobId;
     }
 
@@ -105,7 +106,7 @@ public class GridJobSessionImpl extends GridMetadataAwareAdapter implements Grid
     }
 
     /** {@inheritDoc} */
-    @Override public UUID getId() {
+    @Override public GridUuid getId() {
         return ses.getId();
     }
 
@@ -141,7 +142,7 @@ public class GridJobSessionImpl extends GridMetadataAwareAdapter implements Grid
     }
 
     /** {@inheritDoc} */
-    @Override public GridJobSibling getJobSibling(UUID jobId) throws GridException {
+    @Override public GridJobSibling getJobSibling(GridUuid jobId) throws GridException {
         for (GridJobSibling sib : getJobSiblings())
             if (sib.getJobId().equals(jobId))
                 return sib;

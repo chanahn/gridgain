@@ -22,7 +22,7 @@ import java.util.*;
  * Transaction completion message.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDistributedTxFinishRequest<K, V> extends GridDistributedBaseMessage<K, V> {
     /** Future ID. */
@@ -101,7 +101,7 @@ public class GridDistributedTxFinishRequest<K, V> extends GridDistributedBaseMes
     /**
      * @return Transaction ID.
      */
-    public UUID xid() {
+    public GridUuid xid() {
         return version().id();
     }
 

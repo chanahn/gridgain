@@ -12,6 +12,7 @@ package org.gridgain.grid.spi.loadbalancing.adaptive;
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.spi.*;
@@ -219,13 +220,13 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 @GridSpiInfo(
     author = "GridGain Systems, Inc.",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.5.0c.03102011")
+    version = "3.5.0c.04102011")
 @GridSpiMultipleInstancesSupport(true)
 public class GridAdaptiveLoadBalancingSpi extends GridSpiAdapter implements GridLoadBalancingSpi,
     GridAdaptiveLoadBalancingSpiMBean {
@@ -242,8 +243,8 @@ public class GridAdaptiveLoadBalancingSpi extends GridSpiAdapter implements Grid
     private GridLocalEventListener evtLsnr;
 
     /** Task topologies. First pair value indicates whether or not jobs have been mapped. */
-    private ConcurrentMap<UUID, GridTuple2<Boolean, WeightedTopology>> taskTops =
-        new ConcurrentHashMap<UUID, GridTuple2<Boolean, WeightedTopology>>();
+    private ConcurrentMap<GridUuid, GridTuple2<Boolean, WeightedTopology>> taskTops =
+        new ConcurrentHashMap<GridUuid, GridTuple2<Boolean, WeightedTopology>>();
 
     /** */
     private final Map<UUID, AtomicInteger> nodeJobs = new HashMap<UUID, AtomicInteger>();
@@ -351,9 +352,9 @@ public class GridAdaptiveLoadBalancingSpi extends GridSpiAdapter implements Grid
                     case EVT_NODE_FAILED:
                     case EVT_NODE_JOINED:
                     case EVT_NODE_LEFT: {
-                        rwLock.writeLock().lock();
-
                         GridDiscoveryEvent discoEvt = (GridDiscoveryEvent)evt;
+
+                        rwLock.writeLock().lock();
 
                         try {
                             switch (evt.type()) {
@@ -451,13 +452,14 @@ public class GridAdaptiveLoadBalancingSpi extends GridSpiAdapter implements Grid
      * @return Node load.
      * @throws GridException If returned load is negative.
      */
+    @SuppressWarnings({"TooBroadScope"})
     private double getLoad(Collection<GridNode> top, GridNode node) throws GridException {
         assert !F.isEmpty(top);
 
+        int jobsSentSinceLastUpdate = 0;
+
         rwLock.readLock().lock();
 
-        int jobsSentSinceLastUpdate = 0;
-        
         try {
             AtomicInteger cnt = nodeJobs.get(node.id());
 
@@ -480,7 +482,7 @@ public class GridAdaptiveLoadBalancingSpi extends GridSpiAdapter implements Grid
      * Holder for weighted topology.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.03102011
+     * @version 3.5.0c.04102011
      */
     private class WeightedTopology {
         /** Topology sorted by weight. */

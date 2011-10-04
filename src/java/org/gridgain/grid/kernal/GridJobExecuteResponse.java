@@ -20,14 +20,14 @@ import java.util.*;
  * This class defines externalizable job execution response.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridJobExecuteResponse implements GridTaskMessage, Externalizable {
     /** */
-    private UUID sesId;
+    private GridUuid sesId;
 
     /** */
-    private UUID jobId;
+    private GridUuid jobId;
 
     /** */
     private GridByteArrayList res;
@@ -61,11 +61,11 @@ public class GridJobExecuteResponse implements GridTaskMessage, Externalizable {
      * @param jobId Job ID.
      * @param gridEx Serialized grid exception.
      * @param res Serialized result.
-     * @param jobAttrs TODO
+     * @param jobAttrs Job attributes.
      * @param isCancelled Whether job was cancelled or not.
      */
-    public GridJobExecuteResponse(UUID nodeId, UUID sesId, UUID jobId, GridByteArrayList gridEx, GridByteArrayList res,
-        GridByteArrayList jobAttrs, boolean isCancelled) {
+    public GridJobExecuteResponse(UUID nodeId, GridUuid sesId, GridUuid jobId, GridByteArrayList gridEx,
+        GridByteArrayList res, GridByteArrayList jobAttrs, boolean isCancelled) {
         assert nodeId != null;
         assert sesId != null;
         assert jobId != null;
@@ -82,26 +82,26 @@ public class GridJobExecuteResponse implements GridTaskMessage, Externalizable {
     /**
      * @return Task session ID.
      */
-    @Override public UUID getSessionId() {
+    @Override public GridUuid getSessionId() {
         return sesId;
     }
 
     /**
      * @return Job ID.
      */
-    public UUID getJobId() {
+    public GridUuid getJobId() {
         return jobId;
     }
 
     /**
-     * @return TODO
+     * @return Job result.
      */
     public GridByteArrayList getJobResult() {
         return res;
     }
 
     /**
-     * @return TODO
+     * @return Job exception.
      */
     public GridByteArrayList getException() {
         return gridEx;
@@ -152,8 +152,8 @@ public class GridJobExecuteResponse implements GridTaskMessage, Externalizable {
         out.writeObject(jobAttrs);
 
         U.writeUuid(out, nodeId);
-        U.writeUuid(out, sesId);
-        U.writeUuid(out, jobId);
+        U.writeGridUuid(out, sesId);
+        U.writeGridUuid(out, jobId);
     }
 
     /** {@inheritDoc} */
@@ -165,8 +165,8 @@ public class GridJobExecuteResponse implements GridTaskMessage, Externalizable {
         jobAttrs = (GridByteArrayList)in.readObject();
 
         nodeId = U.readUuid(in);
-        sesId = U.readUuid(in);
-        jobId = U.readUuid(in);
+        sesId = U.readGridUuid(in);
+        jobId = U.readGridUuid(in);
     }
 
     /** {@inheritDoc} */

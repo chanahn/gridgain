@@ -16,6 +16,7 @@ import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
@@ -30,7 +31,7 @@ import java.util.concurrent.atomic.*;
  *
  * @param <R> Result type.
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAdapter<Collection<R>>
     implements GridCacheQueryFuture<R>, GridTimeoutObject {
@@ -71,7 +72,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
     protected volatile GridReducer<Object, Object> locRdc;
 
     /** */
-    private UUID timeoutId = UUID.randomUUID();
+    private GridUuid timeoutId = GridUuid.randomUuid();
 
     /** */
     private long startTime;
@@ -427,7 +428,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
     protected abstract void cancelQuery() throws GridException;
 
     /** {@inheritDoc} */
-    @Override public UUID timeoutId() {
+    @Override public GridUuid timeoutId() {
         return timeoutId;
     }
 

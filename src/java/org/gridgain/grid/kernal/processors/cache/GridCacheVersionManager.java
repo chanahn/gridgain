@@ -12,6 +12,7 @@ package org.gridgain.grid.kernal.processors.cache;
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 
 import java.util.*;
 import java.util.concurrent.atomic.*;
@@ -26,7 +27,7 @@ import static org.gridgain.grid.GridEventType.*;
  * caches.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheVersionManager<K, V> extends GridCacheManager<K, V> {
     /**
@@ -58,8 +59,8 @@ public class GridCacheVersionManager<K, V> extends GridCacheManager<K, V> {
     /**
      * @return Pre-generated UUID.
      */
-    private UUID uuid() {
-        return UUID.randomUUID();
+    private GridUuid uuid() {
+        return GridUuid.randomUuid();
     }
 
     /** {@inheritDoc} */
@@ -134,7 +135,7 @@ public class GridCacheVersionManager<K, V> extends GridCacheManager<K, V> {
      * @return New lock order.
      */
     public GridCacheVersion next() {
-        UUID id = uuid();
+        GridUuid id = uuid();
 
         synchronized (last) {
             GridCacheVersion next = new GridCacheVersion(order.incrementAndGet(), id);

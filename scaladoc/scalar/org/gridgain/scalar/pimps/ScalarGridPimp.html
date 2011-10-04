@@ -48,7 +48,7 @@ Scala GridGain counterparts in <code>ScalarConversions</code> object</p><h4>Suff
 that Scala pimp is shadowing or with Java package name that your Scala code is importing.
 Instead of giving two different names to the same function we've decided to simply mark
 Scala's side method with <code>$</code> suffix.
-</p></div><dl class="attributes block"> <dt>Version</dt><dd><p>GridGain 3.5 build: 03102011
+</p></div><dl class="attributes block"> <dt>Version</dt><dd><p>GridGain 3.5 build: 04102011
 </p></dd></dl><div class="toggleContainer block">
           <span class="toggle">Linear Supertypes</span>
           <div class="superTypes hiddenContent"><a name="org.gridgain.scalar.pimps.ScalarProjectionPimp" class="extype" href="ScalarProjectionPimp.html">ScalarProjectionPimp</a>[<span name="org.gridgain.grid.Grid" class="extype">Grid</span>], <a name="org.gridgain.scalar.pimps.ScalarTaskThreadContext" class="extype" href="ScalarTaskThreadContext.html">ScalarTaskThreadContext</a>[<span name="org.gridgain.grid.Grid" class="extype">Grid</span>], <a name="org.gridgain.scalar.ScalarConversions" class="extype" href="../ScalarConversions.html">ScalarConversions</a>, <span name="scala.collection.Iterable" class="extype">Iterable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>], <span name="scala.collection.IterableLike" class="extype">IterableLike</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>, <span name="scala.collection.Iterable" class="extype">Iterable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>]], <span name="scala.Equals" class="extype">Equals</span>, <span name="scala.collection.GenIterable" class="extype">GenIterable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>], <span name="scala.collection.GenIterableLike" class="extype">GenIterableLike</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>, <span name="scala.collection.Iterable" class="extype">Iterable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>]], <span name="scala.collection.Traversable" class="extype">Traversable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>], <span name="scala.collection.GenTraversable" class="extype">GenTraversable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>], <span name="scala.collection.generic.GenericTraversableTemplate" class="extype">GenericTraversableTemplate</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>, <span name="scala.collection.Iterable" class="extype">Iterable</span>], <span name="scala.collection.TraversableLike" class="extype">TraversableLike</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>, <span name="scala.collection.Iterable" class="extype">Iterable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>]], <span name="scala.collection.GenTraversableLike" class="extype">GenTraversableLike</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>, <span name="scala.collection.Iterable" class="extype">Iterable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>]], <span name="scala.collection.Parallelizable" class="extype">Parallelizable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>, <span name="scala.collection.parallel.ParIterable" class="extype">ParIterable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>]], <span name="scala.collection.TraversableOnce" class="extype">TraversableOnce</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>], <span name="scala.collection.GenTraversableOnce" class="extype">GenTraversableOnce</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>], <span name="scala.collection.generic.FilterMonadic" class="extype">FilterMonadic</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>, <span name="scala.collection.Iterable" class="extype">Iterable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>]], <span name="scala.collection.generic.HasNewBuilder" class="extype">HasNewBuilder</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>, <span name="scala.collection.Iterable" class="extype">Iterable</span>[<span name="org.gridgain.grid.GridRichNode" class="extype">GridRichNode</span>]], <span name="scalaz.PimpedType" class="extype">PimpedType</span>[<span name="org.gridgain.grid.Grid" class="extype">Grid</span>], AnyRef, <span name="scala.Any" class="extype">Any</span></div>
@@ -622,6 +622,120 @@ Scala's side method with <code>$</code> suffix.
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>TraversableOnce</dd></dl></div>
+    </li><li visbl="pub" name="org.gridgain.scalar.pimps.ScalarProjectionPimp#affinityCall$" data-isabs="false">
+      <a id="affinityCall$[R](String,Seq[_],Call[R],NodeFilter*):Seq[R]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">affinityCall$</span>
+        <span class="tparams">[<span name="R">R</span>]</span>
+        <span class="params">(<span name="cacheName">cacheName: String</span>, <span name="affKeys">affKeys: Seq[_]</span>, <span name="c">c: Call[R]</span>, <span name="p">p: NodeFilter*</span>)</span><span class="result">: Seq[R]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Executes given closure on the nodes where data for provided affinity keys are located.</p><div class="fullcomment"><div class="comment cmt"><p>Executes given closure on the nodes where data for provided affinity keys are located. This
+is known as affinity co-location between compute grid (a closure) and in-memory data grid
+(value with affinity key). Note that implementation of multiple executions of the same closure will
+be wrapped as a single task that splits into multiple <code>job</code>s that will be mapped to nodes
+with provided affinity keys.</p><p>This method will block until its execution is complete or an exception is thrown.
+All default SPI implementations configured for this grid instance will be
+used (i.e. failover, load balancing, collision resolution, etc.).
+Note that if you need greater control on any aspects of Java code execution on the grid
+you should implement <code>GridTask</code> which will provide you with full control over the execution.</p><p>Notice that <code>Runnable</code> and <code>Callable</code> implementations must support serialization as required
+by the configured marshaller. For example, JDK marshaller will require that implementations would
+be serializable. Other marshallers, e.g. JBoss marshaller, may not have this limitation. Please consult
+with specific marshaller implementation for the details. Note that all closures and predicates in
+<code>org.gridgain.grid.lang</code> package are serializable and can be freely used in the distributed
+context with all marshallers currently shipped with GridGain.
+</p></div><dl class="paramcmts block"><dt class="param">cacheName</dt><dd class="cmt"><p>Name of the cache to use for affinity co-location.</p></dd><dt class="param">affKeys</dt><dd class="cmt"><p>Collection of affinity keys. All dups will be ignored. If <code>null</code>
+     or empty - this method is no-op.</p></dd><dt class="param">p</dt><dd class="cmt"><p>Optional set of filtering predicates. All predicates must evaluate to <code>true</code> for a
+     node to be included. If none provided - all nodes in this projection will be used for topology.</p></dd><dt>returns</dt><dd class="cmt"><p>Collection of closure execution results.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.gridgain.scalar.pimps.ScalarProjectionPimp" class="extype" href="ScalarProjectionPimp.html">ScalarProjectionPimp</a></dd></dl></div>
+    </li><li visbl="pub" name="org.gridgain.scalar.pimps.ScalarProjectionPimp#affinityCallAsync$" data-isabs="false">
+      <a id="affinityCallAsync$[R](String,Seq[_],Call[R],NodeFilter*):GridFuture[Collection[R]]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">affinityCallAsync$</span>
+        <span class="tparams">[<span name="R">R</span>]</span>
+        <span class="params">(<span name="cacheName">cacheName: String</span>, <span name="affKeys">affKeys: Seq[_]</span>, <span name="c">c: Call[R]</span>, <span name="p">p: NodeFilter*</span>)</span><span class="result">: <span name="org.gridgain.grid.GridFuture" class="extype">GridFuture</span>[<span name="java.util.Collection" class="extype">Collection</span>[R]]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Executes given closure on the nodes where data for provided affinity keys are located.</p><div class="fullcomment"><div class="comment cmt"><p>Executes given closure on the nodes where data for provided affinity keys are located. This
+is known as affinity co-location between compute grid (a closure) and in-memory data grid
+(value with affinity key). Note that implementation of multiple executions of the same closure will
+be wrapped as a single task that splits into multiple <code>job</code>s that will be mapped to nodes
+with provided affinity keys.</p><p>Unlike its sibling method <code>affinityCall(String, Object, Callable, GridPredicate[])</code> this method does
+not block and returns immediately with future. All default SPI implementations
+configured for this grid instance will be used (i.e. failover, load balancing, collision resolution, etc.).
+Note that if you need greater control on any aspects of Java code execution on the grid
+you should implement <code>GridTask</code> which will provide you with full control over the execution.</p><p>Notice that <code>Runnable</code> and <code>Callable</code> implementations must support serialization as required
+by the configured marshaller. For example, JDK marshaller will require that implementations would
+be serializable. Other marshallers, e.g. JBoss marshaller, may not have this limitation. Please consult
+with specific marshaller implementation for the details. Note that all closures and predicates in
+<code>org.gridgain.grid.lang</code> package are serializable and can be freely used in the distributed
+context with all marshallers currently shipped with GridGain.
+</p></div><dl class="paramcmts block"><dt class="param">cacheName</dt><dd class="cmt"><p>Name of the cache to use for affinity co-location.</p></dd><dt class="param">affKeys</dt><dd class="cmt"><p>Collection of affinity keys. All dups will be ignored.
+     If <code>null</code> or empty - this method is no-op.</p></dd><dt class="param">p</dt><dd class="cmt"><p>Optional set of filtering predicates. All predicates must evaluate to <code>true</code> for a
+     node to be included. If none provided - all nodes in this projection will be used for topology.</p></dd><dt>returns</dt><dd class="cmt"><p>Non-cancellable future of closure results. Upon successful execution number of results
+     will be equal to number of affinity keys provided.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.gridgain.scalar.pimps.ScalarProjectionPimp" class="extype" href="ScalarProjectionPimp.html">ScalarProjectionPimp</a></dd></dl></div>
+    </li><li visbl="pub" name="org.gridgain.scalar.pimps.ScalarProjectionPimp#affinityRun$" data-isabs="false">
+      <a id="affinityRun$(String,Seq[_],Run,NodeFilter*):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">affinityRun$</span>
+        
+        <span class="params">(<span name="cacheName">cacheName: String</span>, <span name="affKeys">affKeys: Seq[_]</span>, <span name="r">r: Run</span>, <span name="p">p: NodeFilter*</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Executes given closure on the nodes where data for provided affinity keys are located.</p><div class="fullcomment"><div class="comment cmt"><p>Executes given closure on the nodes where data for provided affinity keys are located. This
+is known as affinity co-location between compute grid (a closure) and in-memory data grid
+(value with affinity key). Note that implementation of multiple executions of the same closure will
+be wrapped as a single task that splits into multiple <code>job</code>s that will be mapped to nodes
+with provided affinity keys.</p><p>This method will block until its execution is complete or an exception is thrown.
+All default SPI implementations configured for this grid instance will be
+used (i.e. failover, load balancing, collision resolution, etc.).
+Note that if you need greater control on any aspects of Java code execution on the grid
+you should implement <code>GridTask</code> which will provide you with full control over the execution.</p><p>Notice that <code>Runnable</code> and <code>Callable</code> implementations must support serialization as required
+by the configured marshaller. For example, JDK marshaller will require that implementations would
+be serializable. Other marshallers, e.g. JBoss marshaller, may not have this limitation. Please consult
+with specific marshaller implementation for the details. Note that all closures and predicates in
+<code>org.gridgain.grid.lang</code> package are serializable and can be freely used in the distributed
+context with all marshallers currently shipped with GridGain.
+</p></div><dl class="paramcmts block"><dt class="param">cacheName</dt><dd class="cmt"><p>Name of the cache to use for affinity co-location.</p></dd><dt class="param">affKeys</dt><dd class="cmt"><p>Collection of affinity keys. All dups will be ignored. If <code>null</code> or empty
+     this method is no-op.</p></dd><dt class="param">p</dt><dd class="cmt"><p>Optional set of filtering predicates. All predicates must evaluate to <code>true</code> for a
+     node to be included. If none provided - all nodes in this projection will be used for topology.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.gridgain.scalar.pimps.ScalarProjectionPimp" class="extype" href="ScalarProjectionPimp.html">ScalarProjectionPimp</a></dd></dl></div>
+    </li><li visbl="pub" name="org.gridgain.scalar.pimps.ScalarProjectionPimp#affinityRunAsync$" data-isabs="false">
+      <a id="affinityRunAsync$(String,Seq[_],Run,NodeFilter*):org.gridgain.grid.GridFuture[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">affinityRunAsync$</span>
+        
+        <span class="params">(<span name="cacheName">cacheName: String</span>, <span name="affKeys">affKeys: Seq[_]</span>, <span name="r">r: Run</span>, <span name="p">p: NodeFilter*</span>)</span><span class="result">: org.gridgain.grid.GridFuture[_]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Executes given closure on the nodes where data for provided affinity keys are located.</p><div class="fullcomment"><div class="comment cmt"><p>Executes given closure on the nodes where data for provided affinity keys are located. This
+is known as affinity co-location between compute grid (a closure) and in-memory data grid
+(value with affinity key). Note that implementation of multiple executions of the same closure will
+be wrapped as a single task that splits into multiple <code>job</code>s that will be mapped to nodes
+with provided affinity keys.</p><p>Unlike its sibling method <code>affinityRun(String, Collection, Runnable, GridPredicate[])</code> this method does
+not block and returns immediately with future. All default SPI implementations
+configured for this grid instance will be used (i.e. failover, load balancing, collision resolution, etc.).
+Note that if you need greater control on any aspects of Java code execution on the grid
+you should implement <code>GridTask</code> which will provide you with full control over the execution.</p><p>Note that class <code>GridAbsClosure</code> implements <code>Runnable</code> and class <code>GridOutClosure</code>
+implements <code>Callable</code> interface. Note also that class <code>GridFunc</code> and typedefs provide rich
+APIs and functionality for closures and predicates based processing in GridGain. While Java interfaces
+<code>Runnable</code> and <code>Callable</code> allow for lowest common denominator for APIs - it is advisable
+to use richer Functional Programming support provided by GridGain available in <code>org.gridgain.grid.lang</code>
+package.</p><p>Notice that <code>Runnable</code> and <code>Callable</code> implementations must support serialization as required
+by the configured marshaller. For example, JDK marshaller will require that implementations would
+be serializable. Other marshallers, e.g. JBoss marshaller, may not have this limitation. Please consult
+with specific marshaller implementation for the details. Note that all closures and predicates in
+<code>org.gridgain.grid.lang</code> package are serializable and can be freely used in the distributed
+context with all marshallers currently shipped with GridGain.
+</p></div><dl class="paramcmts block"><dt class="param">cacheName</dt><dd class="cmt"><p>Name of the cache to use for affinity co-location.</p></dd><dt class="param">affKeys</dt><dd class="cmt"><p>Collection of affinity keys. All dups will be ignored. If <code>null</code> or
+     empty - this method is no-op.</p></dd><dt class="param">p</dt><dd class="cmt"><p>Optional set of filtering predicates. All predicates must evaluate to <code>true</code> for a
+     node to be included. If none provided - all nodes in this projection will be used for topology.</p></dd><dt>returns</dt><dd class="cmt"><p>Non-cancellable future of this execution.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.gridgain.scalar.pimps.ScalarProjectionPimp" class="extype" href="ScalarProjectionPimp.html">ScalarProjectionPimp</a></dd></dl></div>
     </li><li visbl="pub" name="scala.collection.TraversableOnce#aggregate" data-isabs="false">
       <a id="aggregate[B](B)((B, GridRichNode) ⇒ B,(B, B) ⇒ B):B"></a>
       <h4 class="signature">
@@ -4163,7 +4277,7 @@ will use <code>peek()
                         <td align="left" valign="center">
                             <nobr>GridGain - High Performance Cloud Computing</nobr>
                             <br>
-                            <b>Version:</b> 3.5 build: 03102011
+                            <b>Version:</b> 3.5 build: 04102011
                             <br>
                             <a target=_blank href="http://www.gridgain.com"><nobr>2005-2011 Copyright &#169; GridGain Systems, Inc.</nobr></a>
                         </td>

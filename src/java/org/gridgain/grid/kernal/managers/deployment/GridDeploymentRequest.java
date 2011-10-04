@@ -9,15 +9,16 @@
 
 package org.gridgain.grid.kernal.managers.deployment;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
+
 import java.io.*;
-import java.util.*;
 
 /**
  * TODO: add file description.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 class GridDeploymentRequest implements Externalizable {
     /** Response topic name. Response should be sent back to this topic. */
@@ -27,7 +28,7 @@ class GridDeploymentRequest implements Externalizable {
     private String rsrcName;
 
     /** Class loader ID. */
-    private UUID ldrId;
+    private GridUuid ldrId;
 
     /** Undeploy flag. */
     private boolean isUndeploy;
@@ -47,7 +48,7 @@ class GridDeploymentRequest implements Externalizable {
      * @param rsrcName Resource name that should be found and sent back.
      * @param isUndeploy Undeploy property.
      */
-    GridDeploymentRequest(UUID ldrId, String rsrcName, boolean isUndeploy) {
+    GridDeploymentRequest(GridUuid ldrId, String rsrcName, boolean isUndeploy) {
         assert isUndeploy || ldrId != null;
         assert rsrcName != null;
 
@@ -88,7 +89,7 @@ class GridDeploymentRequest implements Externalizable {
      *
      * @return Property ldrId.
      */
-    UUID getClassLoaderId() {
+    GridUuid getClassLoaderId() {
         return ldrId;
     }
 
@@ -106,7 +107,7 @@ class GridDeploymentRequest implements Externalizable {
         out.writeBoolean(isUndeploy);
         U.writeString(out, resTopic);
         U.writeString(out, rsrcName);
-        U.writeUuid(out, ldrId);
+        U.writeGridUuid(out, ldrId);
     }
 
     /** {@inheritDoc} */
@@ -114,7 +115,7 @@ class GridDeploymentRequest implements Externalizable {
         isUndeploy = in.readBoolean();
         resTopic = U.readString(in);
         rsrcName = U.readString(in);
-        ldrId = U.readUuid(in);
+        ldrId = U.readGridUuid(in);
     }
 
     /** {@inheritDoc} */

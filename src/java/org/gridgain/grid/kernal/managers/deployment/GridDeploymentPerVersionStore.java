@@ -31,14 +31,14 @@ import static org.gridgain.grid.GridEventType.*;
  * {@link GridDeploymentMode#CONTINUOUS} modes.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
     /** Shared deployment cache. */
     private Map<String, List<SharedDeployment>> cache = new HashMap<String, List<SharedDeployment>>();
 
     /** Set of obsolete class loaders. */
-    private Collection<UUID> deadClsLdrs = new GridBoundedLinkedHashSet<UUID>(1000);
+    private Collection<GridUuid> deadClsLdrs = new GridBoundedLinkedHashSet<GridUuid>(1000);
 
     /** Discovery listener. */
     private GridLocalEventListener discoLsnr;
@@ -222,7 +222,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override public GridDeployment getDeployment(final UUID ldrId) {
+    @Override public GridDeployment getDeployment(final GridUuid ldrId) {
         synchronized (mux) {
             return F.find(F.flat(cache.values()), null, new P1<SharedDeployment>() {
                 @Override public boolean apply(SharedDeployment d) {
@@ -386,7 +386,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
             for (SharedDeployment d : depsToCheck) {
                 // Temporary class loader.
                 ClassLoader temp = new GridDeploymentClassLoader(
-                    UUID.randomUUID(),
+                    GridUuid.randomUuid(),
                     meta.userVersion(),
                     meta.deploymentMode(),
                     true,
@@ -571,7 +571,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
             return false;
 
         if (meta.participants() != null) {
-            for (Map.Entry<UUID, GridTuple2<UUID, Long>> e : meta.participants().entrySet()) {
+            for (Map.Entry<UUID, GridTuple2<GridUuid, Long>> e : meta.participants().entrySet()) {
                 dep.addParticipant(e.getKey(), e.getValue().get1(), e.getValue().get2());
 
                 if (log.isDebugEnabled())
@@ -650,7 +650,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
                     }
                     // If there are participants, we undeploy if class loader ID on some node changed.
                     else if (dep.existingDeployedClass(meta.className()) != null) {
-                        GridTuple2<UUID, Long> ldr = dep.getClassLoaderId(meta.senderNodeId());
+                        GridTuple2<GridUuid, Long> ldr = dep.getClassLoaderId(meta.senderNodeId());
 
                         if (ldr != null) {
                             if (!ldr.get1().equals(meta.classLoaderId())) {
@@ -722,7 +722,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
                         final SharedDeployment undep = doomed;
 
                         ctx.timeout().addTimeoutObject(new GridTimeoutObject() {
-                            @Override public UUID timeoutId() {
+                            @Override public GridUuid timeoutId() {
                                 return undep.classLoaderId();
                             }
 
@@ -833,7 +833,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
 
         assert meta.parentLoader() == null;
 
-        UUID ldrId = UUID.randomUUID();
+        GridUuid ldrId = GridUuid.randomUuid();
 
         GridDeploymentClassLoader clsLdr;
 
@@ -859,7 +859,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
                 meta.deploymentMode() == CONTINUOUS /* enable class byte cache in CONTINUOUS mode */);
 
             if (meta.participants() != null)
-                for (Map.Entry<UUID, GridTuple2<UUID, Long>> e : meta.participants().entrySet())
+                for (Map.Entry<UUID, GridTuple2<GridUuid, Long>> e : meta.participants().entrySet())
                     clsLdr.register(e.getKey(), e.getValue().get1(), e.getValue().get2());
 
             if (log.isDebugEnabled())
@@ -935,7 +935,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
          */
         @SuppressWarnings({"TypeMayBeWeakened"})
         SharedDeployment(GridDeploymentMode depMode,
-            GridDeploymentClassLoader clsLdr, UUID clsLdrId, long seqNum,
+            GridDeploymentClassLoader clsLdr, GridUuid clsLdrId, long seqNum,
             String userVer, String sampleClsName) {
             super(depMode, clsLdr, clsLdrId, seqNum, userVer, sampleClsName, false);
         }
@@ -948,12 +948,13 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
         }
 
         /**
+         *
          * @param nodeId Grid node ID.
          * @param ldrId Class loader ID.
          * @param seqNum Sequence number for the class loader.
          * @return Whether actually added or not.
          */
-        boolean addParticipant(UUID nodeId, UUID ldrId, long seqNum) {
+        boolean addParticipant(UUID nodeId, GridUuid ldrId, long seqNum) {
             assert nodeId != null;
             assert ldrId != null;
 
@@ -978,7 +979,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
 
             assert Thread.holdsLock(mux);
 
-            UUID ldrId = loader().unregister(nodeId);
+            GridUuid ldrId = loader().unregister(nodeId);
 
             if (log.isDebugEnabled())
                 log.debug("Registering dead class loader ID: " + ldrId);
@@ -998,10 +999,11 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
         }
 
         /**
+         *
          * @param nodeId Node ID.
          * @return Class loader ID for node ID.
          */
-        GridTuple2<UUID, Long> getClassLoaderId(UUID nodeId) {
+        GridTuple2<GridUuid, Long> getClassLoaderId(UUID nodeId) {
             assert nodeId != null;
 
             assert Thread.holdsLock(mux);
@@ -1012,7 +1014,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
         /**
          * @return Registered class loader IDs.
          */
-        Collection<UUID> getClassLoaderIds() {
+        Collection<GridUuid> getClassLoaderIds() {
             assert Thread.holdsLock(mux);
 
             return loader().registeredClassLoaderIds();
@@ -1031,11 +1033,12 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
         /**
          * Checks if node is participating in deployment.
          *
+         *
          * @param nodeId Node ID to check.
          * @param ldrId Class loader ID.
          * @return {@code True} if node is participating in deployment.
          */
-        boolean hasParticipant(UUID nodeId, UUID ldrId) {
+        boolean hasParticipant(UUID nodeId, GridUuid ldrId) {
             assert nodeId != null;
             assert ldrId != null;
 
@@ -1063,7 +1066,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
 
             removed = true;
 
-            Collection<UUID> deadIds = loader().registeredClassLoaderIds();
+            Collection<GridUuid> deadIds = loader().registeredClassLoaderIds();
 
             if (log.isDebugEnabled())
                 log.debug("Registering dead class loader IDs: " + deadIds);

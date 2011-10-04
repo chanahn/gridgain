@@ -51,7 +51,7 @@ import static org.gridgain.grid.GridEventType.*;
  * </ul>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
     /** Default number of partitions. */
@@ -514,11 +514,13 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
             initLatch.countDown();
         }
         else {
-            try {
-                initLatch.await();
-            }
-            catch (InterruptedException ignore) {
-                // No-op.
+            if (initLatch.getCount() > 0) {
+                try {
+                    initLatch.await();
+                }
+                catch (InterruptedException ignore) {
+                    // No-op.
+                }
             }
         }
     }

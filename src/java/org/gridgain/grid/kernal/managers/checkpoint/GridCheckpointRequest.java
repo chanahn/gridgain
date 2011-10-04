@@ -9,19 +9,20 @@
 
 package org.gridgain.grid.kernal.managers.checkpoint;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
+
 import java.io.*;
-import java.util.*;
 
 /**
  * This class defines checkpoint request.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCheckpointRequest implements Externalizable {
     /** */
-    private UUID sesId;
+    private GridUuid sesId;
 
     /** */
     private String key;
@@ -41,7 +42,7 @@ public class GridCheckpointRequest implements Externalizable {
      * @param key Checkpoint key.
      * @param cpSpi Checkpoint SPI.
      */
-    public GridCheckpointRequest(UUID sesId, String key, String cpSpi) {
+    public GridCheckpointRequest(GridUuid sesId, String key, String cpSpi) {
         assert sesId != null;
         assert key != null;
 
@@ -54,7 +55,7 @@ public class GridCheckpointRequest implements Externalizable {
     /**
      * @return Session ID.
      */
-    public UUID getSessionId() {
+    public GridUuid getSessionId() {
         return sesId;
     }
 
@@ -74,14 +75,14 @@ public class GridCheckpointRequest implements Externalizable {
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
-        U.writeUuid(out, sesId);
+        U.writeGridUuid(out, sesId);
         U.writeString(out, key);
         U.writeString(out, cpSpi);
     }
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        sesId = U.readUuid(in);
+        sesId = U.readGridUuid(in);
         key = U.readString(in);
         cpSpi = U.readString(in);
     }

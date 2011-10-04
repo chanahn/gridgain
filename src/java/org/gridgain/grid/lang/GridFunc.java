@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.*;
  * typedef.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridFunc {
     /** */
@@ -3064,22 +3064,19 @@ public class GridFunc {
             private boolean more;
 
             @Override public boolean hasNext() {
-                if (!moved) {
+                if (!moved)
                     return more;
-                }
 
                 moved = false;
 
-                if (b != null && b.hasNext()) {
+                if (b != null && b.hasNext())
                     return more = true;
-                }
 
                 while (a.hasNext()) {
                     b = a.next().iterator();
 
-                    if (b.hasNext()) {
+                    if (b.hasNext())
                         return more = true;
-                    }
                 }
 
                 return more = false;
@@ -4064,8 +4061,7 @@ public class GridFunc {
                             }
                         }
 
-                        // Give to GC.
-                        elem = null;
+                        elem = null; // Give to GC.
 
                         return false;
                     }
@@ -4171,9 +4167,8 @@ public class GridFunc {
      * @return {@code true} if given contains only {@code ALWAYS_FALSE} predicate.
      */
     private static boolean isAlwaysFalse(@Nullable Iterable<? extends GridPredicate> p) {
-        if (p == null || !p.iterator().hasNext()) {
+        if (p == null || !p.iterator().hasNext())
             return false;
-        }
 
         Iterator<? extends GridPredicate> iter = p.iterator();
 
@@ -4190,9 +4185,8 @@ public class GridFunc {
      * @return {@code true} if given contains only {@code ALWAYS_FALSE} predicate.
      */
     private static boolean isAlwaysTrue(@Nullable Iterable<? extends GridPredicate> p) {
-        if (p == null || !p.iterator().hasNext()) {
+        if (p == null || !p.iterator().hasNext())
             return false;
-        }
 
         Iterator<? extends GridPredicate> iter = p.iterator();
 
@@ -5951,20 +5945,16 @@ public class GridFunc {
      *         otherwise.
      */
     public static <T> boolean isAll(@Nullable T t, @Nullable Iterable<? extends GridPredicate<? super T>> p) {
-        if (isAlwaysFalse(p)) {
+        if (isAlwaysFalse(p))
             return false;
-        }
-        else if (isAlwaysTrue(p)) {
+        else if (isAlwaysTrue(p))
             return true;
-        }
         else if (!isEmpty(p)) {
             assert p != null;
 
-            for (GridPredicate<? super T> r : p) {
-                if (r != null && !r.apply(t)) {
+            for (GridPredicate<? super T> r : p)
+                if (r != null && !r.apply(t))
                     return false;
-                }
-            }
         }
 
         return true;

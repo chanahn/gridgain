@@ -24,7 +24,7 @@ import static org.gridgain.grid.cache.GridCachePreloadMode.*;
  * Class that takes care about entries preloading in replicated cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
     /** Busy lock to control activeness of threads (loader, sender). */
@@ -98,22 +98,20 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
         }
     }
 
-    /**
-     * Stops response thread.
-     */
+    /** {@inheritDoc} */
     @SuppressWarnings({"LockAcquiredButNotSafelyReleased"})
-    @Override public void stop() {
+    @Override public void onKernalStop() {
         if (log.isDebugEnabled())
-            log.debug("Stopping replicated preloader...");
+            log.debug("Replicated preloader onKernalStop callback.");
 
-        // Acquire write lock so that any new thread could not be started.
+        // Acquire write lock.
         busyLock.writeLock().lock();
 
         supplyPool.stop();
         demandPool.stop();
 
         if (log.isDebugEnabled())
-            log.debug("Replicated preloader has stopped.");
+            log.debug("Replicated preloader has been stopped.");
     }
 
     /** {@inheritDoc} */

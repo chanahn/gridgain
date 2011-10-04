@@ -15,13 +15,12 @@ import org.gridgain.grid._
 import org.gridgain.grid.lang._
 import scalaz._
 import org.jetbrains.annotations._
-import GridClosureCallMode._
 
 /**
  * Companion object.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 object ScalarProjectionPimp {
     /**
@@ -61,7 +60,7 @@ object ScalarProjectionPimp {
  * Scala's side method with `$` suffix.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 class ScalarProjectionPimp[A <: GridProjection] extends PimpedType[A] with Iterable[GridRichNode]
     with ScalarTaskThreadContext[A] {
@@ -769,4 +768,178 @@ class ScalarProjectionPimp[A <: GridProjection] extends PimpedType[A] with Itera
     def gridify$[E1, E2, E3, R](mode: GridClosureCallMode, c: Call3[E1, E2, E3, R], @Nullable p: NodeFilter*):
         Call3[E1, E2, E3, GridFuture[R]] =
         value.gridify(mode, toClosure3(c), p: _*)
+
+    /**
+     * Executes given closure on the nodes where data for provided affinity keys are located. This
+     * is known as affinity co-location between compute grid (a closure) and in-memory data grid
+     * (value with affinity key). Note that implementation of multiple executions of the same closure will
+     * be wrapped as a single task that splits into multiple `job`s that will be mapped to nodes
+     * with provided affinity keys.
+     *
+     * This method will block until its execution is complete or an exception is thrown.
+     * All default SPI implementations configured for this grid instance will be
+     * used (i.e. failover, load balancing, collision resolution, etc.).
+     * Note that if you need greater control on any aspects of Java code execution on the grid
+     * you should implement `GridTask` which will provide you with full control over the execution.
+     *
+     * Notice that `Runnable` and `Callable` implementations must support serialization as required
+     * by the configured marshaller. For example, JDK marshaller will require that implementations would
+     * be serializable. Other marshallers, e.g. JBoss marshaller, may not have this limitation. Please consult
+     * with specific marshaller implementation for the details. Note that all closures and predicates in
+     * `org.gridgain.grid.lang` package are serializable and can be freely used in the distributed
+     * context with all marshallers currently shipped with GridGain.
+     *
+     * @param cacheName Name of the cache to use for affinity co-location.
+     * @param affKeys Collection of affinity keys. All dups will be ignored. If `null` or empty
+     *      this method is no-op.
+     * @param job Closure to affinity co-located on the node with given affinity key and execute.
+     *      If `null` - this method is no-op.
+     * @param p Optional set of filtering predicates. All predicates must evaluate to `true` for a
+     *      node to be included. If none provided - all nodes in this projection will be used for topology.
+     * @throws GridException Thrown in case of any error.
+     * @throws GridEmptyProjectionException Thrown in case when this projection is empty.
+     *      Note that in case of dynamic projection this method will take a snapshot of all the
+     *      nodes at the time of this call, apply all filtering predicates, if any, and if the
+     *      resulting collection of nodes is empty - the exception will be thrown.
+     * @throws GridInterruptedException Subclass of `GridException` thrown if the wait was interrupted.
+     * @throws GridFutureCancelledException Subclass of `GridException` thrown if computation was cancelled.
+     */
+    def affinityRun$(cacheName: String, @Nullable affKeys: Seq[_], @Nullable r: Run,
+        @Nullable p: NodeFilter*) {
+        value.affinityRun(cacheName, toJavaCollection(affKeys), toAbsClosure(r), p: _*)
+    }
+
+    /**
+     * Executes given closure on the nodes where data for provided affinity keys are located. This
+     * is known as affinity co-location between compute grid (a closure) and in-memory data grid
+     * (value with affinity key). Note that implementation of multiple executions of the same closure will
+     * be wrapped as a single task that splits into multiple `job`s that will be mapped to nodes
+     * with provided affinity keys.
+     *
+     * Unlike its sibling method `affinityRun(String, Collection, Runnable, GridPredicate[])` this method does
+     * not block and returns immediately with future. All default SPI implementations
+     * configured for this grid instance will be used (i.e. failover, load balancing, collision resolution, etc.).
+     * Note that if you need greater control on any aspects of Java code execution on the grid
+     * you should implement `GridTask` which will provide you with full control over the execution.
+     *
+     * Note that class `GridAbsClosure` implements `Runnable` and class `GridOutClosure`
+     * implements `Callable` interface. Note also that class `GridFunc` and typedefs provide rich
+     * APIs and functionality for closures and predicates based processing in GridGain. While Java interfaces
+     * `Runnable` and `Callable` allow for lowest common denominator for APIs - it is advisable
+     * to use richer Functional Programming support provided by GridGain available in `org.gridgain.grid.lang`
+     * package.
+     *
+     * Notice that `Runnable` and `Callable` implementations must support serialization as required
+     * by the configured marshaller. For example, JDK marshaller will require that implementations would
+     * be serializable. Other marshallers, e.g. JBoss marshaller, may not have this limitation. Please consult
+     * with specific marshaller implementation for the details. Note that all closures and predicates in
+     * `org.gridgain.grid.lang` package are serializable and can be freely used in the distributed
+     * context with all marshallers currently shipped with GridGain.
+     *
+     * @param cacheName Name of the cache to use for affinity co-location.
+     * @param affKeys Collection of affinity keys. All dups will be ignored. If `null` or
+     *      empty - this method is no-op.
+     * @param job Closure to affinity co-located on the node with given affinity key and execute.
+     *      If `null` - this method is no-op.
+     * @param p Optional set of filtering predicates. All predicates must evaluate to `true` for a
+     *      node to be included. If none provided - all nodes in this projection will be used for topology.
+     * @throws GridException Thrown in case of any error.
+     * @throws GridEmptyProjectionException Thrown in case when this projection is empty.
+     *      Note that in case of dynamic projection this method will take a snapshot of all the
+     *      nodes at the time of this call, apply all filtering predicates, if any, and if the
+     *      resulting collection of nodes is empty - the exception will be thrown.
+     * @return Non-cancellable future of this execution.
+     * @throws GridInterruptedException Subclass of `GridException` thrown if the wait was interrupted.
+     * @throws GridFutureCancelledException Subclass of `GridException` thrown if computation was cancelled.
+     */
+    def affinityRunAsync$(cacheName: String, @Nullable affKeys: Seq[_], @Nullable r: Run,
+        @Nullable p: NodeFilter*): GridFuture[_] = {
+        value.affinityRunAsync(cacheName, toJavaCollection(affKeys), toAbsClosure(r), p: _*)
+    }
+
+    /**
+     * Executes given closure on the nodes where data for provided affinity keys are located. This
+     * is known as affinity co-location between compute grid (a closure) and in-memory data grid
+     * (value with affinity key). Note that implementation of multiple executions of the same closure will
+     * be wrapped as a single task that splits into multiple `job`s that will be mapped to nodes
+     * with provided affinity keys.
+     *
+     * This method will block until its execution is complete or an exception is thrown.
+     * All default SPI implementations configured for this grid instance will be
+     * used (i.e. failover, load balancing, collision resolution, etc.).
+     * Note that if you need greater control on any aspects of Java code execution on the grid
+     * you should implement `GridTask` which will provide you with full control over the execution.
+     *
+     * Notice that `Runnable` and `Callable` implementations must support serialization as required
+     * by the configured marshaller. For example, JDK marshaller will require that implementations would
+     * be serializable. Other marshallers, e.g. JBoss marshaller, may not have this limitation. Please consult
+     * with specific marshaller implementation for the details. Note that all closures and predicates in
+     * `org.gridgain.grid.lang` package are serializable and can be freely used in the distributed
+     * context with all marshallers currently shipped with GridGain.
+     *
+     * @param cacheName Name of the cache to use for affinity co-location.
+     * @param affKeys Collection of affinity keys. All dups will be ignored. If `null`
+     *      or empty - this method is no-op.
+     * @param job Closure to affinity co-located on the node with given affinity key and execute.
+     *      If `null` - this method is no-op.
+     * @param p Optional set of filtering predicates. All predicates must evaluate to `true` for a
+     *      node to be included. If none provided - all nodes in this projection will be used for topology.
+     * @return Collection of closure execution results.
+     * @throws GridException Thrown in case of any error.
+     * @throws GridEmptyProjectionException Thrown in case when this projection is empty.
+     *      Note that in case of dynamic projection this method will take a snapshot of all the
+     *      nodes at the time of this call, apply all filtering predicates, if any, and if the
+     *      resulting collection of nodes is empty - the exception will be thrown.
+     * @throws GridInterruptedException Subclass of `GridException` thrown if the wait was interrupted.
+     * @throws GridFutureCancelledException Subclass of `GridException` thrown if computation was cancelled.
+     */
+    def affinityCall$[R](cacheName: String, @Nullable affKeys: Seq[_], @Nullable c: Call[R],
+        @Nullable p: NodeFilter*): Seq[R] = {
+        val res: java.util.Collection[R] =
+            value.affinityCall(cacheName, toJavaCollection(affKeys), toOutClosure(c), p: _*)
+
+        toScalaSeq(res)
+    }
+
+    /**
+     * Executes given closure on the nodes where data for provided affinity keys are located. This
+     * is known as affinity co-location between compute grid (a closure) and in-memory data grid
+     * (value with affinity key). Note that implementation of multiple executions of the same closure will
+     * be wrapped as a single task that splits into multiple `job`s that will be mapped to nodes
+     * with provided affinity keys.
+     *
+     * Unlike its sibling method `affinityCall(String, Object, Callable, GridPredicate[])` this method does
+     * not block and returns immediately with future. All default SPI implementations
+     * configured for this grid instance will be used (i.e. failover, load balancing, collision resolution, etc.).
+     * Note that if you need greater control on any aspects of Java code execution on the grid
+     * you should implement `GridTask` which will provide you with full control over the execution.
+     *
+     * Notice that `Runnable` and `Callable` implementations must support serialization as required
+     * by the configured marshaller. For example, JDK marshaller will require that implementations would
+     * be serializable. Other marshallers, e.g. JBoss marshaller, may not have this limitation. Please consult
+     * with specific marshaller implementation for the details. Note that all closures and predicates in
+     * `org.gridgain.grid.lang` package are serializable and can be freely used in the distributed
+     * context with all marshallers currently shipped with GridGain.
+     *
+     * @param cacheName Name of the cache to use for affinity co-location.
+     * @param affKeys Collection of affinity keys. All dups will be ignored.
+     *      If `null` or empty - this method is no-op.
+     * @param job Closure to affinity co-located on the node with given affinity key and execute.
+     *      If `null` - this method is no-op.
+     * @param p Optional set of filtering predicates. All predicates must evaluate to `true` for a
+     *      node to be included. If none provided - all nodes in this projection will be used for topology.
+     * @return Non-cancellable future of closure results. Upon successful execution number of results
+     *      will be equal to number of affinity keys provided.
+     * @throws GridException Thrown in case of any error.
+     * @throws GridEmptyProjectionException Thrown in case when this projection is empty.
+     *      Note that in case of dynamic projection this method will take a snapshot of all the
+     *      nodes at the time of this call, apply all filtering predicates, if any, and if the
+     *      resulting collection of nodes is empty - the exception will be thrown.
+     * @throws GridInterruptedException Subclass of `GridException` thrown if the wait was interrupted.
+     * @throws GridFutureCancelledException Subclass of `GridException` throws if computation was cancelled.
+     */
+    def affinityCallAsync$[R](cacheName: String, @Nullable affKeys: Seq[_], @Nullable c: Call[R],
+        @Nullable p: NodeFilter*): GridFuture[java.util.Collection[R]] = {
+        value.affinityCallAsync(cacheName, toJavaCollection(affKeys), toOutClosure(c), p: _*)
+    }
 }

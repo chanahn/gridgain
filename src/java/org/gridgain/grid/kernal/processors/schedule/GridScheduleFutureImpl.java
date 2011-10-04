@@ -14,6 +14,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
@@ -32,7 +33,7 @@ import static java.util.concurrent.TimeUnit.*;
  * Implementation of {@link GridScheduleFuture} interface.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 class GridScheduleFutureImpl<R> extends GridMetadataAwareAdapter implements GridScheduleFuture<R>, Externalizable {
     /** Empty time array. */
@@ -285,13 +286,17 @@ class GridScheduleFutureImpl<R> extends GridMetadataAwareAdapter implements Grid
         if (delay > 0) {
             // Schedule after delay.
             ctx.timeout().addTimeoutObject(new GridTimeoutObject() {
-                private final UUID uid = UUID.randomUUID();
+                private final GridUuid uid = GridUuid.randomUuid();
 
                 private final long endTime = createTime() + delay * 1000;
 
-                @Override public UUID timeoutId() { return uid; }
+                @Override public GridUuid timeoutId() {
+                    return uid;
+                }
 
-                @Override public long endTime() { return endTime; }
+                @Override public long endTime() {
+                    return endTime;
+                }
 
                 @Override public void onTimeout() {
                     assert id == null;

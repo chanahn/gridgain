@@ -11,6 +11,7 @@ package org.gridgain.grid.kernal;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import java.io.*;
 import java.util.*;
@@ -22,15 +23,15 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * This class provides implementation for job sibling.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridJobSiblingImpl extends GridMetadataAwareAdapter implements GridJobSibling, Externalizable {
     /** */
-    private UUID sesId;
+    private GridUuid sesId;
 
     /** */
-    @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"}) // Suppress (this field is final). 
-    private UUID jobId;
+    @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"}) // Suppress (this field is final).
+    private GridUuid jobId;
 
     /** */
     private transient String taskTopic;
@@ -58,7 +59,7 @@ public class GridJobSiblingImpl extends GridMetadataAwareAdapter implements Grid
      * @param nodeId ID of the node where this sibling was sent for execution.
      * @param ctx Managers registry.
      */
-    public GridJobSiblingImpl(UUID sesId, UUID jobId, UUID nodeId, GridKernalContext ctx) {
+    public GridJobSiblingImpl(GridUuid sesId, GridUuid jobId, UUID nodeId, GridKernalContext ctx) {
         assert sesId != null;
         assert jobId != null;
         assert nodeId != null;
@@ -74,7 +75,7 @@ public class GridJobSiblingImpl extends GridMetadataAwareAdapter implements Grid
     }
 
     /** {@inheritDoc} */
-    @Override public UUID getJobId() {
+    @Override public GridUuid getJobId() {
         return jobId;
     }
 
@@ -130,15 +131,15 @@ public class GridJobSiblingImpl extends GridMetadataAwareAdapter implements Grid
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         // Don't serialize node ID.
-        U.writeUuid(out, sesId);
-        U.writeUuid(out, jobId);
+        U.writeGridUuid(out, sesId);
+        U.writeGridUuid(out, jobId);
     }
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         // Don't serialize node ID.
-        sesId = U.readUuid(in);
-        jobId = U.readUuid(in);
+        sesId = U.readGridUuid(in);
+        jobId = U.readGridUuid(in);
     }
 
     /** {@inheritDoc} */

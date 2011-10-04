@@ -12,6 +12,8 @@ package org.gridgain.grid.lang.utils;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
+
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.*;
 
@@ -21,9 +23,9 @@ import java.util.concurrent.atomic.*;
  * internal UUID.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
-public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>, Cloneable {
+public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>, Cloneable, Externalizable {
     /** */
     private static final UUID ID = UUID.randomUUID();
 
@@ -31,10 +33,17 @@ public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>,
     private static final AtomicLong cntGen = new AtomicLong(System.currentTimeMillis());
 
     /** */
-    private final UUID gid;
+    private UUID gid;
 
     /** */
-    private final long locId;
+    private long locId;
+
+    /**
+     * Empty constructor required for {@link Externalizable}.
+     */
+    public GridUuid() {
+        // No-op.
+    }
 
     /**
      * Creates new pseudo-random ID.
@@ -55,6 +64,19 @@ public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>,
         A.notNull(id, "id");
 
         return new GridUuid(id, cntGen.getAndIncrement());
+    }
+
+    /**
+     * Converts string into {@code GridUuid}. The String must be in the format generated
+     * by {@link #toString() GridUuid.toString()} method.
+     *
+     * @param s String to convert to {@code GridUuid}.
+     * @return {@code GridUuid} instance representing given string.
+     */
+    public static GridUuid fromString(String s) {
+        int lastDash = s.lastIndexOf('-');
+
+        return new GridUuid(UUID.fromString(s.substring(0, lastDash)), Long.valueOf(s.substring(lastDash + 1), 16));
     }
 
     /**
@@ -89,14 +111,26 @@ public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>,
     }
 
     /** {@inheritDoc} */
-    @Override public int compareTo(GridUuid o) {
-        if (o == this) {
-            return 0;
-        }
+    @Override public void writeExternal(ObjectOutput out) throws IOException {
+        U.writeUuid(out, gid);
 
-        if (o == null) {
+        out.writeLong(locId);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void readExternal(ObjectInput in) throws IOException {
+        gid = U.readUuid(in);
+
+        locId = in.readLong();
+    }
+
+    /** {@inheritDoc} */
+    @Override public int compareTo(GridUuid o) {
+        if (o == this)
+            return 0;
+
+        if (o == null)
             return 1;
-        }
 
         return locId < o.locId ? -1 : locId > o.locId ? 1 : gid.compareTo(o.globalId());
     }
@@ -108,13 +142,11 @@ public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>,
 
     /** {@inheritDoc} */
     @Override public boolean equals(Object obj) {
-        if (obj == this) {
+        if (obj == this)
             return true;
-        }
 
-        if (!(obj instanceof GridUuid)) {
+        if (!(obj instanceof GridUuid))
             return false;
-        }
 
         GridUuid that = (GridUuid)obj;
 
@@ -133,6 +165,6 @@ public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>,
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(GridUuid.class, this);
+        return gid.toString() + '-' + Long.toHexString(locId);
     }
 }

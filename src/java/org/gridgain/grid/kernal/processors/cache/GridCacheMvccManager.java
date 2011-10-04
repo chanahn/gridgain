@@ -32,7 +32,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Manages lock order within a thread.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
     /** Maxim number of removed locks. */
@@ -58,8 +58,8 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
 
     /** Active futures mapped by version ID. */
     @GridToStringExclude
-    private final ConcurrentMap<UUID, Collection<GridCacheFuture<?>>> futs =
-        new ConcurrentHashMap<UUID, Collection<GridCacheFuture<?>>>();
+    private final ConcurrentMap<GridUuid, Collection<GridCacheFuture<?>>> futs =
+        new ConcurrentHashMap<GridUuid, Collection<GridCacheFuture<?>>>();
 
     /** Near to DHT version mapping. */
     private final ConcurrentMap<GridCacheVersion, GridCacheVersion> near2dht =
@@ -271,8 +271,8 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
 
         while (true) {
             Collection<GridCacheFuture<?>> old = futs.putIfAbsent(fut.version().id(),
-                new ConcurrentLinkedQueue<GridCacheFuture<?>>() {
-                    private int hash = System.identityHashCode(this);
+                new GridConcurrentLinkedDeque<GridCacheFuture<?>>() {
+                    private int hash;
 
                     {
                         // Make sure that we add future to queue before
@@ -281,6 +281,9 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
                     }
 
                     @Override public int hashCode() {
+                        if (hash == 0)
+                            hash = System.identityHashCode(this);
+
                         return hash;
                     }
 
@@ -389,7 +392,7 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
      * @return Future.
      */
     @SuppressWarnings({"unchecked"})
-    @Nullable public <T> GridCacheFuture<T> future(UUID ver, GridUuid futId) {
+    @Nullable public <T> GridCacheFuture<T> future(GridUuid ver, GridUuid futId) {
         Collection<? extends GridCacheFuture> futs = this.futs.get(ver);
 
         if (futs != null)
@@ -412,17 +415,20 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
      * @return {@code True} if lock had been removed.
      */
     public boolean isRemoved(GridCacheVersion ver) {
-        return rmvLocks.contains(ver);
+        return ver != null && rmvLocks.contains(ver);
     }
 
     /**
-     * @param ver Lock version to add.
+     * @param ver Obsolete entry version.
+     * @return {@code True} if removed.
      */
-    public void addRemoved(GridCacheVersion ver) {
-        rmvLocks.add(ver);
+    public boolean addRemoved(GridCacheVersion ver) {
+        boolean ret = rmvLocks.add(ver);
 
         if (log.isDebugEnabled())
             log.debug("Added removed lock version: " + ver);
+
+        return ret;
     }
 
     /**

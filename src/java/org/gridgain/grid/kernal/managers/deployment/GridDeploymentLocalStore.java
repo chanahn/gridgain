@@ -12,6 +12,7 @@ package org.gridgain.grid.kernal.managers.deployment;
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.kernal.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.spi.*;
 import org.gridgain.grid.spi.deployment.*;
 import org.gridgain.grid.typedef.*;
@@ -28,7 +29,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Storage for local deployments.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 class GridDeploymentLocalStore extends GridDeploymentStoreAdapter {
     /** Sequence. */
@@ -110,7 +111,7 @@ class GridDeploymentLocalStore extends GridDeploymentStoreAdapter {
     }
 
     /** {@inheritDoc} */
-    @Nullable @Override public GridDeployment getDeployment(UUID ldrId) {
+    @Nullable @Override public GridDeployment getDeployment(GridUuid ldrId) {
         synchronized (mux) {
             for (List<GridDeployment> deps : cache.values()) {
                 for (GridDeployment dep : deps) {
@@ -308,7 +309,7 @@ class GridDeploymentLocalStore extends GridDeploymentStoreAdapter {
             return dep;
         }
 
-        UUID ldrId = UUID.randomUUID();
+        GridUuid ldrId = GridUuid.randomUuid();
 
         long seqNum = seq.incrementAndGet();
 

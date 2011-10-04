@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.GridTopic.*;
  * This class defines a checkpoint manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter", "deprecation"})
 public class GridCheckpointManager extends GridManagerAdapter<GridCheckpointSpi> {
@@ -42,7 +42,7 @@ public class GridCheckpointManager extends GridManagerAdapter<GridCheckpointSpi>
     private final GridMessageListener lsnr = new CheckpointRequestListener();
 
     /** */
-    private final ConcurrentMap<UUID, CheckpointSet> keyMap = new ConcurrentHashMap<UUID, CheckpointSet>();
+    private final ConcurrentMap<GridUuid, CheckpointSet> keyMap = new ConcurrentHashMap<GridUuid, CheckpointSet>();
 
     /** Grid marshaller. */
     private final GridMarshaller marshaller;
@@ -90,8 +90,8 @@ public class GridCheckpointManager extends GridManagerAdapter<GridCheckpointSpi>
     /**
      * @return Session IDs.
      */
-    public Collection<UUID> sessionIds() {
-        return new ArrayList<UUID>(keyMap.keySet());
+    public Collection<GridUuid> sessionIds() {
+        return new ArrayList<GridUuid>(keyMap.keySet());
     }
 
     /**

@@ -12,6 +12,7 @@ package org.gridgain.grid.spi.loadbalancing.weightedrandom;
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.spi.*;
@@ -146,13 +147,13 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 @GridSpiInfo(
     author = "GridGain Systems, Inc.",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.5.0c.03102011")
+    version = "3.5.0c.04102011")
 @GridSpiMultipleInstancesSupport(true)
 public class GridWeightedRandomLoadBalancingSpi extends GridSpiAdapter implements GridLoadBalancingSpi,
     GridWeightedRandomLoadBalancingSpiMBean {
@@ -183,8 +184,8 @@ public class GridWeightedRandomLoadBalancingSpi extends GridSpiAdapter implement
     private int nodeWeight = DFLT_NODE_WEIGHT;
 
     /** Task topologies. First pair value indicates whether or not jobs have been mapped. */
-    private ConcurrentMap<UUID, GridTuple2<Boolean, WeightedTopology>> taskTops =
-        new ConcurrentHashMap<UUID, GridTuple2<Boolean, WeightedTopology>>();
+    private ConcurrentMap<GridUuid, GridTuple2<Boolean, WeightedTopology>> taskTops =
+        new ConcurrentHashMap<GridUuid, GridTuple2<Boolean, WeightedTopology>>();
 
     /**
      * Sets a flag to indicate whether node weights should be checked when
@@ -265,7 +266,7 @@ public class GridWeightedRandomLoadBalancingSpi extends GridSpiAdapter implement
 
                 if (evt.type() == EVT_TASK_FINISHED ||
                     evt.type() == EVT_TASK_FAILED) {
-                    @SuppressWarnings({"ConstantConditions"}) UUID sesId = ((GridTaskEvent)evt).taskSessionId();
+                    GridUuid sesId = ((GridTaskEvent)evt).taskSessionId();
 
                     taskTops.remove(sesId);
 
@@ -277,7 +278,7 @@ public class GridWeightedRandomLoadBalancingSpi extends GridSpiAdapter implement
                 // avoid O(n*n/2) complexity, after that we can drop caches.
                 // Here we set mapped property and later cache will be ignored
                 else if (evt.type() == EVT_JOB_MAPPED) {
-                    @SuppressWarnings({"ConstantConditions"}) UUID sesId = ((GridJobEvent)evt).taskSessionId();
+                    GridUuid sesId = ((GridJobEvent)evt).taskSessionId();
 
                     GridTuple2<Boolean, WeightedTopology> weightedTop = taskTops.get(sesId);
 
@@ -354,7 +355,7 @@ public class GridWeightedRandomLoadBalancingSpi extends GridSpiAdapter implement
      * Holder for weighted topology.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.03102011
+     * @version 3.5.0c.04102011
      */
     private class WeightedTopology {
         /** Total topology weight. */

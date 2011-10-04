@@ -14,6 +14,7 @@ import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.managers.*;
 import org.gridgain.grid.kernal.managers.deployment.protocol.gg.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.spi.deployment.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
@@ -25,7 +26,7 @@ import java.util.*;
  * Deployment manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDeploymentManager extends GridManagerAdapter<GridDeploymentSpi> {
     /** Local deployment storage. */
@@ -206,20 +207,22 @@ public class GridDeploymentManager extends GridManagerAdapter<GridDeploymentSpi>
     /**
      * Gets class loader based on given ID.
      *
+     *
      * @param ldrId Class loader ID.
      * @return Class loader of {@code null} if not found.
      */
-    @Nullable public GridDeployment getLocalDeployment(UUID ldrId) {
+    @Nullable public GridDeployment getLocalDeployment(GridUuid ldrId) {
         return locStore.getDeployment(ldrId);
     }
 
     /**
      * Gets any deployment by loader ID.
      *
+     *
      * @param ldrId Loader ID.
      * @return Deployment for given ID.
      */
-    @Nullable public GridDeployment getDeployment(UUID ldrId) {
+    @Nullable public GridDeployment getDeployment(GridUuid ldrId) {
         GridDeployment dep = locStore.getDeployment(ldrId);
 
         if (dep == null) {
@@ -272,6 +275,7 @@ public class GridDeploymentManager extends GridManagerAdapter<GridDeploymentSpi>
     }
 
     /**
+     *
      * @param depMode Deployment mode.
      * @param rsrcName Resource name (could be task name).
      * @param clsName Class name.
@@ -290,8 +294,8 @@ public class GridDeploymentManager extends GridManagerAdapter<GridDeploymentSpi>
         long seqVer,
         String userVer,
         UUID senderNodeId,
-        UUID clsLdrId,
-        Map<UUID, GridTuple2<UUID, Long>> participants,
+        GridUuid clsLdrId,
+        Map<UUID, GridTuple2<GridUuid, Long>> participants,
         @Nullable GridPredicate<GridNode> nodeFilter) {
 
         GridDeploymentMetadata meta = new GridDeploymentMetadata();
@@ -405,11 +409,12 @@ public class GridDeploymentManager extends GridManagerAdapter<GridDeploymentSpi>
     }
 
     /**
+     *
      * @param ldr Class loader to get ID for.
      * @return ID for given class loader or {@code null} if given loader is not
      *      grid deployment class loader.
      */
-    @Nullable public UUID getClassLoaderId(ClassLoader ldr) {
+    @Nullable public GridUuid getClassLoaderId(ClassLoader ldr) {
         assert ldr != null;
 
         if (ldr instanceof GridDeploymentClassLoader)

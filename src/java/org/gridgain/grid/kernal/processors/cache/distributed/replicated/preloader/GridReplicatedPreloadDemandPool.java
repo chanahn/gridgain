@@ -37,7 +37,7 @@ import static org.gridgain.grid.kernal.GridTopic.*;
  * Thread pool for demanding entries.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 class GridReplicatedPreloadDemandPool<K, V> {
     /** Dummy message to wake up demand worker. */
@@ -114,12 +114,11 @@ class GridReplicatedPreloadDemandPool<K, V> {
      */
     void start() {
         if (cctx.preloadEnabled()) {
-            long locOrder = cctx.localNode().order();
+            long maxOrder0 = cctx.localNode().order() - 1; // Preload only from elder nodes.
 
-            maxOrder.set(locOrder);
+            maxOrder.set(maxOrder0);
 
-            Collection<GridRichNode> rmts = F.view(CU.allNodes(cctx, locOrder),
-                F.<GridNode>remoteNodes(cctx.localNode().id()));
+            Collection<GridRichNode> rmts = CU.allNodes(cctx, maxOrder0);
 
             if (!rmts.isEmpty()) {
                 for (int part : partitions(cctx.localNode())) {
@@ -348,6 +347,8 @@ class GridReplicatedPreloadDemandPool<K, V> {
 
                 processAssignment(assign);
 
+                leftAssigns.decrementAndGet();
+
                 finish(); // Preloading finished with this assignment?
             }
         }
@@ -366,9 +367,8 @@ class GridReplicatedPreloadDemandPool<K, V> {
                 log.debug("Processing assignment: " + assign);
 
             while (!isCancelled()) {
-                List<GridRichNode> nodes = new ArrayList<GridRichNode>(
-                    F.view(cctx.affinity(assign.partition(), CU.allNodes(cctx, maxOrder.get())),
-                        F.<GridNode>remoteNodes(cctx.localNode().id())));
+                List<GridRichNode> nodes = new ArrayList<GridRichNode>(cctx.affinity(assign.partition(),
+                    CU.allNodes(cctx, maxOrder.get())));
 
                 if (nodes.isEmpty())
                     return;
@@ -380,8 +380,6 @@ class GridReplicatedPreloadDemandPool<K, V> {
                 try {
                     if (!demandFromNode(node, assign))
                         continue; // Retry to complete assignment with next node.
-
-                    leftAssigns.decrementAndGet();
 
                     break; // Assignment has been processed.
                 }
@@ -528,7 +526,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
 
                         if (supply.failed()) {
                             // Node is preloading now and therefore cannot supply.
-                            maxOrder.setIfLess(node.order());
+                            maxOrder.setIfLess(node.order() - 1); // Preload from nodes elder, than node.
 
                             // Quit preloading.
                             break;

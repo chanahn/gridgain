@@ -35,7 +35,7 @@ import java.util.concurrent.*;
  * {@link GridCacheConfiguration#getAffinityMapper()} configuration property.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMapper<K> {
     /** Weak fields cache. If class is GC'ed, then it will be removed from this cache. */
@@ -115,7 +115,7 @@ public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMappe
                 }
             }
 
-            fields.putIfAbsent(cls.getName(), tuple = new GridTuple2<Field, Class<?>>());
+            fields.putIfAbsent(cls.getName(), tuple = new GridTuple2<Field, Class<?>>(null, cls));
         }
 
         return tuple.get1();
@@ -131,7 +131,7 @@ public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMappe
     @Nullable private Method method(Class<?> cls) {
         GridTuple2<Method, Class<?>> mtd = mtds.get(cls.getName());
 
-        if (mtd == null || cls.equals(mtd.get2())) {
+        if (mtd == null || !cls.equals(mtd.get2())) {
             for (Class<?> c = cls; !c.equals(Object.class); c = c.getSuperclass()) {
                 for (Method m : c.getDeclaredMethods()) {
                     // Account for anonymous inner classes.
@@ -152,7 +152,7 @@ public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMappe
                 }
             }
 
-            mtds.putIfAbsent(cls.getName(), mtd = new GridTuple2<Method, Class<?>>());
+            mtds.putIfAbsent(cls.getName(), mtd = new GridTuple2<Method, Class<?>>(null, cls));
         }
 
         return mtd.get1();

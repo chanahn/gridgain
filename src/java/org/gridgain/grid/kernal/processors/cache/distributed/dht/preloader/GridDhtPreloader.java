@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.GridCachePreloadMode.*;
  * DHT cache preloader.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
     /** Exchange history size. */
@@ -96,7 +96,8 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
                         f.onNodeLeft(n.id());
                 }
 
-                assert e.type() != EVT_NODE_JOINED || n.order() > loc.order();
+                assert e.type() != EVT_NODE_JOINED || n.order() > loc.order() : "Node joined with smaller order " +
+                    "[newOrder=" + n.order() + ", locOrder=" + loc.order() + ']';
 
                 boolean set = lastJoinOrder.setIfGreater(n.order());
 
@@ -597,12 +598,6 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
 
         forceKeyFuts.put(fut.futureId(), fut);
 
-        fut.listenAsync(new CI1<GridFuture<Collection<K>>>() {
-            @Override public void apply(GridFuture<Collection<K>> t) {
-                forceKeyFuts.remove(fut.futureId());
-            }
-        });
-
         if (startFut.isDone())
             fut.init();
         else
@@ -611,6 +606,12 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
                     fut.init();
                 }
             });
+
+        fut.listenAsync(new CI1<GridFuture<Collection<K>>>() {
+            @Override public void apply(GridFuture<Collection<K>> t) {
+                forceKeyFuts.remove(fut.futureId());
+            }
+        });
 
         return (GridDhtFuture)fut;
     }

@@ -67,7 +67,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Collection of utility methods used throughout the system.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -526,7 +526,7 @@ public abstract class GridUtils {
      * Prints stack trace of the current thread to {@code System.out}.
      */
     public static void dumpStack() {
-        new Exception("Dumping Stack").printStackTrace(System.out);
+        dumpStack("Dumping stack.");
     }
 
     /**
@@ -803,6 +803,23 @@ public abstract class GridUtils {
      */
     public static String id8(UUID id) {
         return id.toString().substring(0, 8);
+    }
+
+    /**
+     * Gets 8-character substring of {@link GridUuid} (for terse logging).
+     * The ID8 will be constructed as follows:
+     * <ul>
+     * <li>Take first 4 digits for global ID, i.e. {@code GridUuid.globalId()}.</li>
+     * <li>Take last 4 digits for local ID, i.e. {@code GridUiid.localId()}.</li>
+     * </ul>
+     *
+     * @param id Input ID.
+     * @return 8-character representation of {@code GridUuid}.
+     */
+    public static String id8(GridUuid id) {
+        String s = id.toString();
+
+        return s.substring(0, 4) + s.substring(s.length() - 4);
     }
 
     /**
@@ -1477,7 +1494,7 @@ public abstract class GridUtils {
      * Verifier always returns successful result for any host.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.03102011
+     * @version 3.5.0c.04102011
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.
@@ -3384,7 +3401,8 @@ public abstract class GridUtils {
         out.writeBoolean(uid == null);
 
         if (uid != null) {
-            writeUuid(out, uid.globalId());
+            out.writeLong(uid.globalId().getMostSignificantBits());
+            out.writeLong(uid.globalId().getLeastSignificantBits());
 
             out.writeLong(uid.localId());
         }
@@ -3401,7 +3419,10 @@ public abstract class GridUtils {
     @Nullable public static GridUuid readGridUuid(DataInput in) throws IOException {
         // If UUID is not null.
         if (!in.readBoolean()) {
-            UUID globalId = readUuid(in);
+            long most = in.readLong();
+            long least = in.readLong();
+
+            UUID globalId = GridUuidCache.onGridUuidRead(new UUID(most, least));
 
             long locId = in.readLong();
 
@@ -3867,31 +3888,7 @@ public abstract class GridUtils {
      * @return Class loader for given class (never {@code null}).
      */
     public static ClassLoader detectClassLoader(Class<?> cls) {
-        ClassLoader ldr = Thread.currentThread().getContextClassLoader();
-
-        if (ldr != null) {
-            if (ldr == cls.getClassLoader())
-                return ldr;
-
-            try {
-                // Check if context loader is wider than direct object class loader.
-                Class<?> c = Class.forName(cls.getName(), true, ldr);
-
-                if (c == cls)
-                    return ldr;
-            }
-            catch (ClassNotFoundException ignored) {
-                // No-op.
-            }
-        }
-
-        ldr = cls.getClassLoader();
-
-        // Class loader is null for JDK classes in certain environments.
-        if (ldr == null)
-            ldr = GridUtils.class.getClassLoader();
-
-        return ldr;
+        return GridClassLoaderCache.classLoader(cls);
     }
 
     /**
@@ -3959,7 +3956,7 @@ public abstract class GridUtils {
                     notAllNulls = true;
 
                     ClassLoader ldr = obj instanceof GridPeerDeployAware ?
-                        ((GridPeerDeployAware)obj).classLoader() : obj.getClass().getClassLoader();
+                        ((GridPeerDeployAware)obj).classLoader() : GridClassLoaderCache.classLoader(obj.getClass());
 
                     boolean found = true;
 
@@ -4063,12 +4060,17 @@ public abstract class GridUtils {
         final Class<?> cls = obj instanceof Class ? (Class)obj : obj.getClass();
 
         return new GridPeerDeployAware() {
+            private ClassLoader ldr;
+
             @Override public Class<?> deployClass() {
                 return cls;
             }
 
             @Override public ClassLoader classLoader() {
-                return cls.getClassLoader();
+                if (ldr == null)
+                    ldr = GridClassLoaderCache.classLoader(cls);
+
+                return ldr;
             }
         };
     }

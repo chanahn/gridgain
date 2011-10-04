@@ -9,6 +9,7 @@
 
 package org.gridgain.grid.kernal.processors.cache;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
@@ -27,7 +28,7 @@ import java.util.concurrent.atomic.*;
  * generated to prevent starvation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public final class GridCacheMvcc<K> {
     /** Logger reference. */
@@ -304,7 +305,7 @@ public final class GridCacheMvcc<K> {
      * @return {@code True} if lock is empty.
      */
     public synchronized boolean isEmpty(GridCacheVersion... exclude) {
-        if (locs == null && rmts == null && F.isEmpty(exclude))
+        if (locs == null && rmts == null)
             return true;
 
         if (locs != null) {
@@ -942,12 +943,16 @@ public final class GridCacheMvcc<K> {
         return candidate(ver) != null;
     }
 
+    public synchronized List<GridCacheMvccCandidate<K>> localCandidatesNoCopy(boolean reentry) {
+        return candidates(locs, reentry, false, cctx.emptyVersion());
+    }
+
     /**
      * @param excludeVers Exclude versions.
      * @return Collection of local candidates.
      */
     public synchronized Collection<GridCacheMvccCandidate<K>> localCandidates(GridCacheVersion... excludeVers) {
-        return candidates(locs, false, excludeVers);
+        return candidates(locs, false, true, excludeVers);
     }
 
     /**
@@ -957,7 +962,7 @@ public final class GridCacheMvcc<K> {
      */
     public synchronized List<GridCacheMvccCandidate<K>> localCandidates(boolean reentries,
         GridCacheVersion... excludeVers) {
-        return candidates(locs, reentries, excludeVers);
+        return candidates(locs, reentries, true, excludeVers);
     }
 
     /**
@@ -965,21 +970,25 @@ public final class GridCacheMvcc<K> {
      * @return Collection of remote candidates.
      */
     public synchronized List<GridCacheMvccCandidate<K>> remoteCandidates(GridCacheVersion... excludeVers) {
-        return candidates(rmts, false, excludeVers);
+        return candidates(rmts, false, true, excludeVers);
     }
 
     /**
      * @param col Collection of candidates.
      * @param reentries Reentry flag.
+     * @param cp Whether to copy or not.
      * @param excludeVers Exclude versions.
      * @return Collection of candidates minus the exclude versions.
      */
-    private List<GridCacheMvccCandidate<K>> candidates(Collection<GridCacheMvccCandidate<K>> col,
-        boolean reentries, GridCacheVersion... excludeVers) {
+    private List<GridCacheMvccCandidate<K>> candidates(List<GridCacheMvccCandidate<K>> col,
+        boolean reentries, boolean cp, GridCacheVersion... excludeVers) {
         if (col == null)
             return Collections.emptyList();
 
         assert !col.isEmpty();
+
+        if (!cp && F.isEmpty(excludeVers))
+            return col;
 
         List<GridCacheMvccCandidate<K>> cands = new ArrayList<GridCacheMvccCandidate<K>>(col.size());
 
@@ -1031,10 +1040,11 @@ public final class GridCacheMvcc<K> {
     }
 
     /**
+     *
      * @param lockId ID of lock candidate.
      * @return {@code True} if candidate is owner.
      */
-    public synchronized boolean isLocallyOwned(UUID lockId) {
+    public synchronized boolean isLocallyOwned(GridUuid lockId) {
         GridCacheMvccCandidate<K> owner = localOwner();
 
         return owner != null && owner.version().id().equals(lockId);

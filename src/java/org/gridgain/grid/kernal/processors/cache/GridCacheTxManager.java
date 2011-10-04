@@ -35,7 +35,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Cache transaction manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     /** Maximum number of transactions that have completed (initialized to 100K). */
@@ -213,7 +213,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
         long dur = 0;
 
         if (committedSize > 3000) {
-            minStartVer = new GridCacheVersion(Long.MAX_VALUE, cctx.nodeId());
+            minStartVer = new GridCacheVersion(Long.MAX_VALUE, new GridUuid(cctx.nodeId(), Long.MAX_VALUE));
 
             GridCacheTxEx<K, V> stuck = null;
 

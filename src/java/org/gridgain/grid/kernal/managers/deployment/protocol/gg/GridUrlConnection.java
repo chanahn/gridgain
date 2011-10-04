@@ -10,15 +10,16 @@
 package org.gridgain.grid.kernal.managers.deployment.protocol.gg;
 
 import org.gridgain.grid.kernal.managers.deployment.*;
+import org.gridgain.grid.lang.utils.*;
+
 import java.io.*;
 import java.net.*;
-import java.util.*;
 
 /**
  * Connection implementation for custom protocol.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridUrlConnection extends URLConnection {
     /** Deployment manager. */
@@ -46,7 +47,7 @@ public class GridUrlConnection extends URLConnection {
         URL url = getURL();
 
         // Gets class loader UUID.
-        UUID ldrId = UUID.fromString(url.getHost());
+        GridUuid ldrId = GridUuid.fromString(url.getHost());
 
         // Gets resource name.
         String name = url.getPath();

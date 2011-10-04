@@ -12,6 +12,7 @@ package org.gridgain.grid.kernal;
 import org.gridgain.grid.*;
 import org.gridgain.grid.kernal.managers.deployment.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
@@ -22,7 +23,7 @@ import java.util.*;
  * Task session.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements GridTaskSessionInternal {
     /** */
@@ -35,7 +36,7 @@ public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements Gri
     private final String taskClsName;
 
     /** */
-    private final UUID sesId;
+    private final GridUuid sesId;
 
     /** */
     private final long startTime;
@@ -99,7 +100,7 @@ public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements Gri
         String taskName,
         @Nullable GridDeployment dep,
         String taskClsName,
-        UUID sesId,
+        GridUuid sesId,
         long startTime,
         long endTime,
         Collection<GridJobSibling> siblings,
@@ -133,7 +134,7 @@ public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements Gri
     }
 
     /** {@inheritDoc} */
-    @Nullable @Override public UUID getJobId() {
+    @Nullable @Override public GridUuid getJobId() {
         return null;
     }
 
@@ -342,7 +343,7 @@ public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements Gri
     }
 
     /** {@inheritDoc} */
-    @Override public UUID getId() {
+    @Override public GridUuid getId() {
         return sesId;
     }
 
@@ -418,7 +419,7 @@ public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements Gri
     }
 
     /** {@inheritDoc} */
-    @Override public GridJobSibling getJobSibling(UUID jobId) throws GridException {
+    @Override public GridJobSibling getJobSibling(GridUuid jobId) throws GridException {
         A.notNull(jobId, "jobId");
 
         Collection<GridJobSibling> tmp = getJobSiblings();

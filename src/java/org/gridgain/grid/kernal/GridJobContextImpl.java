@@ -15,6 +15,7 @@ import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.kernal.processors.job.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
@@ -27,14 +28,14 @@ import java.util.*;
  * Remote job context implementation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridJobContextImpl extends GridMetadataAwareAdapter implements GridJobContext {
     /** Kernal context ({@code null} for job result context). */
     private GridKernalContext ctx;
 
     /** */
-    private UUID jobId;
+    private GridUuid jobId;
 
     /** Job worker. */
     private transient GridJobWorker job;
@@ -46,7 +47,7 @@ public class GridJobContextImpl extends GridMetadataAwareAdapter implements Grid
      * @param ctx Kernal context.
      * @param jobId Job ID.
      */
-    public GridJobContextImpl(@Nullable GridKernalContext ctx, UUID jobId) {
+    public GridJobContextImpl(@Nullable GridKernalContext ctx, GridUuid jobId) {
         assert jobId != null;
 
         this.ctx = ctx;
@@ -58,7 +59,7 @@ public class GridJobContextImpl extends GridMetadataAwareAdapter implements Grid
      * @param jobId Job ID.
      * @param attrs Job attributes.
      */
-    public GridJobContextImpl(GridKernalContext ctx, UUID jobId,
+    public GridJobContextImpl(GridKernalContext ctx, GridUuid jobId,
         Map<? extends Serializable, ? extends Serializable> attrs) {
         this(ctx, jobId);
 
@@ -77,7 +78,7 @@ public class GridJobContextImpl extends GridMetadataAwareAdapter implements Grid
     }
 
     /** {@inheritDoc} */
-    @Override public UUID getJobId() {
+    @Override public GridUuid getJobId() {
         return jobId;
     }
 
@@ -147,9 +148,9 @@ public class GridJobContextImpl extends GridMetadataAwareAdapter implements Grid
                     // Overflow.
                     if (endTime > 0) {
                         ctx.timeout().addTimeoutObject(new GridTimeoutObject() {
-                            private final UUID id = UUID.randomUUID();
+                            private final GridUuid id = GridUuid.randomUuid();
 
-                            @Override public UUID timeoutId() {
+                            @Override public GridUuid timeoutId() {
                                 return id;
                             }
 

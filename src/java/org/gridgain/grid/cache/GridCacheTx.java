@@ -11,6 +11,7 @@ package org.gridgain.grid.cache;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.jta.*;
+import org.gridgain.grid.lang.utils.*;
 
 import java.util.*;
 
@@ -31,7 +32,7 @@ import java.util.*;
  * </li>
  * <li>
  *  {@link GridCacheTxIsolation#REPEATABLE_READ} isolation level means that if a value was read once
- *  within transaction, then all consecutive reads will provide the same in-transaction value. With 
+ *  within transaction, then all consecutive reads will provide the same in-transaction value. With
  *  this isolation level accessed values are stored within in-transaction memory, so consecutive access
  *  to the same key within the same transaction will always return the value that was previously read or
  *  updated within this transaction. If concurrency is {@link GridCacheTxConcurrency#PESSIMISTIC}, then a lock
@@ -123,14 +124,14 @@ import java.util.*;
  *       // Perform transactional operations.
  *       Integer v1 = cache.get("k1");
  *       Integer old1 = cache.put("k2", 2);
- * 
+ *
  *       cache.removex("k3");
  *    }
  * }
  * </pre>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridCacheTx extends GridMetadataAware {
     /**
@@ -138,7 +139,7 @@ public interface GridCacheTx extends GridMetadataAware {
      *
      * @return Transaction UID.
      */
-    public UUID xid();
+    public GridUuid xid();
 
     /**
      * ID of the node on which this transaction started.
@@ -216,7 +217,7 @@ public interface GridCacheTx extends GridMetadataAware {
     /**
      * Sets transaction timeout value. This value can be set only before a first operation
      * on transaction has been performed.
-     * 
+     *
      * @param timeout Transaction timeout value.
      * @return Previous timeout.
      */
@@ -235,7 +236,7 @@ public interface GridCacheTx extends GridMetadataAware {
 
     /**
      * If transaction was marked as rollback-only.
-     * 
+     *
      * @return {@code True} if transaction can only be rolled back.
      */
     public boolean isRollbackOnly();
@@ -263,7 +264,7 @@ public interface GridCacheTx extends GridMetadataAware {
 
     /**
      * Rolls back this transaction.
-     * 
+     *
      * @throws GridException If rollback failed.
      */
     public void rollback() throws GridException;

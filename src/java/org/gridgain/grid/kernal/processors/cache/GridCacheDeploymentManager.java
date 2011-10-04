@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.*;
  * Deployment manager for cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
     /** Node filter. */
@@ -44,7 +44,7 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
     private volatile ClassLoader ldr;
 
     /** Undeployed class loaders. */
-    private final Collection<UUID> deadClsLdrs = new GridBoundedLinkedHashSet<UUID>(1024);
+    private final Collection<GridUuid> deadClsLdrs = new GridBoundedLinkedHashSet<GridUuid>(1024);
 
     /** Undeploys. */
     private final ConcurrentLinkedQueue<CA> undeploys = new ConcurrentLinkedQueue<CA>();
@@ -81,7 +81,7 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
 
     /**
      * Gets distributed class loader. Note that
-     * {@link #p2pContext(UUID, UUID, String, GridDeploymentMode, Map)} must be
+     * {@link #p2pContext(UUID, GridUuid, String, GridDeploymentMode, Map)} must be
      * called from the same thread prior to using this class loader, or the
      * loading may happen for the wrong node or context.
      *
@@ -245,8 +245,8 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
      * @param mode Deployment mode.
      * @param participants Node participants.
      */
-    public void p2pContext(UUID senderId, UUID ldrId, String userVer, GridDeploymentMode mode,
-        Map<UUID, GridTuple2<UUID, Long>> participants) {
+    public void p2pContext(UUID senderId, GridUuid ldrId, String userVer, GridDeploymentMode mode,
+        Map<UUID, GridTuple2<GridUuid, Long>> participants) {
         depBean.get().set(senderId, ldrId, userVer, mode, participants);
     }
 
@@ -409,10 +409,10 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
             assert t != null;
 
             UUID senderId = t.get(0);
-            UUID ldrId = t.get(1);
+            GridUuid ldrId = t.get(1);
             String userVer = t.get(2);
             GridDeploymentMode mode = t.get(3);
-            Map<UUID, GridTuple2<UUID, Long>> participants = t.get(4);
+            Map<UUID, GridTuple2<GridUuid, Long>> participants = t.get(4);
 
             GridDeployment d = senderId == null ? cctx.gridDeploy().getLocalDeployment(name) :
                 cctx.gridDeploy().getGlobalDeployment(
@@ -439,11 +439,12 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
+     *
      * @param ldr Class loader to get ID for.
      * @return ID for given class loader or {@code null} if given loader is not
      *      grid deployment class loader.
      */
-    @Nullable public UUID getClassLoaderId(@Nullable ClassLoader ldr) {
+    @Nullable public GridUuid getClassLoaderId(@Nullable ClassLoader ldr) {
         if (ldr == null)
             return null;
 
@@ -451,10 +452,11 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
+     *
      * @param ldrId Class loader ID.
      * @return Class loader ID or {@code null} if loader not found.
      */
-    @Nullable public ClassLoader getClassLoader(UUID ldrId) {
+    @Nullable public ClassLoader getClassLoader(GridUuid ldrId) {
         assert ldrId != null;
 
         GridDeployment dep = cctx.gridDeploy().getDeployment(ldrId);

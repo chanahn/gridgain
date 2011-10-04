@@ -10,15 +10,14 @@
 package org.gridgain.grid.kernal;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.lang.utils.*;
 import org.jetbrains.annotations.*;
-
-import java.util.*;
 
 /**
  * Internal task session interface.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridTaskSessionInternal extends GridTaskSession {
     /**
@@ -34,7 +33,7 @@ public interface GridTaskSessionInternal extends GridTaskSession {
     /**
      * @return Job ID (possibly <tt>null</tt>).
      */
-    @Nullable public UUID getJobId();
+    @Nullable public GridUuid getJobId();
 
     /**
      * @return {@code True} if task node.

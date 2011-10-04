@@ -42,7 +42,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Adapter for different cache implementations.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter implements GridCache<K, V>,
     Externalizable {
@@ -1063,12 +1063,12 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         if (doomed != null)
             // Event notification.
-            ctx.events().addEvent(doomed.partition(), doomed.key(), locNodeId, (UUID)null, null,
+            ctx.events().addEvent(doomed.partition(), doomed.key(), locNodeId, (GridUuid)null, null,
                 EVT_CACHE_ENTRY_DESTROYED, null, null);
 
         if (created != null)
             // Event notification.
-            ctx.events().addEvent(created.partition(), created.key(), locNodeId, (UUID)null, null,
+            ctx.events().addEvent(created.partition(), created.key(), locNodeId, (GridUuid)null, null,
                 EVT_CACHE_ENTRY_CREATED, null, null);
 
         return cur;
@@ -1298,7 +1298,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
                 log.debug("Removed entry from cache: " + entry);
 
             // Event notification.
-            ctx.events().addEvent(entry.partition(), entry.key(), locNodeId, (UUID)null, null,
+            ctx.events().addEvent(entry.partition(), entry.key(), locNodeId, (GridUuid)null, null,
                 EVT_CACHE_ENTRY_DESTROYED, null, null);
         }
         else if (log.isDebugEnabled())
@@ -3199,7 +3199,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         }
 
         // Event notification.
-        ctx.events().addEvent(entry.partition(), key, ctx.discovery().localNode().id(), (UUID)null, null,
+        ctx.events().addEvent(entry.partition(), key, ctx.discovery().localNode().id(), (GridUuid)null, null,
             EVT_CACHE_OBJECT_UNSWAPPED, null, null);
 
         return ctx.cloneOnFlag(unswapped.value());

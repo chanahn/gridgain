@@ -9,24 +9,24 @@
 
 package org.gridgain.grid.kernal.processors.cache;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.*;
 
 import java.io.*;
-import java.util.*;
 
 /**
  * Grid unique version.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheVersion implements Comparable<GridCacheVersion>, Externalizable {
     /** Order. */
     private long order;
 
     /** Version ID. */
-    private UUID id;
+    private GridUuid id;
 
     /**
      * Empty constructor required by {@link Externalizable}.
@@ -40,7 +40,7 @@ public class GridCacheVersion implements Comparable<GridCacheVersion>, Externali
      * @param order Version order.
      * @param id Version ID.
      */
-    public GridCacheVersion(long order, UUID id) {
+    public GridCacheVersion(long order, GridUuid id) {
         assert id != null;
 
         this.order = order;
@@ -57,7 +57,7 @@ public class GridCacheVersion implements Comparable<GridCacheVersion>, Externali
     /**
      * @return Version ID.
      */
-    public UUID id() {
+    public GridUuid id() {
         return id;
     }
 
@@ -97,14 +97,14 @@ public class GridCacheVersion implements Comparable<GridCacheVersion>, Externali
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong(order);
 
-        GridUtils.writeUuid(out, id);
+        GridUtils.writeGridUuid(out, id);
     }
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         order = in.readLong();
 
-        id = GridUtils.readUuid(in);
+        id = GridUtils.readGridUuid(in);
     }
 
     /** {@inheritDoc} */

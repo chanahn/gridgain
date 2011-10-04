@@ -31,7 +31,7 @@ import static org.gridgain.grid.kernal.GridTopic.*;
  * It uses communication manager as a way of sending and receiving requests.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 @SuppressWarnings({"deprecation"})
 @GridToStringExclude class GridDeploymentCommunication {
@@ -251,6 +251,7 @@ import static org.gridgain.grid.kernal.GridTopic.*;
      * Sends request to the remote node and wait for response. If there is
      * no response until threshold time, method returns null.
      *
+     *
      * @param rsrcName Resource name.
      * @param clsLdrId Class loader ID.
      * @param dstNode Remote node request should be sent to.
@@ -260,13 +261,13 @@ import static org.gridgain.grid.kernal.GridTopic.*;
      * @throws GridException Thrown if there is no connection with remote node.
      */
     @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
-    GridDeploymentResponse sendResourceRequest(final String rsrcName, UUID clsLdrId,
+    GridDeploymentResponse sendResourceRequest(final String rsrcName, GridUuid clsLdrId,
         final GridNode dstNode, long threshold) throws GridException {
         assert rsrcName != null;
         assert dstNode != null;
         assert clsLdrId != null;
 
-        String resTopic = TOPIC_CLASSLOAD.name(UUID.randomUUID());
+        String resTopic = TOPIC_CLASSLOAD.name(GridUuid.randomUuid());
 
         GridDeploymentRequest req = new GridDeploymentRequest(clsLdrId, rsrcName, false);
 

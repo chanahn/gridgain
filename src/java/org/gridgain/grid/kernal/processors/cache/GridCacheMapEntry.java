@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * Adapter for cache entry.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext"})
 public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter implements GridCacheEntryEx<K, V> {
@@ -219,7 +219,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                             // Set unswapped value.
                             update(e.value(), e.valueBytes(), e.expireTime(), e.ttl(), e.version(), e.metrics());
 
-                            cctx.events().addEvent(partition(), key, cctx.nodeId(), (UUID)null, null,
+                            cctx.events().addEvent(partition(), key, cctx.nodeId(), (GridUuid)null, null,
                                 EVT_CACHE_OBJECT_UNSWAPPED, null, null);
                         }
                         else
@@ -245,14 +245,14 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                 if (valBytes == null)
                     valBytes = CU.marshal(cctx, val).getEntireArray();
 
-                UUID clsLdrId = null;
+                GridUuid clsLdrId = null;
 
                 if (val != null)
                     clsLdrId = cctx.deploy().getClassLoaderId(val.getClass().getClassLoader());
 
                 cctx.swap().write(getOrMarshalKeyBytes(), valBytes, ver, ttl, expireTime, metrics, clsLdrId);
 
-                cctx.events().addEvent(partition(), key, cctx.nodeId(), (UUID)null, null,
+                cctx.events().addEvent(partition(), key, cctx.nodeId(), (GridUuid)null, null,
                     EVT_CACHE_OBJECT_SWAPPED, null, null);
             }
 
@@ -1457,7 +1457,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
     }
 
     /** {@inheritDoc} */
-    @Override public boolean lockedLocally(UUID lockId) throws GridCacheEntryRemovedException {
+    @Override public boolean lockedLocally(GridUuid lockId) throws GridCacheEntryRemovedException {
         synchronized (mux) {
             checkObsolete();
 
@@ -1508,7 +1508,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
     }
 
     /** {@inheritDoc} */
-    @Override public boolean lockedLocallyUnsafe(UUID lockId) {
+    @Override public boolean lockedLocallyUnsafe(GridUuid lockId) {
         synchronized (mux) {
             return mvcc.isLocallyOwned(lockId);
         }

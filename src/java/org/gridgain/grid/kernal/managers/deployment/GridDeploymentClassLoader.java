@@ -31,12 +31,12 @@ import java.util.concurrent.*;
  * remote node this class will throw exception.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 @SuppressWarnings({"CustomClassloader"})
 class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInfo {
     /** Class loader ID. */
-    private final UUID id;
+    private final GridUuid id;
 
     /** {@code True} for single node deployment. */
     private final boolean singleNode;
@@ -56,7 +56,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      * are sent to the last accessed node first.
      */
     @GridToStringInclude
-    private final Map<UUID, GridTuple2<UUID, Long>> nodeLdrMap;
+    private final Map<UUID, GridTuple2<GridUuid, Long>> nodeLdrMap;
 
     /** */
     @GridToStringExclude
@@ -92,6 +92,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      * {@link SecurityManager#checkCreateClassLoader()}
      * method is invoked. This may result in a security exception.
      *
+     *
      * @param id Class loader ID.
      * @param usrVer User version.
      * @param depMode Deployment mode.
@@ -112,13 +113,13 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      *      of a new class loader.
      */
     GridDeploymentClassLoader(
-        UUID id,
+        GridUuid id,
         String usrVer,
         GridDeploymentMode depMode,
         boolean singleNode,
         GridKernalContext ctx,
         ClassLoader parent,
-        UUID clsLdrId,
+        GridUuid clsLdrId,
         UUID nodeId,
         long seqNum,
         GridDeploymentCommunication comm,
@@ -147,7 +148,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
         this.log = log;
         this.p2pExclude = p2pExclude;
 
-        Map<UUID, GridTuple2<UUID, Long>> map = new LinkedHashMap<UUID, GridTuple2<UUID, Long>>(1, 0.75f, true);
+        Map<UUID, GridTuple2<GridUuid, Long>> map = new LinkedHashMap<UUID, GridTuple2<GridUuid, Long>>(1, 0.75f, true);
 
         map.put(nodeId, F.t(clsLdrId, seqNum));
 
@@ -165,6 +166,9 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      * If there is a security manager, its
      * {@link SecurityManager#checkCreateClassLoader()}
      * method is invoked. This may result in a security exception.
+     *
+     *
+     *
      *
      * @param id Class loader ID.
      * @param usrVer User version.
@@ -184,13 +188,13 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      *      of a new class loader.
      */
     GridDeploymentClassLoader(
-        UUID id,
+        GridUuid id,
         String usrVer,
         GridDeploymentMode depMode,
         boolean singleNode,
         GridKernalContext ctx,
         ClassLoader parent,
-        Map<UUID, GridTuple2<UUID, Long>> participants,
+        Map<UUID, GridTuple2<GridUuid, Long>> participants,
         GridDeploymentCommunication comm,
         long p2pTimeout,
         GridLogger log,
@@ -217,7 +221,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
         this.log = log;
         this.p2pExclude = p2pExclude;
 
-        nodeLdrMap = new LinkedHashMap<UUID, GridTuple2<UUID, Long>>(1, 0.75f, true);
+        nodeLdrMap = new LinkedHashMap<UUID, GridTuple2<GridUuid, Long>>(1, 0.75f, true);
 
         nodeLdrMap.putAll(participants);
 
@@ -228,7 +232,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
     }
 
     /** {@inheritDoc} */
-    @Override public UUID classLoaderId() {
+    @Override public GridUuid classLoaderId() {
         return id;
     }
 
@@ -243,9 +247,9 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
     }
 
     /** {@inheritDoc} */
-    @Override public Map<UUID, GridTuple2<UUID, Long>> participants() {
+    @Override public Map<UUID, GridTuple2<GridUuid, Long>> participants() {
         synchronized (mux) {
-            return new HashMap<UUID, GridTuple2<UUID, Long>>(nodeLdrMap);
+            return new HashMap<UUID, GridTuple2<GridUuid, Long>>(nodeLdrMap);
         }
     }
 
@@ -258,7 +262,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      * @param ldrId Participating class loader id.
      * @param seqNum Sequence number for the class loader.
      */
-    void register(UUID nodeId, UUID ldrId, long seqNum) {
+    void register(UUID nodeId, GridUuid ldrId, long seqNum) {
         assert nodeId != null;
         assert ldrId != null;
 
@@ -274,16 +278,18 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      * Remove remote node and remote class loader id associated with it from
      * internal map.
      *
+     *
+     *
      * @param nodeId Participating node ID.
      * @return Removed class loader ID.
      */
-    @Nullable UUID unregister(UUID nodeId) {
+    @Nullable GridUuid unregister(UUID nodeId) {
         assert nodeId != null;
 
         synchronized (mux) {
-            GridTuple2<UUID, Long> removed = nodeLdrMap.remove(nodeId);
+            GridTuple2<GridUuid, Long> rmvd = nodeLdrMap.remove(nodeId);
 
-            return removed == null ? null : removed.get1();
+            return rmvd == null ? null : rmvd.get1();
         }
     }
 
@@ -299,11 +305,11 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
     /**
      * @return Registered class loader IDs.
      */
-    Collection<UUID> registeredClassLoaderIds() {
-        Collection<UUID> ldrIds = new LinkedList<UUID>();
+    Collection<GridUuid> registeredClassLoaderIds() {
+        Collection<GridUuid> ldrIds = new LinkedList<GridUuid>();
 
         synchronized (mux) {
-            for (GridTuple2<UUID, Long> pair : nodeLdrMap.values())
+            for (GridTuple2<GridUuid, Long> pair : nodeLdrMap.values())
                 ldrIds.add(pair.get1());
         }
 
@@ -311,10 +317,11 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
     }
 
     /**
+     *
      * @param nodeId Node ID.
      * @return Class loader ID for node ID.
      */
-    GridTuple2<UUID, Long> registeredClassLoaderId(UUID nodeId) {
+    GridTuple2<GridUuid, Long> registeredClassLoaderId(UUID nodeId) {
         synchronized (mux) {
             return nodeLdrMap.get(nodeId);
         }
@@ -323,15 +330,16 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
     /**
      * Checks if node is participating in deployment.
      *
+     *
      * @param nodeId Node ID to check.
      * @param ldrId Class loader ID.
      * @return {@code True} if node is participating in deployment.
      */
-    boolean hasRegisteredNode(UUID nodeId, UUID ldrId) {
+    boolean hasRegisteredNode(UUID nodeId, GridUuid ldrId) {
         assert nodeId != null;
         assert ldrId != null;
 
-        GridTuple2<UUID, Long> pair;
+        GridTuple2<GridUuid, Long> pair;
 
         synchronized (mux) {
             pair = nodeLdrMap.get(nodeId);
@@ -513,7 +521,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
 
         long endTime = computeEndTime(p2pTimeout);
 
-        Collection<Map.Entry<UUID, GridTuple2<UUID, Long>>> entries;
+        Collection<Map.Entry<UUID, GridTuple2<GridUuid, Long>>> entries;
 
         synchronized (mux) {
             // Skip requests for the previously missed classes.
@@ -524,19 +532,19 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
             // If single-node mode, then node cannot change and we simply reuse the entry set.
             // Otherwise, copy and preserve order for iteration.
             entries = singleNode ? nodeLdrMap.entrySet() :
-                new ArrayList<Map.Entry<UUID, GridTuple2<UUID, Long>>>(nodeLdrMap.entrySet());
+                new ArrayList<Map.Entry<UUID, GridTuple2<GridUuid, Long>>>(nodeLdrMap.entrySet());
         }
 
         GridException err = null;
 
-        for (Map.Entry<UUID, GridTuple2<UUID, Long>> entry : entries) {
+        for (Map.Entry<UUID, GridTuple2<GridUuid, Long>> entry : entries) {
             UUID nodeId = entry.getKey();
 
             if (nodeId.equals(ctx.discovery().localNode().id()))
                 // Skip local node as it is already used as parent class loader.
                 continue;
 
-            UUID ldrId = entry.getValue().get1();
+            GridUuid ldrId = entry.getValue().get1();
 
             GridNode node = ctx.discovery().node(nodeId);
 
@@ -638,7 +646,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
 
         long endTime = computeEndTime(p2pTimeout);
 
-        Collection<Map.Entry<UUID, GridTuple2<UUID, Long>>> entries;
+        Collection<Map.Entry<UUID, GridTuple2<GridUuid, Long>>> entries;
 
         synchronized (mux) {
             // Skip requests for the previously missed classes.
@@ -648,17 +656,17 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
             // If single-node mode, then node cannot change and we simply reuse the entry set.
             // Otherwise, copy and preserve order for iteration.
             entries = singleNode ? nodeLdrMap.entrySet() :
-                new ArrayList<Map.Entry<UUID, GridTuple2<UUID, Long>>>(nodeLdrMap.entrySet());
+                new ArrayList<Map.Entry<UUID, GridTuple2<GridUuid, Long>>>(nodeLdrMap.entrySet());
         }
 
-        for (Map.Entry<UUID, GridTuple2<UUID, Long>> entry : entries) {
+        for (Map.Entry<UUID, GridTuple2<GridUuid, Long>> entry : entries) {
             UUID nodeId = entry.getKey();
 
             if (nodeId.equals(ctx.discovery().localNode().id()))
                 // Skip local node as it is already used as parent class loader.
                 continue;
 
-            UUID ldrId = entry.getValue().get1();
+            GridUuid ldrId = entry.getValue().get1();
 
             GridNode node = ctx.discovery().node(nodeId);
 

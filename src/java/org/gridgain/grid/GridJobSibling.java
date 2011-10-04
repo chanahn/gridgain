@@ -9,6 +9,8 @@
 
 package org.gridgain.grid;
 
+import org.gridgain.grid.lang.utils.*;
+
 import java.util.*;
 
 /**
@@ -16,7 +18,7 @@ import java.util.*;
  * from the same {@link GridTask#map(List, Object)} method invocation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridJobSibling extends GridMetadataAware {
     /**
@@ -26,7 +28,7 @@ public interface GridJobSibling extends GridMetadataAware {
      *
      * @return Job ID.
      */
-    public UUID getJobId();
+    public GridUuid getJobId();
 
     /**
      * Sends a request to cancel this sibling.

@@ -35,7 +35,7 @@ import java.util.*;
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCountGraphTrianglesExample {
     /** Cache name. */
@@ -51,22 +51,19 @@ public class GridCountGraphTrianglesExample {
      * @throws GridException In case of error.
      */
     public static void main(String[] args) throws GridException {
-        Grid grid = G.start("examples/config/spring-cache.xml");
+        G.in(new CIX1<Grid>() {
+            @Override public void applyx(Grid grid) throws GridException {
+                // Create example graph.
+                Collection<Integer> vertices = createGraph(grid);
 
-        try {
-            // Create example graph.
-            Collection<Integer> vertices = createGraph(grid);
+                // Count triangles.
+                int trianglesCnt = count(grid, vertices);
 
-            // Count triangles.
-            int trianglesCnt = count(grid, vertices);
-
-            X.println(">>>");
-            X.println(">>> Number of triangles: " + trianglesCnt);
-            X.println(">>>");
-        }
-        finally {
-            G.stop(true);
-        }
+                X.println(">>>");
+                X.println(">>> Number of triangles: " + trianglesCnt);
+                X.println(">>>");
+            }
+        });
     }
 
     /**
@@ -74,8 +71,8 @@ public class GridCountGraphTrianglesExample {
      * Created graph has {@code 3} triangles.
      *
      * @param grid Grid.
-     * @throws GridException In case of error.
      * @return Collection of vertices.
+     * @throws GridException In case of error.
      */
     private static Collection<Integer> createGraph(Grid grid) throws GridException {
         assert grid != null;

@@ -11,6 +11,7 @@ package org.gridgain.grid.kernal.managers.deployment;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 
 import java.util.*;
 
@@ -18,13 +19,13 @@ import java.util.*;
  * Deployment info.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridDeploymentInfo {
     /**
      * @return Class loader ID.
      */
-    public UUID classLoaderId();
+    public GridUuid classLoaderId();
 
     /**
      * @return User version.
@@ -39,5 +40,5 @@ public interface GridDeploymentInfo {
     /**
      * @return Participant map for SHARED mode.
      */
-    public Map<UUID, GridTuple2<UUID, Long>> participants();
+    public Map<UUID, GridTuple2<GridUuid, Long>> participants();
 }

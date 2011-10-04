@@ -13,6 +13,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.kernal.processors.cache.distributed.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.*;
 import org.jetbrains.annotations.*;
 
@@ -22,7 +23,7 @@ import java.util.*;
  * Internal API for cache entry ({@code 'Ex'} stands for extended).
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
     /**
@@ -444,11 +445,12 @@ public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
     public boolean lockedByThread(GridCacheVersion exclude) throws GridCacheEntryRemovedException;
 
     /**
+     *
      * @param lockId Lock ID to check.
      * @return {@code True} if lock is owned by candidate.
      * @throws GridCacheEntryRemovedException If entry was removed.
      */
-    public boolean lockedLocally(UUID lockId) throws GridCacheEntryRemovedException;
+    public boolean lockedLocally(GridUuid lockId) throws GridCacheEntryRemovedException;
 
     /**
      * @param threadId Thread ID to check.
@@ -487,10 +489,11 @@ public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
     public boolean lockedByUnsafe(GridCacheVersion ver);
 
     /**
+     *
      * @param lockId Lock ID to check.
      * @return {@code True} if lock is owned by candidate.
      */
-    public boolean lockedLocallyUnsafe(UUID lockId);
+    public boolean lockedLocallyUnsafe(GridUuid lockId);
 
     /**
      * @param ver Lock version to check.

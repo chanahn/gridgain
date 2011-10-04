@@ -11,6 +11,7 @@ package org.gridgain.grid.kernal.managers.deployment;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
 import java.util.*;
@@ -19,7 +20,7 @@ import java.util.*;
  * Deployment metadata.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 class GridDeploymentMetadata {
     /** Deployment mode. */
@@ -41,14 +42,14 @@ class GridDeploymentMetadata {
     private UUID senderNodeId;
 
     /** */
-    private UUID clsLdrId;
+    private GridUuid clsLdrId;
 
     /** Class loader. */
     private ClassLoader clsLdr;
 
     /** Master node participants. */
     @GridToStringInclude
-    private Map<UUID, GridTuple2<UUID, Long>> participants;
+    private Map<UUID, GridTuple2<GridUuid, Long>> participants;
 
     /** */
     private ClassLoader parentLdr;
@@ -171,7 +172,7 @@ class GridDeploymentMetadata {
      *
      * @return Property clsLdrId.
      */
-    UUID classLoaderId() {
+    GridUuid classLoaderId() {
         return clsLdrId;
     }
 
@@ -180,7 +181,7 @@ class GridDeploymentMetadata {
      *
      * @param clsLdrId Property clsLdrId.
      */
-    void classLoaderId(UUID clsLdrId) {
+    void classLoaderId(GridUuid clsLdrId) {
         this.clsLdrId = clsLdrId;
     }
 
@@ -223,14 +224,14 @@ class GridDeploymentMetadata {
     /**
      * @return Node participants.
      */
-    public Map<UUID, GridTuple2<UUID, Long>> participants() {
+    public Map<UUID, GridTuple2<GridUuid, Long>> participants() {
         return participants;
     }
 
     /**
      * @param participants Node participants.
      */
-    public void participants(Map<UUID, GridTuple2<UUID, Long>> participants) {
+    public void participants(Map<UUID, GridTuple2<GridUuid, Long>> participants) {
         this.participants = participants;
     }
 

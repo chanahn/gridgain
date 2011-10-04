@@ -41,7 +41,7 @@ import static org.gridgain.grid.lang.utils.GridConcurrentLinkedDeque.*;
  * Cache eviction manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /** Number of entries in the queue before unwinding happens. */
@@ -689,7 +689,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         if (evicted) {
             cache.removeEntry(entry);
 
-            cctx.events().addEvent(entry.partition(), entry.key(), cctx.nodeId(), (UUID)null, null,
+            cctx.events().addEvent(entry.partition(), entry.key(), cctx.nodeId(), (GridUuid)null, null,
                 EVT_CACHE_ENTRY_EVICTED, null, null);
 
             if (log.isDebugEnabled())
@@ -1375,11 +1375,11 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
             if (lock.readLock().tryLock()) {
                 try {
                     timeoutObject = new GridTimeoutObject() {
-                        private final UUID id = UUID.randomUUID();
+                        private final GridUuid id = GridUuid.randomUuid();
                         private final long endTime =
                             System.currentTimeMillis() + cctx.gridConfig().getNetworkTimeout();
 
-                        @Override public UUID timeoutId() {
+                        @Override public GridUuid timeoutId() {
                             return id;
                         }
 

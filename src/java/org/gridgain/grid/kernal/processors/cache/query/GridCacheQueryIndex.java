@@ -41,7 +41,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * Cache query index. Manages full life-cycle of query index database (h2).
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.03102011
+ * @version 3.5.0c.04102011
  */
 @SuppressWarnings({"UnnecessaryFullyQualifiedName"})
 public class GridCacheQueryIndex<K, V> {
@@ -759,7 +759,7 @@ public class GridCacheQueryIndex<K, V> {
         assert key != null;
         assert table != null;
 
-        UUID clsLdrId = cctx.deploy().getClassLoaderId(key.getClass().getClassLoader());
+        GridUuid clsLdrId = cctx.deploy().getClassLoaderId(key.getClass().getClassLoader());
 
         if (clsLdrId != null)
             stmt.setString(idx, clsLdrId.toString());
@@ -2723,7 +2723,7 @@ public class GridCacheQueryIndex<K, V> {
                 String keyLdrId = rs.getString(2);
 
                 ClassLoader keyLdr = keyLdrId != null ?
-                    cctx.deploy().getClassLoader(UUID.fromString(keyLdrId)) : cctx.deploy().localLoader();
+                    cctx.deploy().getClassLoader(GridUuid.fromString(keyLdrId)) : cctx.deploy().localLoader();
 
                 key = keyLdr != null ? (K)U.unmarshal(cctx.marshaller(), new GridByteArrayList(buf), keyLdr) : null;
             }
