@@ -37,7 +37,7 @@ import typedef._
  * cache: `'ggstart.sh examples/config/spring-cache.xml'`.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 object ScalarCountGraphTrianglesExample {
     /** Cache name. */
@@ -84,7 +84,7 @@ object ScalarCountGraphTrianglesExample {
         c += (8 -> Seq(5, 7))
 
         // Return collection of vertices.
-        Seq. range(1, 9)
+        Seq.range(1, 9)
     }
 
     /**

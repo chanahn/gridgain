@@ -21,7 +21,7 @@ import java.io.*;
  * correct files if it is restarted.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 class GridS3CheckpointData implements Serializable {
     /** Checkpoint data. */

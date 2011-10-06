@@ -24,7 +24,6 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
-import java.util.concurrent.locks.*;
 
 import static java.util.concurrent.TimeUnit.*;
 
@@ -32,7 +31,7 @@ import static java.util.concurrent.TimeUnit.*;
  * Future adapter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements GridFuture<R>, Externalizable {
     /** Logger reference. */
@@ -45,10 +44,13 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
     private static final boolean CONCUR_NOTIFY = U.isFutureNotificationConcurrent("false");
 
     /** Done flag. */
-    private volatile boolean done;
+    private AtomicBoolean done = new AtomicBoolean();
 
     /** Cancelled flag. */
-    private volatile boolean cancelled;
+    private AtomicBoolean cancelled = new AtomicBoolean();
+
+    /** */
+    private CountDownLatch doneLatch = new CountDownLatch(1);
 
     /** Result. */
     @GridToStringInclude
@@ -61,16 +63,11 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
     private boolean valid = true;
 
     /** Asynchronous listener. */
-    private final Set<GridInClosure<? super GridFuture<R>>> lsnrs = new GridLeanSet<GridInClosure<? super GridFuture<R>>>();
+    private final Collection<GridInClosure<? super GridFuture<R>>>
+        lsnrs = new GridConcurrentLinkedDeque<GridInClosure<? super GridFuture<R>>>();
 
     /** Creator thread. */
     private Thread thread = Thread.currentThread();
-
-    /** Mutex. */
-    private final Lock lock = new ReentrantLock();
-
-    /** Done condition. */
-    private final Condition doneCond = lock.newCondition();
 
     /** Context. */
     protected GridKernalContext ctx;
@@ -192,34 +189,19 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
     }
 
     /**
-     * Acquire lock.
-     */
-    @SuppressWarnings({"LockAcquiredButNotSafelyReleased"})
-    protected final void lock() {
-        lock.lock();
-    }
-
-    /**
-     * Release lock.
-     */
-    protected final void unlock() {
-        lock.unlock();
-    }
-
-    /**
      * Await for done signal.
      *
      * @throws InterruptedException If interrupted.
      */
-    protected final void awaitSignal() throws InterruptedException {
-        doneCond.await();
+    private void latchAwait() throws InterruptedException {
+        doneLatch.await();
     }
 
     /**
      * Signal all waiters for done condition.
      */
-    protected final void signalAll() {
-        doneCond.signalAll();
+    private void latchCountDown() {
+        doneLatch.countDown();
     }
 
     /**
@@ -229,8 +211,20 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
      * @return {@code True} if signal was sent, {@code false} otherwise.
      * @throws InterruptedException If interrupted.
      */
-    protected final boolean awaitSignal(long ms) throws InterruptedException {
-        return doneCond.await(ms, TimeUnit.MILLISECONDS);
+    protected final boolean latchAwait(long ms) throws InterruptedException {
+        return doneLatch.await(ms, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Await for done signal for a given period of time (in milliseconds).
+     *
+     * @param time Time to wait for done signal.
+     * @param unit Time unit.
+     * @return {@code True} if signal was sent, {@code false} otherwise.
+     * @throws InterruptedException If interrupted.
+     */
+    protected final boolean latchAwait(long time, TimeUnit unit) throws InterruptedException {
+        return doneLatch.await(time, unit);
     }
 
     /**
@@ -265,13 +259,18 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
     @Override public R get() throws GridException {
         checkValid();
 
-        lock();
-
         try {
-            while (!done && !cancelled)
-                awaitSignal();
+            boolean b = done.get();
 
-            if (done) {
+            if (!b && !cancelled.get()) {
+                latchAwait();
+
+                b = done.get();
+            }
+
+            if (b) {
+                Throwable err = this.err;
+
                 if (err != null)
                     throw U.cast(err);
 
@@ -283,9 +282,6 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
         catch (InterruptedException e) {
             throw new GridInterruptedException(e);
         }
-        finally {
-            unlock();
-        }
     }
 
     /** {@inheritDoc} */
@@ -295,32 +291,25 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
 
         checkValid();
 
-        long now = System.currentTimeMillis();
-
-        long end = timeout == 0 ? Long.MAX_VALUE : now + MILLISECONDS.convert(timeout, unit);
-
-        // Account for overflow.
-        if (end < 0)
-            end = Long.MAX_VALUE;
-
-        lock();
-
         try {
-            while (!done && !cancelled && now < end) {
-                awaitSignal(end - now);
+            boolean d = done.get();
+            boolean c = cancelled.get();
 
-                if (!done)
-                    now = System.currentTimeMillis();
+            if (!d && !c) {
+                latchAwait(timeout, unit);
+
+                d = done.get();
+                c = cancelled.get();
             }
 
-            if (done) {
+            if (d) {
                 if (err != null)
                     throw U.cast(err);
 
                 return res;
             }
 
-            if (cancelled)
+            if (c)
                 throw new GridFutureCancelledException("Future was cancelled: " + this);
 
             throw new GridFutureTimeoutException("Timeout was reached before computation completed [duration=" +
@@ -329,9 +318,6 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
         catch (InterruptedException e) {
             throw new GridInterruptedException("Got interrupted while waiting for future to complete [duration=" +
                 duration() + "ms, timeout=" + unit.toMillis(timeout) + "ms]", e);
-        }
-        finally {
-            unlock();
         }
     }
 
@@ -343,28 +329,42 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
 
             boolean done;
 
-            lock();
+            GridInClosure<? super GridFuture<R>> lsnr0 = lsnr;
 
-            try {
-                done = this.done;
+            done = this.done.get();
 
-                if (!done)
-                    lsnrs.add(lsnr);
-            }
-            finally {
-                unlock();
+            if (!done) {
+                lsnr0 = new GridInClosure<GridFuture<R>>() {
+                    private final AtomicBoolean called = new AtomicBoolean();
+
+                    @Override public void apply(GridFuture<R> t) {
+                        if (called.compareAndSet(false, true))
+                            lsnr.apply(t);
+                    }
+
+                    @Override public boolean equals(Object o) {
+                        return o != null && (o == this || o == lsnr || o.equals(lsnr));
+                    }
+                };
+
+                lsnrs.add(lsnr0);
+
+                done = this.done.get(); // Double check.
             }
 
             if (done) {
                 try {
                     if (syncNotify)
-                        notifyListener(lsnr);
-                    else
+                        notifyListener(lsnr0);
+                    else {
+                        final GridInClosure<? super GridFuture<R>> lsnr1 = lsnr0;
+
                         ctx.closure().runLocalSafe(new GPR() {
                             @Override public void run() {
-                                notifyListener(lsnr);
+                                notifyListener(lsnr1);
                             }
                         }, true);
+                    }
                 }
                 catch (IllegalStateException ignore) {
                     U.warn(null, "Future notification will not proceed because grid is stopped: " + ctx.gridName());
@@ -375,16 +375,18 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
 
     /** {@inheritDoc} */
     @Override public void stopListenAsync(@Nullable GridInClosure<? super GridFuture<R>>... lsnr) {
-        lock();
+        if (lsnr == null || lsnr.length == 0)
+            lsnrs.clear();
+        else {
+            // Iterate through the whole list, removing all occurrences, if any.
+            for (Iterator<GridInClosure<? super GridFuture<R>>> it = lsnrs.iterator(); it.hasNext();) {
+                GridInClosure<? super GridFuture<R>> l1 = it.next();
 
-        try {
-            if (F.isEmpty(lsnr))
-                lsnrs.clear();
-            else
-                lsnrs.removeAll(F.asList(lsnr));
-        }
-        finally {
-            unlock();
+                for (GridInClosure<? super GridFuture<R>> l2 : lsnr)
+                    // Must be l1.equals(l2), not l2.equals(l1), because of the way listeners are added.
+                    if (l1.equals(l2))
+                        it.remove();
+            }
         }
     }
 
@@ -393,22 +395,8 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
      */
     @SuppressWarnings({"TooBroadScope"})
     private void notifyListeners() {
-        final Collection<GridInClosure<? super GridFuture<R>>> tmp;
-
-        lock();
-
-        try {
-            tmp = new ArrayList<GridInClosure<? super GridFuture<R>>>(lsnrs);
-        }
-        finally {
-            unlock();
-        }
-
-        boolean concurNotify = this.concurNotify;
-        boolean syncNotify = this.syncNotify;
-
         if (concurNotify) {
-            for (final GridInClosure<? super GridFuture<R>> lsnr : tmp)
+            for (final GridInClosure<? super GridFuture<R>> lsnr : lsnrs)
                 ctx.closure().runLocalSafe(new GPR() {
                     @Override public void run() {
                         notifyListener(lsnr);
@@ -417,20 +405,19 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
         }
         else {
             // Always notify in the thread different from start thread.
-            if (Thread.currentThread() == thread && !syncNotify) {
+            if (!syncNotify && Thread.currentThread() == thread) {
                 ctx.closure().runLocalSafe(new GPR() {
                     @Override public void run() {
                         // Since concurrent notifications are off, we notify
                         // all listeners in one thread.
-                        for (GridInClosure<? super GridFuture<R>> lsnr : tmp)
+                        for (GridInClosure<? super GridFuture<R>> lsnr : lsnrs)
                             notifyListener(lsnr);
                     }
                 }, true);
             }
-            else {
-                for (GridInClosure<? super GridFuture<R>> lsnr : tmp)
+            else
+                for (GridInClosure<? super GridFuture<R>> lsnr : lsnrs)
                     notifyListener(lsnr);
-            }
         }
     }
 
@@ -477,7 +464,7 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
     @Override public boolean isDone() {
         // Don't check for "valid" here, as "done" flag can be read
         // even in invalid state.
-        return done || cancelled;
+        return done.get() || cancelled.get();
     }
 
     /** {@inheritDoc} */
@@ -493,7 +480,7 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
     @Override public boolean isCancelled() {
         checkValid();
 
-        return cancelled;
+        return cancelled.get();
     }
 
     /**
@@ -544,31 +531,22 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
         boolean gotDone = false;
 
         try {
-            lock();
+            if (done.compareAndSet(false, true)) {
+                gotDone = true;
 
-            try {
-                if (!done) {
-                    gotDone = true;
+                endTime = System.currentTimeMillis();
 
-                    endTime = System.currentTimeMillis();
+                this.res = res;
+                this.err = err;
 
-                    this.res = res;
-                    this.err = err;
+                notify = true;
 
-                    done = true;
+                latchCountDown();
 
-                    notify = true;
-
-                    doneCond.signalAll();
-
-                    return true;
-                }
-
-                return false;
+                return true;
             }
-            finally {
-                unlock();
-            }
+
+            return false;
         }
         finally {
             if (gotDone) {
@@ -591,55 +569,31 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
     public boolean onCancelled() {
         checkValid();
 
-        lock();
+        boolean c = cancelled.get();
 
-        try {
-            if (cancelled || done)
-                return false;
+        if (c || done.get())
+            return false;
 
-            cancelled = true;
+        if (cancelled.compareAndSet(false, true)) {
+            latchCountDown();
 
-            doneCond.signalAll();
-        }
-        finally {
-            unlock();
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     /** {@inheritDoc} */
     @SuppressWarnings({"TooBroadScope"})
     @Override public void writeExternal(ObjectOutput out) throws IOException {
-        boolean done;
-        boolean cancelled;
-        Object res;
-        Throwable err;
-        boolean syncNotify;
-        boolean concurNotify;
-
-        lock();
-
-        try {
-            done = this.done;
-            cancelled = this.cancelled;
-            res = this.res;
-            err = this.err;
-            syncNotify = this.syncNotify;
-            concurNotify = this.concurNotify;
-        }
-        finally {
-            unlock();
-        }
-
-        out.writeBoolean(done);
+        out.writeBoolean(done.get());
         out.writeBoolean(syncNotify);
         out.writeBoolean(concurNotify);
 
         // Don't write any further if not done, as deserialized future
         // will be invalid anyways.
-        if (done) {
-            out.writeBoolean(cancelled);
+        if (done.get()) {
+            out.writeBoolean(cancelled.get());
             out.writeObject(res);
             out.writeObject(err);
         }
@@ -662,17 +616,10 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
 
             Throwable err = (Throwable)in.readObject();
 
-            lock();
-
-            try {
-                this.done = done;
-                this.cancelled = cancelled;
-                this.res = res;
-                this.err = err;
-            }
-            finally {
-                unlock();
-            }
+            this.done.set(done);
+            this.cancelled.set(cancelled);
+            this.res = res;
+            this.err = err;
         }
     }
 

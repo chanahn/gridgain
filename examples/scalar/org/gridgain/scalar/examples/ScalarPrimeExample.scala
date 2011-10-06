@@ -48,13 +48,13 @@ import scala.util.control.Breaks._
  * grid nodes by executing startup script as follows (you will need
  * to change the actual file name):
  * `{GRIDGAIN_HOME}/bin/ggstart.{bat|sh} examples/config/specific-config-file.xml`
- * <p>
+ *
  * GridGain examples come with multiple configuration files you can try.
  * All configuration files are located under `GRIDGAIN_HOME/examples/config`
  * folder.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 object ScalarPrimeExample {
     /**
@@ -91,13 +91,11 @@ object ScalarPrimeExample {
 
     /**
      * Creates closures for checking passed in value for prime.
-     * <p>
+     *
      * Every closure gets a range of divisors to check. The lower and
      * upper boundaries of this range are passed into closure.
-     * Closures invoke {@link GridPrimeChecker} to check if the value
-     * passed in is divisible by any of the divisors in the range.
-     * Refer to {@link GridPrimeChecker} for algorithm specifics (it is
-     * very unsophisticated).
+     * Closures checks if the value passed in is divisible by any of
+     * the divisors in the range.
      *
      * @param gridSize Size of the grid.
      * @param val Value to check.

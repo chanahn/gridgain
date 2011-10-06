@@ -18,7 +18,7 @@ import org.gridgain.grid.*;
  * either wrapping exception or value from the closure.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  * @see GridEither
  * @see GridFunc#wrap(Throwable)
  */

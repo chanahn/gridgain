@@ -27,12 +27,13 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import static org.gridgain.grid.GridEventType.*;
+import static org.gridgain.grid.util.GridConcurrentFactory.*;
 
 /**
  * Manages lock order within a thread.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
     /** Maxim number of removed locks. */
@@ -46,7 +47,7 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
         new GridBoundedConcurrentOrderedSet<GridCacheVersion>(MAX_REMOVED_LOCKS);
 
     /** Current remote candidates. */
-    private Collection<GridCacheMvccCandidate<K>> rmtCands = new GridConcurrentHashSet<GridCacheMvccCandidate<K>>();
+    private Collection<GridCacheMvccCandidate<K>> rmtCands = newSet();
 
     /** Current local candidates. */
     private Collection<GridCacheMvccCandidate<K>> locCands = new ConcurrentSkipListSet<GridCacheMvccCandidate<K>>();
@@ -58,15 +59,13 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
 
     /** Active futures mapped by version ID. */
     @GridToStringExclude
-    private final ConcurrentMap<GridUuid, Collection<GridCacheFuture<?>>> futs =
-        new ConcurrentHashMap<GridUuid, Collection<GridCacheFuture<?>>>();
+    private final ConcurrentMap<GridUuid, Collection<GridCacheFuture<?>>> futs = newMap();
 
     /** Near to DHT version mapping. */
-    private final ConcurrentMap<GridCacheVersion, GridCacheVersion> near2dht =
-        new ConcurrentHashMap<GridCacheVersion, GridCacheVersion>();
+    private final ConcurrentMap<GridCacheVersion, GridCacheVersion> near2dht = newMap();
 
     /** Finish futures. */
-    private final Queue<FinishLockFuture> finishFuts = new ConcurrentLinkedQueue<FinishLockFuture>();
+    private final Queue<FinishLockFuture> finishFuts = new GridConcurrentLinkedDeque<FinishLockFuture>();
 
     /** Logger. */
     @SuppressWarnings( {"FieldAccessedSynchronizedAndUnsynchronized"})
@@ -670,7 +669,7 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
 
     /**
      * @param keyFilter Key filter.
-     * @param topVer Topolgoy version.
+     * @param topVer Topology version.
      * @return Future that signals when all locks for given partitions will be released.
      */
     @SuppressWarnings({"unchecked"})

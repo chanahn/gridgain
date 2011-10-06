@@ -35,7 +35,7 @@ import java.util.*;
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 public class GridCountGraphTrianglesExample {
     /** Cache name. */
@@ -51,7 +51,7 @@ public class GridCountGraphTrianglesExample {
      * @throws GridException In case of error.
      */
     public static void main(String[] args) throws GridException {
-        G.in(new CIX1<Grid>() {
+        G.in("examples/config/spring-cache.xml", new CIX1<Grid>() {
             @Override public void applyx(Grid grid) throws GridException {
                 // Create example graph.
                 Collection<Integer> vertices = createGraph(grid);

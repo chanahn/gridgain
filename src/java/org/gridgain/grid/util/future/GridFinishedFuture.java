@@ -23,7 +23,7 @@ import java.util.concurrent.*;
  * Future that is completed at creation time.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 public class GridFinishedFuture<T> extends GridMetadataAwareAdapter implements GridFuture<T>, Externalizable {
     /** Synchronous notification flag. */

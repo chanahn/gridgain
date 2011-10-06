@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.*;
  * typedef.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 public class GridFunc {
     /** */
@@ -2199,15 +2199,12 @@ public class GridFunc {
     public static <T> Iterable<T> drop(Iterable<T> c, @Nullable GridPredicate<? super T>... p) {
         A.notNull(c, "c");
 
-        if (isEmpty(p) || isAlwaysFalse(p)) {
+        if (isEmpty(p) || isAlwaysFalse(p))
             return c;
-        }
 
-        for (Iterator<T> i = c.iterator(); i.hasNext();) {
-            if (isAll(i.next(), p)) {
+        for (Iterator<T> i = c.iterator(); i.hasNext();)
+            if (isAll(i.next(), p))
                 i.remove();
-            }
-        }
 
         return c;
     }
@@ -2925,8 +2922,7 @@ public class GridFunc {
         A.notNull(c, "c", f, "f");
 
         return viewReadOnly(c, new C1<T, GridAbsClosure>() {
-            @Override
-            public GridAbsClosure apply(T e) {
+            @Override public GridAbsClosure apply(T e) {
                 return f.curry(e);
             }
         });
@@ -2987,7 +2983,7 @@ public class GridFunc {
      *
      * @param vals Array of values
      * @param <T> Array type.
-     * @return {@link Iterable} instance for array.
+     * @return {@link List} instance for array.
      */
     public static <T> List<T> asList(@Nullable T... vals) {
         return isEmpty(vals) ? Collections.<T>emptyList() : Arrays.asList(vals);
@@ -3107,32 +3103,24 @@ public class GridFunc {
      */
     @SuppressWarnings("unchecked")
     public static Collection<Object> flat0(@Nullable Object... objs) {
-        if (isEmpty(objs)) {
+        if (isEmpty(objs))
             return Collections.emptyList();
-        }
 
         assert objs != null;
 
         Collection<Object> c = new LinkedList<Object>();
 
-        for (Object obj : objs) {
-            if (obj instanceof Collection) {
+        for (Object obj : objs)
+            if (obj instanceof Collection)
                 c.addAll((Collection<Object>)obj);
-            }
-            else if (obj instanceof Iterable) {
-                for (Object o : (Iterable)obj) {
+            else if (obj instanceof Iterable)
+                for (Object o : (Iterable)obj)
                     c.add(o);
-                }
-            }
-            else if (obj instanceof Object[]) {
-                for (Object o : Arrays.asList((Object[])obj)) {
+            else if (obj instanceof Object[])
+                for (Object o : Arrays.asList((Object[])obj))
                     c.add(o);
-                }
-            }
-            else {
+            else
                 c.add(obj);
-            }
-        }
 
         return c;
     }
@@ -3656,7 +3644,7 @@ public class GridFunc {
      * @return Whether or not the given collection is {@code null} or empty.
      */
     public static boolean isEmpty(@Nullable Iterable<?> c) {
-        return c == null || !c.iterator().hasNext();
+        return c == null || (c instanceof Collection<?> ? ((Collection<?>) c).isEmpty() : !c.iterator().hasNext());
     }
 
     /**
@@ -5718,11 +5706,9 @@ public class GridFunc {
             @Override public boolean apply(T e) {
                 assert names != null;
 
-                for (String name : names) {
-                    if (!e.hasMeta(name)) {
+                for (String name : names)
+                    if (!e.hasMeta(name))
                         return false;
-                    }
-                }
 
                 return true;
             }

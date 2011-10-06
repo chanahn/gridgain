@@ -20,7 +20,7 @@ import org.gridgain.grover.categories.*
  * This example calculates Pi number in parallel on the grid.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 @Typed
 @Use(GroverProjectionCategory)
@@ -36,7 +36,7 @@ class GroverPiCalculationExample {
             println("Pi estimate: " +
                 g.reduce$(
                     SPREAD,
-                    (0..< g.size()).collect { { -> calcPi(it * N) } },
+                    (0 ..< g.size()).collect { { -> calcPi(it * N) } },
                     { it.sum() }
                 )
             )
@@ -50,7 +50,7 @@ class GroverPiCalculationExample {
      * @return Range calculation.
      */
     private static double calcPi(int start) {
-        (start..<(start + N)).inject(0) { double sum, int i ->
+        (start ..< (start + N)).inject(0) { double sum, int i ->
             sum + (4.0 * (1 - (i % 2) * 2) / (2 * i + 1))
         }
     }

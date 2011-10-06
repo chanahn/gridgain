@@ -20,7 +20,7 @@ import org.gridgain.grid.thread.*;
  * properties and variables can be used to affect the behavior of GridGain.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  * @see GridTestVmParameters
  */
 public final class GridSystemProperties {
@@ -317,6 +317,11 @@ public final class GridSystemProperties {
      * most cases this value is large enough and does not need to be changed.
      */
     public static final String GG_MAX_COMPLETED_TX_COUNT = "GRIDGAIN_MAX_COMPLETED_TX_COUNT";
+
+    /**
+     * Level of concurrency for all concurrent hash maps created by GridGain.
+     */
+    public static final String GG_MAP_CONCURRENCY_LEVEL = "GRIDGAIN_MAP_CONCURRENCY_LEVEL";
 
     /**
      * Enforces singleton.

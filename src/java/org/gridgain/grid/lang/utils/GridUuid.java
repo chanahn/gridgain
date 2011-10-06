@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.*;
  * internal UUID.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>, Cloneable, Externalizable {
     /** */
@@ -155,7 +155,7 @@ public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>,
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return (int)locId % Integer.MAX_VALUE;
+        return 31 * gid.hashCode() + (int)(locId ^ (locId >>> 32));
     }
 
     /** {@inheritDoc} */

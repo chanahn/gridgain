@@ -26,7 +26,7 @@ import java.util.concurrent.*;
  * This class provides necessary synchronization for thread-safe access.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 @SuppressWarnings( {"SynchronizeOnNonFinalField"})
 public class GridMetadataAwareAdapter implements GridMetadataAware, Cloneable {
@@ -292,7 +292,7 @@ public class GridMetadataAwareAdapter implements GridMetadataAware, Cloneable {
 
         // Avoid code warning (suppressing is bad here, because we need this warning for other places).
         synchronized (mux) {
-            cp = data;
+            cp = new GridLeanMap<String, Object>(data);
         }
 
         out.writeObject(cp);

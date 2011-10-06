@@ -26,12 +26,13 @@ import java.util.concurrent.locks.*;
 
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.cache.GridCachePreloadMode.*;
+import static org.gridgain.grid.util.GridConcurrentFactory.*;
 
 /**
  * DHT cache preloader.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
     /** Exchange history size. */
@@ -47,8 +48,7 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
     private final GridAtomicLong lastJoinOrder = new GridAtomicLong();
 
     /** Force key futures. */
-    private final ConcurrentHashMap<GridUuid, GridDhtForceKeysFuture<K, V>> forceKeyFuts =
-        new ConcurrentHashMap<GridUuid, GridDhtForceKeysFuture<K, V>>();
+    private final ConcurrentMap<GridUuid, GridDhtForceKeysFuture<K, V>> forceKeyFuts = newMap();
 
     /** Partition suppliers. */
     private GridDhtPartitionSupplyPool<K, V> supplyPool;

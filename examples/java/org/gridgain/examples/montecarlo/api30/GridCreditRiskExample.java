@@ -48,7 +48,7 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * folder.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 public final class GridCreditRiskExample {
     /**
@@ -58,6 +58,10 @@ public final class GridCreditRiskExample {
         // No-op.
     }
 
+    /**
+     * @param args Command arguments.
+     * @throws GridException If failed.
+     */
     public static void main(String[] args) throws GridException {
         // Starts grid.
         Grid grid = args.length == 0 ? G.start() : G.start(args[0]);

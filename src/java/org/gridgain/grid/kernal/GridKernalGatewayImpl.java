@@ -13,7 +13,6 @@ import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.*;
 import org.gridgain.grid.util.tostring.*;
-
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -23,7 +22,7 @@ import static org.gridgain.grid.kernal.GridKernalState.*;
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 @GridToStringExclude
 public class GridKernalGatewayImpl implements GridKernalGateway, Serializable {

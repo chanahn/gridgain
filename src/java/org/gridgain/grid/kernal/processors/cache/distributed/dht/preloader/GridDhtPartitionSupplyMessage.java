@@ -21,7 +21,7 @@ import java.util.*;
  * Partition supply message.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 class GridDhtPartitionSupplyMessage<K, V> extends GridCacheMessage<K, V> {
     /** Worker ID. */

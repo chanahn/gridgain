@@ -30,12 +30,13 @@ import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.GridSystemProperties.*;
 import static org.gridgain.grid.cache.GridCacheTxState.*;
 import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
+import static org.gridgain.grid.util.GridConcurrentFactory.*;
 
 /**
  * Cache transaction manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.04102011
+ * @version 3.5.0c.06102011
  */
 public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     /** Maximum number of transactions that have completed (initialized to 100K). */
@@ -45,12 +46,10 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     private final ThreadLocal<GridCacheTxEx> threadCtx = new GridThreadLocalEx<GridCacheTxEx>();
 
     /** Per-thread transaction map. */
-    private final ConcurrentMap<Long, GridCacheTxEx<K, V>> threadMap =
-        new ConcurrentHashMap<Long, GridCacheTxEx<K, V>>();
+    private final ConcurrentMap<Long, GridCacheTxEx<K, V>> threadMap = newMap();
 
     /** Per-ID map. */
-    private final ConcurrentMap<GridCacheVersion, GridCacheTxEx<K, V>> idMap =
-        new ConcurrentHashMap<GridCacheVersion, GridCacheTxEx<K,V>>();
+    private final ConcurrentMap<GridCacheVersion, GridCacheTxEx<K, V>> idMap = newMap();
 
     /** All transactions. */
     private final Queue<GridCacheTxEx<K, V>> committedQ = new GridConcurrentLinkedDeque<GridCacheTxEx<K, V>>();
