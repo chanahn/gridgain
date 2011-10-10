@@ -18,9 +18,9 @@ import static org.gridgain.grid.GridEventType.*;
  * Cache entry for local caches.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
-@SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext"})
+@SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
     /**
@@ -56,7 +56,9 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             prev = mvcc.localOwner();
@@ -66,6 +68,9 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             owner = mvcc.localOwner();
 
             val = this.val;
+        }
+        finally {
+            unlock();
         }
 
         if (cand != null) {
@@ -91,10 +96,15 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
         GridCacheMvccCandidate<K> prev;
         GridCacheMvccCandidate<K> owner;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             prev = mvcc.localOwner();
 
             owner = mvcc.readyLocal(cand);
+        }
+        finally {
+            unlock();
         }
 
         checkOwnerChanged(prev, owner);
@@ -111,10 +121,15 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
         GridCacheMvccCandidate<K> prev;
         GridCacheMvccCandidate<K> owner;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             prev = mvcc.localOwner();
 
             owner = mvcc.readyLocal(ver);
+        }
+        finally {
+            unlock();
         }
 
         checkOwnerChanged(prev, owner);
@@ -145,10 +160,15 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
         GridCacheMvccCandidate<K> prev;
         GridCacheMvccCandidate<K> owner;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             prev = mvcc.localOwner();
 
             owner = mvcc.recheck();
+        }
+        finally {
+            unlock();
         }
 
         checkOwnerChanged(prev, owner);
@@ -161,7 +181,7 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
      * @param owner Current owner.
      */
     private void checkOwnerChanged(GridCacheMvccCandidate<K> prev, GridCacheMvccCandidate<K> owner) {
-        assert !Thread.holdsLock(mux);
+        assert !isHeldByCurrentThread();
 
         if (owner != prev) {
             cctx.mvcc().callback().onOwnerChanged(this, prev, owner);
@@ -176,7 +196,7 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
      * @param owner Starting candidate in the chain.
      */
     private void checkThreadChain(GridCacheMvccCandidate<K> owner) {
-        assert !Thread.holdsLock(mux);
+        assert !isHeldByCurrentThread();
 
         assert owner != null;
         assert owner.owner() || owner.used() : "Neither owner or used flags are set on ready local candidate: " +
@@ -230,12 +250,17 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             prev = mvcc.localOwner();
 
             owner = mvcc.releaseLocal(threadId);
 
             val = this.val;
+        }
+        finally {
+            unlock();
         }
 
         if (prev != null && owner != prev) {
@@ -268,7 +293,9 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             if (obsoleteVer != null && !obsoleteVer.equals(ver)) {
                 checkObsolete();
             }
@@ -282,6 +309,9 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             }
 
             val = this.val;
+        }
+        finally {
+            unlock();
         }
 
         if (doomed != null) {

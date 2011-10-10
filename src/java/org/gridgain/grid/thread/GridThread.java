@@ -32,7 +32,7 @@ import static org.gridgain.grid.GridSystemProperties.*;
  * <b>Note</b>: this class is intended for internal use only.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public class GridThread extends Thread {
     /** */
@@ -43,8 +43,9 @@ public class GridThread extends Thread {
         @Override public void uncaughtException(Thread t, Throwable e) {
             super.uncaughtException(t, e);
 
-            if (System.getProperty(GG_ASSERT_SEND_DISABLED) != null &&
-                !"false".equalsIgnoreCase(System.getProperty(GG_ASSERT_SEND_DISABLED)))
+            String ea = System.getProperty(GG_ASSERT_SEND_DISABLED);
+
+            if (ea != null && !"false".equalsIgnoreCase(ea))
                 return;
 
             if (e instanceof AssertionError) {

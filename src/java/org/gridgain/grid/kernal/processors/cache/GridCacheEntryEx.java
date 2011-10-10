@@ -23,7 +23,7 @@ import java.util.*;
  * Internal API for cache entry ({@code 'Ex'} stands for extended).
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
     /**
@@ -133,12 +133,20 @@ public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
         @Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException;
 
     /**
-     * Checks if entry is new.
+     * Checks if entry is new assuming lock is held externally.
      *
      * @return {@code True} if entry is new.
      * @throws GridCacheEntryRemovedException If entry was removed.
      */
     public boolean isNew() throws GridCacheEntryRemovedException;
+
+    /**
+     * Checks if entry is new while holding lock.
+     *
+     * @return {@code True} if entry is new.
+     * @throws GridCacheEntryRemovedException If entry was removed.
+     */
+    public boolean isNewLocked() throws GridCacheEntryRemovedException;
 
     /**
      * @return Start version.

@@ -31,7 +31,7 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * Force keys request future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Object, Collection<K>>
     implements GridDhtFuture<Collection<K>> {
@@ -236,7 +236,7 @@ public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Objec
         GridCacheEntryEx<K, V> e = cctx.dht().peekEx(key);
 
         try {
-            if (e != null && !e.isNew()) {
+            if (e != null && !e.isNewLocked()) {
                 if (log.isDebugEnabled())
                     log.debug("Will not preload key (entry is not new) [cacheName=" + cctx.name() +
                         ", key=" + key + ", part=" + part + ", locId=" + cctx.nodeId() + ']');

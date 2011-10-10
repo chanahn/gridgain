@@ -47,7 +47,7 @@ import org.gridgain.grover.categories.*
  * folder.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 @Typed
 @Use(GroverProjectionCategory)
@@ -151,7 +151,7 @@ class GroverCreditRiskExample {
      * This class abstracts out the calculation of risk for a credit portfolio.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.06102011
+     * @version 3.5.0c.09102011
      */
     @Typed
     private static class GridCreditRiskManager {
@@ -291,7 +291,7 @@ class GroverCreditRiskExample {
  * risk assessment application.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 @Typed
 private class GridCredit implements Serializable {

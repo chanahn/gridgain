@@ -33,7 +33,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Cache utility methods.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public abstract class GridCacheUtils {
     /** Peek flags. */
@@ -961,22 +961,6 @@ public abstract class GridCacheUtils {
     @SuppressWarnings({"unchecked"})
     public static <K, V> GridPredicate<GridCacheTxEntry<K, V>> writes() {
         return WRITE_FILTER;
-    }
-
-    /**
-     * @param opId Operation ID to filter on.
-     * @return Filter for transaction entries with given op ID.
-     */
-    public static <K, V> GridPredicate<GridCacheTxEntry<K, V>> opId(final int opId) {
-        return new P1<GridCacheTxEntry<K, V>>() {
-            @Override public boolean apply(GridCacheTxEntry<K, V> e) {
-                return e.opId() == opId;
-            }
-
-            @Override public String toString() {
-                return "Operation ID filter: " + opId;
-            }
-        };
     }
 
     /**

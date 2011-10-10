@@ -37,7 +37,7 @@ import typedef._
  * cache: `'ggstart.sh examples/config/spring-cache.xml'`.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 object ScalarCountGraphTrianglesExample {
     /** Cache name. */
@@ -73,7 +73,7 @@ object ScalarCountGraphTrianglesExample {
 
         val c = cache(grid)
 
-        // Put adjacency list for each vertex to cache.
+        // Put adjacency list for each vertex into cache.
         c += (1 -> Seq(2, 3))
         c += (2 -> Seq(1, 3, 4))
         c += (3 -> Seq(1, 2))

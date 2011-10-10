@@ -16,6 +16,7 @@ import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.future.*;
 import org.gridgain.grid.util.tostring.*;
 
 import java.io.*;
@@ -32,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Managed transaction adapter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     implements GridCacheTxEx<K, V>, Externalizable {
@@ -137,7 +138,8 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     private volatile boolean timedOut;
 
     /** */
-    private List<GridInClosure<GridCacheTxEx<K, V>>> finishLsnrs;
+    private AtomicReference<GridFutureAdapter<GridCacheTx>> finFut =
+        new AtomicReference<GridFutureAdapter<GridCacheTx>>();
 
     private AtomicLong topVer = new AtomicLong(-1);
 
@@ -647,27 +649,16 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     }
 
     /** {@inheritDoc} */
-    @SuppressWarnings({"TooBroadScope"})
-    @Override public void addFinishListener(GridInClosure<GridCacheTxEx<K, V>> lsnr) {
-        boolean notify = false;
+    @Override public GridFuture<GridCacheTx> finishFuture() {
+        GridFutureAdapter<GridCacheTx> fut = finFut.get();
 
-        lock();
+        if (fut == null)
+            finFut.compareAndSet(null, fut = new GridFutureAdapter<GridCacheTx>());
 
-        try {
-            if (finishLsnrs == null)
-                finishLsnrs = new LinkedList<GridInClosure<GridCacheTxEx<K, V>>>();
+        if (isDone.get())
+            fut.onDone(this);
 
-            if (isDone.get())
-                notify = true;
-            else
-                finishLsnrs.add(lsnr);
-        }
-        finally {
-            unlock();
-        }
-
-        if (notify)
-            lsnr.apply(this);
+        return fut;
     }
 
     /**
@@ -684,12 +675,12 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
 
         List<GridInClosure<GridCacheTxEx<K, V>>> lsnrs = null;
 
+        boolean notify = false;
+
         lock();
 
         try {
             prev = this.state;
-
-            boolean notify = false;
 
             switch (state) {
                 case ACTIVE: {
@@ -766,15 +757,18 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
                     log.debug("Invalid transaction state transition [invalid=" + state + ", cur=" + this.state +
                         ", tx=" + this + ']');
             }
-
-            // Copy finish listeners inside of synchronization.
-            if (notify)
-                lsnrs = finishLsnrs == null ? Collections.<GridInClosure<GridCacheTxEx<K, V>>>emptyList() :
-                    new LinkedList<GridInClosure<GridCacheTxEx<K, V>>>(finishLsnrs);
         }
         finally {
             unlock();
         }
+
+        if (notify) {
+            GridFutureAdapter<GridCacheTx> fut = finFut.get();
+
+            if (fut != null)
+                fut.onDone(this);
+        }
+
 
         // Notify finish listeners.
         if (lsnrs != null)

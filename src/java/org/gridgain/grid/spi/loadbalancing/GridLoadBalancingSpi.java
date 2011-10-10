@@ -99,7 +99,7 @@ import java.util.*;
  * to undefined behavior and explicitly not supported.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public interface GridLoadBalancingSpi extends GridSpi, GridSpiJsonConfigurable {
     /**

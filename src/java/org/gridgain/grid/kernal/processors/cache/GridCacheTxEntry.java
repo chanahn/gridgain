@@ -29,7 +29,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * equality.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizable {
     /** Owning transaction. */
@@ -86,38 +86,11 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
     @SuppressWarnings({"TransientFieldNotInitialized"})
     private transient AtomicBoolean committing = new AtomicBoolean(false);
 
-    /** */
-    @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
-    @GridToStringExclude
-    private transient GridCacheTxEntry<K, V> parent;
-
-    /** */
-    @GridToStringExclude
-    private transient GridCacheTxEntry<K, V> child;
-
-    /** */
-    @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
-    @GridToStringExclude
-    private transient GridCacheTxEntry<K, V> root;
-
-    /** Operation ID. */
-    private transient int opId;
-
-    /** */
-    @GridToStringExclude
-    private transient GridFuture<Boolean> fut;
-
-    /** Mutex. */
-    private transient Object mux;
-
-    /**
-     * This flag is 'volatile' for quick read checks. Updates to this value
-     * are still done within transaction synchronization.
-     */
-    private transient boolean marked;
-
     /** Assigned node ID (required only for partitioned cache). */
     private transient UUID nodeId;
+
+    /** Marks entry as ready-to-be-read. */
+    private boolean marked;
 
     /**
      * Required by {@link Externalizable}
@@ -148,29 +121,23 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
         this.entry = entry;
         this.ttl = ttl;
 
-        opId = -1;
-
         key = entry.key();
         keyBytes = entry.keyBytes();
 
         expireTime = toExpireTime(ttl);
-
-        mux = new Object();
     }
 
     /**
      * @param ctx Cache registry.
      * @param tx Owning transaction.
-     * @param opId Operation ID.
-     * @param parent Root of the linked list.
      * @param op Operation.
      * @param val Value.
      * @param ttl Time to live.
      * @param entry Cache entry.
      * @param filters Put filters.
      */
-    public GridCacheTxEntry(GridCacheContext<K, V> ctx, GridCacheTxEx<K, V> tx, int opId,
-        GridCacheTxEntry<K, V> parent, GridCacheOperation op, V val, long ttl, GridCacheEntryEx<K,V> entry,
+    public GridCacheTxEntry(GridCacheContext<K, V> ctx, GridCacheTxEx<K, V> tx, GridCacheOperation op,
+        V val, long ttl, GridCacheEntryEx<K,V> entry,
         GridPredicate<? super GridCacheEntry<K, V>>[] filters) {
         assert ctx != null;
         assert tx != null;
@@ -183,25 +150,12 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
         this.val = val;
         this.entry = entry;
         this.ttl = ttl;
-        this.opId = opId;
-        this.parent = parent;
         this.filters = filters;
 
         key = entry.key();
         keyBytes = entry.keyBytes();
 
         expireTime = toExpireTime(ttl);
-
-        // Set root.
-        for (root = this; root.parent != null; root = root.parent) {}
-
-        // If this is root.
-        if (parent == null)
-            mux = new Object();
-        else
-            synchronized (mutex()) {
-                parent.child = this;
-            }
     }
 
     /**
@@ -211,22 +165,18 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
     public GridCacheTxEntry<K, V> cleanCopy(GridCacheContext<K, V> ctx) {
         GridCacheTxEntry<K, V> cp = new GridCacheTxEntry<K, V>();
 
-        cp.mux = new Object();
-
         cp.key = key;
         cp.ctx = ctx;
 
-        synchronized (mutex()) {
-            cp.val = val;
-            cp.keyBytes = keyBytes;
-            cp.valBytes = valBytes;
-            cp.op = op;
-            cp.filters = filters;
-            cp.val = val;
-            cp.ttl = ttl;
-            cp.expireTime = expireTime;
-            cp.explicitVer = explicitVer;
-        }
+        cp.val = val;
+        cp.keyBytes = keyBytes;
+        cp.valBytes = valBytes;
+        cp.op = op;
+        cp.filters = filters;
+        cp.val = val;
+        cp.ttl = ttl;
+        cp.expireTime = expireTime;
+        cp.explicitVer = explicitVer;
 
         return cp;
     }
@@ -276,247 +226,37 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
     }
 
     /**
-     * @return Root of the linked list.
-     */
-    GridCacheTxEntry<K, V> root() {
-        return root;
-    }
-
-    /**
-     * @return {@code True} if this entry is root.
-     */
-    boolean isRoot() {
-        return parent == null;
-    }
-
-    /**
-     * @return Next entry.
-     */
-    GridCacheTxEntry<K, V> child() {
-        synchronized (mutex()) {
-            return child;
-        }
-    }
-
-    /**
-     * @return Previous link.
-     */
-    GridCacheTxEntry<K, V> parent() {
-        return parent;
-    }
-
-    /**
-     * @return Operation ID.
-     */
-    int opId() {
-        return opId;
-    }
-
-    /**
-     * @return Future.
-     */
-    GridFuture<Boolean> future() {
-        return fut;
-    }
-
-    /**
-     * @param fut Future.
-     */
-    void future(GridFuture<Boolean> fut) {
-        this.fut = fut;
-    }
-
-    /**
-     * @return Entry that is last in linked chain.
-     */
-    GridCacheTxEntry<K, V> last() {
-        GridCacheTxEntry<K, V> e = this;
-
-        synchronized (mutex()) {
-            while (e.child != null)
-                e = e.child;
-
-            return e;
-        }
-    }
-
-    /**
-     * Marks as checked after acquiring lock.
-     */
-    @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
-    void mark() {
-        Object mux = mutex();
-
-        synchronized (mux) {
-            if (!marked) {
-                marked = true;
-
-                mux.notifyAll();
-            }
-        }
-    }
-
-    /**
-     * @return Checked flag.
-     */
-    boolean marked() {
-        synchronized (mutex()) {
-            return marked;
-        }
-    }
-
-    /**
-     * Waits for parent to be marked.
-     *
-     * @param mark If {@code true}, then entry will be marked once parent is marked.
-     * @return Root value.
-     * @throws GridInterruptedException If interrupted or rolled back.
-     */
-    @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
-    V waitForParent(boolean mark) throws GridException {
-        if (!isRoot()) {
-            assert parent != null;
-
-            Object mux = mutex();
-
-            synchronized (mux) {
-                if (!marked) {
-                    while (!tx.isRollbackOnly() && !parent.marked)
-                        U.wait(mux);
-
-                    if (tx.isRollbackOnly())
-                        throw new GridException("Transaction is set to rollback while waiting for a lock: " + this);
-
-                    if (mark) {
-                        marked = true;
-
-                        mux.notifyAll();
-                    }
-                }
-
-                return root.value();
-            }
-        }
-
-        return value();
-    }
-
-    /**
-     * Sets value and then marks this entry.
-     *
      * @param val Value to set.
      */
-    @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
     void setAndMark(V val) {
-        Object mux = mutex();
+        this.val = val;
 
-        synchronized (mux) {
-            this.val = val;
-
-            if (!marked) {
-                marked = true;
-
-                mux.notifyAll();
-            }
-        }
+        mark();
     }
 
     /**
-     * Sets value and then marks this entry.
-     *
      * @param op Operation.
      * @param val Value to set.
      */
-    @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
     void setAndMark(GridCacheOperation op, V val) {
-        Object mux = mutex();
+        this.op = op;
+        this.val = val;
 
-        synchronized (mux) {
-            this.op = op;
-            this.val = val;
-
-            if (!marked) {
-                marked = true;
-
-                mux.notifyAll();
-            }
-        }
+        mark();
     }
 
     /**
-     * @return {@code True} if last entry in link chain is marked.
+     * Marks this entry as value-has-bean-read.
      */
-    boolean lastMarked() {
-        synchronized (mutex()) {
-            return last().marked();
-        }
+    void mark() {
+        marked = true;
     }
 
     /**
-     * @return Root value.
+     * @return {@code True} if marked.
      */
-    V rootValue() {
-        return root.value();
-    }
-
-    /**
-     * @return Mutex for this link chain.
-     */
-    final Object mutex() {
-        if (isRoot()) {
-            assert mux != null;
-
-            return mux;
-        }
-        else {
-            assert mux == null;
-
-            return root.mux;
-        }
-    }
-
-    /**
-     * @param from Entry to copy from.
-     * @param mark If {@code true} then {@code 'from'} entry will be marked.
-     */
-    @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
-    void copyFrom(GridCacheTxEntry<K, V> from, boolean mark) {
-        // Make sure that copying happens within the same link chain.
-        assert root == from.root;
-
-        Object mux = mutex();
-
-        synchronized (mux) {
-            op = from.op;
-            val = from.val;
-            ttl = from.ttl;
-            filters = from.filters;
-            expireTime = from.expireTime;
-            explicitVer = from.explicitVer;
-            valBytes = from.valBytes;
-
-            if (from.keyBytes != null)
-                keyBytes = from.keyBytes;
-
-            if (mark && !from.marked) {
-                from.marked = true;
-
-                mux.notifyAll();
-            }
-        }
-    }
-
-    /**
-     *
-     */
-    void markAndCopyToRoot() {
-        if (!isRoot()) {
-            assert parent != null;
-
-            root.copyFrom(this, true);
-        }
-        else
-            mark();
+    boolean marked() {
+        return marked;
     }
 
     /**
@@ -545,18 +285,12 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
      * @return Key bytes.
      */
     @Nullable public byte[] keyBytes() {
-        byte[] bytes;
-
-        synchronized (mutex()) {
-            bytes = keyBytes;
-        }
+        byte[] bytes = keyBytes;
 
         if (bytes == null && entry != null) {
             bytes = entry.keyBytes();
 
-            synchronized (mutex()) {
-                keyBytes = bytes;
-            }
+            keyBytes = bytes;
         }
 
         return bytes;
@@ -595,9 +329,7 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
      */
     private void initKeyBytes(@Nullable byte[] bytes) {
         if (bytes != null) {
-            synchronized (mutex()) {
-                keyBytes = bytes;
-            }
+            keyBytes = bytes;
 
             while (true) {
                 try {
@@ -615,9 +347,7 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
             bytes = entry.keyBytes();
 
             if (bytes != null)
-                synchronized (mutex()) {
-                    keyBytes = bytes;
-                }
+                keyBytes = bytes;
         }
     }
 
@@ -625,63 +355,49 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
      * @return Entry value.
      */
     public V value() {
-        synchronized (mutex()) {
-            return val;
-        }
+        return val;
     }
 
     /**
      * @return Value bytes.
      */
     public byte[] valueBytes() {
-        synchronized (mutex()) {
-            return valBytes;
-        }
+        return valBytes;
     }
 
     /**
      * @param valBytes Value bytes.
      */
     public void valueBytes(byte[] valBytes) {
-        synchronized (mutex()) {
-            this.valBytes = valBytes;
-        }
+        this.valBytes = valBytes;
     }
 
     /**
      * @return Expire time.
      */
     public long expireTime() {
-        synchronized (mutex()) {
-            return expireTime;
-        }
+        return expireTime;
     }
 
     /**
      * @param expireTime Expiration time.
      */
     public void expireTime(long expireTime) {
-        synchronized (mutex()) {
-            this.expireTime = expireTime;
-        }
+        this.expireTime = expireTime;
     }
 
     /**
      * @return Time to live.
      */
     public long ttl() {
-        synchronized (mutex()) {
-            return ttl;
-        }
+        return ttl;
     }
 
     /**
      * @param ttl Time to live.
      */
     public void ttl(long ttl) {
-        synchronized (mutex()) {
-            this.ttl = ttl;
-        }
+        this.ttl = ttl;
     }
 
     /**
@@ -689,31 +405,25 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
      * @return Old value.
      */
     public V value(@Nullable V val) {
-        synchronized (mutex()) {
-            V oldVal = this.val;
+        V oldVal = this.val;
 
-            this.val = val;
+        this.val = val;
 
-            return oldVal;
-        }
+        return oldVal;
     }
 
     /**
      * @return Cache operation.
      */
     public GridCacheOperation op() {
-        synchronized (mutex()) {
-            return op;
-        }
+        return op;
     }
 
     /**
      * @param op Cache operation.
      */
     public void op(GridCacheOperation op) {
-        synchronized (mutex()) {
-            this.op = op;
-        }
+        this.op = op;
     }
 
     /**
@@ -727,36 +437,28 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
      * @param explicitVer Explicit version.
      */
     public void explicitVersion(GridCacheVersion explicitVer) {
-        synchronized (mutex()) {
-            this.explicitVer = explicitVer;
-        }
+        this.explicitVer = explicitVer;
     }
 
     /**
      * @return Explicit version.
      */
     public GridCacheVersion explicitVersion() {
-        synchronized (mutex()) {
-            return explicitVer;
-        }
+        return explicitVer;
     }
 
     /**
      * @return Put filters.
      */
     public GridPredicate<? super GridCacheEntry<K, V>>[] filters() {
-        synchronized (mutex()) {
-            return filters;
-        }
+        return filters;
     }
 
     /**
      * @param filters Put filters.
      */
     public void filters(GridPredicate<? super GridCacheEntry<K, V>>[] filters) {
-        synchronized (mutex()) {
-            this.filters = filters;
-        }
+        this.filters = filters;
     }
 
     /**
@@ -764,22 +466,6 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
      * @throws GridException If failed.
      */
     public void marshal(GridCacheContext<K, V> ctx) throws GridException {
-        byte[] keyBytes;
-        byte[] valBytes;
-        byte[] filterBytes;
-        GridCacheOperation op;
-        GridPredicate<? super GridCacheEntry<K, V>>[] filters;
-        V val;
-
-        synchronized (mutex()) {
-            keyBytes = this.keyBytes;
-            valBytes = this.valBytes;
-            filters = this.filters;
-            filterBytes = this.filterBytes;
-            val = this.val;
-            op = this.op;
-        }
-
         if (keyBytes == null)
             keyBytes = entry.getOrMarshalKeyBytes();
 
@@ -794,34 +480,10 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
             filterBytes = null;
         else if (filterBytes == null)
             filterBytes = CU.marshal(ctx, filterBytes).getArray();
-
-        synchronized (mutex()) {
-            this.keyBytes = keyBytes;
-            this.valBytes = valBytes;
-            this.filterBytes = filterBytes;
-        }
     }
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
-        byte[] keyBytes;
-        byte[] valBytes;
-        byte[] filterBytes;
-        GridCacheOperation op;
-        long ttl;
-        long expireTime;
-        GridCacheVersion explicitVer;
-
-        synchronized (mutex()) {
-            keyBytes = this.keyBytes;
-            valBytes = this.valBytes;
-            filterBytes = this.filterBytes;
-            op = this.op;
-            ttl = this.ttl;
-            expireTime = this.expireTime;
-            explicitVer = this.explicitVer;
-        }
-
         U.writeByteArray(out, keyBytes);
         U.writeByteArray(out, valBytes);
         U.writeByteArray(out, filterBytes);
@@ -851,38 +513,26 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
     /** {@inheritDoc} */
     @SuppressWarnings({"unchecked"})
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        mux = new Object();
-
-        byte[] keyBytes = U.readByteArray(in);
-        byte[] valBytes = U.readByteArray(in);
-        byte[] filterBytes = U.readByteArray(in);
+        keyBytes = U.readByteArray(in);
+        valBytes = U.readByteArray(in);
+        filterBytes = U.readByteArray(in);
 
         if (filterBytes == null)
             filters(CU.<K, V>empty());
 
-        GridCacheOperation op = fromOrdinal(in.readByte());
+        op = fromOrdinal(in.readByte());
 
-        long ttl = in.readLong();
+        ttl = in.readLong();
 
         long remaining = in.readLong();
 
-        long expireTime = remaining < 0 ? 0 : System.currentTimeMillis() + remaining;
+        expireTime = remaining < 0 ? 0 : System.currentTimeMillis() + remaining;
 
         // Account for overflow.
         if (expireTime < 0)
             expireTime = 0;
 
-        GridCacheVersion explicitVer = CU.readVersion(in);
-
-        synchronized (mutex()) {
-            this.keyBytes = keyBytes;
-            this.valBytes = valBytes;
-            this.filterBytes = filterBytes;
-            this.op = op;
-            this.ttl = ttl;
-            this.expireTime = expireTime;
-            this.explicitVer = explicitVer;
-        }
+        explicitVer = CU.readVersion(in);
     }
 
     /** {@inheritDoc} */
@@ -912,22 +562,6 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
     public void unmarshal(GridCacheContext<K, V> ctx, ClassLoader clsLdr) throws GridException {
         this.ctx = ctx;
 
-        byte[] keyBytes;
-        byte[] valBytes;
-        byte[] filterBytes;
-        GridCacheOperation op;
-        GridPredicate<? super GridCacheEntry<K, V>>[] filters;
-        V val;
-
-        synchronized (mutex()) {
-            keyBytes = this.keyBytes;
-            valBytes = this.valBytes;
-            filterBytes = this.filterBytes;
-            val = this.val;
-            op = this.op;
-            filters = this.filters;
-        }
-
         // Don't unmarshal more than once by checking key for null.
         if (key == null)
             key = (K)U.unmarshal(ctx.marshaller(), new ByteArrayInputStream(keyBytes), clsLdr);
@@ -948,14 +582,6 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        byte[] keyBytes;
-        byte[] valBytes;
-
-        synchronized (mutex()) {
-            keyBytes = this.keyBytes;
-            valBytes = this.valBytes;
-        }
-
         return GridToStringBuilder.toString(GridCacheTxEntry.class, this,
             "keyBytesSize", keyBytes == null ? "null" : Integer.toString(keyBytes.length),
             "valBytesSize", valBytes == null ? "null" : Integer.toString(valBytes.length),

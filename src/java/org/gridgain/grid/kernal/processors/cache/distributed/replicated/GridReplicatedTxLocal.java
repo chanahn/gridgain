@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Replicated user transaction.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
     /** All keys participating in transaction. */
@@ -114,11 +114,6 @@ class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
      */
     @Override public GridFuture<GridCacheTxEx<K, V>> future() {
         return prepareFut.get();
-    }
-
-    /** {@inheritDoc} */
-    @Override public GridFuture<GridCacheTx> finishFuture() {
-        return commitFut.get() == null ? rollbackFut.get() : commitFut.get();
     }
 
     /**

@@ -17,21 +17,20 @@ import org.gridgain.grid.typedef.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 /**
  * Cache event manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public class GridCacheEventManager<K, V> extends GridCacheManager<K, V> {
     /** Local node ID. */
     private UUID locNodeId;
 
     /** Event queue. */
-    private ConcurrentLinkedQueue<GridCacheEvent> evts = new ConcurrentLinkedQueue<GridCacheEvent>();
+    private GridConcurrentLinkedDeque<GridCacheEvent> evts = new GridConcurrentLinkedDeque<GridCacheEvent>();
 
     /** Unwinding flag to make sure that only one thread unwinds. */
     private AtomicBoolean unwinding = new AtomicBoolean(false);

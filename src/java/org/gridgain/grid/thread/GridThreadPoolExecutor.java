@@ -17,7 +17,7 @@ import java.util.concurrent.*;
  * An {@link ExecutorService} that executes submitted tasks using pooled grid threads.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public class GridThreadPoolExecutor extends ThreadPoolExecutor {
     /** Default core pool size (value is {@code 100}). */
@@ -45,13 +45,13 @@ public class GridThreadPoolExecutor extends ThreadPoolExecutor {
      * </tr>
      * <tr>
      *      <td>Blocking Queue (see {@link BlockingQueue}).</td>
-     *      <td>Unbounded linked blocking queue (see {@link LinkedBlockingQueue}).</td>
+     *      <td>Unbounded linked blocking queue (see {@link LinkedBlockingDeque}).</td>
      * </tr>
      * </table>
      */
     public GridThreadPoolExecutor() {
         this(DFLT_CORE_POOL_SIZE, DFLT_CORE_POOL_SIZE, 0,
-            new LinkedBlockingQueue<Runnable>(), new GridThreadFactory(null), null);
+            new LinkedBlockingDeque<Runnable>(), new GridThreadFactory(null), null);
     }
 
     /**
@@ -109,7 +109,7 @@ public class GridThreadPoolExecutor extends ThreadPoolExecutor {
      * </tr>
      * <tr>
      *      <td>Blocking Queue (see {@link BlockingQueue}).</td>
-     *      <td>Unbounded linked blocking queue (see {@link LinkedBlockingQueue}).</td>
+     *      <td>Unbounded linked blocking queue (see {@link LinkedBlockingDeque}).</td>
      * </tr>
      * </table>
      *
@@ -117,7 +117,7 @@ public class GridThreadPoolExecutor extends ThreadPoolExecutor {
      */
     public GridThreadPoolExecutor(String gridName) {
         this(DFLT_CORE_POOL_SIZE, DFLT_CORE_POOL_SIZE, 0,
-            new LinkedBlockingQueue<Runnable>(), new GridThreadFactory(gridName), null);
+            new LinkedBlockingDeque<Runnable>(), new GridThreadFactory(gridName), null);
     }
 
     /**

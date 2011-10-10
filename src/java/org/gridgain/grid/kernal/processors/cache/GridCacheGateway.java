@@ -18,7 +18,7 @@ import org.jetbrains.annotations.*;
  * Cache gateway.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 @GridToStringExclude
 public class GridCacheGateway<K, V> {
@@ -76,7 +76,8 @@ public class GridCacheGateway<K, V> {
         // Set thread local projection per call.
         GridCacheProjectionImpl<K, V> prev = ctx.projectionPerCall();
 
-        ctx.projectionPerCall(prj);
+        if (prev != null || prj != null)
+            ctx.projectionPerCall(prj);
 
         return prev;
     }

@@ -35,7 +35,7 @@ import static org.gridgain.grid.util.nodestart.GridNodeStartUtils.*;
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements GridProjection {
     /** Empty rich node predicate array. */
@@ -2390,9 +2390,16 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
     }
 
     /** {@inheritDoc} */
-    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(File file, @Nullable String dfltUname,
-        @Nullable String dfltPasswd, @Nullable File key, int nodes, @Nullable String cfg, @Nullable String script,
-        @Nullable String log, boolean restart) throws GridException {
+    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(
+        File file,
+        @Nullable String dfltUname,
+        @Nullable String dfltPasswd,
+        @Nullable File key,
+        int nodes,
+        @Nullable String cfg,
+        @Nullable String script,
+        @Nullable String log,
+        boolean restart) throws GridException {
         assert file != null;
         assert file.exists();
         assert file.isFile();
@@ -2416,9 +2423,16 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
     }
 
     /** {@inheritDoc} */
-    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(Collection<String> hostSpecs,
-        @Nullable String dfltUname, @Nullable String dfltPasswd, @Nullable File key, int nodes, @Nullable String cfg,
-        @Nullable String script, @Nullable String log, boolean restart) throws GridException {
+    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(
+        Collection<String> hostSpecs,
+        @Nullable String dfltUname,
+        @Nullable String dfltPasswd,
+        @Nullable File key,
+        int nodes,
+        @Nullable String cfg,
+        @Nullable String script,
+        @Nullable String log,
+        boolean restart) throws GridException {
         assert hostSpecs != null;
         assert nodes > 0;
 

@@ -25,7 +25,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Local cache transaction.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 class GridLocalTx<K, V> extends GridCacheTxLocalAdapter<K, V> {
     /** Transaction future. */
@@ -65,12 +65,6 @@ class GridLocalTx<K, V> extends GridCacheTxLocalAdapter<K, V> {
     /** {@inheritDoc} */
     @Override public GridFuture<GridCacheTxEx<K, V>> future() {
         return fut.get();
-    }
-
-    /** {@inheritDoc} */
-    @SuppressWarnings( {"unchecked", "RedundantCast"})
-    @Override public GridFuture<GridCacheTx> finishFuture() {
-        return (GridFuture)fut.get();
     }
 
     /** {@inheritDoc} */

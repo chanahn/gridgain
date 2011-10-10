@@ -42,7 +42,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Adapter for different cache implementations.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter implements GridCache<K, V>,
     Externalizable {
@@ -53,6 +53,9 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
             return F.t2();
         }
     };
+
+    /** Last asynchronous future. */
+    private final ThreadLocal<GridFuture> lastFut = new ThreadLocal<GridFuture>();
 
     /** Cache configuration. */
     @GridToStringExclude
@@ -1746,7 +1749,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
                                     // If entry passed the filter.
                                     if (curVer != null) {
-                                        boolean wasNew = entry.isNew();
+                                        boolean wasNew = entry.isNewLocked();
 
                                         entry.unswap();
 
@@ -3534,6 +3537,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
      * @param <T> Return type.
      * @return Future.
      */
+    @SuppressWarnings({"unchecked"})
     private <T> GridFuture<T> asyncOp(final AsyncOp<T> op) {
         try {
             checkJta();
@@ -3547,51 +3551,31 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         GridCacheTxLocalAdapter<K, V> tx = ctx.tm().threadLocalTx();
 
-        if (tx == null) {
+        if (tx == null || tx.implicit())
             tx = ctx.tm().onCreated(newTx(true));
-        }
-        // For implicit transactions, we chain them up.
-        else if (tx.implicit()) {
-            // This will register a new transaction for this thread.
-            final GridCacheTxLocalAdapter<K, V> newTx = ctx.tm().onCreated(newTx(true));
 
-            assert newTx != null;
+        GridFuture<T> last = lastFut.get();
 
-            final GridFutureAdapter<Object> fut = new GridFutureAdapter<Object>(ctx.kernalContext());
+        if (last != null && !last.isDone()) {
+            final GridCacheTxLocalAdapter<K, V> tx0 = tx;
 
-            fut.syncNotify(true);
+            GridFuture<T> f = new GridEmbeddedFuture<T, T>(last,
+                new C2<T, Exception, GridFuture<T>>() {
+                    @Override public GridFuture<T> apply(T t, Exception e) {
+                        return op.op(tx0);
+                    }
+                }, ctx.kernalContext());
 
-            tx.addFinishListener(new CI1<GridCacheTxEx<K, V>>() {
-                @Override public void apply(final GridCacheTxEx<K, V> tx) {
-                    if (log.isDebugEnabled())
-                        log.debug("Previous transaction changed its status to final [op=" + op + ", tx=" + tx + ']');
+            lastFut.set(f);
 
-                    // We can only grab finish future after transaction state was set to some final state.
-                    // Otherwise, it would be possible for finish future to be null.
-                    ((GridCacheTxLocalEx<K, V>)tx).finishFuture().listenAsync(new CI1<GridFuture<GridCacheTx>>() {
-                        @Override public void apply(GridFuture<GridCacheTx> f) {
-                            if (log.isDebugEnabled())
-                                log.debug("Finished waiting for previous transaction [op=" + op + ", tx=" + tx + ']');
-
-                            fut.onDone();
-                        }
-                    });
-                }
-            });
-
-            // Start when previous transaction completes.
-            return new GridEmbeddedFuture<T, Object>(fut, new C2<Object, Exception, GridFuture<T>>() {
-                @Override public GridFuture<T> apply(Object o, Exception e) {
-                    if (log.isDebugEnabled())
-                        log.debug("Continuing with new transaction [op=" + op + ", keys=" + op.keys() +
-                            ", newTx=" + newTx + ']');
-
-                    return op.op(newTx);
-                }
-            }, ctx.kernalContext());
+            return f;
         }
 
-        return op.op(tx);
+        GridFuture<T> f = op.op(tx);
+
+        lastFut.set(f);
+
+        return f;
     }
 
     /** {@inheritDoc} */

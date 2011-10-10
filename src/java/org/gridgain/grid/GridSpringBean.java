@@ -61,7 +61,7 @@ import java.util.concurrent.*;
  * <p>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, DisposableBean, InitializingBean,
     ApplicationContextAware {
@@ -1540,17 +1540,33 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
         return g.mapKeyToNode(cacheName, key);
     }
 
-    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(File file, @Nullable String dfltUname,
-        @Nullable String dfltPasswd, @Nullable File key, int nodes, @Nullable String cfg, @Nullable String script,
-        @Nullable String log, boolean restart) throws GridException {
+    /** {@inheritDoc} */
+    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(
+        File file,
+        @Nullable String dfltUname,
+        @Nullable String dfltPasswd,
+        @Nullable File key,
+        int nodes,
+        @Nullable String cfg,
+        @Nullable String script,
+        @Nullable String log,
+        boolean restart) throws GridException {
         assert g != null;
 
         return g.startNodes(file, dfltUname, dfltPasswd, key, nodes, cfg, script, log, restart);
     }
 
-    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(Collection<String> hostSpecs,
-        @Nullable String dfltUname, @Nullable String dfltPasswd, @Nullable File key, int nodes, @Nullable String cfg,
-        @Nullable String script, @Nullable String log, boolean restart) throws GridException {
+    /** {@inheritDoc} */
+    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(
+        Collection<String> hostSpecs,
+        @Nullable String dfltUname,
+        @Nullable String dfltPasswd,
+        @Nullable File key,
+        int nodes,
+        @Nullable String cfg,
+        @Nullable String script,
+        @Nullable String log,
+        boolean restart) throws GridException {
         assert g != null;
 
         return g.startNodes(hostSpecs, dfltUname, dfltPasswd, key, nodes, cfg, script, log, restart);

@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Replicated user transaction.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implements GridCacheMappedVersion {
     /** */
@@ -267,14 +267,6 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
     /** {@inheritDoc} */
     @Override public GridFuture<GridCacheTxEx<K, V>> future() {
         return prepFut.get();
-    }
-
-    /** {@inheritDoc} */
-    @Override public GridFuture<GridCacheTx> finishFuture() {
-        assert false;
-
-        // Should never be called.
-        return null;
     }
 
     /** {@inheritDoc} */
@@ -601,8 +593,6 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
 
         init();
 
-        final int opId = newOpId();
-
         try {
             Set<K> skipped = null;
 
@@ -621,7 +611,7 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
 
                     cached.unswap();
 
-                    txEntry = addEntry(NOOP, opId, null, cached, CU.<K, V>empty());
+                    txEntry = addEntry(NOOP, null, cached, CU.<K, V>empty());
 
                     txEntry.cached(cached, txEntry.keyBytes());
 
@@ -645,23 +635,19 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
             if (txFut != null)
                 txFut.markInitialized();
 
-            // Grab keys enlisted by this operation.
-            Collection<K> opKeys = new GridCacheTxCollection<K, V, K>(txMap.values(), CU.<K, V>opId(opId),
-                CU.<K, V>tx2key()).seal();
-
-            if (log.isDebugEnabled())
-                log.debug("Lock op keys [opId=" + opId + ", opKeys=" + opKeys + ']');
-
             assert pessimistic();
 
             // Acquire locks only after having added operation to the write set.
             // Otherwise, during rollback we will not know whether locks need
             // to be rolled back.
             // Loose all skipped and previously locked (we cannot reenter locks here).
-            final Collection<? extends K> passedKeys = F.view(opKeys, F.notIn(skipped));
+            final Collection<? extends K> passedKeys = F.view(keys, F.notIn(skipped));
+
+            if (log.isDebugEnabled())
+                log.debug("Lock keys: " + passedKeys);
 
             if (txFut == null || txFut.isDone())
-                return obtainLockAsync(ret, opId, passedKeys, read, skipped);
+                return obtainLockAsync(ret, passedKeys, read, skipped);
             else {
                 final Set<K> skip = skipped;
 
@@ -673,7 +659,7 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
                             if (e != null)
                                 throw new GridClosureException(e);
 
-                            return obtainLockAsync(ret, opId, passedKeys, read, skip);
+                            return obtainLockAsync(ret, passedKeys, read, skip);
                         }
                     },
                     cctx.kernalContext());
@@ -688,13 +674,12 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
 
     /**
      * @param ret Return value.
-     * @param opId Operation ID.
      * @param passedKeys Passed keys.
      * @param read {@code True} if read.
      * @param skipped Skipped keys.
      * @return Future for lock acquisition.
      */
-    private GridFuture<GridCacheReturn<V>> obtainLockAsync(GridCacheReturn<V> ret, final int opId,
+    private GridFuture<GridCacheReturn<V>> obtainLockAsync(GridCacheReturn<V> ret,
         final Collection<? extends K> passedKeys, boolean read, final Set<K> skipped) {
         if (log.isDebugEnabled())
             log.debug("Before acquiring transaction lock on keys [passedKeys=" + passedKeys + ", skipped=" +
@@ -714,7 +699,7 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
                     if (log.isDebugEnabled())
                         log.debug("Acquired transaction lock on keys: " + passedKeys);
 
-                    postLockWrite(passedKeys, skipped, ret, /*remove*/false, opId, /*retval*/false, CU.<K, V>empty());
+                    postLockWrite(passedKeys, skipped, ret, /*remove*/false, /*retval*/false, CU.<K, V>empty());
 
                     return ret;
                 }

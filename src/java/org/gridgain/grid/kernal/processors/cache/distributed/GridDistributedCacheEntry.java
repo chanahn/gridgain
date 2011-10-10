@@ -22,9 +22,9 @@ import static org.gridgain.grid.GridEventType.*;
  * Entry for distributed (replicated/partitioned) cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
-@SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext"})
+@SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
     /** Remote candidates snapshot. */
     private volatile List<GridCacheMvccCandidate<K>> rmts = Collections.emptyList();
@@ -79,7 +79,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             prev = mvcc.anyOwner();
@@ -95,6 +97,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
+        }
+        finally {
+            unlock();
         }
 
         // Don't link reentries.
@@ -147,7 +152,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             // Check removed locks prior to obsolete flag.
             checkRemoved(ver);
 
@@ -169,6 +176,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             refreshRemotes();
         }
+        finally {
+            unlock();
+        }
 
         // This call must be outside of synchronization.
         checkOwnerChanged(prev, owner, val);
@@ -189,7 +199,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
         GridCacheMvccCandidate<K> prev;
         GridCacheMvccCandidate<K> owner;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             cand.parent(this);
 
             // Check removed locks prior to obsolete flag.
@@ -213,6 +225,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             refreshRemotes();
         }
+        finally {
+            unlock();
+        }
 
         // This call must be outside of synchronization.
         checkOwnerChanged(prev, owner, val);
@@ -228,7 +243,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
         GridCacheMvccCandidate<K> prev;
         GridCacheMvccCandidate<K> owner;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             prev = mvcc.anyOwner();
@@ -242,6 +259,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             checkCallbacks(emptyBefore, emptyAfter);
 
             refreshRemotes();
+        }
+        finally {
+            unlock();
         }
 
         // This call must be outside of synchronization.
@@ -259,7 +279,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             prev = mvcc.anyOwner();
 
             boolean emptyBefore = mvcc.isEmpty();
@@ -271,6 +293,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
+        }
+        finally {
+            unlock();
         }
 
         if (log.isDebugEnabled())
@@ -295,7 +320,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             addRemoved(ver);
 
             if (obsoleteVer != null && !obsoleteVer.equals(ver))
@@ -320,6 +347,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             val = this.val;
         }
+        finally {
+            unlock();
+        }
 
         if (log.isDebugEnabled())
             log.debug("Removed lock candidate from entry [doomed=" + doomed + ", owner=" + owner + ", prev=" + prev +
@@ -340,10 +370,10 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
      * @throws GridDistributedLockCancelledException If lock is cancelled.
      */
     protected void checkRemoved(GridCacheVersion ver) throws GridDistributedLockCancelledException {
-        synchronized (mux) {
-            if ((obsoleteVer != null && obsoleteVer.equals(ver)) || cctx.mvcc().isRemoved(ver))
-                throw new GridDistributedLockCancelledException();
-        }
+        assert isHeldByCurrentThread();
+
+        if ((obsoleteVer != null && obsoleteVer.equals(ver)) || cctx.mvcc().isRemoved(ver))
+            throw new GridDistributedLockCancelledException();
     }
 
     /**
@@ -351,9 +381,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
      * @return {@code True} if removed.
      */
     public boolean addRemoved(GridCacheVersion ver) {
-        synchronized (mux) {
-            return cctx.mvcc().addRemoved(ver);
-        }
+        assert isHeldByCurrentThread();
+
+        return cctx.mvcc().addRemoved(ver);
     }
 
     /**
@@ -369,7 +399,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             prev = mvcc.anyOwner();
@@ -383,6 +415,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
+        }
+        finally {
+            unlock();
         }
 
         // This call must be made outside of synchronization.
@@ -404,7 +439,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             prev = mvcc.anyOwner();
@@ -420,6 +457,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
+        }
+        finally {
+            unlock();
         }
 
         // This call must be made outside of synchronization.
@@ -445,7 +485,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             V val;
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 checkObsolete();
 
                 prev = mvcc.anyOwner();
@@ -459,6 +501,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
                 checkCallbacks(emptyBefore, emptyAfter);
 
                 val = this.val;
+            }
+            finally {
+                unlock();
             }
 
             // This call must be made outside of synchronization.
@@ -504,7 +549,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             prev = mvcc.anyOwner();
@@ -527,6 +574,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             val = this.val;
         }
+        finally {
+            unlock();
+        }
 
         // This call must be made outside of synchronization.
         checkOwnerChanged(prev, owner, val);
@@ -545,7 +595,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
         V val;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             prev = mvcc.anyOwner();
 
             boolean emptyBefore = mvcc.isEmpty();
@@ -557,6 +609,9 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
+        }
+        finally {
+            unlock();
         }
 
         // This call must be made outside of synchronization.
@@ -627,7 +682,7 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
      * @param emptyAfter Empty flag after operation.
      */
     protected void checkCallbacks(boolean emptyBefore, boolean emptyAfter) {
-        assert Thread.holdsLock(mux);
+        assert isHeldByCurrentThread();
 
         if (emptyBefore != emptyAfter) {
             if (emptyBefore)
@@ -644,7 +699,7 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
      * @param val Entry value.
      */
     protected void checkOwnerChanged(GridCacheMvccCandidate<K> prev, GridCacheMvccCandidate<K> owner, V val) {
-        assert !Thread.holdsLock(mux);
+        assert !isHeldByCurrentThread();
 
         if (owner != prev) {
             cctx.mvcc().callback().onOwnerChanged(this, prev, owner);
@@ -666,7 +721,7 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
      * @param owner Starting candidate in the chain.
      */
     protected void checkThreadChain(GridCacheMvccCandidate<K> owner) {
-        assert !Thread.holdsLock(mux);
+        assert !isHeldByCurrentThread();
 
         assert owner != null;
         assert owner.owner() || owner.used() : "Neither owner or used flags are set on ready local candidate: " +

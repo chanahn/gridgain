@@ -21,7 +21,7 @@ import java.util.*;
  * Transaction managed by cache ({@code 'Ex'} stands for external).
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public interface GridCacheTxEx<K, V> extends GridCacheTx, GridTimeoutObject {
     /**
@@ -245,9 +245,9 @@ public interface GridCacheTxEx<K, V> extends GridCacheTx, GridTimeoutObject {
     public void endVersion(GridCacheVersion endVer);
 
     /**
-     * @param lsnr Transaction finish listener.
+     * @return Future for transaction completion.
      */
-    public void addFinishListener(GridInClosure<GridCacheTxEx<K, V>> lsnr);
+    public GridFuture<GridCacheTx> finishFuture();
 
     /**
      * @param state Transaction state.

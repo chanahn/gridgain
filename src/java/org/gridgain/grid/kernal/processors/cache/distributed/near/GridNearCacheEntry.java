@@ -28,9 +28,9 @@ import static org.gridgain.grid.GridEventType.*;
  * Replicated cache entry.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
-@SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext"})
+@SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     /** ID of primary node from which this entry was last read. */
     private volatile UUID primaryNodeId;
@@ -88,7 +88,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
                 GridCacheEntryInfo<K, V> e = entry.info();
 
                 if (e != null) {
-                    synchronized (mux) {
+                    lock();
+
+                    try {
                         checkObsolete();
 
                         if (isNew()) {
@@ -101,6 +103,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
                         }
 
                         return false;
+                    }
+                    finally {
+                        unlock();
                     }
                 }
             }
@@ -135,7 +140,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
                 val = U.<V>unmarshal(cctx.marshaller(), new GridByteArrayList(valBytes), cctx.deploy().globalLoader());
         }
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             this.primaryNodeId = primaryNodeId;
@@ -148,6 +155,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
                 return true;
             }
+        }
+        finally {
+            unlock();
         }
 
         return false;
@@ -169,7 +179,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
         cctx.versions().onReceived(primaryNodeId, dhtVer);
 
-        synchronized (mux) {
+        lock();
+
+        try {
             if (!obsolete()) {
                 // Don't set DHT version to null until we get a match from DHT remote transaction.
                 if (F.eq(this.dhtVer, dhtVer))
@@ -188,6 +200,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
                 }
             }
         }
+        finally {
+            unlock();
+        }
     }
 
     /**
@@ -195,10 +210,15 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
      * @throws GridCacheEntryRemovedException If obsolete.
      */
     @Nullable public GridCacheVersion dhtVersion() throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return dhtVer;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -208,19 +228,29 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
      */
     @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext"})
     @Nullable public GridTuple3<GridCacheVersion, V, byte[]> versionedValue() throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return dhtVer == null ? null : F.t(dhtVer, val, valBytes);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean isNew() throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return startVer == ver || !valid();
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -233,11 +263,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
     /** {@inheritDoc} */
     @Override protected void recordNodeId(UUID primaryNodeId) {
-        // Even though synchronization is held when this method is called,
-        // we synchronize here again - overhead is minimal, but code is cleaner.
-        synchronized (mux) {
-            this.primaryNodeId = primaryNodeId;
-        }
+        assert isHeldByCurrentThread();
+
+        this.primaryNodeId = primaryNodeId;
     }
 
     /**
@@ -248,8 +276,13 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     public void recordDhtVersion(GridCacheVersion dhtVer) {
         // Version manager must be updated separately, when adding DHT version
         // to transaction entries.
-        synchronized (mux) {
+        lock();
+
+        try {
             this.dhtVer = dhtVer;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -281,11 +314,13 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     public boolean loadedValue(@Nullable GridCacheTx tx, UUID primaryNodeId, V val, byte[] valBytes,
         GridCacheVersion ver, long ttl, long expireTime, boolean evt) throws GridException,
         GridCacheEntryRemovedException {
-        if (valBytes != null && val == null && isNew())
+        if (valBytes != null && val == null && isNewLocked())
             val = U.<V>unmarshal(cctx.marshaller(), new GridByteArrayList(valBytes), cctx.deploy().globalLoader());
 
         try {
-            synchronized (mux) {
+            lock();
+
+            try {
                 checkObsolete();
 
                 if (metrics == null)
@@ -308,6 +343,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
                 return false;
             }
+            finally {
+                unlock();
+            }
         }
         finally {
             if (evt)
@@ -327,36 +365,53 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
     /** {@inheritDoc} */
     @Override public boolean hasLockCandidate(long threadId) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.remoteCandidate(cctx.nodeId(), threadId) != null;
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedByThread(long threadId) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             GridCacheMvccCandidate<K> c = mvcc.remoteOwner();
 
             return c!= null && c.threadId() == threadId;
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedByThreadUnsafe(long threadId) {
-        synchronized (mux) {
+        lock();
+
+        try {
             GridCacheMvccCandidate<K> c = mvcc.remoteOwner();
 
             return c!= null && c.threadId() == threadId;
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedByThread(GridCacheVersion exclude) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             GridCacheMvccCandidate<K> c = mvcc.remoteOwner();
@@ -364,55 +419,83 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
             return c!= null && c.threadId() == Thread.currentThread().getId() &&
                 (exclude == null || !c.version().equals(exclude));
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public GridCacheMvccCandidate<K> localOwner() throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             return mvcc.remoteOwner();
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public Collection<GridCacheMvccCandidate<K>> localCandidates(GridCacheVersion[] exclude)
         throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return remoteMvccSnapshot(exclude);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedLocally(GridUuid lockId) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             GridCacheMvccCandidate<K> c = mvcc.remoteOwner();
 
             return c != null && c.version().id().equals(lockId);
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedByThread(long threadId, GridCacheVersion exclude)
         throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             GridCacheMvccCandidate<K> c = mvcc.remoteOwner();
 
             return c != null && c.threadId() == threadId && (exclude == null || !c.version().equals(exclude));
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public GridCacheMvccCandidate<K> candidate(UUID nodeId, long threadId)
         throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.remoteCandidate(nodeId, threadId);
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -423,10 +506,15 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
     /** {@inheritDoc} */
     @Override public boolean lockedLocallyUnsafe(GridUuid lockId) {
-        synchronized (mux) {
+        lock();
+
+        try {
             GridCacheMvccCandidate<K> c = mvcc.remoteOwner();
 
             return c != null && c.version().id().equals(lockId);
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -443,7 +531,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
             V val;
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 checkObsolete();
 
                 prev = mvcc.anyOwner();
@@ -457,6 +547,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
                 checkCallbacks(emptyBefore, emptyAfter);
 
                 val = this.val;
+            }
+            finally {
+                unlock();
             }
 
             // This call must be made outside of synchronization.
@@ -494,7 +587,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
             UUID locId = cctx.nodeId();
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 // Check removed locks prior to obsolete flag.
                 checkRemoved(ver);
 
@@ -529,6 +624,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
                 // Make sure to return the added candidate.
                 cand = mvcc.candidate(ver);
             }
+            finally {
+                unlock();
+            }
 
             // This call must be outside of synchronization.
             checkOwnerChanged(prev, owner, val);
@@ -552,7 +650,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
      */
     @Nullable public GridCacheMvccCandidate<K> dhtNodeId(GridCacheVersion ver, UUID dhtNodeId)
         throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             GridCacheMvccCandidate<K> cand = mvcc.candidate(ver);
@@ -564,17 +664,24 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
             return cand;
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public GridCacheMvccCandidate<K> readyLock(GridCacheMvccCandidate<K> cand)
         throws GridCacheEntryRemovedException {
+        lock();
 
         // Essentially no-op as locks are acquired on primary nodes.
-        synchronized (mux) {
+        try {
             checkObsolete();
 
             return mvcc.anyOwner();
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -591,7 +698,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
         UUID locId = cctx.nodeId();
 
-        synchronized (mux) {
+        lock();
+
+        try {
             prev = mvcc.anyOwner();
 
             boolean emptyBefore = mvcc.isEmpty();
@@ -622,6 +731,9 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
             checkCallbacks(emptyBefore, emptyAfter);
 
             val = this.val;
+        }
+        finally {
+            unlock();
         }
 
         assert owner != prev;

@@ -17,6 +17,7 @@ import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.*;
 import org.gridgain.grid.util.tostring.*;
 import org.jetbrains.annotations.*;
 
@@ -33,10 +34,10 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * Adapter for cache entry.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
-@SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext"})
-public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter implements GridCacheEntryEx<K, V> {
+@SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
+public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapter implements GridCacheEntryEx<K, V> {
     /** Static logger to avoid re-creation. */
     private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
 
@@ -108,10 +109,6 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
     @GridToStringExclude
     protected volatile GridCacheEntryImpl<K, V> wrapper;
 
-    /** Read-write lock. */
-    @GridToStringExclude
-    protected final Object mux = new Object();
-
     /**
      * @param cctx Cache context.
      * @param key Cache key.
@@ -147,10 +144,24 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
     /** {@inheritDoc} */
     @Override public boolean isNew() throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        assert isHeldByCurrentThread();
+
+        checkObsolete();
+
+        return ver == startVer;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isNewLocked() throws GridCacheEntryRemovedException {
+        lock();
+
+        try {
             checkObsolete();
 
             return ver == startVer;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -180,7 +191,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
         info.key(key);
 
-        synchronized (mux) {
+        lock();
+
+        try {
             if (obsolete())
                 info = null;
             else {
@@ -193,6 +206,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                 info.metrics(GridCacheMetricsAdapter.copyOf(metrics));
             }
         }
+        finally {
+            unlock();
+        }
 
         return info;
     }
@@ -203,8 +219,10 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      * @throws GridException If failed.
      */
     @Override public void unswap() throws GridException {
-        if (cctx.isSwapEnabled())
-            synchronized (mux) {
+        if (cctx.isSwapEnabled()) {
+            lock();
+
+            try {
                 if (startVer == ver) {
                     GridCacheSwapEntry<V> e = cctx.swap().readAndRemove(this);
 
@@ -227,6 +245,11 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                     }
                 }
             }
+            finally {
+                unlock();
+            }
+
+        }
     }
 
     /**
@@ -234,27 +257,24 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      */
     protected void swap() throws GridException {
         if (cctx.isSwapEnabled()) {
-            // Even though we know that mutex is held, still synchronize here.
-            // The overhead is minimal, but we get the benefit of IDE tracking
-            // that the field is never accessed outside of synchronization.
-            synchronized (mux) {
-                if (expireTime > 0 && System.currentTimeMillis() >= expireTime)
-                    // Don't swap entry if it's expired.
-                    return;
+            assert isHeldByCurrentThread();
 
-                if (valBytes == null)
-                    valBytes = CU.marshal(cctx, val).getEntireArray();
+            if (expireTime > 0 && System.currentTimeMillis() >= expireTime)
+                // Don't swap entry if it's expired.
+                return;
 
-                GridUuid clsLdrId = null;
+            if (valBytes == null)
+                valBytes = CU.marshal(cctx, val).getEntireArray();
 
-                if (val != null)
-                    clsLdrId = cctx.deploy().getClassLoaderId(val.getClass().getClassLoader());
+            GridUuid clsLdrId = null;
 
-                cctx.swap().write(getOrMarshalKeyBytes(), valBytes, ver, ttl, expireTime, metrics, clsLdrId);
+            if (val != null)
+                clsLdrId = cctx.deploy().getClassLoaderId(val.getClass().getClassLoader());
 
-                cctx.events().addEvent(partition(), key, cctx.nodeId(), (GridUuid)null, null,
-                    EVT_CACHE_OBJECT_SWAPPED, null, null);
-            }
+            cctx.swap().write(getOrMarshalKeyBytes(), valBytes, ver, ttl, expireTime, metrics, clsLdrId);
+
+            cctx.events().addEvent(partition(), key, cctx.nodeId(), (GridUuid)null, null,
+                EVT_CACHE_OBJECT_SWAPPED, null, null);
 
             if (log.isDebugEnabled())
                 log.debug("Wrote swap entry: " + this);
@@ -266,8 +286,13 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      */
     private void releaseSwap() throws GridException {
         if (cctx.isSwapEnabled()) {
-            synchronized (mux) {
+            lock();
+
+            try {
                 cctx.swap().remove(getOrMarshalKeyBytes());
+            }
+            finally {
+                unlock();
             }
 
             if (log.isDebugEnabled())
@@ -291,7 +316,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                     if (log.isDebugEnabled())
                         log.debug("Refreshing-ahead entry: " + GridCacheMapEntry.this);
 
-                    synchronized (mux) {
+                    lock();
+
+                    try {
                         // If there is a point to refresh.
                         if (!matchVer.equals(ver)) {
                             isRefreshing = false;
@@ -303,6 +330,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                             return;
                         }
                     }
+                    finally {
+                        unlock();
+                    }
 
                     V val = null;
 
@@ -313,7 +343,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                         U.error(log, "Failed to refresh-ahead entry: " + GridCacheMapEntry.this, e);
                     }
                     finally {
-                        synchronized (mux) {
+                        lock();
+
+                        try {
                             isRefreshing = false;
 
                             // If version matched, set value. Note that we don't update
@@ -330,6 +362,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                                     U.error(log, "Failed to update cache index: " + GridCacheMapEntry.this, e);
                                 }
                             }
+                        }
+                        finally {
+                            unlock();
                         }
                     }
                 }
@@ -361,7 +396,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
     }
 
     /** {@inheritDoc} */
-    @SuppressWarnings({"unchecked", "RedundantTypeArguments"})
+    @SuppressWarnings({"unchecked", "RedundantTypeArguments", "TooBroadScope"})
     private V innerGet0(GridCacheTx tx, boolean readSwap, boolean readThrough, boolean evt, boolean failFast,
         boolean updateMetrics, GridPredicate<? super GridCacheEntry<K, V>>[] filter)
         throws GridException, GridCacheEntryRemovedException, GridCacheFilterFailedException {
@@ -386,7 +421,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
             V expiredVal = null;
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 checkObsolete();
 
                 // Cache version for optimistic check.
@@ -469,6 +506,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                         isRefreshing = true;
                 }
             }
+            finally {
+                unlock();
+            }
 
             if (evt && expired)
                 cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_EXPIRED, null, expiredVal);
@@ -502,7 +542,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
             boolean match = false;
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 // If version matched, set value.
                 if (startVer.equals(ver)) {
                     match = true;
@@ -518,6 +560,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                         // Update indexes.
                         updateIndex(ret);
                 }
+            }
+            finally {
+                unlock();
             }
 
             if (F.isEmpty(filter))
@@ -541,7 +586,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
     }
 
     /** {@inheritDoc} */
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({"unchecked", "TooBroadScope"})
     @Nullable @Override public final V innerReload(GridPredicate<? super GridCacheEntry<K, V>>[] filter)
         throws GridException, GridCacheEntryRemovedException {
         cctx.denyOnFlag(READ);
@@ -552,13 +597,18 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
         boolean wasNew;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             // Cache version for optimistic check.
             startVer = ver;
 
             wasNew = isNew();
+        }
+        finally {
+            unlock();
         }
 
         // Generate new version.
@@ -568,7 +618,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         if (cctx.isAll(this, filter)) {
             V ret = readThrough(null, key, true, filter);
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 // If entry was loaded during read step.
                 if (wasNew && !isNew())
                     return ret;
@@ -585,6 +637,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                     // If value was set - return, otherwise try again.
                     return ret;
                 }
+            }
+            finally {
+                unlock();
             }
 
             if (F.isEmpty(filter))
@@ -620,7 +675,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
             if (!cctx.isAll(this, filter))
                 return new T2<Boolean, V>(false, null);
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 checkObsolete();
 
                 assert tx == null || tx.ownsLock(this) : "Transaction does not own lock for update [entry=" + this +
@@ -649,6 +706,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                 // in load methods without actually holding entry lock.
                 if (val != null)
                     updateIndex(val);
+            }
+            finally {
+                unlock();
             }
 
             if (log.isDebugEnabled())
@@ -692,7 +752,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
             GridCacheVersion obsoleteVer = null;
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 checkObsolete();
 
                 assert tx == null || tx.ownsLock(this) : "Transaction does not own lock for remove [entry=" + this +
@@ -729,13 +791,18 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                     else if (log.isDebugEnabled())
                         log.debug("Obsolete version was not set because lock was explicit: " + this);
             }
+            finally {
+                unlock();
+            }
 
             // Persist outside of synchronization. The correctness of the
             // value will be handled by current transaction.
             if (writeThrough)
                 CU.removeFromStore(cctx, log, tx, key);
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 // If entry is still removed.
                 if (newVer == ver)
                     if (obsoleteVer == null || !markObsolete(obsoleteVer)) {
@@ -752,6 +819,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                         if (log.isDebugEnabled())
                             log.debug("Entry was marked obsolete: " + this);
                     }
+            }
+            finally {
+                unlock();
             }
 
             return valid ? new T2<Boolean, V>(true, old) : new T2<Boolean, V>(false, null);
@@ -786,14 +856,21 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         // For optimistic check.
         GridCacheVersion startVer;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             startVer = ver;
+        }
+        finally {
+            unlock();
         }
 
         if (!cctx.isAll(this, filter))
             return false;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             if (!startVer.equals(ver))
                 // Version has changed since filter checking.
                 return clear(ver, swap, readers, filter);
@@ -833,12 +910,20 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
             return true;
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public GridCacheVersion obsoleteVersion() {
-        synchronized (mux) {
+        lock();
+
+        try {
             return obsoleteVer;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -850,7 +935,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
     /** {@inheritDoc} */
     @Override public boolean markObsolete(GridCacheVersion ver, boolean clear) {
         if (ver != null) {
-            synchronized (mux) {
+            lock();
+
+            try {
                 // If already obsolete, then do nothing.
                 if (obsoleteVer != null)
                     return true;
@@ -866,25 +953,43 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
                 return obsoleteVer != null;
             }
+            finally {
+                unlock();
+            }
         }
         else {
-            synchronized (mux) {
+            lock();
+
+            try {
                 return obsoleteVer != null;
+            }
+            finally {
+                unlock();
             }
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean obsolete() {
-        synchronized (mux) {
+        lock();
+
+        try {
             return obsoleteVer != null;
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean obsolete(GridCacheVersion exclude) {
-        synchronized (mux) {
+        lock();
+
+        try {
             return obsoleteVer != null && !obsoleteVer.equals(exclude);
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -893,7 +998,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         throws GridException {
         assert newVer != null;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             if (curVer == null || ver.equals(curVer)) {
                 val = null;
                 valBytes = null;
@@ -907,34 +1014,49 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
             return obsoleteVer != null;
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public boolean invalidate(@Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filter)
         throws GridCacheEntryRemovedException, GridException {
         if (F.isEmpty(filter)) {
-            synchronized (mux) {
+            lock();
+
+            try {
                 checkObsolete();
 
                 invalidate(null, cctx.versions().next());
 
                 return true;
             }
+            finally {
+                unlock();
+            }
         }
         else {
             // For optimistic checking.
             GridCacheVersion startVer;
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 checkObsolete();
 
                 startVer = ver;
+            }
+            finally {
+                unlock();
             }
 
             if (!cctx.isAll(this, filter))
                 return false;
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 checkObsolete();
 
                 if (startVer.equals(ver)) {
@@ -942,6 +1064,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
                     return true;
                 }
+            }
+            finally {
+                unlock();
             }
 
             // If version has changed then repeat the process.
@@ -955,16 +1080,23 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         // For optimistic checking.
         GridCacheVersion startVer;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             startVer = ver;
+        }
+        finally {
+            unlock();
         }
 
         if (!cctx.isAll(this, filter))
             return false;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             if (startVer.equals(ver))
@@ -975,6 +1107,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                 }
                 else
                     return clear(cctx.versions().next(), cctx.isSwapEnabled(), false, filter);
+        }
+        finally {
+            unlock();
         }
 
         // If version has changed do it again.
@@ -994,7 +1129,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         GridCacheMetricsAdapter metrics) {
         assert ver != null;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             this.val = val;
             this.valBytes = isStoreValueBytes() ? valBytes : null;
             this.ttl = ttl;
@@ -1003,6 +1140,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
             if (metrics != null)
                 this.metrics = metrics;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1031,13 +1171,10 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      * @throws GridCacheEntryRemovedException If entry is obsolete.
      */
     protected void checkObsolete() throws GridCacheEntryRemovedException {
-        // Even though we know that mutex is held, still synchronize here.
-        // The overhead is minimal, but we get the benefit of IDE tracking
-        // that the field is never accessed outside of synchronization.
-        synchronized (mux) {
-            if (obsoleteVer != null)
-                throw new GridCacheEntryRemovedException();
-        }
+        assert isHeldByCurrentThread();
+
+        if (obsoleteVer != null)
+            throw new GridCacheEntryRemovedException();
     }
 
     /** {@inheritDoc} */
@@ -1047,10 +1184,15 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
     /** {@inheritDoc} */
     @Override public GridCacheVersion version() throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return ver;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1067,8 +1209,13 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      * @return Next entry in the linked list.
      */
     GridCacheMapEntry<K, V> next() {
-        synchronized (mux) {
+        lock();
+
+        try {
             return next;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1076,8 +1223,13 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      * @param next Next entry in the linked list.
      */
     void next(GridCacheMapEntry<K, V> next) {
-        synchronized (mux) {
+        lock();
+
+        try {
             this.next = next;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1224,7 +1376,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
             GridCacheVersion ver;
             V val;
 
-            synchronized (mux) {
+            lock();
+
+            try {
                 if (checkExpired())
                     return null;
 
@@ -1232,6 +1386,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
                 ver = this.ver;
                 val = this.val;
+            }
+            finally {
+                unlock();
             }
 
             if (!cctx.isAll(wrap(false), filter))
@@ -1255,9 +1412,14 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         if (!cctx.isAll(wrap(false), filter))
             return (V)CU.failed(failFast);
 
-        synchronized (mux) {
+        lock();
+
+        try {
             if (checkExpired())
                 return null;
+        }
+        finally {
+            unlock();
         }
 
         GridCacheSwapEntry<V> e = cctx.swap().read(this);
@@ -1278,9 +1440,14 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         if (!cctx.isAll(wrap(false), filter))
             return (V)CU.failed(failFast);
 
-        synchronized (mux) {
+        lock();
+
+        try {
             if (checkExpired())
                 return null;
+        }
+        finally {
+            unlock();
         }
 
         return (V)CU.loadFromStore(cctx, log, cctx.tm().localTxx(), key);
@@ -1293,7 +1460,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      * @throws GridException In case of failure.
      */
     private boolean checkExpired() throws GridException {
-        assert Thread.holdsLock(mux);
+        assert isHeldByCurrentThread();
 
         if (expireTime > 0) {
             long delta = expireTime - System.currentTimeMillis();
@@ -1318,8 +1485,13 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      * @return Value.
      */
     @Override public V rawGet() {
-        synchronized (mux) {
+        lock();
+
+        try {
             return val;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1330,12 +1502,17 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      * @return Old value.
      */
     @Override public V rawPut(V val, long ttl) {
-        synchronized (mux) {
+        lock();
+
+        try {
             V old = this.val;
 
             update(val, null, toExpireTime(ttl), ttl, cctx.versions().next(), metrics);
 
             return old;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1344,10 +1521,12 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
     @Override public boolean initialValue(V val, byte[] valBytes, GridCacheVersion ver, long ttl,
         long expireTime, GridCacheMetricsAdapter metrics) throws GridException, GridCacheEntryRemovedException {
 
-        if (valBytes != null && val == null && isNew())
+        if (valBytes != null && val == null && isNewLocked())
             val = U.<V>unmarshal(cctx.marshaller(), new GridByteArrayList(valBytes), cctx.deploy().globalLoader());
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             if (isNew()) {
@@ -1362,12 +1541,17 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
             return false;
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public boolean initialValue(K key, GridCacheSwapEntry<V> unswapped) throws GridException,
         GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             if (isNew()) {
@@ -1384,12 +1568,17 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
             return false;
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public boolean versionedValue(V val, GridCacheVersion curVer, GridCacheVersion newVer)
         throws GridException, GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             if (curVer == null || curVer.equals(ver)) {
@@ -1407,32 +1596,50 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
             return false;
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public boolean hasLockCandidate(GridCacheVersion ver) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.hasCandidate(ver);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean hasLockCandidate(long threadId) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.localCandidate(threadId) != null;
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedByAny(GridCacheVersion[] exclude) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return !mvcc.isEmpty(exclude);
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1448,76 +1655,121 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
     /** {@inheritDoc} */
     @Override public boolean lockedLocally(GridUuid lockId) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.isLocallyOwned(lockId);
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
-    @Override public boolean lockedByThread(long threadId,
-        GridCacheVersion exclude) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+    @Override public boolean lockedByThread(long threadId, GridCacheVersion exclude)
+        throws GridCacheEntryRemovedException {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.isLocallyOwnedByThread(threadId, exclude);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedByThread(long threadId) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.isLocallyOwnedByThread(threadId);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedBy(GridCacheVersion ver) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.isOwnedBy(ver);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedByThreadUnsafe(long threadId) {
-        synchronized (mux) {
+        lock();
+
+        try {
             return mvcc.isLocallyOwnedByThread(threadId);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedByUnsafe(GridCacheVersion ver) {
-        synchronized (mux) {
+        lock();
+
+        try {
             return mvcc.isOwnedBy(ver);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean lockedLocallyUnsafe(GridUuid lockId) {
-        synchronized (mux) {
+        lock();
+
+        try {
             return mvcc.isLocallyOwned(lockId);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public boolean hasLockCandidateUnsafe(GridCacheVersion ver) {
-        synchronized (mux) {
+        lock();
+
+        try {
             return mvcc.hasCandidate(ver);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public Collection<GridCacheMvccCandidate<K>> localCandidates(GridCacheVersion... exclude)
         throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.localCandidates(exclude);
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1527,21 +1779,31 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
     }
 
     /** {@inheritDoc} */
-    @Nullable @Override public GridCacheMvccCandidate<K> candidate(
-        GridCacheVersion ver) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+    @Nullable @Override public GridCacheMvccCandidate<K> candidate(GridCacheVersion ver)
+        throws GridCacheEntryRemovedException {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.candidate(ver);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public GridCacheMvccCandidate<K> localCandidate(long threadId) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.localCandidate(threadId);
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1550,26 +1812,41 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         throws GridCacheEntryRemovedException {
         boolean local = cctx.nodeId().equals(nodeId);
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return local ? mvcc.localCandidate(threadId) : mvcc.remoteCandidate(nodeId, threadId);
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public GridCacheMvccCandidate<K> localOwner() throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return mvcc.localOwner();
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public long rawExpireTime() {
-        synchronized (mux) {
+        lock();
+
+        try {
             return expireTime;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1590,17 +1867,27 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                 return time;
         }
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return expireTime;
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public long rawTtl() {
-        synchronized (mux) {
+        lock();
+
+        try {
             return ttl;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1621,10 +1908,15 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                 return entryTtl;
         }
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return ttl;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1635,27 +1927,42 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
     /** {@inheritDoc} */
     @Override public GridCacheMetrics metrics() throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return metrics;
+        }
+        finally {
+            unlock();
         }
     }
 
     /** {@inheritDoc} */
     @Override public void keyBytes(byte[] keyBytes) throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             if (keyBytes != null)
                 this.keyBytes = keyBytes;
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public byte[] keyBytes() {
-        synchronized (mux) {
+        lock();
+
+        try {
             return keyBytes;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1668,8 +1975,13 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
         bytes = CU.marshal(cctx, key).getEntireArray();
 
-        synchronized (mux) {
+        lock();
+
+        try {
             keyBytes = bytes;
+        }
+        finally {
+            unlock();
         }
 
         return bytes;
@@ -1677,10 +1989,15 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
     /** {@inheritDoc} */
     @Override public byte[] valueBytes() throws GridCacheEntryRemovedException {
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             return valBytes;
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1690,7 +2007,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         V val = null;
         byte[] valBytes = null;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             if (ver == null || this.ver.equals(ver)) {
@@ -1701,17 +2020,25 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
             else
                 ver = null;
         }
+        finally {
+            unlock();
+        }
 
         if (valBytes == null) {
             if (val != null)
                 valBytes = CU.marshal(cctx, val).getEntireArray();
 
             if (ver != null) {
-                synchronized (mux) {
+                lock();
+
+                try {
                     checkObsolete();
 
                     if (this.val == val)
                         this.valBytes = isStoreValueBytes() ? valBytes : null;
+                }
+                finally {
+                    unlock();
                 }
             }
         }
@@ -1726,18 +2053,15 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      * @throws GridException If update failed.
      */
     protected void updateIndex(V val) throws GridException {
-        // Even though we know that mutex is held, still synchronize here.
-        // The overhead is minimal, but we get the benefit of IDE tracking
-        // that the field is never accessed outside of synchronization.
-        synchronized (mux) {
-            if (val == null)
-                clearIndex();
-            else {
-                GridCacheQueryManager<K, V> qryMgr = cctx.queries();
+        assert isHeldByCurrentThread();
 
-                if (qryMgr != null)
-                    qryMgr.store(key(), keyBytes(), val, ver);
-            }
+        if (val == null)
+            clearIndex();
+        else {
+            GridCacheQueryManager<K, V> qryMgr = cctx.queries();
+
+            if (qryMgr != null)
+                qryMgr.store(key(), keyBytes(), val, ver);
         }
     }
 
@@ -1748,17 +2072,11 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      * @throws GridException If failed.
      */
     protected boolean clearIndex() throws GridException {
-        // Even though we know that mutex is held, still synchronize here.
-        // The overhead is minimal, but we get the benefit of IDE tracking
-        // that the field is never accessed outside of synchronization.
-        synchronized (mux) {
-            GridCacheQueryManager<K, V> qryMgr = cctx.queries();
+        assert isHeldByCurrentThread();
 
-            if (qryMgr != null)
-                return qryMgr.remove(key(), keyBytes());
-        }
+        GridCacheQueryManager<K, V> qryMgr = cctx.queries();
 
-        return false;
+        return qryMgr != null && qryMgr.remove(key(), keyBytes());
     }
 
     /**
@@ -1768,10 +2086,12 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
      * @return Wrapped entry.
      */
     @Override public GridCacheEntry<K, V> wrap(boolean prjAware) {
-        GridCacheProjectionImpl<K, V> prjPerCall = cctx.projectionPerCall();
+        if (prjAware) {
+            GridCacheProjectionImpl<K, V> prjPerCall = cctx.projectionPerCall();
 
-        if (prjPerCall != null && prjAware)
-            return new GridCacheEntryImpl<K, V>(prjPerCall, cctx, key, this);
+            if (prjPerCall != null)
+                return new GridCacheEntryImpl<K, V>(prjPerCall, cctx, key, this);
+        }
 
         GridCacheEntryImpl<K, V> wrapper = this.wrapper;
 
@@ -1791,7 +2111,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         @Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
         try {
             if (F.isEmpty(filter)) {
-                synchronized (mux) {
+                lock();
+
+                try {
                     if (!hasReaders() && markObsolete(obsoleteVer)) {
                         if (swap) {
                             if (startVer != ver)
@@ -1812,19 +2134,29 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                         return true;
                     }
                 }
+                finally {
+                    unlock();
+                }
             }
             else {
                 // For optimistic check.
                 GridCacheVersion v;
 
-                synchronized (mux) {
+                lock();
+
+                try {
                     v = ver;
+                }
+                finally {
+                    unlock();
                 }
 
                 if (!cctx.isAll(this, filter))
                     return false;
 
-                synchronized (mux) {
+                lock();
+
+                try {
                     if (!v.equals(ver))
                         // Version has changed since entry passed the filter. Do it again.
                         return evictInternal(swap, obsoleteVer, filter);
@@ -1848,6 +2180,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
                         return true;
                     }
+                }
+                finally {
+                    unlock();
                 }
             }
         }
@@ -1894,7 +2229,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
         if (tx != null && tx.entryTtl(key, ttl))
             return;
 
-        synchronized (mux) {
+        lock();
+
+        try {
             checkObsolete();
 
             expireTime = CU.toExpireTime(ttl, this.ttl, expireTime);
@@ -1905,6 +2242,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
                 log.debug("Set ttl [ttl=" + this.ttl + ", expireTime=" + expireTime + ", timeLeft=" +
                     (expireTime - System.currentTimeMillis()) + ']');
         }
+        finally {
+            unlock();
+        }
     }
 
     /** {@inheritDoc} */
@@ -1914,8 +2254,13 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareAdapter i
 
     /** {@inheritDoc} */
     @Override @Nullable public ClassLoader valueClassLoader() {
-        synchronized (mux) {
-            return val == null ? null : val.getClass().getClassLoader();
+        lock();
+
+        try {
+            return val == null ? null : GridClassLoaderCache.classLoader(val.getClass());
+        }
+        finally {
+            unlock();
         }
     }
 

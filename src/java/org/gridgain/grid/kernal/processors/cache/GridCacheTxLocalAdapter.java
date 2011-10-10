@@ -12,6 +12,7 @@ package org.gridgain.grid.kernal.processors.cache;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.store.*;
+import org.gridgain.grid.kernal.processors.cache.distributed.dht.*;
 import org.gridgain.grid.kernal.processors.cache.distributed.near.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.lang.utils.*;
@@ -26,7 +27,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
-import static org.gridgain.grid.cache.GridCachePeekMode.*;
 import static org.gridgain.grid.cache.GridCacheTxState.*;
 import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
 
@@ -34,13 +34,10 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Transaction adapter for cache transactions.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K, V>
     implements GridCacheTxLocalEx<K, V> {
-    /** Generation for op IDs. */
-    private static final AtomicInteger IDGEN = new AtomicInteger();
-
     /** Per-transaction read map. */
     @GridToStringInclude
     protected Map<K, GridCacheTxEntry<K, V>> txMap;
@@ -209,23 +206,6 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
         return txMap == null ? null : txMap.get(key);
     }
 
-    /**
-     * @param key Key.
-     * @param opId Operation ID.
-     * @return Entry for given key and operation ID.
-     */
-    @Nullable private GridCacheTxEntry<K, V> entry(K key, int opId) {
-        GridCacheTxEntry<K, V> txEntry = entry(key);
-
-        if (txEntry == null)
-            return null;
-
-        while (txEntry.opId() != opId)
-            txEntry = txEntry.child();
-
-        return txEntry.opId() == opId ? txEntry : null;
-    }
-
     /** {@inheritDoc} */
     @Override public void seal() {
         if (readView != null)
@@ -233,13 +213,6 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
         if (writeView != null)
             writeView.seal();
-    }
-
-    /**
-     * @return New operation ID.
-     */
-    protected int newOpId() {
-        return IDGEN.incrementAndGet();
     }
 
     /** {@inheritDoc} */
@@ -949,13 +922,12 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      * @param keys Key to enlist.
      * @param map Return map.
      * @param missed Map of missed keys.
-     * @param opId Operation ID.
      * @param filter Filter to test.
      * @return Collection of skipped entries if any.
      * @throws GridException If failed.
      */
     @SuppressWarnings({"RedundantTypeArguments"})
-    private Set<K> enlistRead(Collection<? extends K> keys, Map<K, V> map, Map<K, GridCacheVersion> missed, int opId,
+    private Set<K> enlistRead(Collection<? extends K> keys, Map<K, V> map, Map<K, GridCacheVersion> missed,
         GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
         assert !F.isEmpty(keys);
 
@@ -974,10 +946,10 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
             // Either non-read-committed or there was a previous write.
             if (txEntry != null) {
                 // This if branch is just an optimization.
-                if (txEntry.lastMarked()) {
+                if (txEntry.marked()) {
                     // We can check filter even in pessimistic mode, as lock is held on marked entries.
                     if (cctx.isAll(txEntry.cached(), filter)) {
-                        V val = txEntry.rootValue();
+                        V val = txEntry.value();
 
                         if (val != null)
                             map.put(key, val);
@@ -991,7 +963,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                         GridCacheEntryEx<K, V> cached = txEntry.cached();
 
                         try {
-                            txEntry = addEntry(READ, opId, null, cached, filter);
+                            txEntry = addEntry(READ, null, cached, filter); // TODO: Override put?
 
                             missed.put(txEntry.key(), cached.version());
 
@@ -1031,7 +1003,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                             missed.put(key, ver);
 
                         if (!readCommitted()) {
-                            txEntry = addEntry(READ, opId, val, cached, filter);
+                            txEntry = addEntry(READ, val, cached, filter);
 
                             // As optimization, mark as checked immediately
                             // for non-pessimistic if value is not null.
@@ -1053,7 +1025,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                             // Value for which failure occurred.
                             V val = e.<V>value();
 
-                            txEntry = addEntry(READ, opId, val, cached, filter);
+                            txEntry = addEntry(READ, val, cached, filter);
 
                             // Mark as checked immediately for non-pessimistic.
                             if (val != null && !pessimistic())
@@ -1094,13 +1066,11 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      * @param map Return map.
      * @param missedMap Missed keys.
      * @param redos Keys to retry.
-     * @param opId Operation ID.
      * @param filter Filter.
      * @return Loaded key-value pairs.
      */
     private GridFuture<Map<K, V>> checkMissed(final Map<K, V> map, final Map<K, GridCacheVersion> missedMap,
-        @Nullable final Collection<K> redos, final int opId,
-        final GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
+        @Nullable final Collection<K> redos, final GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
         assert redos != null || pessimistic();
 
         if (log.isDebugEnabled())
@@ -1128,7 +1098,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                         return;
                     }
 
-                    GridCacheTxEntry<K, V> txEntry = entry(key, opId);
+                    GridCacheTxEntry<K, V> txEntry = entry(key);
 
                     // In pessimistic mode we hold the lock, so filter validation
                     // should always be valid.
@@ -1226,7 +1196,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                     if (!b && !readCommitted()) {
                         // There is no store - we must mark the entries.
                         for (K key : missedMap.keySet()) {
-                            GridCacheTxEntry<K, V> txEntry = entry(key, opId);
+                            GridCacheTxEntry<K, V> txEntry = entry(key);
 
                             if (txEntry != null)
                                 txEntry.mark();
@@ -1248,8 +1218,6 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
         boolean single = keys.size() == 1;
 
-        final int opId = newOpId();
-
         try {
             checkValid(CU.<K, V>empty());
 
@@ -1257,7 +1225,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
             final Map<K, GridCacheVersion> missed = new GridLeanMap<K, GridCacheVersion>(pessimistic() ? keys.size() : 0);
 
-            Set<K> skipped = enlistRead(keys, map, missed, opId, filter);
+            Set<K> skipped = enlistRead(keys, map, missed, filter);
 
             if (single && missed.isEmpty())
                 return new GridFinishedFuture<Map<K, V>>(cctx.kernalContext(), map);
@@ -1283,74 +1251,63 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                                     // We already have a return value.
                                     continue;
 
-                                GridCacheTxEntry<K, V> txEntry = entry(key, opId);
+                                GridCacheTxEntry<K, V> txEntry = entry(key);
 
                                 assert txEntry != null;
 
-                                if (!txEntry.isRoot()) {
-                                    // Wait for parent and mark this entry.
-                                    V val = txEntry.waitForParent(true);
+                                // Check if there is cached value.
+                                while (true) {
+                                    GridCacheEntryEx<K, V> cached = txEntry.cached();
 
-                                    if (cctx.isAll(txEntry.cached(), filter) && val != null)
-                                        map.put(key, val);
+                                    try {
+                                        V val = cached.innerGet(GridCacheTxLocalAdapter.this, swapEnabled,
+                                            /*read-through*/false, true, true, true, filter);
 
-                                    missed.remove(key);
-                                }
-                                else {
-                                    // Check if there is cached value.
-                                    while (true) {
-                                        GridCacheEntryEx<K, V> cached = txEntry.cached();
+                                        // If value is in cache and passed the filter.
+                                        if (val != null) {
+                                            map.put(key, val);
 
-                                        try {
-                                            V val = cached.innerGet(GridCacheTxLocalAdapter.this, swapEnabled,
-                                                false, true, true, true, filter);
+                                            missed.remove(key);
 
-                                            // If value is in cache and passed the filter.
-                                            if (val != null) {
-                                                map.put(key, val);
-
-                                                missed.remove(key);
-
-                                                txEntry.setAndMark(val);
-                                            }
-                                            else if (cctx.isNear()) {
-                                                // Value was fetched during lock acquisition.
-                                                // If it's null, then it is not in cache or store.
-                                                missed.remove(key);
-
-                                                txEntry.setAndMark(val);
-                                            }
-
-                                            break; // While.
+                                            txEntry.setAndMark(val);
                                         }
-                                        catch (GridCacheEntryRemovedException ignore) {
-                                            if (log.isDebugEnabled())
-                                                log.debug("Got removed exception in get postLock (will retry): " +
-                                                    cached);
+                                        else if (cctx.isNear()) {
+                                            // Value was fetched during lock acquisition.
+                                            // If it's null, then it is not in cache or store.
+                                            missed.remove(key);
 
-                                            txEntry.cached(cctx.cache().entryEx(key), txEntry.keyBytes());
+                                            txEntry.setAndMark(val);
                                         }
-                                        catch (GridCacheFilterFailedException e) {
-                                            // Failed value for the filter.
-                                            @SuppressWarnings({"RedundantTypeArguments"}) // Idea wrongly warns here.
-                                            V val = e.<V>value();
 
-                                            if (val != null) {
-                                                // If filter fails after lock is acquired, we don't reload,
-                                                // regardless if value is null or not.
-                                                missed.remove(key);
+                                        break; // While.
+                                    }
+                                    catch (GridCacheEntryRemovedException ignore) {
+                                        if (log.isDebugEnabled())
+                                            log.debug("Got removed exception in get postLock (will retry): " +
+                                                cached);
 
-                                                txEntry.setAndMark(val);
-                                            }
+                                        txEntry.cached(cctx.cache().entryEx(key), txEntry.keyBytes());
+                                    }
+                                    catch (GridCacheFilterFailedException e) {
+                                        // Failed value for the filter.
+                                        @SuppressWarnings({"RedundantTypeArguments"}) // Idea wrongly warns here.
+                                        V val = e.<V>value();
 
-                                            break; // While.
+                                        if (val != null) {
+                                            // If filter fails after lock is acquired, we don't reload,
+                                            // regardless if value is null or not.
+                                            missed.remove(key);
+
+                                            txEntry.setAndMark(val);
                                         }
+
+                                        break; // While.
                                     }
                                 }
                             }
 
                             if (!missed.isEmpty())
-                                return checkMissed(map, missed, null, opId, filter);
+                                return checkMissed(map, missed, null, filter);
 
                             return new GridFinishedFuture<Map<K, V>>(cctx.kernalContext(), Collections.<K, V>emptyMap());
                         }
@@ -1370,40 +1327,10 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                 final Collection<K> redos = new LinkedList<K>();
 
                 if (!missed.isEmpty()) {
-                    if (!readCommitted()) {
-                        for (Iterator<K> it = missed.keySet().iterator(); it.hasNext(); ) {
-                            K key = it.next();
-
-                            if (map.containsKey(key)) {
+                    if (!readCommitted())
+                        for (Iterator<K> it = missed.keySet().iterator(); it.hasNext(); )
+                            if (map.containsKey(it.next()))
                                 it.remove();
-
-                                // We already have a return value.
-                                continue;
-                            }
-
-                            GridCacheTxEntry<K, V> txEntry = entry(key, opId);
-
-                            assert txEntry != null;
-
-                            if (!txEntry.isRoot()) {
-                                // We choose to wait here and hold the thread,
-                                // even though the root request may have to redo.
-                                // We assume that if redo happened, then entry
-                                // most likely has been populated with value and
-                                // this wait will be instantaneous. In rare cases
-                                // it is possible that entry will have to be reloaded
-                                // on redo, but to handle it would require complex
-                                // logic which we choose not to implement.
-                                V val = txEntry.waitForParent(true);
-
-                                if (cctx.isAll(txEntry.cached(), filter) && val != null)
-                                    // Put value from root.
-                                    map.put(key, val);
-
-                                it.remove();
-                            }
-                        }
-                    }
 
                     if (missed.isEmpty())
                         return new GridFinishedFuture<Map<K, V>>(cctx.kernalContext(), map);
@@ -1411,7 +1338,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                     return new GridEmbeddedFuture<Map<K, V>, Map<K, V>>(
                         cctx.kernalContext(),
                         // First future.
-                        checkMissed(map, missed, redos, opId, filter),
+                        checkMissed(map, missed, redos, filter),
                         // Closure that returns another future, based on result from first.
                         new PMC<Map<K, V>>() {
                             @Override public GridFuture<Map<K, V>> postMiss(Map<K, V> map) {
@@ -1525,16 +1452,16 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      * @param keys Keys to enlist.
      * @param implicit Implicit flag.
      * @param lookup Value lookup map ({@code null} for remove).
-     * @param opId Operation ID.
      * @param retval Flag indicating whether a value should be returned.
      * @param lockOnly If {@code true}, then entry will be enlisted as noop.
      * @param filter User filters.
      * @param ret Return value.
+     * @param enlisted Collection of keys enlisted into this transaction.
      * @return Future with skipped keys (the ones that didn't pass filter for pessimistic transactions).
      */
     protected GridFuture<Set<K>> enlistWrite(Collection<? extends K> keys, boolean implicit,
-        @Nullable Map<? extends K, ? extends V> lookup, int opId, boolean retval, boolean lockOnly,
-        GridPredicate<? super GridCacheEntry<K, V>>[] filter, final GridCacheReturn<V> ret) {
+        @Nullable Map<? extends K, ? extends V> lookup, boolean retval, boolean lockOnly,
+        GridPredicate<? super GridCacheEntry<K, V>>[] filter, final GridCacheReturn<V> ret, Collection<K> enlisted) {
         Set<K> skipped = null;
 
         boolean rmv = lookup == null;
@@ -1578,7 +1505,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                                 }
                             }
                             else
-                                old = cached.peek(GLOBAL, CU.<K, V>empty());
+                                old = cached.rawGet();
 
                             if (!filter(cached, filter)) {
                                 skipped = skip(skipped, key);
@@ -1588,7 +1515,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                                 if (!readCommitted() && old != null) {
                                     // Enlist failed filters as reads for non-read-committed mode,
                                     // so future ops will get the same values.
-                                    txEntry = addEntry(READ, opId, old, cached, filter);
+                                    txEntry = addEntry(READ, old, cached, filter);
 
                                     txEntry.mark();
                                 }
@@ -1596,8 +1523,10 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                                 break; // While.
                             }
 
-                            txEntry = addEntry(lockOnly ? NOOP : rmv ? DELETE : ret.hasValue() ? UPDATE : CREATE,
-                                opId, val, cached, filter);
+                            txEntry = addEntry(lockOnly ? NOOP : rmv ? DELETE : old != null ? UPDATE : CREATE,
+                                val, cached, filter);
+
+                            enlisted.add(key);
 
                             if (!pessimistic()) {
                                 txEntry.mark();
@@ -1665,11 +1594,13 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                             continue;
                         }
 
-                        txEntry = addEntry(rmv ? DELETE : v != null ? UPDATE : CREATE, opId, val, cached, filter);
+                        txEntry = addEntry(rmv ? DELETE : v != null ? UPDATE : CREATE, val, cached, filter);
+
+                        enlisted.add(key);
                     }
 
                     if (!pessimistic()) {
-                        txEntry.markAndCopyToRoot();
+                        txEntry.mark();
 
                         // Set tx entry and return values.
                         ret.set(v, !lockOnly && (v != null || !rmv));
@@ -1691,16 +1622,15 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      * @param failed Collection of potentially failed keys (need to populate in this method).
      * @param ret Return value.
      * @param rmv {@code True} if remove.
-     * @param opId Operation ID.
      * @param retval Flag to return value or not.
      * @param filter Filter.
      * @return Failed keys.
      * @throws GridException If error.
      */
     protected Set<K> postLockWrite(Iterable<? extends K> keys, Set<K> failed, GridCacheReturn<V> ret, boolean rmv,
-        int opId, boolean retval, GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
+        boolean retval, GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
         for (K k : keys) {
-            GridCacheTxEntry<K, V> txEntry = entry(k, opId);
+            GridCacheTxEntry<K, V> txEntry = entry(k);
 
             if (txEntry == null)
                 throw new GridException("Transaction entry is null (most likely collection of keys passed into cache " +
@@ -1719,29 +1649,27 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
                     V v = null;
 
-                    if (!txEntry.isRoot())
-                        // Note that this wait is instantaneous, that's why it's OK
-                        // to wait here. We only do it to properly order all the
-                        // filter checks.
-                        ret.value(v = txEntry.waitForParent(/*don't mark*/false));
-                    else {
+                    if (retval) {
                         if (!near() && !dht()) {
-                            try {
-                                // Entry should have been unswapped by now.
-                                ret.value(v = cached.innerGet(this, /*swap*/ false, /*read-through*/retval,
-                                     /*failFast*/false, /*metrics*/retval, /*event*/retval, CU.<K, V>empty()));
-                            }
-                            catch (GridCacheFilterFailedException e) {
-                                e.printStackTrace();
+                                try {
+                                    // Entry should have been unswapped by now.
+                                    ret.value(v = cached.innerGet(this, /*swap*/ false, /*read-through*/retval,
+                                         /*failFast*/false, /*metrics*/true, /*event*/true, CU.<K, V>empty()));
+                                }
+                                catch (GridCacheFilterFailedException e) {
+                                    e.printStackTrace();
 
-                                assert false : "Empty filter failed: " + e;
-                            }
+                                    assert false : "Empty filter failed: " + e;
+                                }
                         }
                         else {
-                            ret.value(v = cached.peek(GLOBAL, CU.<K, V>empty()));
+                            ret.value(v = cached.rawGet());
 
-                            if (v == null && near())
-                                ret.value(v = cctx.near().dht().peek(k, F.asList(GLOBAL)));
+                            if (v == null && near()) {
+                                GridDhtCacheEntry<K, V> dhtEntry = cctx.near().dht().peekExx(k);
+
+                                ret.value(dhtEntry == null ? null : (v = dhtEntry.rawGet()));
+                            }
                         }
                     }
 
@@ -1749,10 +1677,10 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
                     // For remove operation we return true only if we are removing s/t,
                     // i.e. cached value is not null.
-                    ret.success(pass && (v != null || !rmv));
+                    ret.success(pass && (!retval ? !rmv || cached.rawGet() != null : !rmv || v != null));
 
                     if (pass) {
-                        txEntry.markAndCopyToRoot();
+                        txEntry.mark();
 
                         if (log.isDebugEnabled())
                             log.debug("Filter passed in post lock for key: " + k);
@@ -1797,8 +1725,6 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
         init();
 
-        final int opId = newOpId();
-
         final GridCacheReturn<V> ret = new GridCacheReturn<V>(false);
 
         if (F.isEmpty(map)) {
@@ -1814,11 +1740,15 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
         }
 
         try {
-            final GridFuture<Set<K>> loadFut = enlistWrite(map.keySet(), implicit, map, opId, retval, false, filter, ret);
+            Set<? extends K> keySet = map.keySet();
+
+            Collection<K> enlisted = new LinkedList<K>();
+
+            final GridFuture<Set<K>> loadFut = enlistWrite(keySet, implicit, map, retval, false, filter, ret, enlisted);
 
             if (pessimistic()) {
-                // Loose all previously skipped keys.
-                final Collection<? extends K> keys = F.view(map.keySet(), F.notIn(loadFut.get()));
+                // Loose all skipped.
+                final Collection<? extends K> keys = F.view(keySet, F.notIn(loadFut.get()));
 
                 if (log.isDebugEnabled())
                     log.debug("Before acquiring transaction lock for put on keys: " + keys);
@@ -1834,8 +1764,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                             if (log.isDebugEnabled())
                                 log.debug("Acquired transaction lock for put on keys: " + keys);
 
-                            Set<K> failed = postLockWrite(keys, loadFut.get(), ret, /*remove*/false, opId, retval,
-                                filter);
+                            Set<K> failed = postLockWrite(keys, loadFut.get(), ret, /*remove*/false, retval, filter);
 
                             // Write-through.
                             if (isSingleUpdate())
@@ -1883,7 +1812,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
     }
 
     /** {@inheritDoc} */
-    @Override public GridFuture<GridCacheReturn<V>> removeAllAsync(Collection<? extends K> keys,
+    @Override public GridFuture<GridCacheReturn<V>> removeAllAsync(final Collection<? extends K> keys,
         boolean implicit, final boolean retval, final GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
         assert keys != null;
 
@@ -1915,23 +1844,20 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
         init();
 
-        final int opId = newOpId();
-
         try {
-            final GridFuture<Set<K>> loadFut = enlistWrite(keys, implicit, null, opId, retval, false, filter, ret);
+            Collection<K> enlisted = new LinkedList<K>();
 
-            final Collection<K> opKeys = new GridCacheTxCollection<K, V, K>(txMap.values(), CU.<K, V>opId(opId),
-                CU.<K, V>tx2key()).seal();
+            final GridFuture<Set<K>> loadFut = enlistWrite(keys, implicit, null, retval, false, filter, ret, enlisted);
 
             if (log.isDebugEnabled())
-                log.debug("Remove op keys [opId=" + opId + ", opKeys=" + opKeys + ']');
+                log.debug("Remove keys: " + enlisted);
 
             // Acquire locks only after having added operation to the write set.
             // Otherwise, during rollback we will not know whether locks need
             // to be rolled back.
             if (pessimistic()) {
-                // Loose all skipped and previously locked (we cannot reenter locks here).
-                final Collection<? extends K> passedKeys = F.view(opKeys, F.notIn(loadFut.get()));
+                // Loose all skipped.
+                final Collection<? extends K> passedKeys = F.view(enlisted, F.notIn(loadFut.get()));
 
                 if (log.isDebugEnabled())
                     log.debug("Before acquiring transaction lock for remove on keys: " + passedKeys);
@@ -1947,8 +1873,8 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                             if (log.isDebugEnabled())
                                 log.debug("Acquired transaction lock for remove on keys: " + passedKeys);
 
-                            Set<K> failed = postLockWrite(passedKeys, loadFut.get(), ret, /*remove*/true, opId,
-                                retval, filter);
+                            Set<K> failed = postLockWrite(passedKeys, loadFut.get(), ret, /*remove*/true, retval,
+                                filter);
 
                             // Write-through.
                             if (isSingleUpdate())
@@ -1972,7 +1898,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                             @Override public GridCacheReturn<V> apply(Set<K> skipped, Exception e) {
                                 try {
                                     CU.removeAllFromStore(cctx, log(), GridCacheTxLocalAdapter.this,
-                                        F.view(opKeys, F.not(F.contains(skipped))));
+                                        F.view(keys, F.not(F.contains(skipped))));
                                 }
                                 catch (GridException ex) {
                                     throw new GridClosureException(ex);
@@ -2004,7 +1930,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      */
     public boolean init() {
         if (txMap == null) {
-            txMap = Collections.synchronizedMap(new LinkedHashMap<K, GridCacheTxEntry<K, V>>());
+            txMap = GridCollections.lockedMap(new LinkedHashMap<K, GridCacheTxEntry<K, V>>());
 
             readView = new GridCacheTxMap<K, V>(txMap, CU.<K, V>reads());
             writeView = new GridCacheTxMap<K, V>(txMap, CU.<K, V>writes());
@@ -2055,13 +1981,12 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
     /**
      * @param op Cache operation.
-     * @param opId Operation ID.
      * @param val Value.
      * @param entry Cache entry.
      * @param filter Filter.
      * @return Transaction entry.
      */
-    protected final GridCacheTxEntry<K, V> addEntry(GridCacheOperation op, int opId, @Nullable V val,
+    protected final GridCacheTxEntry<K, V> addEntry(GridCacheOperation op, @Nullable V val,
         GridCacheEntryEx<K, V> entry, GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
         K key = entry.key();
 
@@ -2070,16 +1995,12 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
         GridCacheTxState state = state();
 
         assert state == GridCacheTxState.ACTIVE || timedOut() :
-            "Invalid tx state for adding entry [op=" + op + ", opId=" + opId +
-            ", val=" + val + ", entry=" + entry + ", filter=" + Arrays.toString(filter) +
-            ", txCtx=" + cctx.tm().txContextVersion() + ", tx=" + this + ']';
+            "Invalid tx state for adding entry [op=" + op + ", val=" + val + ", entry=" + entry + ", filter=" +
+                Arrays.toString(filter) + ", txCtx=" + cctx.tm().txContextVersion() + ", tx=" + this + ']';
 
         while (true) {
             try {
-
-                GridCacheTxEntry<K, V> root = txMap.get(key);
-
-                GridCacheTxEntry<K, V> txEntry = new GridCacheTxEntry<K, V>(cctx, this, opId, root, op, val, entry.ttl(),
+                GridCacheTxEntry<K, V> txEntry = new GridCacheTxEntry<K, V>(cctx, this, op, val, entry.ttl(),
                     entry, filter);
 
                 // DHT local transactions don't have explicit locks.
@@ -2100,8 +2021,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                     }
                 }
 
-                if (root == null)
-                    txMap.put(key, txEntry);
+                txMap.put(key, txEntry);
 
                 if (log.isDebugEnabled())
                     log.debug("Created transaction entry: " + txEntry);

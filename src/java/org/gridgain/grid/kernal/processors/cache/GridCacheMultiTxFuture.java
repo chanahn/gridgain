@@ -9,6 +9,8 @@
 
 package org.gridgain.grid.kernal.processors.cache;
 
+import org.gridgain.grid.*;
+import org.gridgain.grid.cache.*;
 import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.*;
@@ -23,7 +25,7 @@ import java.util.concurrent.atomic.*;
  * Future which waits for completion of one or more transactions.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.06102011
+ * @version 3.5.0c.09102011
  */
 public final class GridCacheMultiTxFuture<K, V> extends GridFutureAdapter<Boolean> {
     /** Logger reference. */
@@ -90,10 +92,10 @@ public final class GridCacheMultiTxFuture<K, V> extends GridFutureAdapter<Boolea
         else {
             remainingTxs = new GridConcurrentHashSet<GridCacheTxEx<K, V>>(txs);
 
-            for (GridCacheTxEx<K, V> tx : txs) {
+            for (final GridCacheTxEx<K, V> tx : txs) {
                 if (!tx.done()) {
-                    tx.addFinishListener(new CI1<GridCacheTxEx<K,V>>() {
-                        @Override public void apply(GridCacheTxEx<K, V> tx) {
+                    tx.finishFuture().listenAsync(new CI1<GridFuture<GridCacheTx>>() {
+                        @Override public void apply(GridFuture<GridCacheTx> t) {
                             remainingTxs.remove(tx);
 
                             checkRemaining();
