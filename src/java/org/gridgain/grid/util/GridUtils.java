@@ -67,7 +67,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Collection of utility methods used throughout the system.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.09102011
+ * @version 3.5.0c.13102011
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -1494,7 +1494,7 @@ public abstract class GridUtils {
      * Verifier always returns successful result for any host.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.09102011
+     * @version 3.5.0c.13102011
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.
@@ -5518,5 +5518,97 @@ public abstract class GridUtils {
         }
 
         return log;
+    }
+
+    /**
+     * @param map Map.
+     */
+    public static <K, V> void printConcurrentHashMapInfo(ConcurrentHashMap<K, V> map) {
+        assert map != null;
+
+        Object[] segs = (Object[])getField(map, "segments");
+
+        X.println("Concurrent map stats [identityHash= " + System.identityHashCode(map) +
+            ", segsCnt=" + segs.length + ']');
+
+        int emptySegsCnt = 0;
+
+        int totalCollisions = 0;
+
+        for (int i = 0; i < segs.length; i++) {
+            int segCnt = (Integer)getField(segs[i], "count");
+
+            if (segCnt == 0) {
+                emptySegsCnt++;
+
+                continue;
+            }
+
+            Object[] tab = (Object[]) getField(segs[i], "table");
+
+            int tabLen = tab.length;
+
+            X.println("    Segment-" + i + " [count=" + segCnt + ", len=" + tabLen + ']');
+
+            // Group buckets by entries count.
+            Map<Integer, Integer> bucketsStats = new TreeMap<Integer, Integer>();
+
+            for (int j = 0; j < tab.length; j++) {
+                int cnt = 0;
+
+                Object entry = tab[j];
+
+                while (entry != null) {
+                    cnt++;
+
+                    entry = getField(entry, "next");
+                }
+
+                Integer bucketCnt = bucketsStats.get(cnt);
+
+                if (bucketCnt == null)
+                    bucketCnt = 0;
+
+                bucketCnt++;
+
+                bucketsStats.put(cnt, bucketCnt);
+
+                if (cnt > 1)
+                    totalCollisions += (cnt - 1);
+            }
+
+            for (Map.Entry<Integer, Integer> e : bucketsStats.entrySet())
+                X.println("        Buckets with count " + e.getKey() + ": " + e.getValue());
+        }
+
+        X.println("    Map summary [emptySegs=" + emptySegsCnt + ", collisions=" + totalCollisions + ']');
+    }
+
+    /**
+     * @param obj Object.
+     * @param fieldName Field.
+     * @return Field value.
+     */
+    static Object getField(Object obj, String fieldName) {
+        try {
+            for (Field field : obj.getClass().getDeclaredFields())
+                if (field.getName().equals(fieldName)) {
+                    boolean accessible = field.isAccessible();
+
+                    field.setAccessible(true);
+
+                    Object val = field.get(obj);
+
+                    if (!accessible)
+                        field.setAccessible(false);
+
+                    return val;
+                }
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Failed to get field value [fieldName=" + fieldName + ", obj=" + obj + ']');
+        }
+
+        throw new RuntimeException("Failed to get field value [fieldName=" + fieldName + ", obj=" + obj + ']');
     }
 }

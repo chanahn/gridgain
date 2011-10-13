@@ -20,7 +20,7 @@ import static org.gridgain.grid.GridSystemProperties.*;
  * Concurrent map factory.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.09102011
+ * @version 3.5.0c.13102011
  */
 public class GridConcurrentFactory {
     /** Default concurrency level. */
@@ -69,7 +69,7 @@ public class GridConcurrentFactory {
      * @return New concurrent map.
      */
     public static <K, V> ConcurrentMap<K, V> newMap(int initialCapacity) {
-        return new ConcurrentHashMap<K, V>(initialCapacity * CONCURRENCY_LEVEL, 0.75f, CONCURRENCY_LEVEL);
+        return new ConcurrentHashMap<K, V>(initialSize(initialCapacity, CONCURRENCY_LEVEL), 0.75f, CONCURRENCY_LEVEL);
     }
 
     /**
@@ -80,7 +80,7 @@ public class GridConcurrentFactory {
      * @return New concurrent map.
      */
     public static <K, V> ConcurrentMap<K, V> newMap(int initialCapacity, int concurrencyLevel) {
-        return new ConcurrentHashMap<K, V>(initialCapacity * concurrencyLevel, 0.75f, concurrencyLevel);
+        return new ConcurrentHashMap<K, V>(initialSize(initialCapacity, concurrencyLevel), 0.75f, concurrencyLevel);
     }
 
     /**
@@ -99,7 +99,7 @@ public class GridConcurrentFactory {
      * @return New concurrent map.
      */
     public static <V> GridConcurrentHashSet<V> newSet(int initialCapacity) {
-        return new GridConcurrentHashSet<V>(initialCapacity * CONCURRENCY_LEVEL, 0.75f, CONCURRENCY_LEVEL);
+        return new GridConcurrentHashSet<V>(initialSize(initialCapacity, CONCURRENCY_LEVEL), 0.75f, CONCURRENCY_LEVEL);
     }
 
     /**
@@ -110,6 +110,15 @@ public class GridConcurrentFactory {
      * @return New concurrent map.
      */
     public static <V> GridConcurrentHashSet<V> newSet(int initialCapacity, int concurrencyLevel) {
-        return new GridConcurrentHashSet<V>(initialCapacity * concurrencyLevel, 0.75f, concurrencyLevel);
+        return new GridConcurrentHashSet<V>(initialSize(initialCapacity, concurrencyLevel), 0.75f, concurrencyLevel);
+    }
+
+    /**
+     * @param cap Capacity.
+     * @param concurrencyLevel Concurrency level.
+     * @return Calculated size.
+     */
+    private static int initialSize(int cap, int concurrencyLevel) {
+        return cap / concurrencyLevel < 16 ? 16 * concurrencyLevel : cap;
     }
 }

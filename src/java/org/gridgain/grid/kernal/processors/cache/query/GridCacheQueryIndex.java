@@ -41,7 +41,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * Cache query index. Manages full life-cycle of query index database (h2).
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.09102011
+ * @version 3.5.0c.13102011
  */
 @SuppressWarnings({"UnnecessaryFullyQualifiedName"})
 public class GridCacheQueryIndex<K, V> {
@@ -337,65 +337,53 @@ public class GridCacheQueryIndex<K, V> {
         schemaWriteLock();
 
         try {
-            boolean wasIdx = false;
+            for (SqlStatementCache cache : stmtCaches)
+                cache.close(log);
 
-            for (QueryType type : clsMap.values())
-                if (type.indexed()) {
-                    wasIdx = true;
+            stmtCaches.clear();
 
-                    break;
-                }
-
-            if (wasIdx) {
-                for (SqlStatementCache cache : stmtCaches)
-                    cache.close(log);
-
-                stmtCaches.clear();
+            try {
+                Connection conn = connectionForThread(false);
 
                 try {
-                    Connection conn = connectionForThread(false);
-
-                    try {
-                        FullText.dropAll(conn);
-                    }
-                    catch (SQLException e) {
-                        U.warn(log, "Failed to drop H2 fulltext indexes: " + e.getMessage());
-                    }
-
-                    try {
-                        FullTextLucene.dropAll(conn);
-                    }
-                    catch (SQLException e) {
-                        U.warn(log, "Failed to drop H2 lucene indexes: " + e.getMessage());
-                    }
-
-                    if (conn != null) {
-                        Statement stmt = null;
-
-                        try {
-                            stmt = conn.createStatement();
-
-                            stmt.execute("DROP ALL OBJECTS DELETE FILES");
-                            stmt.execute("SHUTDOWN");
-                        }
-                        catch (SQLException e) {
-                            U.error(log, "Failed to shutdown database.", e);
-                        }
-                        finally {
-                            U.close(stmt, log);
-                        }
-                    }
+                    FullText.dropAll(conn);
                 }
-                catch (GridException e) {
-                    U.error(log, "Failed to receive connection to shutdown database.", e);
+                catch (SQLException e) {
+                    U.warn(log, "Failed to drop H2 fulltext indexes: " + e.getMessage());
                 }
 
-                for (Connection conn : conns)
-                    U.close(conn, log);
+                try {
+                    FullTextLucene.dropAll(conn);
+                }
+                catch (SQLException e) {
+                    U.warn(log, "Failed to drop H2 lucene indexes: " + e.getMessage());
+                }
 
-                conns.clear();
+                if (conn != null) {
+                    Statement stmt = null;
+
+                    try {
+                        stmt = conn.createStatement();
+
+                        stmt.execute("DROP ALL OBJECTS DELETE FILES");
+                        stmt.execute("SHUTDOWN");
+                    }
+                    catch (SQLException e) {
+                        U.error(log, "Failed to shutdown database.", e);
+                    }
+                    finally {
+                        U.close(stmt, log);
+                    }
+                }
+            }
+            catch (GridException e) {
+                U.error(log, "Failed to receive connection to shutdown database.", e);
             }
 
+            for (Connection conn : conns)
+                U.close(conn, log);
+
+            conns.clear();
             tables.clear();
 
             cleanupIndex();

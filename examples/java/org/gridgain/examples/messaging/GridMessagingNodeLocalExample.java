@@ -10,6 +10,7 @@
 package org.gridgain.examples.messaging;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.resources.*;
 import org.gridgain.grid.typedef.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -47,7 +48,7 @@ import java.util.zip.*;
  * folder.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.09102011
+ * @version 3.5.0c.13102011
  */
 public class GridMessagingNodeLocalExample {
     /**
@@ -98,16 +99,13 @@ public class GridMessagingNodeLocalExample {
         // F -> GridFunc
 
         try {
-            final Grid g = args.length == 0 ? G.start() : G.start(args[0]);
+            Grid g = args.length == 0 ? G.start() : G.start(args[0]);
 
             if (g.nodes().size() < 2) {
                 System.err.println("Two or more nodes are needed.");
 
                 return;
             }
-
-            // Local node.
-            final GridRichNode loc = g.localNode();
 
             // Pick random remote node.
             GridRichNode rmt = F.rand(g.remoteNodes());
@@ -117,6 +115,9 @@ public class GridMessagingNodeLocalExample {
 
             // Configure listener on remote node.
             rmt.run(new CA() {
+                @GridInstanceResource
+                private Grid g;
+
                 // Method 'apply' will be executed on remote node.
                 @Override public void apply() {
                     final CountDownLatch latch = new CountDownLatch(1);
@@ -124,7 +125,7 @@ public class GridMessagingNodeLocalExample {
                     // Store latch reference in node local storage.
                     g.nodeLocal().put("latch", latch);
 
-                    loc.listen(new GridListenActor<String>() {
+                    g.listen(new GridListenActor<String>() {
                         private CRC32 crc32 = new CRC32();
 
                         private int cnt;
@@ -143,18 +144,16 @@ public class GridMessagingNodeLocalExample {
                                 // Drop the latch.
                                 latch.countDown();
                             }
-                            else {
+                            else
                                 skip();
-                            }
                         }
                     });
                 }
             });
 
             // Send all messages.
-            for (int i = 0; i < MSG_NUM; i++) {
+            for (int i = 0; i < MSG_NUM; i++)
                 rmt.send("Message " + i);
-            }
 
             // Wait for all messages to be successfully processed
             // on the remote node.

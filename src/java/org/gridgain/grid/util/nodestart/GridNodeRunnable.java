@@ -11,6 +11,7 @@ package org.gridgain.grid.util.nodestart;
 
 import com.jcraft.jsch.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
@@ -20,7 +21,7 @@ import java.util.*;
  * SSH-based node starter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.09102011
+ * @version 3.5.0c.13102011
  */
 public class GridNodeRunnable implements Runnable {
     /** Default start script path for Windows. */
@@ -60,7 +61,7 @@ public class GridNodeRunnable implements Runnable {
     private final String cfg;
 
     /** Log file path. */
-    private final String log;
+    private String log;
 
     /** Start results. */
     private final Collection<GridTuple3<String, Boolean, String>> res;
@@ -79,13 +80,12 @@ public class GridNodeRunnable implements Runnable {
      * @param log Log file path.
      * @param res Start results.
      */
-    public GridNodeRunnable(int i, String host, int port, String uname, String passwd,
+    public GridNodeRunnable(int i, String host, int port, String uname, @Nullable String passwd,
         @Nullable File key, @Nullable String script, @Nullable String cfg, @Nullable String log,
         Collection<GridTuple3<String, Boolean, String>> res) {
         assert host != null;
         assert port > 0;
         assert uname != null;
-        assert passwd != null;
         assert res != null;
 
         this.i = i;
@@ -121,7 +121,14 @@ public class GridNodeRunnable implements Runnable {
 
             ChannelExec ch = (ChannelExec)ses.openChannel("exec");
 
-            if (isWindows(host, ses))
+            if (log != null) {
+                File dir = new File(log).getParentFile();
+
+                if (!dir.exists() || !dir.isDirectory())
+                    log = U.getGridGainHome() + File.separator + log;
+            }
+
+            if (isWindows(ses))
                 ch.setCommand("%GRIDGAIN_HOME%\\" + (script != null ? script : DFLT_SCRIPT_WIN) + " " +
                     (cfg != null ? cfg : "") + " > " + (log != null ? log : DFLT_LOG_PATH_WIN) + "." + i);
             else
@@ -153,13 +160,31 @@ public class GridNodeRunnable implements Runnable {
     }
 
     /**
-     * TODO
+     * Checks whether host is running Windows OS.
      *
-     * @param host
-     * @param ses
-     * @return
+     * @param ses SSH session.
+     * @return Whether host is running Windows OS.
+     * @throws JSchException In case of SSH error.
      */
-    private boolean isWindows(String host, Session ses) {
-        return false;
+    private boolean isWindows(Session ses) throws JSchException {
+        ChannelExec ch = (ChannelExec)ses.openChannel("exec");
+
+        ch.setCommand("cmd.exe");
+
+        try {
+            ch.connect();
+
+            return new BufferedReader(new InputStreamReader(ch.getInputStream())).readLine() != null;
+        }
+        catch (JSchException ignored) {
+            return false;
+        }
+        catch (IOException ignored) {
+            return false;
+        }
+        finally {
+            if (ch.isConnected())
+                ch.disconnect();
+        }
     }
 }

@@ -16,7 +16,7 @@ import java.util.concurrent.*;
  * TODO: add file description.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.09102011
+ * @version 3.5.0c.13102011
  */
 public class GridExecutorServiceMBeanAdapter implements GridExecutorServiceMBean {
     /** */
@@ -113,16 +113,15 @@ public class GridExecutorServiceMBeanAdapter implements GridExecutorServiceMBean
     @Override public boolean isTerminating() {
         assert exec != null;
 
-        return exec instanceof ThreadPoolExecutor ? ((ThreadPoolExecutor)exec).isTerminating() : false;
+        return exec instanceof ThreadPoolExecutor && ((ThreadPoolExecutor) exec).isTerminating();
     }
 
     /** {@inheritDoc} */
     @Override public String getRejectedExecutionHandlerClass() {
         assert exec != null;
 
-        if (exec instanceof ThreadPoolExecutor == false) {
+        if (!(exec instanceof ThreadPoolExecutor))
             return "";
-        }
 
         RejectedExecutionHandler handler = ((ThreadPoolExecutor)exec).getRejectedExecutionHandler();
 
@@ -133,9 +132,8 @@ public class GridExecutorServiceMBeanAdapter implements GridExecutorServiceMBean
     @Override public String getThreadFactoryClass() {
         assert exec != null;
 
-        if (exec instanceof ThreadPoolExecutor == false) {
+        if (!(exec instanceof ThreadPoolExecutor))
             return "";
-        }
 
         ThreadFactory factory = ((ThreadPoolExecutor)exec).getThreadFactory();
 

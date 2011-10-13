@@ -51,7 +51,7 @@ import static org.gridgain.grid.cache.GridCachePreloadMode.*;
  * Cache context.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.09102011
+ * @version 3.5.0c.13102011
  */
 @GridToStringExclude
 public class GridCacheContext<K, V> implements Externalizable {

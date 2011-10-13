@@ -35,7 +35,7 @@ import static org.gridgain.grid.util.nodestart.GridNodeStartUtils.*;
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.09102011
+ * @version 3.5.0c.13102011
  */
 abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements GridProjection {
     /** Empty rich node predicate array. */
@@ -2452,46 +2452,45 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
             new ArrayList<GridTuple3<String, Boolean, String>>();
 
         for (GridHost h : hosts) {
+            InetAddress addr;
+
+            try {
+                addr = InetAddress.getByName(h.host());
+
+                if (addr.isLoopbackAddress() || addr.isLinkLocalAddress())
+                    throw new GridException("Host resolves to loopback address: " + h.host());
+            }
+            catch (UnknownHostException e) {
+                throw new GridException("Invalid host name: " + h.host(), e);
+            }
+
             GridProjection neighbors = null;
 
             for (GridProjection p : neighborhood()) {
-                try {
-                    InetAddress addr = InetAddress.getByName(h.host());
+                if (F.first(F.first(p).internalAddresses()).equals(addr.getHostAddress())) {
+                    neighbors = p;
 
-                    if (addr.isLoopbackAddress() || addr.isLinkLocalAddress())
-                        throw new GridException("Host resolves to loopback address: " + h.host());
-
-                    if (p.iterator().next().internalAddresses().iterator().next().
-                        equals(addr.getHostAddress())) {
-                        neighbors = p;
-
-                        break;
-                    }
-                }
-                catch (UnknownHostException e) {
-                    throw new GridException("Invalid host name: " + h.host(), e);
+                    break;
                 }
             }
+
+            int startIdx = 1;
 
             if (neighbors != null) {
-                int count;
-
-                if (restart) {
+                if (restart)
                     neighbors.withName("grid-kill").execute(new GridKillTask(false), null).get();
-
-                    count = h.nodes();
-                }
                 else
-                    count = h.nodes() - neighbors.size();
-
-                List<GridNodeRunnable> nodeRuns = new ArrayList<GridNodeRunnable>();
-
-                for (int i = 1; i <= count; i++)
-                    nodeRuns.add(new GridNodeRunnable(i, h.host(), h.port(), h.uname(),
-                        h.passwd(), key, script, cfg, log, res));
-
-                hostRuns.add(new GridHostRunnable(ctx.config().getSystemExecutorService(), nodeRuns, 5));
+                    startIdx = neighbors.size() + 1;
             }
+
+            List<GridNodeRunnable> nodeRuns = new ArrayList<GridNodeRunnable>();
+
+            for (int i = startIdx; i <= h.nodes(); i++)
+                nodeRuns.add(new GridNodeRunnable(i, h.host(), h.port(), h.uname(),
+                    h.password(), key, script, cfg, log, res));
+
+            if (!nodeRuns.isEmpty())
+                hostRuns.add(new GridHostRunnable(ctx.config().getSystemExecutorService(), nodeRuns, 5));
         }
 
         Collection<Future<?>> futs = new ArrayList<Future<?>>(hostRuns.size());
