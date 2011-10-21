@@ -32,7 +32,7 @@ import java.util.*;
  * should only change what they need.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** Cache name. */
@@ -79,6 +79,9 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
 
     /** Default lock timeout. */
     private long dfltLockTimeout = DFLT_LOCK_TIMEOUT;
+
+    /** Default query timeout. */
+    private long dfltQryTimeout = DFLT_QUERY_TIMEOUT;
 
     /** Default cache start size. */
     private int startSize = DFLT_START_SIZE;
@@ -212,6 +215,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
         dfltConcurrency = cc.getDefaultTxConcurrency();
         dfltIsolation = cc.getDefaultTxIsolation();
         dfltLockTimeout = cc.getDefaultLockTimeout();
+        dfltQryTimeout = cc.getDefaultQueryTimeout();
         dfltTxTimeout = cc.getDefaultTxTimeout();
         dgcFreq = cc.getDgcFrequency();
         dgcRmvLocks = cc.isDgcRemoveLocks();
@@ -581,6 +585,21 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      */
     public void setDefaultLockTimeout(long dfltLockTimeout) {
         this.dfltLockTimeout = dfltLockTimeout;
+    }
+
+    /** {@inheritDoc} */
+    @Override public long getDefaultQueryTimeout() {
+        return dfltQryTimeout;
+    }
+
+    /**
+     * Sets default query timeout, {@code 0} for never. For more information see
+     * {@link #getDefaultQueryTimeout()}.
+     *
+     * @param dfltQryTimeout Default query timeout.
+     */
+    public void setDefaultQueryTimeout(long dfltQryTimeout) {
+        this.dfltQryTimeout = dfltQryTimeout;
     }
 
     /** {@inheritDoc} */

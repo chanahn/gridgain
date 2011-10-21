@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTxEx<K, V>>
     implements GridCacheMvccFuture<K, V, GridCacheTxEx<K, V>> {
@@ -71,6 +71,9 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
     /** Latch to wait for reply to be sent. */
     @GridToStringExclude
     private CountDownLatch replyLatch = new CountDownLatch(1);
+
+    /** Trackable flag. */
+    private boolean trackable = true;
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -156,6 +159,16 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
             return onDone(tx);
 
         return ret;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
     }
 
     /**
@@ -432,22 +445,28 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
      */
     @SuppressWarnings({"unchecked"})
     private boolean prepare(Iterable<GridCacheTxEntry<K, V>> reads, Iterable<GridCacheTxEntry<K, V>> writes) {
+        boolean hasRemoteNodes = false;
+
         // Assign keys to primary nodes.
         for (GridCacheTxEntry<K, V> read : reads)
-            map(read);
+            hasRemoteNodes |= map(read);
 
         for (GridCacheTxEntry<K, V> write : writes)
-            map(write);
+            hasRemoteNodes |= map(write);
 
         if (isDone())
             return false;
+
+        tx.needsCompletedVersions(hasRemoteNodes);
 
         boolean ret = false;
 
         GridCacheVersion minVer = tx.minVersion();
 
-        Collection<GridCacheVersion> committed = cctx.tm().committedVersions(minVer);
-        Collection<GridCacheVersion> rolledback = cctx.tm().rolledbackVersions(minVer);
+        // Initialize these collections lazily to avoid unnecessary
+        // overhead if they are not needed.
+        Collection<GridCacheVersion> committed = null;
+        Collection<GridCacheVersion> rolledback = null;
 
         // Create mini futures.
         for (GridDistributedTxMapping<K, V> dhtMapping : dhtMap.values()) {
@@ -456,6 +475,12 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
             GridRichNode n = dhtMapping.node();
 
             assert !n.isLocal();
+
+            if (committed == null)
+                committed = cctx.tm().committedVersions(minVer);
+
+            if (rolledback == null)
+                rolledback = cctx.tm().rolledbackVersions(minVer);
 
             ret = true;
 
@@ -486,6 +511,12 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
             if (!dhtMap.containsKey(nearMapping.node().id())) {
                 assert nearMapping.writes() != null;
 
+                if (committed == null)
+                    committed = cctx.tm().committedVersions(minVer);
+
+                if (rolledback == null)
+                    rolledback = cctx.tm().rolledbackVersions(minVer);
+
                 ret = true;
 
                 MiniFuture fut = new MiniFuture(nearMapping.node().id(), null, nearMapping);
@@ -515,9 +546,12 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
 
     /**
      * @param entry Transaction entry.
+     * @return {@code True} if mapped.
      */
-    private void map(GridCacheTxEntry<K, V> entry) {
+    private boolean map(GridCacheTxEntry<K, V> entry) {
         GridDhtCacheEntry<K, V> cached = (GridDhtCacheEntry<K, V>)entry.cached();
+
+        boolean ret = false;
 
         while (true) {
             try {
@@ -542,10 +576,10 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
                     log.debug("Entry has no near readers: " + entry);
 
                 // Exclude local node.
-                map(entry, F.view(dhtNodes, F.remoteNodes(cctx.nodeId())), dhtMap);
+                ret = map(entry, F.view(dhtNodes, F.remoteNodes(cctx.nodeId())), dhtMap);
 
                 // Exclude DHT nodes.
-                map(entry, F.view(nearNodes, F.not(F.<GridNode>nodeForNodeIds(dhtMap.keySet()))), nearMap);
+                ret |= map(entry, F.view(nearNodes, F.not(F.<GridNode>nodeForNodeIds(dhtMap.keySet()))), nearMap);
 
                 break;
             }
@@ -555,16 +589,21 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
                 entry.cached(cached, cached.keyBytes());
             }
         }
+
+        return ret;
     }
 
     /**
      * @param entry Entry.
      * @param nodes Nodes.
      * @param map Map.
+     * @return {@code True} if mapped.
      */
-    private void map(GridCacheTxEntry<K, V> entry, Iterable<GridNode> nodes,
+    private boolean map(GridCacheTxEntry<K, V> entry, Iterable<GridNode> nodes,
         Map<UUID, GridDistributedTxMapping<K, V>> map) {
-        if (nodes != null)
+        boolean ret = false;
+
+        if (nodes != null) {
             for (GridNode n : nodes) {
                 GridDistributedTxMapping<K, V> m = map.get(n.id());
 
@@ -572,7 +611,12 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
                     map.put(n.id(), m = new GridDistributedTxMapping<K, V>(cctx.rich().rich(n)));
 
                 m.add(entry);
+
+                ret = true;
             }
+        }
+
+        return ret;
     }
 
     /** {@inheritDoc} */

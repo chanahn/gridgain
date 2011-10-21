@@ -12,14 +12,13 @@ package org.gridgain.grid;
 import org.jetbrains.annotations.*;
 
 /**
- * Defines life-time scopes for checkpoint and swap space operations. Such operations include:
+ * Defines life-time scopes for checkpoint operations. Such operations include:
  * <ul>
  *      <li>{@link GridTaskSession#saveCheckpoint(String, Object, GridTaskSessionScope , long)}</li>
- *      <li>{@link GridTaskSession#writeToSwap(Object, Object, GridTaskSessionScope)}</li>
  * </ul>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public enum GridTaskSessionScope {
     /**

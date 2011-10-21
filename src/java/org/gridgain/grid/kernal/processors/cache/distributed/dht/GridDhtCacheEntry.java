@@ -25,7 +25,7 @@ import java.util.*;
  * Replicated cache entry.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 @SuppressWarnings({"TooBroadScope"}) public class GridDhtCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     /** Gets node value from reader ID. */
@@ -121,13 +121,14 @@ import java.util.*;
      * @param reenter Reentry flag.
      * @param ec Eventually consistent flag.
      * @param tx Tx flag.
+     * @param implicitSingle Implicit flag.
      * @return New candidate.
      * @throws GridCacheEntryRemovedException If entry has been removed.
      * @throws GridDistributedLockCancelledException If lock was cancelled.
      */
     @Nullable public GridCacheMvccCandidate<K> addDhtLocal(UUID nearNodeId, GridCacheVersion nearVer, long topVer,
-        long threadId, GridCacheVersion ver, long timeout, boolean reenter, boolean ec, boolean tx)
-        throws GridCacheEntryRemovedException, GridDistributedLockCancelledException {
+        long threadId, GridCacheVersion ver, long timeout, boolean reenter, boolean ec, boolean tx,
+        boolean implicitSingle) throws GridCacheEntryRemovedException, GridDistributedLockCancelledException {
         GridCacheMvccCandidate<K> cand;
         GridCacheMvccCandidate<K> prev;
         GridCacheMvccCandidate<K> owner;
@@ -147,7 +148,8 @@ import java.util.*;
 
             boolean emptyBefore = mvcc.isEmpty();
 
-            cand = mvcc.addLocal(this, nearNodeId, nearVer, threadId, ver, timeout, reenter, ec, tx, true);
+            cand = mvcc.addLocal(this, nearNodeId, nearVer, threadId, ver, timeout, reenter, ec, tx, implicitSingle,
+                /*dht-local*/true);
 
             if (cand == null)
                 return null;
@@ -184,11 +186,12 @@ import java.util.*;
 
             // Null is returned if timeout is negative and there is other lock owner.
             return addDhtLocal(dhtTx.nearNodeId(), dhtTx.nearXidVersion(), tx.topologyVersion(), tx.threadId(),
-                tx.xidVersion(), timeout, false, tx.ec(), true) != null;
+                tx.xidVersion(), timeout, /*reenter*/false, tx.ec(), /*tx*/true, tx.implicitSingle()) != null;
         }
 
         try {
-            addRemote(tx.nodeId(), tx.otherNodeId(), tx.threadId(), tx.xidVersion(), tx.timeout(), tx.ec(), true);
+            addRemote(tx.nodeId(), tx.otherNodeId(), tx.threadId(), tx.xidVersion(), tx.timeout(), tx.ec(), /*tx*/true,
+                tx.implicit());
 
             return true;
         }

@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
     implements GridCacheMvccFuture<K, V, Boolean> {
@@ -77,6 +77,9 @@ public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
 
     /** Transaction. */
     private GridCacheTxLocalEx<K, V> tx;
+
+    /** Trackable flag. */
+    private boolean trackable = true;
 
     /**
      * Empty constructor required by {@link Externalizable}.
@@ -148,6 +151,16 @@ public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
         return false;
     }
 
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
+    }
+
     /**
      * @return Lock version.
      */
@@ -167,6 +180,13 @@ public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
      */
     private boolean inTx() {
         return tx != null;
+    }
+
+    /**
+     * @return {@code True} if implicit transaction.
+     */
+    private boolean implicitSingle() {
+        return tx != null && tx.implicitSingle();
     }
 
     /**
@@ -197,7 +217,8 @@ public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
     @Nullable GridCacheMvccCandidate<K> addEntry(GridLocalCacheEntry<K, V> entry)
         throws GridCacheEntryRemovedException {
         // Add local lock first, as it may throw GridCacheEntryRemovedException.
-        GridCacheMvccCandidate<K> c = entry.addLocal(threadId, lockVer, timeout, !inTx(), ec(), inTx());
+        GridCacheMvccCandidate<K> c = entry.addLocal(threadId, lockVer, timeout, !inTx(), ec(), inTx(),
+            implicitSingle());
 
         entries.add(entry);
 
@@ -288,18 +309,16 @@ public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
                     GridCacheEntryEx<K, V> cached = entries.get(i);
 
                     try {
-                        if (!locked(cached)) {
+                        if (!locked(cached))
                             return;
-                        }
 
                         break;
                     }
                     // Possible in concurrent cases, when owner is changed after locks
                     // have been released or cancelled.
                     catch (GridCacheEntryRemovedException ignore) {
-                        if (log.isDebugEnabled()) {
+                        if (log.isDebugEnabled())
                             log.debug("Got removed entry in onOwnerChanged method (will retry): " + cached);
-                        }
 
                         // Replace old entry with new one.
                         entries.add(i, (GridLocalCacheEntry<K,V>)cache.entryEx(cached.key()));
@@ -307,9 +326,8 @@ public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
                 }
             }
 
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled())
                 log.debug("Local lock acquired for entries: " + entries);
-            }
 
             onComplete(true);
         }

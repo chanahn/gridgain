@@ -37,7 +37,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * Discovery SPI manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     /** System line separator. */
@@ -76,7 +76,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     private final AtomicLong lastLoggedTop = new AtomicLong(0);
 
     /** Local node. */
-    private volatile GridNode locNode;
+    private GridNode locNode;
 
     /** Local node daemon flag. */
     private boolean isLocDaemon;
@@ -891,7 +891,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                     }
 
                     case EVT_NODE_SEGMENTED: {
-                        assert F.eqNodes(locNode, node);
+                        assert F.eqNodes(localNode(), node);
 
                         if (nodeSegFired) {
                             if (log.isDebugEnabled()) {
@@ -1088,6 +1088,9 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         /** Daemon nodes. */
         private final List<GridNode> daemonNodes;
 
+        /** Node map. */
+        private final Map<UUID, GridNode> nodeMap;
+
         /**
          * @param loc Local node.
          * @param rmts Remote nodes.
@@ -1106,6 +1109,13 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
 
             daemonNodes = Collections.unmodifiableList(new ArrayList<GridNode>(
                 F.view(F.concat(false, loc, rmts), F.not(daemonFilter))));
+
+            Map<UUID, GridNode> nodeMap = new HashMap<UUID, GridNode>(allNodes().size());
+
+            for (GridNode n : allNodes())
+                nodeMap.put(n.id(), n);
+
+            this.nodeMap = nodeMap;
         }
 
         /**
@@ -1127,6 +1137,14 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
          */
         Collection<GridNode> daemonNodes() {
             return daemonNodes;
+        }
+
+        /**
+         * @param id Node ID.
+         * @return Node.
+         */
+        @Nullable GridNode node(UUID id) {
+            return nodeMap.get(id);
         }
 
         /** {@inheritDoc} */

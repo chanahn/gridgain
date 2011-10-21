@@ -32,6 +32,7 @@ import org.springframework.beans.factory.support.*;
 import org.springframework.beans.factory.xml.*;
 import org.springframework.core.io.*;
 import sun.misc.*;
+
 import javax.mail.*;
 import javax.mail.Authenticator;
 import javax.mail.internet.*;
@@ -67,7 +68,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Collection of utility methods used throughout the system.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -1494,7 +1495,7 @@ public abstract class GridUtils {
      * Verifier always returns successful result for any host.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.13102011
+     * @version 3.5.0c.20102011
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.
@@ -1791,6 +1792,17 @@ public abstract class GridUtils {
             res = file.delete();
 
         return res;
+    }
+
+    /**
+     * @param dir Directory to create along with all non-existent parent directories.
+     * @return {@code True} if directory exists (has been created or already existed),
+     *      {@code false} if has not been created and does not exist.
+     */
+    public static boolean mkdirs(File dir) {
+        assert dir != null;
+
+        return dir.mkdirs() || dir.exists();
     }
 
     /**
@@ -2795,6 +2807,21 @@ public abstract class GridUtils {
             }
             catch (Exception e) {
                 warn(log, "Failed to close resource: " + e.getMessage());
+            }
+    }
+
+    /**
+     * Quietly releases file lock ignoring all possible exceptions.
+     *
+     * @param lock File lock. If it's {@code null} - it's no-op.
+     */
+    public static void releaseQuiet(@Nullable FileLock lock) {
+        if (lock != null)
+            try {
+                lock.release();
+            }
+            catch (Exception ignored) {
+                // No-op.
             }
     }
 
@@ -5214,6 +5241,33 @@ public abstract class GridUtils {
     }
 
     /**
+     * Awaits for the latch until it is counted down,
+     * ignoring interruptions.
+     * <p>
+     * If calling thread was interrupted, interrupted status will be
+     * recovered prior to return.
+     *
+     * @param latch Latch to wait for.
+     */
+    public static void awaitQuiet(CountDownLatch latch) {
+        boolean interrupted = false;
+
+        while (true) {
+            try {
+                latch.await();
+
+                break;
+            }
+            catch (InterruptedException ignored) {
+                interrupted = true;
+            }
+        }
+
+        if (interrupted)
+            Thread.currentThread().interrupt();
+    }
+
+    /**
      * Sleeps for given number of milliseconds.
      *
      * @param ms Time to sleep.
@@ -5518,6 +5572,33 @@ public abstract class GridUtils {
         }
 
         return log;
+    }
+
+    /**
+     * @param hash Hash code of the object to put.
+     * @param concurLvl Concurrency level.
+     * @return Segment index.
+     */
+    public static int concurrentMapSegment(int hash, int concurLvl) {
+        hash += (hash <<  15) ^ 0xffffcd7d;
+        hash ^= (hash >>> 10);
+        hash += (hash <<   3);
+        hash ^= (hash >>>  6);
+        hash += (hash <<   2) + (hash << 14);
+
+        int sshift = 0;
+        int ssize = 1;
+
+        while (ssize < concurLvl) {
+            ++sshift;
+            ssize <<= 1;
+        }
+
+        int segmentShift = 32 - sshift;
+        int segmentMask = ssize - 1;
+
+
+        return (hash >>> segmentShift) & segmentMask;
     }
 
     /**

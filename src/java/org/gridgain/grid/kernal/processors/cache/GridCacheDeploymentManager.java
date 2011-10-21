@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.*;
  * Deployment manager for cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
     /** Node filter. */
@@ -177,10 +177,7 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
 
                                 if (res) {
                                     try {
-                                        boolean b = cctx.swap().remove(entry.getOrMarshalKeyBytes());
-
-                                        if (b && log.isDebugEnabled())
-                                            log.debug("Removed entry from swap: " + k);
+                                        cctx.swap().remove(k, entry.getOrMarshalKeyBytes());
                                     }
                                     catch (GridException ex) {
                                         U.error(log, "Failed to undeploy swapped entry: " + e, ex);

@@ -28,7 +28,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Replicated cache transaction future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 final class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
     implements GridCacheMvccFuture<K, V, GridCacheTxEx<K, V>> {
@@ -55,6 +55,9 @@ final class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V
     /** Logger. */
     @GridToStringExclude
     private GridLogger log;
+
+    /** Trackable flag. */
+    private boolean trackable = true;
 
     /**
      * Empty constructor required by {@link Externalizable}.
@@ -100,6 +103,16 @@ final class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V
     @Override public boolean onNodeLeft(UUID nodeId) {
         // No-op.
         return false;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
     }
 
     /**
@@ -180,14 +193,12 @@ final class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V
 
                         // Another thread or transaction owns some lock.
                         if (!entry.lockedByThread(tx.threadId())) {
-                            if (tx.pessimistic()) {
+                            if (tx.pessimistic())
                                 onError(new GridException("Pessimistic transaction does not own lock for commit: " + tx));
-                            }
 
-                            if (log.isDebugEnabled()) {
+                            if (log.isDebugEnabled())
                                 log.debug("Transaction entry is not locked by transaction (will wait) [entry=" + entry +
                                     ", tx=" + tx + ']');
-                            }
 
                             return;
                         }
@@ -196,9 +207,8 @@ final class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V
                     }
                     // If entry cached within transaction got removed before lock.
                     catch (GridCacheEntryRemovedException ignore) {
-                        if (log.isDebugEnabled()) {
+                        if (log.isDebugEnabled())
                             log.debug("Got removed entry in checkLocks method (will retry): " + txEntry);
-                        }
 
                         txEntry.cached(cctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
                     }
@@ -216,9 +226,8 @@ final class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V
      */
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     @Override public boolean onOwnerChanged(GridCacheEntryEx<K, V> entry, GridCacheMvccCandidate<K> owner) {
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug("Transaction future received owner changed callback [owner=" + owner + ", entry=" + entry + ']');
-        }
 
         // For eventually consistent transactions, we commit as locks come.
         if (!tx.ec()) {
@@ -236,10 +245,9 @@ final class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V
 
                         // Don't compare entry against itself.
                         if (cached != entry && !cached.lockedLocally(tx.xid())) {
-                            if (log.isDebugEnabled()) {
+                            if (log.isDebugEnabled())
                                 log.debug("Transaction entry is not locked by transaction (will wait) [entry=" + entry +
                                     ", tx=" + tx + ']');
-                            }
 
                             return true;
                         }
@@ -248,9 +256,8 @@ final class GridLocalTxFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V
                     }
                     // If entry cached within transaction got removed before lock.
                     catch (GridCacheEntryRemovedException ignore) {
-                        if (log.isDebugEnabled()) {
+                        if (log.isDebugEnabled())
                             log.debug("Got removed entry in onOwnerChanged method (will retry): " + txEntry);
-                        }
 
                         txEntry.cached(cctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
                     }

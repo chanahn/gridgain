@@ -9,14 +9,11 @@
 
 package org.gridgain.grid.thread;
 
-import org.gridgain.grid.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.worker.*;
 
 import java.io.*;
 import java.net.*;
-import java.text.*;
-import java.util.*;
 import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.GridSystemProperties.*;
@@ -32,12 +29,9 @@ import static org.gridgain.grid.GridSystemProperties.*;
  * <b>Note</b>: this class is intended for internal use only.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridThread extends Thread {
-    /** */
-    private static final Map<Thread, String> emailHeaders = new HashMap<Thread, String>();
-
     /** Default thread's group. */
     private static final ThreadGroup DFLT_GRP = new ThreadGroup("gridgain") {
         @Override public void uncaughtException(Thread t, Throwable e) {
@@ -51,8 +45,7 @@ public class GridThread extends Thread {
             if (e instanceof AssertionError) {
                 SB params = new SB();
 
-                params.a("header=").a(emailHeaders.get(t)).a("thread=").a(t.getName()).
-                    a("&").a("message=").a(e.getMessage());
+                params.a("thread=").a(t.getName()).a("&message=").a(e.getMessage());
 
                 StackTraceElement[] trace = e.getStackTrace();
 
@@ -73,7 +66,7 @@ public class GridThread extends Thread {
                 HttpURLConnection conn = null;
 
                 try {
-                    URL url = new URL("http://localhost:81/assert.php");
+                    URL url = new URL("http://www.gridgain.com/assert.php");
 
                     conn = (HttpURLConnection)url.openConnection();
 
@@ -134,31 +127,6 @@ public class GridThread extends Thread {
      */
     public GridThread(ThreadGroup grp, String gridName, String threadName, Runnable r) {
         super(grp, r, createName(threadCntr.incrementAndGet(), threadName, gridName));
-
-//        if (grp == DFLT_GRP)
-//            emailHeaders.put(this, createEmailHeader(G.grid(gridName)));
-    }
-
-    /**
-     * Creates assertion email header for current grid.
-     *
-     * @param grid Grid.
-     * @return Header for assertion email.
-     */
-    private static String createEmailHeader(Grid grid) {
-        GridEnterpriseLicense lic = grid.license();
-
-        SB sb = new SB();
-
-        sb.a("Error time: ").a(new SimpleDateFormat("MM/dd/yy, HH:mm:ss").format(new Date())).a("\n").
-            a("Grid name: ").a(grid.name()).a("\n").
-            a("Edition: ").a(lic != null ? "Enterprise" : "Community").a("\n");
-
-        if (lic != null)
-            sb.a("License ID: ").a(lic.getId().toString().toUpperCase()).a("\n").
-                a("Licensed to: ").a(lic.getUserOrganization());
-
-        return sb.toString().trim();
     }
 
     /**

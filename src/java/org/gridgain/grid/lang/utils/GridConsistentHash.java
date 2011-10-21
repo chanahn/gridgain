@@ -28,7 +28,7 @@ import java.util.concurrent.locks.*;
  * <a href="http://weblogs.java.net/blog/tomwhite/archive/2007/11/consistent_hash.html">Tom White's Blog</a>.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridConsistentHash<N> implements Serializable {
     /**
@@ -177,6 +177,8 @@ public class GridConsistentHash<N> implements Serializable {
             return longToBytes(Double.doubleToRawLongBits((Double)o));
         }
 
+        assert o != null;
+
         return intToBytes(o.hashCode());
     }
 
@@ -242,12 +244,12 @@ public class GridConsistentHash<N> implements Serializable {
     private final Hasher hasher;
 
     /** Map of hash assignments. */
-    private final SortedMap<Integer, N> circle = new TreeMap<Integer, N>();
+    private final NavigableMap<Integer, N> circle = new TreeMap<Integer, N>();
 
     /** Read/write lock. */
     private final ReadWriteLock rw = new ReentrantReadWriteLock();
 
-    /** Disctinct nodes in the hash. */
+    /** Distinct nodes in the hash. */
     private Collection<N> nodes = new HashSet<N>();
 
     /**
@@ -539,14 +541,17 @@ public class GridConsistentHash<N> implements Serializable {
         rw.readLock().lock();
 
         try {
-            if (circle.isEmpty()) {
-                return null;
-            }
+            Map.Entry<Integer, N> firstEntry = circle.firstEntry();
 
-            SortedMap<Integer, N> tailMap = circle.tailMap(hash);
+            if (firstEntry == null)
+                return null;
+
+            NavigableMap<Integer, N> tailMap = circle.tailMap(hash, true);
+
+            Map.Entry<Integer, N> tailEntry = tailMap.firstEntry();
 
             // Get first node hash in the circle clock-wise.
-            return circle.get(tailMap.isEmpty() ? circle.firstKey() : tailMap.firstKey());
+            return circle.get(tailEntry == null ? firstEntry.getKey() : tailEntry.getKey());
         }
         finally {
             rw.readLock().unlock();
@@ -577,9 +582,8 @@ public class GridConsistentHash<N> implements Serializable {
      */
     @Nullable public N node(@Nullable Object key, @Nullable final Collection<N> inc,
         @Nullable final Collection<N> exc) {
-        if (inc == null && exc == null) {
+        if (inc == null && exc == null)
             return node(key);
-        }
 
         return node(key, new GridPredicate<N>() {
             @Override public boolean apply(N n) {
@@ -596,21 +600,20 @@ public class GridConsistentHash<N> implements Serializable {
      * @return Node for key, or {@code null} if node was not found.
      */
     @Nullable public N node(@Nullable Object key, @Nullable GridPredicate<N>... p) {
-        if (p == null) {
+        if (p == null || p.length == 0)
             return node(key);
-        }
 
         int hash = hash(key);
 
         rw.readLock().lock();
 
         try {
-            if (circle.isEmpty())
+            int size = circle.size();
+
+            if (size == 0)
                 return null;
 
-            SortedMap<Integer, N> tailMap = circle.tailMap(hash);
-
-            int size = circle.size();
+            NavigableMap<Integer, N> tailMap = circle.tailMap(hash, true);
 
             // Move clock-wise starting from selected position.
             int idx = 0;

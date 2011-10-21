@@ -24,7 +24,7 @@ import java.util.*;
  * Base for all messages in replicated cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public abstract class GridDistributedBaseMessage<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable,
     GridCacheVersionable {
@@ -155,13 +155,11 @@ public abstract class GridDistributedBaseMessage<K, V> extends GridCacheMessage<
         assert idx < cnt;
 
         // If nothing to add.
-        if (candsByIdx == null || candsByIdx.isEmpty()) {
+        if (candsByIdx == null || candsByIdx.isEmpty())
             return;
-        }
 
-        if (this.candsByIdx == null) {
+        if (this.candsByIdx == null)
             this.candsByIdx = new Collection[cnt];
-        }
 
         this.candsByIdx[idx] = candsByIdx;
     }
@@ -179,9 +177,8 @@ public abstract class GridDistributedBaseMessage<K, V> extends GridCacheMessage<
      * @param candsByKey Collection of local candidates.
      */
     public void candidatesByKey(K key, Collection<GridCacheMvccCandidate<K>> candsByKey) {
-        if (this.candsByKey == null) {
+        if (this.candsByKey == null)
             this.candsByKey = new HashMap<K, Collection<GridCacheMvccCandidate<K>>>(1, 1.0f);
-        }
 
         this.candsByKey.put(key, candsByKey);
     }
@@ -194,9 +191,8 @@ public abstract class GridDistributedBaseMessage<K, V> extends GridCacheMessage<
     @Nullable public Collection<GridCacheMvccCandidate<K>> candidatesByKey(K key) {
         assert key != null;
 
-        if (candsByKey == null) {
+        if (candsByKey == null)
             return null;
-        }
 
         return candsByKey.get(key);
     }
@@ -217,11 +213,9 @@ public abstract class GridDistributedBaseMessage<K, V> extends GridCacheMessage<
         // Serialize candidates by index.
         out.writeInt(candsByIdx == null ? 0 : candsByIdx.length); // Size1
 
-        if (candsByIdx != null) {
-            for (Collection<GridCacheMvccCandidate<K>> cands : candsByIdx) {
+        if (candsByIdx != null)
+            for (Collection<GridCacheMvccCandidate<K>> cands : candsByIdx)
                 U.writeCollection(out, cands);
-            }
-        }
 
         // Serialize candidates by key.
         U.writeByteArray(out, candsByKeyBytes);
@@ -243,9 +237,8 @@ public abstract class GridDistributedBaseMessage<K, V> extends GridCacheMessage<
         if (size > 0) {
             candsByIdx = new Collection[size];
 
-            for (int i = 0; i < size; i++) {
+            for (int i = 0; i < size; i++)
                 candsByIdx[i] = U.readCollection(in);
-            }
         }
 
         // Deserialize candidates by key.
@@ -254,13 +247,11 @@ public abstract class GridDistributedBaseMessage<K, V> extends GridCacheMessage<
         committedVers = U.readCollection(in);
         rolledbackVers = U.readCollection(in);
 
-        if (committedVers == null) {
+        if (committedVers == null)
             committedVers = Collections.emptyList();
-        }
 
-        if (rolledbackVers == null) {
+        if (rolledbackVers == null)
             rolledbackVers = Collections.emptyList();
-        }
     }
 
     /** {@inheritDoc} */

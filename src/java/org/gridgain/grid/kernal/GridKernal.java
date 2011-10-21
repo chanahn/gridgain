@@ -57,6 +57,7 @@ import org.gridgain.grid.util.future.*;
 import org.gridgain.grid.util.worker.*;
 import org.jetbrains.annotations.*;
 import org.springframework.context.*;
+
 import javax.management.*;
 import java.io.*;
 import java.lang.management.*;
@@ -78,14 +79,14 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * misspelling.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridKernal extends GridProjectionAdapter implements Grid, GridKernalMBean, Externalizable {
     /** Ant-augmented version number. */
     private static final String VER = "3.5.0c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "13102011";
+    private static final String BUILD = "20102011";
 
     /** Ant-augmented copyright blurb. */
     private static final String COPYRIGHT = "2005-2011 Copyright (C) GridGain Systems, Inc.";
@@ -563,6 +564,12 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         ackSmtpConfiguration();
         ackCacheConfiguration();
         ackP2pConfiguration();
+
+        // Ensure that 'java.net.preferIPv4Stack' system property is 'true'.
+        if (!"true".equals(System.getProperty("java.net.preferIPv4Stack")))
+            U.warn(log, "'java.net.preferIPv4Stack' system property is not 'true'. Ensure that " +
+                "all hosts in the grid use the same version of IP protocol (v4 or v6).",
+                "'java.net.preferIPv4Stack' system property is not 'true'.");
 
         // Run background network diagnostics.
         GridDiagnostic.runBackgroundCheck(gridName, cfg.getExecutorService(), log);
@@ -2587,16 +2594,14 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     }
 
     /** {@inheritDoc} */
-    @Override public void writeToSwap(@Nullable String space, Object key, @Nullable Object val) throws GridException {
+    @Override public void writeToSwap(@Nullable String space, Object key, @Nullable Object val,
+        @Nullable ClassLoader ldr) throws GridException {
         A.notNull(key, "key");
 
         guard();
 
         try {
-            if (space == null)
-                ctx.swap().writeGlobal(key, val);
-            else
-                ctx.swap().write(space, key, val);
+            ctx.swap().write(space, key, val, ldr);
         }
         finally {
             unguard();
@@ -2604,45 +2609,46 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     }
 
     /** {@inheritDoc} */
-    @Nullable
-    @Override public <T> T readFromSwap(@Nullable String space, Object key) throws GridException {
-        A.notNull(key, "key");
-
-        guard();
-
-        try {
-            return space == null ? ctx.swap().<T>readGlobal(key) : ctx.swap().<T>read(space, key);
-        }
-        finally {
-            unguard();
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean removeFromSwap(@Nullable String space, Object key, final GridInClosure<Object> c)
+    @SuppressWarnings({"RedundantTypeArguments"})
+    @Nullable @Override public <T> T readFromSwap(@Nullable String space, Object key, @Nullable ClassLoader ldr)
         throws GridException {
         A.notNull(key, "key");
 
         guard();
 
         try {
-            GridInClosureX<GridSwapByteArray> c1 = null;
+            return ctx.swap().<T>read(space, key, ldr);
+        }
+        finally {
+            unguard();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public void removeFromSwap(@Nullable String space, Object key, final GridInClosure<Object> c,
+        @Nullable final ClassLoader ldr) throws GridException {
+        A.notNull(key, "key");
+
+        guard();
+
+        try {
+            GridInClosureX<byte[]> c1 = null;
 
             if (c != null)
-                c1 = new CIX1<GridSwapByteArray>() {
-                    @Override public void applyx(GridSwapByteArray removed) throws GridException {
+                c1 = new CIX1<byte[]>() {
+                    @Override public void applyx(byte[] removed) throws GridException {
                         Object val = null;
 
+                        ClassLoader ldr0 = ldr != null ? ldr : classLoader();
+
                         if (removed != null)
-                            val = U.unmarshal(cfg.getMarshaller(), new ByteArrayInputStream(
-                                removed.getArray(), removed.getOffset(), removed.getLength()),
-                                getClass().getClassLoader());
+                            val = U.unmarshal(cfg.getMarshaller(), new ByteArrayInputStream(removed), ldr0);
 
                         c.apply(val);
                     }
                 };
 
-            return space == null ? ctx.swap().removeGlobal(key, c1) : ctx.swap().remove(space, key, c1);
+            ctx.swap().remove(space, key, c1, ldr);
         }
         finally {
             unguard();
@@ -2654,10 +2660,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         guard();
 
         try {
-            if (space == null)
-                ctx.swap().clearGlobal();
-            else
-                ctx.swap().clear(space);
+            ctx.swap().clear(space);
         }
         finally {
             unguard();
@@ -2678,7 +2681,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         try {
             return new GridProjectionImpl(this, ctx, F.viewReadOnly(nodeIds, new C1<UUID, GridRichNode>() {
                 @SuppressWarnings("unchecked")
-                @Override public GridRichNode apply(UUID nodeId) {
+                @Nullable @Override public GridRichNode apply(UUID nodeId) {
                     return node(nodeId, null);
                 }
             }));

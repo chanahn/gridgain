@@ -23,7 +23,7 @@ import java.util.*;
  * Distributed cache implementation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public abstract class GridDistributedCacheAdapter<K, V> extends GridCacheAdapter<K, V> {
     /**
@@ -44,6 +44,7 @@ public abstract class GridDistributedCacheAdapter<K, V> extends GridCacheAdapter
     /** {@inheritDoc} */
     @Override public abstract GridCacheTxLocalAdapter<K, V> newTx(
         boolean implicit,
+        boolean implicitSingle,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
         long timeout,

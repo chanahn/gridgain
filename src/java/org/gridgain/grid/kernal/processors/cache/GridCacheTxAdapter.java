@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Managed transaction adapter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     implements GridCacheTxEx<K, V>, Externalizable {
@@ -47,6 +47,10 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     /** Implicit flag. */
     @GridToStringInclude
     protected boolean implicit;
+
+    /** Implicit with one key flag. */
+    @GridToStringInclude
+    protected boolean implicitSingle;
 
     /** Local flag. */
     @GridToStringInclude
@@ -160,6 +164,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
      * @param cctx Cache registry.
      * @param xidVer Transaction ID.
      * @param implicit Implicit flag.
+     * @param implicitSingle Implicit with one key flag.
      * @param local Local flag.
      * @param concurrency Concurrency.
      * @param isolation Isolation.
@@ -172,6 +177,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         GridCacheContext<K, V> cctx,
         GridCacheVersion xidVer,
         boolean implicit,
+        boolean implicitSingle,
         boolean local,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
@@ -185,6 +191,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         this.cctx = cctx;
         this.xidVer = xidVer;
         this.implicit = implicit;
+        this.implicitSingle = implicitSingle;
         this.local = local;
         this.concurrency = concurrency;
         this.isolation = isolation;
@@ -244,6 +251,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         this.storeEnabled = storeEnabled;
 
         implicit = false;
+        implicitSingle = false;
         local = false;
 
         threadName = Thread.currentThread().getName();
@@ -353,6 +361,11 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     /** {@inheritDoc} */
     @Override public boolean implicit() {
         return implicit;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean implicitSingle() {
+        return implicitSingle;
     }
 
     /** {@inheritDoc} */
@@ -565,6 +578,11 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
             rollback();
 
         awaitCompletion();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean needsCompletedVersions() {
+        return false;
     }
 
     /** {@inheritDoc} */

@@ -62,7 +62,7 @@ import java.util.concurrent.atomic.*;
  * at http://creativecommons.org/publicdomain/zero/1.0/
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 @SuppressWarnings( {"ALL"})
 public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implements Deque<E> {
@@ -1574,25 +1574,33 @@ public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implemen
         // Copy c into a private chain of Nodes
         Node<E> beginningOfTheEnd = null, last = null;
 
+        int s = 0;
+
         for (E e : c) {
             checkNotNull(e);
 
             Node<E> newNode = new Node<E>(e);
 
-            if (beginningOfTheEnd == null)
+            if (beginningOfTheEnd == null) {
                 beginningOfTheEnd = last = newNode;
 
+                s++;
+            }
             else {
                 last.lazySetNext(newNode);
 
                 newNode.lazySetPrev(last);
 
                 last = newNode;
+
+                s++;
             }
         }
 
         if (beginningOfTheEnd == null)
             return false;
+
+        size.addAndGet(s);
 
         // Atomically append the chain at the tail of this collection
         restartFromTail:

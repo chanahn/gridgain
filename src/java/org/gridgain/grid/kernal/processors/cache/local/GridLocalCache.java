@@ -24,7 +24,7 @@ import java.util.*;
  * Local cache implementation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridLocalCache<K, V> extends GridCacheAdapter<K, V> {
     /** */
@@ -65,6 +65,7 @@ public class GridLocalCache<K, V> extends GridCacheAdapter<K, V> {
     /** {@inheritDoc} */
     @Override public GridCacheTxLocalAdapter<K, V> newTx(
         boolean implicit,
+        boolean implicitSingle,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
         long timeout,
@@ -76,6 +77,7 @@ public class GridLocalCache<K, V> extends GridCacheAdapter<K, V> {
         return new GridLocalTx<K, V>(
             ctx,
             implicit,
+            implicitSingle,
             concurrency,
             isolation,
             timeout,
@@ -162,9 +164,8 @@ public class GridLocalCache<K, V> extends GridCacheAdapter<K, V> {
                 }
             }
 
-            if (!ctx.mvcc().addFuture(fut)) {
+            if (!ctx.mvcc().addFuture(fut))
                 fut.onError(new GridException("Duplicate future ID (internal error): " + fut));
-            }
 
             // Must have future added prior to checking locks.
             fut.checkLocks();

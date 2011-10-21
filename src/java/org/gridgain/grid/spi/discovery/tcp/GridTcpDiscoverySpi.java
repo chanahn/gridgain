@@ -145,14 +145,14 @@ import static org.gridgain.grid.spi.discovery.tcp.topologystore.GridTcpDiscovery
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  * @see GridDiscoverySpi
  */
 @GridSpiInfo(
     author = "GridGain Systems, Inc.",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.5.0c.13102011")
+    version = "3.5.0c.20102011")
 @GridSpiMultipleInstancesSupport(true)
 @GridDiscoverySpiOrderSupport(true)
 @GridDiscoverySpiReconnectSupport(true)
@@ -338,6 +338,9 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
 
     /** SPI reconnect flag to filter initial node connected event. */
     private volatile boolean recon;
+
+    /** Default class loader for SPI. */
+    private final ClassLoader dfltClsLdr = getClass().getClassLoader();
 
     /** Mutex. */
     private final Object mux = new Object();
@@ -690,7 +693,8 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
         if (topStore != null)
             res.add(topStore);
 
-        res.add(ipFinder);
+        if (ipFinder != null)
+            res.add(ipFinder);
 
         return res;
     }
@@ -1312,7 +1316,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
 
         Socket sock = null;
 
-        for (int i = 0; i < reconCnt; i++)
+        for (int i = 0; i < reconCnt; i++) {
             try {
                 long tstamp = System.currentTimeMillis();
 
@@ -1339,13 +1343,24 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
 
                 if (readRes) {
                     // Response is required.
-                    InputStream in = sock.getInputStream();
+                    try {
+                        res = marsh.<T>unmarshal(sock.getInputStream(), getClass().getClassLoader());
 
-                    res = marsh.<T>unmarshal(in, getClass().getClassLoader());
+                        if (log.isDebugEnabled())
+                            log.debug("Received response for message [res=" + res + ", msg=" + msg +
+                                ", remoteAddr=" + addr + ']');
+                    }
+                    catch (ClassCastException e) {
+                        // This issue is rarely reproducible on AmazonEC2, but never
+                        // on dedicated machines.
+                        if (log.isDebugEnabled())
+                            log.debug("Class cast exception on join request send: " + e.getMessage());
 
-                    if (log.isDebugEnabled())
-                        log.debug("Received response for message [res=" + res + ", msg=" + msg +
-                            ", remoteAddr=" + addr + ']');
+                        if (err == null)
+                            err = e;
+
+                        continue;
+                    }
                 }
 
                 stats.onMessageSent(msg, System.currentTimeMillis() - tstamp);
@@ -1353,16 +1368,17 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
                 return res;
             }
             catch (IOException e) {
-                if (err == null)
+                if (err == null  || err instanceof ClassCastException)
                     err = e;
             }
             catch (GridException e) {
-                if (err == null)
+                if (err == null  || err instanceof ClassCastException)
                     err = e;
             }
             finally {
                 U.closeQuiet(sock);
             }
+        }
 
         throw new GridSpiException("Failed to send message directly to address [addr=" + addr +
             ", msg=" + msg + ']', err);
@@ -3373,8 +3389,6 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
         /** {@inheritDoc} */
         @Override protected void body() throws InterruptedException {
             try {
-                ClassLoader ldr = getClass().getClassLoader();
-
                 InputStream input;
 
                 UUID nodeId;
@@ -3406,7 +3420,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
 
                 while (!isInterrupted())
                     try {
-                        GridTcpDiscoveryAbstractMessage msg = marsh.unmarshal(input, ldr);
+                        GridTcpDiscoveryAbstractMessage msg = marsh.unmarshal(input, dfltClsLdr);
 
                         assert msg != null;
 

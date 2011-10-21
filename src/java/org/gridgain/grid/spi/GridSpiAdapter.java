@@ -30,7 +30,7 @@ import static org.gridgain.grid.GridEventType.*;
  * This class provides convenient adapter for SPI implementations.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean, GridSpiJsonConfigurable {
     /** System line separator. */
@@ -194,7 +194,7 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
      * This method returns SPI internal instances that need to be injected as well.
      * Usually these will be instances provided to SPI externally by user, e.g. during
      * SPI configuration.
-     * 
+     *
      * @return Internal SPI objects that also need to be injected.
      */
     public Collection<Object> injectables() {
@@ -257,7 +257,9 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
      *
      * @return Uniformly format message for SPI stop.
      */
-    protected final String stopInfo() { return "SPI stopped ok."; }
+    protected final String stopInfo() {
+        return "SPI stopped ok.";
+    }
 
     /**
      * Gets uniformed string for configuration parameter.
@@ -469,7 +471,7 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
      * Temporarily SPI context.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.13102011
+     * @version 3.5.0c.20102011
      */
     private static class GridDummySpiContext implements GridSpiContext {
         /** */
@@ -546,18 +548,21 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
         }
 
         /** {@inheritDoc} */
-        @Override public void writeToSwap(String spaceName, Object key, @Nullable Object val) throws GridException {
+        @Override public void writeToSwap(String spaceName, Object key, @Nullable Object val,
+            @Nullable ClassLoader ldr) throws GridException {
             /* No-op. */
         }
 
         /** {@inheritDoc} */
-        @Override public <T> T readFromSwap(String spaceName, Object key) throws GridException {
+        @Override public <T> T readFromSwap(String spaceName, Object key, @Nullable ClassLoader ldr)
+            throws GridException {
             return null;
         }
 
         /** {@inheritDoc} */
-        @Override public boolean removeFromSwap(String spaceName, Object key) throws GridException {
-            return false;
+        @Override public void removeFromSwap(String spaceName, Object key, @Nullable ClassLoader ldr)
+            throws GridException {
+            // No-op.
         }
 
         /** {@inheritDoc} */

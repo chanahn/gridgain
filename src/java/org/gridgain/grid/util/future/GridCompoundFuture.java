@@ -13,6 +13,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
@@ -20,23 +21,22 @@ import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 /**
  * Future composed of multiple inner futures.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> {
     /** Futures. */
     @GridToStringInclude
-    private final Collection<GridFuture<T>> futs = new ConcurrentLinkedQueue<GridFuture<T>>();
+    private final GridConcurrentLinkedDeque<GridFuture<T>> futs = new GridConcurrentLinkedDeque<GridFuture<T>>();
 
     /** Pending futures. */
     @GridToStringExclude
-    private final Collection<GridFuture<T>> pending = new ConcurrentLinkedQueue<GridFuture<T>>();
+    private final Collection<GridFuture<T>> pending = new GridConcurrentLinkedDeque<GridFuture<T>>();
 
     /** Listener call count. */
     private final AtomicInteger lsnrCalls = new AtomicInteger();
@@ -212,7 +212,7 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> {
      * Check completeness of the future.
      */
     private void checkComplete() {
-        if (init.get() && lsnrCalls.get() == futs.size() && finished.compareAndSet(false, true)) {
+        if (init.get() && lsnrCalls.get() == futs.sizex() && finished.compareAndSet(false, true)) {
             R res = null;
 
             try {

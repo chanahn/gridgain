@@ -25,7 +25,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Local cache transaction.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 class GridLocalTx<K, V> extends GridCacheTxLocalAdapter<K, V> {
     /** Transaction future. */
@@ -42,6 +42,7 @@ class GridLocalTx<K, V> extends GridCacheTxLocalAdapter<K, V> {
      * @param ctx Cache registry.
      * @param implicit {@code True} if transaction is implicitly created by the system,
      *      {@code false} if user explicitly created the transaction.
+     * @param implicitSingle Implicit with single kye flag.
      * @param concurrency Concurrency.
      * @param isolation Isolation.
      * @param timeout Timeout.
@@ -52,14 +53,15 @@ class GridLocalTx<K, V> extends GridCacheTxLocalAdapter<K, V> {
     GridLocalTx(
         GridCacheContext<K, V> ctx,
         boolean implicit,
+        boolean implicitSingle,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
         long timeout,
         boolean invalidate,
         boolean swapEnabled,
         boolean storeEnabled) {
-        super(ctx, ctx.versions().next(), implicit, concurrency, isolation, timeout, invalidate, swapEnabled,
-            storeEnabled);
+        super(ctx, ctx.versions().next(), implicit, implicitSingle, concurrency, isolation, timeout, invalidate,
+            swapEnabled, storeEnabled);
     }
 
     /** {@inheritDoc} */

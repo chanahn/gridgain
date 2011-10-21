@@ -34,7 +34,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * Adapter for cache entry.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapter implements GridCacheEntryEx<K, V> {
@@ -271,7 +271,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
             if (val != null)
                 clsLdrId = cctx.deploy().getClassLoaderId(val.getClass().getClassLoader());
 
-            cctx.swap().write(getOrMarshalKeyBytes(), valBytes, ver, ttl, expireTime, metrics, clsLdrId);
+            cctx.swap().write(key(), getOrMarshalKeyBytes(), valBytes, ver, ttl, expireTime, metrics, clsLdrId);
 
             cctx.events().addEvent(partition(), key, cctx.nodeId(), (GridUuid)null, null,
                 EVT_CACHE_OBJECT_SWAPPED, null, null);
@@ -289,7 +289,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
             lock();
 
             try {
-                cctx.swap().remove(getOrMarshalKeyBytes());
+                cctx.swap().remove(key(), getOrMarshalKeyBytes());
             }
             finally {
                 unlock();
@@ -1676,6 +1676,18 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
             checkObsolete();
 
             return mvcc.isLocallyOwnedByThread(threadId, exclude);
+        }
+        finally {
+            unlock();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean lockedLocallyByIdOrThread(GridUuid lockId, long threadId) throws GridCacheEntryRemovedException {
+        lock();
+
+        try {
+            return mvcc.isLocallyOwnedByIdOrThread(lockId, threadId);
         }
         finally {
             unlock();

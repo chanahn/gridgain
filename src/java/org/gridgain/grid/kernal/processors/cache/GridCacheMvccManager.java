@@ -33,7 +33,7 @@ import static org.gridgain.grid.util.GridConcurrentFactory.*;
  * Manages lock order within a thread.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
     /** Maxim number of removed locks. */
@@ -46,16 +46,12 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
     private Collection<GridCacheVersion> rmvLocks =
         new GridBoundedConcurrentOrderedSet<GridCacheVersion>(MAX_REMOVED_LOCKS);
 
-    /** Current remote candidates. */
-    private Collection<GridCacheMvccCandidate<K>> rmtCands = newSet();
-
     /** Current local candidates. */
-    private Collection<GridCacheMvccCandidate<K>> locCands = new ConcurrentSkipListSet<GridCacheMvccCandidate<K>>();
+    private Collection<GridCacheMvccCandidate<K>> dhtLocCands = new ConcurrentSkipListSet<GridCacheMvccCandidate<K>>();
 
     /** Locked keys. */
     @GridToStringExclude
-    private final ConcurrentMap<K, GridDistributedCacheEntry<K, V>> locked =
-        new ConcurrentHashMap<K, GridDistributedCacheEntry<K, V>>();
+    private final ConcurrentMap<K, GridDistributedCacheEntry<K, V>> locked = newMap();
 
     /** Active futures mapped by version ID. */
     @GridToStringExclude
@@ -265,7 +261,13 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
      */
     @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
     public boolean addFuture(final GridCacheFuture<?> fut) {
-        if (fut.isDone())
+        if (fut.isDone()) {
+            fut.markNotTrackable();
+
+            return true;
+        }
+
+        if (!fut.trackable())
             return true;
 
         while (true) {
@@ -354,6 +356,9 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
      */
     @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
     public boolean removeFuture(GridCacheFuture<?> fut) {
+        if (!fut.trackable())
+            return true;
+
         Collection<GridCacheFuture<?>> cur = futs.get(fut.version().id());
 
         if (cur == null)
@@ -414,14 +419,18 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
      * @return {@code True} if lock had been removed.
      */
     public boolean isRemoved(GridCacheVersion ver) {
-        return ver != null && rmvLocks.contains(ver);
+        return !cctx.isNear() && !cctx.isLocal() && ver != null && rmvLocks.contains(ver);
+
     }
 
     /**
      * @param ver Obsolete entry version.
-     * @return {@code True} if removed.
+     * @return {@code True} if added.
      */
     public boolean addRemoved(GridCacheVersion ver) {
+        if (cctx.isNear() || cctx.isLocal())
+            return true;
+
         boolean ret = rmvLocks.add(ver);
 
         if (log.isDebugEnabled())
@@ -431,49 +440,37 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
-     * @param cand Remote lock.
-     */
-    public void addRemote(GridCacheMvccCandidate<K> cand) {
-        assert cand.key() != null;
-        assert !cand.local();
-
-        if (!cand.nearLocal()) {
-            if (rmtCands.add(cand))
-                if (log.isDebugEnabled())
-                    log.debug("Added remote candidate: " + cand);
-        }
-    }
-
-    /**
+     * This method has poor performance, so use with care. It is currently only used by {@code DGC}.
      *
-     * @param cand Remote candidate to remove.
-     * @return {@code True} if removed.
-     */
-    public boolean removeRemote(GridCacheMvccCandidate<K> cand) {
-        assert cand.key() != null;
-        assert !cand.local();
-
-        if (!cand.nearLocal() && rmtCands.remove(cand)) {
-            if (log.isDebugEnabled())
-                log.debug("Removed remote candidate: " + cand);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
      * @return Remote candidates.
      */
     public Collection<GridCacheMvccCandidate<K>> remoteCandidates() {
+        Collection<GridCacheMvccCandidate<K>> rmtCands = new LinkedList<GridCacheMvccCandidate<K>>();
+
+        for (GridDistributedCacheEntry<K, V> entry : locked.values()) {
+            rmtCands.addAll(entry.remoteMvccSnapshot());
+        }
+
         return rmtCands;
     }
 
     /**
+     * This method has poor performance, so use with care. It is currently only used by {@code DGC}.
+     *
      * @return Local candidates.
      */
     public Collection<GridCacheMvccCandidate<K>> localCandidates() {
+        Collection<GridCacheMvccCandidate<K>> locCands = new LinkedList<GridCacheMvccCandidate<K>>();
+
+        for (GridDistributedCacheEntry<K, V> entry : locked.values()) {
+            try {
+                locCands.addAll(entry.localCandidates());
+            }
+            catch (GridCacheEntryRemovedException ignore) {
+                // No-op.
+            }
+        }
+
         return locCands;
     }
 
@@ -485,7 +482,7 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
         assert cand.key() != null;
         assert cand.local();
 
-        if (!cand.nearLocal() && locCands.add(cand)) {
+        if (cand.dhtLocal() && dhtLocCands.add(cand)) {
             if (log.isDebugEnabled())
                 log.debug("Added local candidate: " + cand);
 
@@ -504,7 +501,7 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
         assert cand.key() != null;
         assert cand.local();
 
-        if (!cand.nearLocal() && locCands.remove(cand)) {
+        if (cand.dhtLocal() && dhtLocCands.remove(cand)) {
             if (log.isDebugEnabled())
                 log.debug("Removed local candidate: " + cand);
 
@@ -519,10 +516,10 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
      * @param base Base version.
      * @return Versions that are less than {@code base} whose keys are in the {@code keys} collection.
      */
-    public Collection<GridCacheVersion> localPendingVersions(Collection<K> keys, GridCacheVersion base) {
+    public Collection<GridCacheVersion> localDhtPendingVersions(Collection<K> keys, GridCacheVersion base) {
         Collection<GridCacheVersion> lessPending = new GridLeanSet<GridCacheVersion>(5);
 
-        for (GridCacheMvccCandidate<K> cand : locCands) {
+        for (GridCacheMvccCandidate<K> cand : dhtLocCands) {
             if (cand.version().isLess(base)) {
                 if (keys.contains(cand.key()))
                     lessPending.add(cand.version());
@@ -573,6 +570,11 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
         assert cand != null;
         assert !cand.reentry() : "Lock reentries should not be linked: " + cand;
 
+        // Don't order near candidates by thread as they will be ordered on
+        // DHT node. Also, if candidate is implicit, no point to order him.
+        if (cctx.isNear() || cand.singleImplicit())
+            return true;
+
         Queue<GridCacheMvccCandidate<K>> queue = pending.get();
 
         boolean add = true;
@@ -617,8 +619,7 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
         X.println(">>> ");
         X.println(">>> Mvcc manager memory stats [grid=" + cctx.gridName() + ", cache=" + cctx.name() + ']');
         X.println(">>>   rmvLocksSize: " + rmvLocks.size());
-        X.println(">>>   rmtCandsSize: " + rmtCands.size());
-        X.println(">>>   locCandsSize: " + locCands.size());
+        X.println(">>>   dhtLocCandsSize: " + dhtLocCands.size());
         X.println(">>>   lockedSize: " + locked.size());
         X.println(">>>   futsSize: " + futs.size());
         X.println(">>>   near2dhtSize: " + near2dht.size());

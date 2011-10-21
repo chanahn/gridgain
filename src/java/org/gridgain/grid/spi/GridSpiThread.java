@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.*;
  * </ul>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public abstract class GridSpiThread extends Thread {
     /** Default thread's group. */
@@ -34,12 +34,6 @@ public abstract class GridSpiThread extends Thread {
 
     /** Grid logger. */
     private final GridLogger log;
-
-    /**
-     * Internally maintained thread interrupted flag to avoid any bug issues with {@link Thread}
-     * native implementation. May have been fixed in JDK 5.0.
-     */
-    private volatile boolean interrupted;
 
     /**
      * Creates thread with given {@code name}.
@@ -57,21 +51,8 @@ public abstract class GridSpiThread extends Thread {
     }
 
     /** {@inheritDoc} */
-    @Override public boolean isInterrupted() {
-        return super.isInterrupted() || interrupted;
-    }
-
-    /** {@inheritDoc} */
-    @Override public void interrupt() {
-        interrupted = true;
-
-        super.interrupt();
-    }
-
-    /** {@inheritDoc} */
-    @Override
     @SuppressWarnings({"CatchGenericClass"})
-    public final void run() {
+    @Override public final void run() {
         try {
             body();
         }

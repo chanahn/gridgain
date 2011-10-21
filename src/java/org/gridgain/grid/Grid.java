@@ -17,6 +17,7 @@ import org.gridgain.grid.spi.deployment.*;
 import org.gridgain.grid.spi.discovery.*;
 import org.gridgain.grid.typedef.*;
 import org.jetbrains.annotations.*;
+
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -42,7 +43,7 @@ import java.util.concurrent.*;
  * on Wiki.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public interface Grid extends GridProjection {
     /**
@@ -735,33 +736,37 @@ public interface Grid extends GridProjection {
      * @param space Optional swap space name. If {@code null} is passed - global swap space will be used.
      * @param key Data key.
      * @param val Data value.
+     * @param ldr Class loader (optional).
      * @throws GridException Thrown in case of any errors.
      */
-    public void writeToSwap(@Nullable String space, Object key, @Nullable Object val) throws GridException;
+    public void writeToSwap(@Nullable String space, Object key, @Nullable Object val,
+        @Nullable ClassLoader ldr) throws GridException;
 
     /**
-     * Reads data stored by {@link #writeToSwap(String, Object, Object)} method.
+     * Reads data stored by {@link #writeToSwap(String, Object, Object, ClassLoader)} method.
      *
      * @param space Optional swap space name. If {@code null} is passed - global swap space will be used.
      * @param key Data key.
+     * @param ldr Class loader (optional).
      * @return Data read from swap space or {@code null} if no data was stored.
      * @throws GridException Thrown in case of any errors.
      */
-    @Nullable public <T> T readFromSwap(@Nullable String space, Object key) throws GridException;
+    @Nullable public <T> T readFromSwap(@Nullable String space, Object key,
+        @Nullable ClassLoader ldr) throws GridException;
 
     /**
-     * Removes data stored by {@link #writeToSwap(String, Object, Object)} method.
+     * Removes data stored by {@link #writeToSwap(String, Object, Object, ClassLoader)} method.
      *
      * @param space Optional swap space name. If {@code null} is passed - global
      *      swap space will be used.
      * @param key Data key.
      * @param c Optional closure that takes removed value and executes after actual
      *      removing. If there was no value in storage the closure is not executed.
-     * @return {@code true} if value was actually removed, {@code false} otherwise.
+     * @param ldr Class loader (optional).
      * @throws GridException Thrown in case of any errors.
      */
-    public boolean removeFromSwap(@Nullable String space, Object key, @Nullable GridInClosure<Object> c)
-        throws GridException;
+    public void removeFromSwap(@Nullable String space, Object key, @Nullable GridInClosure<Object> c,
+        @Nullable ClassLoader ldr) throws GridException;
 
     /**
      * Clears all entry from the specified swap space.

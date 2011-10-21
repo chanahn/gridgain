@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * DHT cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Near cache. */
@@ -345,8 +345,9 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                         throw new GridClosureException(ex);
 
                     GridDhtTxLocal<K, V> tx = new GridDhtTxLocal<K, V>(nearNode.id(), req.version(), req.futureId(),
-                        req.miniId(), req.threadId(), /*implicit*/false, ctx, req.concurrency(), req.isolation(),
-                        req.timeout(), req.isInvalidate(), req.syncCommit(), req.syncRollback(), false);
+                        req.miniId(), req.threadId(), /*implicit*/false, /*implicit-single*/false,
+                        ctx, req.concurrency(), req.isolation(), req.timeout(), req.isInvalidate(), req.syncCommit(),
+                        req.syncRollback(), false);
 
                     tx = ctx.tm().onCreated(tx);
 
@@ -522,6 +523,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                             req.miniId(),
                             req.threadId(),
                             true,
+                            false, /* we don't know, so assume false. */
                             ctx,
                             PESSIMISTIC,
                             READ_COMMITTED,
@@ -802,7 +804,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
                         // Add remote candidate before reordering.
                         if (txEntry.explicitVersion() == null)
-                            entry.addRemote(req.nearNodeId(), nodeId, req.threadId(), req.version(), 0, tx.ec(), true);
+                            entry.addRemote(req.nearNodeId(), nodeId, req.threadId(), req.version(), 0, tx.ec(),
+                                /*tx*/true, tx.implicitSingle());
 
                         // Remote candidates for ordered lock queuing.
                         entry.addRemoteCandidates(
@@ -932,7 +935,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
                         // Add remote candidate before reordering.
                         entry.addRemote(req.nodeId(), nodeId, req.threadId(), req.version(), req.timeout(),
-                            tx != null && tx.ec(), tx != null);
+                            tx != null && tx.ec(), tx != null, tx != null && tx.implicitSingle());
 
                         // Remote candidates for ordered lock queuing.
                         entry.addRemoteCandidates(
@@ -1472,9 +1475,9 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     }
 
     /** {@inheritDoc} */
-    @Override public GridCacheTxLocalAdapter<K, V> newTx(boolean implicit, GridCacheTxConcurrency concurrency,
-        GridCacheTxIsolation isolation, long timeout, boolean invalidate, boolean syncCommit, boolean syncRollback,
-        boolean swapEnabled, boolean storeEnabled) {
+    @Override public GridCacheTxLocalAdapter<K, V> newTx(boolean implicit, boolean implicitSingle,
+        GridCacheTxConcurrency concurrency, GridCacheTxIsolation isolation, long timeout, boolean invalidate,
+        boolean syncCommit, boolean syncRollback, boolean swapEnabled, boolean storeEnabled) {
         assert false;
         return null;
     }
@@ -1693,7 +1696,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                                         req.futureId(),
                                         req.miniId(),
                                         req.threadId(),
-                                        false,
+                                        false, // TODO: why not from request.
+                                        req.implicitSingleTx(),
                                         ctx,
                                         PESSIMISTIC,
                                         req.isolation(),
@@ -1823,7 +1827,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                 req.version(), req.futureId(), req.miniId(), entries.size(), err);
 
             if (err == null) {
-                res.pending(ctx.mvcc().localPendingVersions(F.viewReadOnly(entries, CU.<K, V>entry2Key()),
+                res.pending(ctx.mvcc().localDhtPendingVersions(F.viewReadOnly(entries, CU.<K, V>entry2Key()),
                     /*near version*/req.version()));
 
                 // We have to add completed versions for cases when nearLocal and remote transactions

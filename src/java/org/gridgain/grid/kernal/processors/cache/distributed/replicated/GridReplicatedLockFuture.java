@@ -32,10 +32,10 @@ import java.util.concurrent.atomic.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Boolean>
-    implements GridCacheMvccLockFuture<K, V, Boolean> {
+    implements GridCacheMvccFuture<K, V, Boolean> {
     /** Logger reference. */
     private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
 
@@ -98,6 +98,9 @@ public final class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Bool
 
     /** Transaction. */
     private GridCacheTxLocalEx<K, V> tx;
+
+    /** Trackable flag. */
+    private boolean trackable = true;
 
     /** Mutex. */
     private final Object mux = new Object();
@@ -162,11 +165,6 @@ public final class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Bool
         }
     }
 
-    /** {@inheritDoc} */
-    @Override public UUID nodeId() {
-        return cctx.nodeId();
-    }
-
     /**
      * @return Participating nodes.
      */
@@ -177,6 +175,16 @@ public final class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Bool
     /** {@inheritDoc} */
     @Override public GridCacheVersion version() {
         return lockVer;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
     }
 
     /**
@@ -200,11 +208,6 @@ public final class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Bool
         return new ArrayList<GridDistributedCacheEntry<K, V>>(entries);
     }
 
-    /** {@inheritDoc} */
-    @Override public Collection<? extends K> keys() {
-        return keys;
-    }
-
     /**
      * @return Future ID.
      */
@@ -217,6 +220,13 @@ public final class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Bool
      */
     private boolean inTx() {
         return tx != null;
+    }
+
+    /**
+     * @return {@code True} if implicit transaction.
+     */
+    private boolean implicitSingle() {
+        return tx != null && tx.implicitSingle();
     }
 
     /**
@@ -261,7 +271,8 @@ public final class GridReplicatedLockFuture<K, V> extends GridFutureAdapter<Bool
             return null;
 
         // Add local lock first, as it may throw GridCacheEntryRemovedException.
-        GridCacheMvccCandidate<K> c = entry.addLocal(threadId, lockVer, timeout, !inTx(), ec(), inTx());
+        GridCacheMvccCandidate<K> c = entry.addLocal(threadId, lockVer, timeout, !inTx(), ec(), inTx(),
+            implicitSingle());
 
         synchronized (mux) {
             entries.add(entry);

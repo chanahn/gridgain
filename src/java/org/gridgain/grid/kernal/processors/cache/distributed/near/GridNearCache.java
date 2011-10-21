@@ -32,7 +32,7 @@ import static org.gridgain.grid.cache.GridCacheTxConcurrency.*;
  * Near cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** DHT cache. */
@@ -205,7 +205,7 @@ public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
         if (F.isEmpty(keys))
             return new GridFinishedFuture<Map<K, V>>(ctx.kernalContext(), Collections.<K, V>emptyMap());
 
-        GridCacheTxLocalAdapter<K, V> tx = ctx.tm().localTx();
+        GridCacheTxLocalAdapter<K, V> tx = ctx.tm().threadLocalTx();
 
         if (tx != null && !tx.implicit())
             return ctx.wrapCloneMap(tx.getAllAsync(keys, filter));
@@ -490,7 +490,7 @@ public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
                             // Add remote candidate before reordering.
                             entry.addRemote(req.nodeId(), nodeId, req.threadId(), req.version(), req.timeout(),
-                                tx != null && tx.ec(), tx != null);
+                                tx != null && tx.ec(), tx != null, tx != null && tx.implicitSingle());
 
                             // Remote candidates for ordered lock queuing.
                             entry.addRemoteCandidates(
@@ -612,7 +612,7 @@ public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                             // Add remote candidate before reordering.
                             if (txEntry.explicitVersion() == null)
                                 entry.addRemote(req.nearNodeId(), nodeId, req.threadId(), req.version(), 0, tx.ec(),
-                                    true);
+                                    /*tx*/true, tx.implicitSingle());
 
                             // Remote candidates for ordered lock queuing.
                             entry.addRemoteCandidates(
@@ -735,10 +735,10 @@ public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     }
 
     /** {@inheritDoc} */
-    @Override public GridCacheTxLocalAdapter<K, V> newTx(boolean implicit, GridCacheTxConcurrency concurrency,
-        GridCacheTxIsolation isolation, long timeout, boolean invalidate, boolean syncCommit, boolean syncRollback,
-        boolean swapEnabled, boolean storeEnabled) {
-        return new GridNearTxLocal<K, V>(ctx, implicit, concurrency, isolation, timeout,
+    @Override public GridCacheTxLocalAdapter<K, V> newTx(boolean implicit, boolean implicitSingle,
+        GridCacheTxConcurrency concurrency, GridCacheTxIsolation isolation, long timeout, boolean invalidate,
+        boolean syncCommit, boolean syncRollback, boolean swapEnabled, boolean storeEnabled) {
+        return new GridNearTxLocal<K, V>(ctx, implicit, implicitSingle, concurrency, isolation, timeout,
             invalidate, syncCommit, syncRollback, swapEnabled, storeEnabled);
     }
 

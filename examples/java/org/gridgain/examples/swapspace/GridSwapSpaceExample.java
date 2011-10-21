@@ -40,7 +40,7 @@ public final class GridSwapSpaceExample {
         // CO -> GridOutClosure
         // CA -> GridAbsClosure
         // F -> GridFunc
-        
+
         G.in(args.length == 0 ? null : args[0], new CIX1<Grid>() {
             @Override public void applyx(Grid g) throws GridException {
                 String testData = "TestSwapSpaceData";

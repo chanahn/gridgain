@@ -27,6 +27,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.GridClosureCallMode.*;
 import static org.gridgain.grid.kernal.GridNodeAttributes.*;
@@ -35,9 +36,12 @@ import static org.gridgain.grid.util.nodestart.GridNodeStartUtils.*;
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements GridProjection {
+    /** Log reference. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
     /** Empty rich node predicate array. */
     private static final GridPredicate<GridRichNode>[] EMPTY_PN = new PN[] {};
 
@@ -126,7 +130,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
         if (parent == null)
             parent = ctx.grid();
 
-        log = ctx.log().getLogger(getClass());
+        log = U.logger(ctx, logRef, GridProjectionAdapter.class);
     }
 
     /** {@inheritDoc} */

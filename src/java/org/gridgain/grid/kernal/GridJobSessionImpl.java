@@ -21,7 +21,7 @@ import java.util.*;
  * Job session implementation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridJobSessionImpl extends GridMetadataAwareAdapter implements GridTaskSessionInternal {
     /** Wrapped task session. */
@@ -261,33 +261,6 @@ public class GridJobSessionImpl extends GridMetadataAwareAdapter implements Grid
     /** {@inheritDoc} */
     @Override public boolean removeCheckpoint(String key) throws GridException {
         return ctx.checkpoint().removeCheckpoint(this, key);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void writeToSwap(Object key, @Nullable Object val, GridTaskSessionScope scope)
-        throws GridException {
-        ses.writeToSwap(key, val, scope);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void writeToSwap(Object key, @Nullable Object val) throws GridException {
-        ses.writeToSwap(key, val);
-    }
-
-    /** {@inheritDoc} */
-    @SuppressWarnings({"unchecked"})
-    @Override public <T> T readFromSwap(Object key) throws GridException {
-        return (T)ses.readFromSwap(key);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void removeFromSwap(Object key) throws GridException {
-        ses.removeFromSwap(key);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void clearSwap() throws GridException {
-        ses.clearSwap();
     }
 
     /** {@inheritDoc} */

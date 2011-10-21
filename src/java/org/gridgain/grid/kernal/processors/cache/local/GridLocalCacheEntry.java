@@ -18,7 +18,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Cache entry for local caches.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
@@ -45,11 +45,12 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
      * @param reenter Reentry flag.
      * @param ec Eventually consistent flag.
      * @param tx Transaction flag.
+     * @param implicitSingle Implicit transaction flag.
      * @return New candidate.
      * @throws GridCacheEntryRemovedException If entry has been removed.
      */
     @Nullable public GridCacheMvccCandidate<K> addLocal(long threadId, GridCacheVersion ver, long timeout,
-        boolean reenter, boolean ec, boolean tx) throws GridCacheEntryRemovedException {
+        boolean reenter, boolean ec, boolean tx, boolean implicitSingle) throws GridCacheEntryRemovedException {
         GridCacheMvccCandidate<K> prev;
         GridCacheMvccCandidate<K> cand;
         GridCacheMvccCandidate<K> owner;
@@ -63,7 +64,7 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             prev = mvcc.localOwner();
 
-            cand = mvcc.addLocal(this, threadId, ver, timeout, reenter, ec, tx);
+            cand = mvcc.addLocal(this, threadId, ver, timeout, reenter, ec, tx, implicitSingle);
 
             owner = mvcc.localOwner();
 
@@ -140,7 +141,7 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
     /** {@inheritDoc} */
     @Override public boolean tmLock(GridCacheTxEx<K, V> tx, long timeout) throws GridCacheEntryRemovedException {
         GridCacheMvccCandidate<K> cand = addLocal(tx.threadId(), tx.xidVersion(), timeout, /*reenter*/false, tx.ec(),
-            /*tx*/true);
+            /*tx*/true, tx.implicitSingle());
 
         if (cand != null) {
             readyLocal(cand);
@@ -296,9 +297,8 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
         lock();
 
         try {
-            if (obsoleteVer != null && !obsoleteVer.equals(ver)) {
+            if (obsoleteVer != null && !obsoleteVer.equals(ver))
                 checkObsolete();
-            }
 
             doomed = mvcc.candidate(ver);
 

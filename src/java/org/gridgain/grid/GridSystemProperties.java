@@ -20,10 +20,17 @@ import org.gridgain.grid.thread.*;
  * properties and variables can be used to affect the behavior of GridGain.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  * @see GridTestVmParameters
  */
 public final class GridSystemProperties {
+    /**
+     * Property identifying whether GridGain debug is enabled or not. If enabled,
+     * the standard logger configuration will be used, otherwise logger settings
+     * will be bypassed and debug won't be printed.
+     */
+    public static final String GG_DEBUG_ENABLED = "GRIDGAIN_DEBUG_ENABLED";
+
     /**
      * If this system property is present the GridGain will include grid name into verbose log.
      */

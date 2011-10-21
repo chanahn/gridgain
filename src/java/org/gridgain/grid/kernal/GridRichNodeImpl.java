@@ -26,7 +26,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichNode, Externalizable {
     /** */
@@ -501,14 +501,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
 
     /** {@inheritDoc} */
     @Override public boolean isLocal() {
-        guard();
-
-        try {
-            return ctx.localNodeId().equals(node.id());
-        }
-        finally {
-            unguard();
-        }
+        return isLocal;
     }
 
     /**

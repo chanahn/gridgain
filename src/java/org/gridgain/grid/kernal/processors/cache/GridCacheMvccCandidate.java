@@ -25,9 +25,10 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheMvccCandidate.M
  * Lock candidate.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
-public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<GridCacheMvccCandidate<K>> {
+public class GridCacheMvccCandidate<K> implements Externalizable,
+    Comparable<GridCacheMvccCandidate<K>> {
     /** ID generator. */
     private static final AtomicLong IDGEN = new AtomicLong();
 
@@ -68,11 +69,11 @@ public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<Gri
 
     /** Previous lock for the thread. */
     @GridToStringExclude
-    private transient GridCacheMvccCandidate<K> prev;
+    private transient volatile GridCacheMvccCandidate<K> prev;
 
     /** Next lock for the thread. */
     @GridToStringExclude
-    private transient GridCacheMvccCandidate<K> next;
+    private transient volatile GridCacheMvccCandidate<K> next;
 
     /** Parent entry. */
     @GridToStringExclude
@@ -107,12 +108,13 @@ public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<Gri
      * @param reentry {@code True} if candidate is for reentry.
      * @param ec EC flag.
      * @param tx Transaction flag.
+     * @param singleImplicit Single-key-implicit-transaction flag.
      * @param nearLocal Near-local flag.
      * @param dhtLocal DHT local flag.
      */
     GridCacheMvccCandidate(GridCacheEntryEx<K, ?> parent, UUID nodeId, @Nullable UUID otherNodeId,
         @Nullable GridCacheVersion otherVer, long threadId, GridCacheVersion ver, long timeout, boolean loc,
-        boolean reentry, boolean ec, boolean tx, boolean nearLocal, boolean dhtLocal) {
+        boolean reentry, boolean ec, boolean tx, boolean singleImplicit, boolean nearLocal, boolean dhtLocal) {
         assert nodeId != null;
         assert ver != null;
         assert parent != null;
@@ -129,6 +131,7 @@ public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<Gri
         mask(REENTRY, reentry);
         mask(EC, ec);
         mask(TX, tx);
+        mask(SINGLE_IMPLICIT, singleImplicit);
         mask(NEAR_LOCAL, nearLocal);
         mask(DHT_LOCAL, dhtLocal);
 
@@ -143,14 +146,14 @@ public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<Gri
      * @param mask Mask.
      * @param on Flag.
      */
-    private synchronized void mask(Mask mask, boolean on) {
+    private void mask(Mask mask, boolean on) {
         flags = mask.set(flags, on);
     }
 
     /**
      * @return Flags.
      */
-    public synchronized short flags() {
+    public short flags() {
         return flags;
     }
 
@@ -183,7 +186,7 @@ public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<Gri
         GridCacheMvccCandidate<K> old = reentry;
 
         GridCacheMvccCandidate<K> reentry = new GridCacheMvccCandidate<K>(parent, nodeId, otherNodeId, otherVer,
-            threadId, ver, timeout, local(), /*reentry*/true, ec(), tx(), nearLocal(), dhtLocal());
+            threadId, ver, timeout, local(), /*reentry*/true, ec(), tx(), singleImplicit(), nearLocal(), dhtLocal());
 
         reentry.topVer = topVer;
 
@@ -327,6 +330,13 @@ public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<Gri
     }
 
     /**
+     * @return {@code True} if implicit transaction.
+     */
+    public boolean singleImplicit() {
+        return SINGLE_IMPLICIT.get(flags());
+    }
+
+    /**
      * @return Near local flag.
      */
     public boolean nearLocal() {
@@ -413,14 +423,14 @@ public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<Gri
     /**
      * @return Lock that comes before in the same thread, possibly <tt>null</tt>.
      */
-    public synchronized GridCacheMvccCandidate<K> previous() {
+    public GridCacheMvccCandidate<K> previous() {
         return prev;
     }
 
     /**
      * @param prev Lock that comes before in the same thread, possibly <tt>null</tt>.
      */
-    public synchronized void previous(GridCacheMvccCandidate<K> prev) {
+    public void previous(GridCacheMvccCandidate<K> prev) {
         this.prev = prev;
     }
 
@@ -428,14 +438,14 @@ public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<Gri
      *
      * @return Gets next candidate in this thread.
      */
-    public synchronized GridCacheMvccCandidate<K> next() {
+    public GridCacheMvccCandidate<K> next() {
         return next;
     }
 
     /**
      * @param next Next candidate in this thread.
      */
-    public synchronized void next(GridCacheMvccCandidate<K> next) {
+    public void next(GridCacheMvccCandidate<K> next) {
         this.next = next;
     }
 
@@ -549,9 +559,10 @@ public class GridCacheMvccCandidate<K> implements Externalizable, Comparable<Gri
         USED(0x10),
         EC(0x20),
         TX(0x40),
-        DHT_LOCAL(0x80),
-        NEAR_LOCAL(0x100),
-        REMOVED(0x200);
+        SINGLE_IMPLICIT(0x80),
+        DHT_LOCAL(0x100),
+        NEAR_LOCAL(0x200),
+        REMOVED(0x400);
 
         /** All mask values. */
         private static final Mask[] MASKS = values();

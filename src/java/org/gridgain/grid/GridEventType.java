@@ -48,7 +48,7 @@ import java.util.*;
  * event storage SPI if they are disabled in GridGain configuration.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public interface GridEventType {
     /**
@@ -525,6 +525,16 @@ public interface GridEventType {
     public static final int EVT_SWAP_SPACE_CLEARED = 74;
 
     /**
+     * Built-in event type: swap space data evicted.
+     * <p>
+     * NOTE: all types in range <b>from 1 to 1000 are reserved</b> for
+     * internal GridGain events and should not be used by user-defined events.
+     *
+     * @see GridSwapSpaceEvent
+     */
+    public static final int EVT_SWAP_SPACE_DATA_EVICTED = 75;
+
+    /**
      * Built-in event type: cache preload started.
      * <p>
      * NOTE: all types in range <b>from 1 to 1000 are reserved</b> for
@@ -741,7 +751,8 @@ public interface GridEventType {
         EVT_SWAP_SPACE_CLEARED,
         EVT_SWAP_SPACE_DATA_REMOVED,
         EVT_SWAP_SPACE_DATA_READ,
-        EVT_SWAP_SPACE_DATA_STORED
+        EVT_SWAP_SPACE_DATA_STORED,
+        EVT_SWAP_SPACE_DATA_EVICTED
     };
 
     /**

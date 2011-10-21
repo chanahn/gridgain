@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Replicated user transaction.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implements GridCacheMappedVersion {
     /** */
@@ -57,11 +57,11 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
 
     /** Near mappings. */
     private Map<UUID, GridDistributedTxMapping<K, V>> nearMap =
-        new ConcurrentHashMap<UUID, GridDistributedTxMapping<K, V>>();
+        new ConcurrentHashMap<UUID, GridDistributedTxMapping<K, V>>(16, 0.75f, 1);
 
     /** DHT mappings. */
     private Map<UUID, GridDistributedTxMapping<K, V>> dhtMap =
-        new ConcurrentHashMap<UUID, GridDistributedTxMapping<K, V>>();
+        new ConcurrentHashMap<UUID, GridDistributedTxMapping<K, V>>(16, 0.75f, 1);
 
     /** Future. */
     @GridToStringExclude
@@ -83,6 +83,9 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
     /** */
     private boolean explicitLock;
 
+    /** Initialize to {@code true} to be safe. */
+    private boolean needsCompletedVers = true;
+
     /**
      * Empty constructor required for {@link Externalizable}.
      */
@@ -97,6 +100,7 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
      * @param nearMiniId Near mini future ID.
      * @param nearThreadId Near thread ID.
      * @param implicit Implicit flag.
+     * @param implicitSingle Implicit-with-single-key flag.
      * @param cctx Cache context.
      * @param concurrency Concurrency.
      * @param isolation Isolation.
@@ -113,6 +117,7 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
         GridUuid nearMiniId,
         long nearThreadId,
         boolean implicit,
+        boolean implicitSingle,
         GridCacheContext<K, V> cctx,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
@@ -121,8 +126,8 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
         boolean syncCommit,
         boolean syncRollback,
         boolean explicitLock) {
-        super(cctx, cctx.versions().onReceivedAndNext(nearNodeId, nearXidVer), implicit, concurrency, isolation,
-            timeout, invalidate, false, false);
+        super(cctx, cctx.versions().onReceivedAndNext(nearNodeId, nearXidVer), implicit, implicitSingle,
+            concurrency, isolation, timeout, invalidate, false, false);
 
         assert cctx != null;
         assert nearNodeId != null;
@@ -177,6 +182,18 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
         ids.addAll(nearMap.keySet());
 
         return ids;
+    }
+
+    /**
+     * @param needsCompletedVers {@code True} if needs completed versions.
+     */
+    public void needsCompletedVersions(boolean needsCompletedVers) {
+        this.needsCompletedVers = needsCompletedVers;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean needsCompletedVersions() {
+        return needsCompletedVers;
     }
 
     /**

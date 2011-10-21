@@ -32,7 +32,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  *
  * @param <T> SPI wrapped by this manager.
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public abstract class GridManagerAdapter<T extends GridSpi> implements GridManager {
     /** Kernal context. */
@@ -452,18 +452,20 @@ public abstract class GridManagerAdapter<T extends GridSpi> implements GridManag
                         return ctx.cache().cache(cacheName).containsKey(key);
                     }
 
-                    @Override public void writeToSwap(String spaceName, Object key, @Nullable Object val)
-                        throws GridException {
-                        ctx.swap().write(spaceName, key, val);
+                    @Override public void writeToSwap(String spaceName, Object key, @Nullable Object val,
+                        @Nullable ClassLoader ldr) throws GridException {
+                        ctx.swap().write(spaceName, key, val, ldr);
                     }
 
                     @SuppressWarnings({"unchecked"})
-                    @Nullable @Override public <T> T readFromSwap(String spaceName, Object key) throws GridException {
-                        return (T)ctx.swap().read(spaceName, key);
+                    @Nullable @Override public <T> T readFromSwap(String spaceName, Object key,
+                        @Nullable ClassLoader ldr) throws GridException {
+                        return (T)ctx.swap().read(spaceName, key, ldr);
                     }
 
-                    @Override public boolean removeFromSwap(String spaceName, Object key) throws GridException {
-                        return ctx.swap().remove(spaceName, key, null);
+                    @Override public void removeFromSwap(String spaceName, Object key,
+                        @Nullable ClassLoader ldr) throws GridException {
+                        ctx.swap().remove(spaceName, key, null, ldr);
                     }
 
                     /**

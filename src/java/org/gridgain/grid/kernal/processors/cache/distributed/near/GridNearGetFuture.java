@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.*;
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Map<K, V>>
     implements GridCacheFuture<Map<K, V>> {
@@ -61,6 +61,9 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
 
     /** Logger. */
     private GridLogger log;
+
+    /** Trackable flag. */
+    private boolean trackable = true;
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -103,6 +106,16 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
         map(keys, Collections.<GridRichNode, Collection<K>>emptyMap());
 
         markInitialized();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable; // TODO: can be optimized to return false for local mappings.
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
     }
 
     /**

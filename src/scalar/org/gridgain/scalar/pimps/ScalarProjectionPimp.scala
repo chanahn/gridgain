@@ -20,7 +20,7 @@ import org.jetbrains.annotations._
  * Companion object.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 object ScalarProjectionPimp {
     /**
@@ -60,7 +60,7 @@ object ScalarProjectionPimp {
  * Scala's side method with `$` suffix.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 class ScalarProjectionPimp[A <: GridProjection] extends PimpedType[A] with Iterable[GridRichNode]
     with ScalarTaskThreadContext[A] {

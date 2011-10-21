@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Replicated user transaction.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
     /** All keys participating in transaction. */
@@ -63,6 +63,7 @@ class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
     /**
      * @param ctx Cache context.
      * @param implicit Implicit flag.
+     * @param implicitSingle Implicit with one key flag.
      * @param concurrency Concurrency.
      * @param isolation Isolation.
      * @param timeout Timeout.
@@ -75,6 +76,7 @@ class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
     GridReplicatedTxLocal(
         GridCacheContext<K, V> ctx,
         boolean implicit,
+        boolean implicitSingle,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
         long timeout,
@@ -83,8 +85,8 @@ class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
         boolean syncRollback,
         boolean swapEnabled,
         boolean storeEnabled) {
-        super(ctx, ctx.versions().next(), implicit, concurrency, isolation, timeout, invalidate, swapEnabled,
-            storeEnabled);
+        super(ctx, ctx.versions().next(), implicit, implicitSingle, concurrency, isolation, timeout, invalidate,
+            swapEnabled, storeEnabled);
 
         assert ctx != null;
 
@@ -100,6 +102,11 @@ class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
     /** {@inheritDoc} */
     @Override public boolean syncRollback() {
         return syncRollback;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean needsCompletedVersions() {
+        return true;
     }
 
     /** {@inheritDoc} */
@@ -248,7 +255,7 @@ class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
         try {
             if (!ec()) {
                 if (!allKeys.isEmpty() && !nodes.isEmpty()) {
-                    assert cctx.mvcc().hasFuture(fin);
+                    assert !fin.trackable() || cctx.mvcc().hasFuture(fin);
 
                     // We write during commit only for pessimistic transactions.
                     Collection<GridCacheTxEntry<K, V>> writeEntries = pessimistic() ? writeEntries() : null;
@@ -262,9 +269,9 @@ class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
                         threadId,
                         commit,
                         isInvalidate(),
-                        completedBase,
-                        committedVers,
-                        rolledbackVers,
+                        completedBase(),
+                        committedVersions(),
+                        rolledbackVersions(),
                         writeEntries,
                         reply);
 

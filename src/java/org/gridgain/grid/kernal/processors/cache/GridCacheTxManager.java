@@ -36,7 +36,7 @@ import static org.gridgain.grid.util.GridConcurrentFactory.*;
  * Cache transaction manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     /** Maximum number of transactions that have completed (initialized to 100K). */
@@ -470,7 +470,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     public <T> T threadLocalTx() {
         GridCacheTxEx<K, V> tx = tx(Thread.currentThread().getId());
 
-        return tx != null && tx.local() ? (T)tx : null;
+        return tx != null && tx.local() && !tx.dht() && !tx.implicit() ? (T)tx : null;
     }
 
     /**
@@ -758,6 +758,19 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
+     * @param c Collection to copy.
+     * @return Copy of the collection.
+     */
+    private Collection<GridCacheVersion> copyOf(Iterable<GridCacheVersion> c) {
+        Collection<GridCacheVersion> l = new LinkedList<GridCacheVersion>();
+
+        for (GridCacheVersion v : c)
+            l.add(v);
+
+        return l;
+    }
+
+    /**
      * Gets committed transactions starting from the given version (inclusive). // TODO: why inclusive?
      *
      * @param min Start (or minimum) version.
@@ -766,7 +779,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     public Collection<GridCacheVersion> committedVersions(GridCacheVersion min) {
         Set<GridCacheVersion> set = committedVers.tailSet(min, true);
 
-        return set == null || set.isEmpty() ? Collections.<GridCacheVersion>emptyList() : new ArrayList<GridCacheVersion>(set);
+        return set == null || set.isEmpty() ? Collections.<GridCacheVersion>emptyList() : copyOf(set);
     }
 
     /**
@@ -778,7 +791,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     public Collection<GridCacheVersion> rolledbackVersions(GridCacheVersion min) {
         Set<GridCacheVersion> set = rolledbackVers.tailSet(min, true);
 
-        return set == null || set.isEmpty() ? Collections.<GridCacheVersion>emptyList() : new ArrayList<GridCacheVersion>(set);
+        return set == null || set.isEmpty() ? Collections.<GridCacheVersion>emptyList() : copyOf(set);
     }
 
     /**
@@ -843,13 +856,15 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
      * @param tx Transaction.
      */
     private void processCompletedEntries(GridCacheTxEx<K, V> tx) {
-        GridCacheVersion min = minVersion(tx.readEntries(), tx.xidVersion(), tx);
+        if (tx.needsCompletedVersions()) {
+            GridCacheVersion min = minVersion(tx.readEntries(), tx.xidVersion(), tx);
 
-        min = minVersion(tx.writeEntries(), min, tx);
+            min = minVersion(tx.writeEntries(), min, tx);
 
-        assert min != null;
+            assert min != null;
 
-        tx.completedVersions(min, committedVersions(min), rolledbackVersions(min));
+            tx.completedVersions(min, committedVersions(min), rolledbackVersions(min));
+        }
     }
 
     /**

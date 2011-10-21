@@ -34,7 +34,7 @@ import static org.gridgain.grid.cache.GridCacheFlag.*;
  * Query adapter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareAdapter implements
     GridCacheQueryBase<K, V> {
@@ -50,15 +50,12 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
     /** Empty array. */
     private static final GridPredicate[] EMPTY_NODES = new GridPredicate[0];
 
-    /** Default query timeout. */
-    public static final long DFLT_TIMEOUT = 30 * 1000;
-
     /** */
     @GridToStringExclude
     private GridThreadLocal<PreparedStatement> stmt = new GridThreadLocal<PreparedStatement>();
 
     /** */
-    protected final GridCacheContext<K, V> cacheCtx;
+    protected final GridCacheContext<K, V> cctx;
 
     /** Query activity logger. */
     protected final GridLogger qryLog;
@@ -91,7 +88,7 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
     private volatile int pageSize = GridCacheQuery.DFLT_PAGE_SIZE;
 
     /** */
-    private volatile long timeout = DFLT_TIMEOUT;
+    private volatile long timeout;
 
     /** */
     private volatile Object[] args;
@@ -124,21 +121,21 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
     protected final Object mux = new Object();
 
     /**
-     * @param cacheCtx Cache registry.
+     * @param cctx Cache registry.
      * @param type Query type.
      * @param clause Query clause.
      * @param clsName Query class name.
      * @param prjFilter Projection filter.
      * @param prjFlags Projection flags.
      */
-    protected GridCacheQueryBaseAdapter(GridCacheContext<K, V> cacheCtx, @Nullable GridCacheQueryType type,
+    protected GridCacheQueryBaseAdapter(GridCacheContext<K, V> cctx, @Nullable GridCacheQueryType type,
         @Nullable String clause, @Nullable String clsName, GridPredicate<GridCacheEntry<K, V>> prjFilter,
         Collection<GridCacheFlag> prjFlags) {
-        this(cacheCtx, -1, type, clause, clsName, prjFilter, prjFlags);
+        this(cctx, -1, type, clause, clsName, prjFilter, prjFlags);
     }
 
     /**
-     * @param cacheCtx Cache registry.
+     * @param cctx Cache registry.
      * @param qryId Query id. If it less than {@code 0} new query id will be created.
      * @param type Query type.
      * @param clause Query clause.
@@ -146,12 +143,12 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
      * @param prjFilter Projection filter.
      * @param prjFlags Projection flags.
      */
-    protected GridCacheQueryBaseAdapter(GridCacheContext<K, V> cacheCtx, int qryId, @Nullable GridCacheQueryType type,
+    protected GridCacheQueryBaseAdapter(GridCacheContext<K, V> cctx, int qryId, @Nullable GridCacheQueryType type,
         @Nullable String clause, @Nullable String clsName, GridPredicate<GridCacheEntry<K, V>> prjFilter,
         Collection<GridCacheFlag> prjFlags) {
-        assert cacheCtx != null;
+        assert cctx != null;
 
-        this.cacheCtx = cacheCtx;
+        this.cctx = cctx;
         this.type = type;
         this.clause = clause;
         this.clsName = clsName;
@@ -159,15 +156,17 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
 
         validateSql();
 
-        log = U.logger(cacheCtx.kernalContext(), logRef, GridCacheQueryBaseAdapter.class);
+        log = U.logger(cctx.kernalContext(), logRef, GridCacheQueryBaseAdapter.class);
 
-        qryLog = cacheCtx.logger(DFLT_QUERY_LOGGER_NAME);
+        qryLog = cctx.logger(DFLT_QUERY_LOGGER_NAME);
 
         clone = prjFlags.contains(CLONE);
 
         metrics = new GridCacheQueryMetricsAdapter(new GridCacheQueryMetricsKey(type, clsName, clause));
 
         id = qryId < 0 ? idGen.incrementAndGet() : qryId;
+
+        timeout = cctx.config().getDefaultQueryTimeout();
     }
 
     /**
@@ -175,7 +174,7 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
      */
     protected GridCacheQueryBaseAdapter(GridCacheQueryBaseAdapter<K, V> qry) {
         stmt = qry.stmt;
-        cacheCtx = qry.cacheCtx;
+        cctx = qry.cctx;
         type = qry.type;
         clause = qry.clause;
         prjFilter = qry.prjFilter;
@@ -193,9 +192,9 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
         readThrough = qry.readThrough;
         clone = qry.clone;
 
-        log = U.logger(cacheCtx.kernalContext(), logRef, GridCacheQueryBaseAdapter.class);
+        log = U.logger(cctx.kernalContext(), logRef, GridCacheQueryBaseAdapter.class);
 
-        qryLog = cacheCtx.kernalContext().config().getGridLogger().getLogger(DFLT_QUERY_LOGGER_NAME);
+        qryLog = cctx.kernalContext().config().getGridLogger().getLogger(DFLT_QUERY_LOGGER_NAME);
 
         metrics = qry.metrics;
 
@@ -221,7 +220,7 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
      * @return Context.
      */
     protected GridCacheContext<K, V> context() {
-        return cacheCtx;
+        return cctx;
     }
 
     /**
@@ -518,25 +517,25 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
             log.debug("Executing query [query=" + this + ", nodes=" + nodes + ']');
 
         try {
-            cacheCtx.deploy().registerClasses(cls, rmtKeyFilter, rmtValFilter, prjFilter);
+            cctx.deploy().registerClasses(cls, rmtKeyFilter, rmtValFilter, prjFilter);
 
             registerClasses();
 
-            cacheCtx.deploy().registerClasses(args);
-            cacheCtx.deploy().registerClasses(closureArgs);
+            cctx.deploy().registerClasses(args);
+            cctx.deploy().registerClasses(closureArgs);
         }
         catch (GridException e) {
-            return new GridCacheErrorQueryFuture<R>(cacheCtx.kernalContext(), e);
+            return new GridCacheErrorQueryFuture<R>(cctx.kernalContext(), e);
         }
 
         if (F.isEmpty(nodes))
-            nodes = CU.allNodes(cacheCtx);
+            nodes = CU.allNodes(cctx);
 
-        GridCacheQueryManager<K, V> qryMgr = cacheCtx.queries();
+        GridCacheQueryManager<K, V> qryMgr = cctx.queries();
 
         assert qryMgr != null;
 
-        return nodes.size() == 1 && nodes.iterator().next().equals(cacheCtx.discovery().localNode()) ?
+        return nodes.size() == 1 && nodes.iterator().next().equals(cctx.discovery().localNode()) ?
             qryMgr.queryLocal(this, single, rmtRdcOnly, pageLsnr) :
             qryMgr.queryDistributed(this, nodes, single, rmtRdcOnly, pageLsnr);
     }
@@ -573,7 +572,7 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
         metrics.onQueryExecute(startTime, duration, fail);
 
         // Update metrics in query manager.
-        cacheCtx.queries().onMetricsUpdate(metrics, startTime, duration, fail);
+        cctx.queries().onMetricsUpdate(metrics, startTime, duration, fail);
 
         if (qryLog.isDebugEnabled())
             qryLog.debug("Query execution finished [qry=" + this + ", startTime=" + startTime +
@@ -624,14 +623,14 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
          * Required by {@link Externalizable}.
          */
         public SingleFuture() {
-            super(cacheCtx.kernalContext());
+            super(cctx.kernalContext());
         }
 
         /**
          * @param nodes Nodes.
          */
         SingleFuture(Collection<GridRichNode> nodes) {
-            super(cacheCtx.kernalContext());
+            super(cctx.kernalContext());
 
             fut = execute(nodes, true, false, new CI2<UUID, Collection<R>>() {
                 @Override public void apply(UUID uuid, Collection<R> pageData) {

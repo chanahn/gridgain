@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Replicated user transaction.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 class GridNearTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
     /** Future. */
@@ -54,7 +54,7 @@ class GridNearTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
 
     /** DHT mappings. */
     private ConcurrentMap<UUID, GridDistributedTxMapping<K, V>> mappings =
-        new ConcurrentHashMap<UUID, GridDistributedTxMapping<K, V>>();
+        new ConcurrentHashMap<UUID, GridDistributedTxMapping<K, V>>(16, 0.75f, 1);
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -66,6 +66,7 @@ class GridNearTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
     /**
      * @param ctx   Cache registry.
      * @param implicit Implicit flag.
+     * @param implicitSingle Implicit with one key flag.
      * @param concurrency Concurrency.
      * @param isolation Isolation.
      * @param timeout Timeout.
@@ -78,6 +79,7 @@ class GridNearTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
     GridNearTxLocal(
         GridCacheContext<K, V> ctx,
         boolean implicit,
+        boolean implicitSingle,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
         long timeout,
@@ -86,8 +88,8 @@ class GridNearTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
         boolean syncRollback,
         boolean swapEnabled,
         boolean storeEnabled) {
-        super(ctx, ctx.versions().next(), implicit, concurrency, isolation, timeout, invalidate, swapEnabled,
-            storeEnabled);
+        super(ctx, ctx.versions().next(), implicit, implicitSingle, concurrency, isolation, timeout, invalidate,
+            swapEnabled, storeEnabled);
 
         assert ctx != null;
 
@@ -100,10 +102,10 @@ class GridNearTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
         return true;
     }
 
-    /** {@inheritDoc} */ // TODO
-//    @Override public boolean enforceSerializable() {
-//        return false;
-//    }
+    /** {@inheritDoc} */
+    @Override public boolean enforceSerializable() {
+        return false;
+    }
 
     /** {@inheritDoc} */
     @Override public Collection<UUID> nodeIds() {

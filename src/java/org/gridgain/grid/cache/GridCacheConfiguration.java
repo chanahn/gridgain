@@ -34,7 +34,7 @@ import java.util.*;
  * default configuration.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public interface GridCacheConfiguration {
     /** Default query log name. */
@@ -61,6 +61,9 @@ public interface GridCacheConfiguration {
 
     /** Default transaction timeout. */
     public static final long DFLT_TRANSACTION_TIMEOUT = 0;
+
+    /** Default query timeout. */
+    public static final long DFLT_QUERY_TIMEOUT = 0;
 
     /** Default lock timeout. */
     public static final long DFLT_LOCK_TIMEOUT = 0;
@@ -153,7 +156,7 @@ public interface GridCacheConfiguration {
     public static final float DFLT_MAX_EVICTION_OVERFLOW_RATIO = 10;
 
     /** Default eviction synchronized flag. */
-    public static final boolean DFLT_EVICT_SYNCHRONIZED = false;
+    public static final boolean DFLT_EVICT_SYNCHRONIZED = true;
 
     /** Default near nodes eviction synchronized flag. */
     public static final boolean DFLT_EVICT_NEAR_SYNCHRONIZED = true;
@@ -361,6 +364,14 @@ public interface GridCacheConfiguration {
      * @return Default transaction timeout.
      */
     public long getDefaultTxTimeout();
+
+    /**
+     * Gets default query timeout. Default value is defined by {@link #DFLT_QUERY_TIMEOUT}. {@code 0} (zero)
+     * means that the query will never timeout and will wait for completion.
+     *
+     * @return Default query timeout, {@code 0} for never.
+     */
+    public long getDefaultQueryTimeout();
 
     /**
      * Gets default lock acquisition timeout. Default value is defined by {@link #DFLT_LOCK_TIMEOUT}

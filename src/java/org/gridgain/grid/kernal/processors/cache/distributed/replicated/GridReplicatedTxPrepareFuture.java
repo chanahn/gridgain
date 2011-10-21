@@ -30,7 +30,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Replicated cache transaction future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
     implements GridCacheFuture<GridCacheTxEx<K, V>> {
@@ -61,6 +61,9 @@ public final class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter
 
     /** Latch to count replies. */
     private AtomicInteger replyCnt;
+
+    /** Trackable flag. */
+    private boolean trackable = true;
 
     /** Logger. */
     @GridToStringExclude
@@ -127,6 +130,16 @@ public final class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter
      */
     @Override public Collection<? extends GridNode> nodes() {
         return nodes;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
     }
 
     /**

@@ -54,6 +54,7 @@ import org.springframework.beans.factory.xml.*;
 import org.springframework.context.*;
 import org.springframework.context.support.*;
 import org.springframework.core.io.*;
+
 import javax.management.*;
 import java.io.*;
 import java.lang.management.*;
@@ -61,6 +62,7 @@ import java.net.*;
 import java.util.*;
 import java.util.Map.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.GridConfiguration.*;
 import static org.gridgain.grid.GridFactoryState.*;
@@ -128,7 +130,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * For more information refer to {@link GridSpringBean} documentation.
 
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridFactory {
     /**
@@ -155,7 +157,7 @@ public class GridFactory {
     private static final String LIC_FILE_NAME = "gridgain-license.xml";
 
     /** Default grid. */
-    private static GridNamedInstance dfltGrid;
+    private static volatile GridNamedInstance dfltGrid;
 
     /** Map of named grids. */
     private static final Map<String, GridNamedInstance> grids = new HashMap<String, GridNamedInstance>();
@@ -261,7 +263,7 @@ public class GridFactory {
             return state != null ? state : STOPPED;
         }
 
-        return grid.getState();
+        return grid.state();
     }
 
     /**
@@ -347,7 +349,7 @@ public class GridFactory {
             grid = name == null ? dfltGrid : grids.get(name);
         }
 
-        if (grid != null && grid.getState() == STARTED) {
+        if (grid != null && grid.state() == STARTED) {
             grid.stop(cancel, wait);
 
             boolean fireEvt;
@@ -363,7 +365,7 @@ public class GridFactory {
             }
 
             if (fireEvt)
-                notifyStateChange(grid.getName(), grid.getState());
+                notifyStateChange(grid.getName(), grid.state());
 
             return true;
         }
@@ -436,7 +438,7 @@ public class GridFactory {
             }
 
             if (fireEvt)
-                notifyStateChange(grid.getName(), grid.getState());
+                notifyStateChange(grid.getName(), grid.state());
         }
     }
 
@@ -549,7 +551,7 @@ public class GridFactory {
 
         U.warn(null, "Default Spring XML file not found (is GRIDGAIN_HOME set?): " + DFLT_CFG);
 
-        return start0(new GridConfigurationAdapter(), springCtx).getGrid();
+        return start0(new GridConfigurationAdapter(), springCtx).grid();
     }
 
     /**
@@ -580,7 +582,7 @@ public class GridFactory {
     public static Grid start(GridConfiguration cfg, @Nullable ApplicationContext springCtx) throws GridException {
         A.notNull(cfg, "cfg");
 
-        return start0(cfg, springCtx).getGrid();
+        return start0(cfg, springCtx).grid();
     }
 
     /**
@@ -1053,7 +1055,7 @@ public class GridFactory {
         // Return the first grid started.
         GridNamedInstance res = !grids.isEmpty() ? grids.get(0) : null;
 
-        return res != null ? res.getGrid() : null;
+        return res != null ? res.grid() : null;
     }
 
     /**
@@ -1100,12 +1102,10 @@ public class GridFactory {
         try {
             grid.start(cfg, single, ctx);
 
-            assert grid.getState() == STARTED;
-
             notifyStateChange(name, STARTED);
         }
         finally {
-            if (grid.getState() != STARTED) {
+            if (grid.state() != STARTED) {
                 synchronized (mux) {
                     if (name == null)
                         dfltGrid = null;
@@ -1149,14 +1149,14 @@ public class GridFactory {
             List<Grid> allGrids = new ArrayList<Grid>(grids.size() + (dfltGrid == null ? 0 : 1));
 
             if (dfltGrid != null) {
-                Grid g = dfltGrid.getGrid();
+                Grid g = dfltGrid.grid();
 
                 if (g != null)
                     allGrids.add(g);
             }
 
             for (GridNamedInstance grid : grids.values()) {
-                Grid g = grid.getGrid();
+                Grid g = grid.grid();
 
                 if (g != null)
                     allGrids.add(g);
@@ -1183,14 +1183,14 @@ public class GridFactory {
 
         synchronized (mux) {
             if (dfltGrid != null) {
-                GridKernal g = dfltGrid.getGrid();
+                GridKernal g = dfltGrid.grid();
 
                 if(g != null && g.getLocalNodeId().equals(localNodeId))
                     return g;
             }
 
             for (GridNamedInstance grid : grids.values()) {
-                GridKernal g = grid.getGrid();
+                GridKernal g = grid.grid();
 
                 if (g != null && g.getLocalNodeId().equals(localNodeId))
                     return g;
@@ -1226,7 +1226,7 @@ public class GridFactory {
 
         Grid res;
 
-        if (grid == null || (res = grid.getGrid()) == null)
+        if (grid == null || (res = grid.grid()) == null)
             throw new IllegalStateException("Grid instance was not properly started or was already stopped: " + name);
 
         return res;
@@ -1290,18 +1290,24 @@ public class GridFactory {
      * Grid data container.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.13102011
+     * @version 3.5.0c.20102011
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
         private static final Map<MBeanServer, GridMBeanServerData> mbeans =
             new HashMap<MBeanServer, GridMBeanServerData>();
 
+        /** */
+        private static final String[] EMPTY_STR_ARR = new String[0];
+
+        /** Empty array of caches. */
+        private static final GridCacheConfiguration[] EMPTY_CACHE_CONFIGS = new GridCacheConfiguration[0];
+
         /** Grid name. */
         private final String name;
 
         /** Grid instance. */
-        private GridKernal grid;
+        private volatile GridKernal grid;
 
         /** Executor service. */
         private ExecutorService execSvc;
@@ -1331,7 +1337,7 @@ public class GridFactory {
         private boolean p2pSvcShutdown;
 
         /** Grid state. */
-        private GridFactoryState state = STOPPED;
+        private volatile GridFactoryState state = STOPPED;
 
         /** Shutdown hook. */
         private Thread shutdownHook;
@@ -1339,11 +1345,14 @@ public class GridFactory {
         /** Grid log. */
         private GridLogger log;
 
-        /** */
-        private static final String[] EMPTY_STR_ARR = new String[] {};
+        /** Start guard. */
+        private final AtomicBoolean startGuard = new AtomicBoolean();
 
-        /** Empty array of caches. */
-        private static final GridCacheConfiguration[] EMPTY_CACHE_CONFIGS = new GridCacheConfiguration[0];
+        /** Start latch. */
+        private final CountDownLatch startLatch = new CountDownLatch(1);
+
+        /** Thread that starts this named instance. This field can be non-volatile. */
+        private Thread starterThread;
 
         /**
          * Creates un-started named instance.
@@ -1368,7 +1377,10 @@ public class GridFactory {
          *
          * @return Grid instance.
          */
-        synchronized GridKernal getGrid() {
+        GridKernal grid() {
+            if (starterThread != Thread.currentThread())
+                U.awaitQuiet(startLatch);
+
             return grid;
         }
 
@@ -1377,7 +1389,10 @@ public class GridFactory {
          *
          * @return Grid state.
          */
-        synchronized GridFactoryState getState() {
+        GridFactoryState state() {
+            if (starterThread != Thread.currentThread())
+                U.awaitQuiet(startLatch);
+
             return state;
         }
 
@@ -1413,9 +1428,28 @@ public class GridFactory {
          */
         synchronized void start(GridConfiguration cfg, boolean single, @Nullable ApplicationContext ctx)
             throws GridException {
-            if (grid != null)
-                // No-op if grid is already started.
-                return;
+            if (startGuard.compareAndSet(false, true)) {
+                try {
+                    starterThread = Thread.currentThread();
+
+                    start0(cfg, single, ctx);
+                }
+                finally {
+                    startLatch.countDown();
+                }
+            }
+            else
+                U.awaitQuiet(startLatch);
+        }
+
+        /**
+         * @param cfg Grid configuration (possibly {@code null}).
+         * @param single Whether or not this is a single grid instance in current VM.
+         * @param ctx Optional Spring application context.
+         * @throws GridException If start failed.
+         */
+        private void start0(GridConfiguration cfg, boolean single, ApplicationContext ctx) throws GridException {
+            assert grid == null : "Grid is already started: " + name;
 
             if (cfg == null)
                 cfg = new GridConfigurationAdapter();
@@ -1831,39 +1865,40 @@ public class GridFactory {
                 ensureMultiInstanceSupport(swapspaceSpi);
             }
 
-            grid = new GridKernal(ctx);
-
             // Register GridFactory MBean for current grid instance.
             try {
                 registerFactoryMbean(myCfg.getMBeanServer());
             }
             catch (GridException e) {
-                grid = null;
-
                 stopExecutor(log);
 
                 throw e;
             }
             // Catch Throwable to protect against any possible failure.
             catch (Throwable e) {
-                grid = null;
-
                 stopExecutor(log);
 
                 throw new GridException("Unexpected exception when starting grid.", e);
             }
 
+            boolean started = false;
+
             try {
-                grid.start(myCfg);
+                GridKernal grid0 = new GridKernal(ctx);
+
+                // Init here to make grid available to lifecycle listeners.
+                grid = grid0;
+
+                grid0.start(myCfg);
 
                 state = STARTED;
 
                 if (log.isDebugEnabled())
-                    log.debug("Grid factory started ok.");
+                    log.debug("Grid factory started ok: " + name);
+
+                started = true;
             }
             catch (GridException e) {
-                grid = null;
-
                 stopExecutor(log);
 
                 unregisterFactoryMBean();
@@ -1872,17 +1907,20 @@ public class GridFactory {
             }
             // Catch Throwable to protect against any possible failure.
             catch (Throwable e) {
-                grid = null;
-
                 stopExecutor(log);
 
                 unregisterFactoryMBean();
 
                 throw new GridException("Unexpected exception when starting grid.", e);
             }
+            finally {
+                if (!started)
+                    // Grid was not started.
+                    grid = null;
+            }
 
             // Do not set it up only if GRIDGAIN_NO_SHUTDOWN_HOOK=TRUE is provided.
-            if (!"TRUE".equalsIgnoreCase(X.getSystemOrEnv(GG_NO_SHUTDOWN_HOOK))) {
+            if (!"true".equalsIgnoreCase(X.getSystemOrEnv(GG_NO_SHUTDOWN_HOOK))) {
                 try {
                     Runtime.getRuntime().addShutdownHook(shutdownHook = new Thread() {
                         @Override public void run() {
@@ -1934,8 +1972,25 @@ public class GridFactory {
          * @param wait If {@code true} then method will wait for all task being
          *      executed until they finish their execution.
          */
-        synchronized void stop(boolean cancel, boolean wait) {
-            if (grid == null) {
+        void stop(boolean cancel, boolean wait) {
+            // Stop cannot be called prior to start from public API,
+            // since it checks for STARTED state. So, we can assert here.
+            assert startGuard.get();
+
+            stop0(cancel, wait);
+        }
+
+        /**
+         * @param cancel Flag indicating whether all currently running jobs
+         *      should be cancelled.
+         * @param wait If {@code true} then method will wait for all task being
+         *      executed until they finish their execution.
+         */
+        private synchronized void stop0(boolean cancel, boolean wait) {
+            GridKernal grid0 = grid;
+
+            // Double check.
+            if (grid0 == null) {
                 if (log != null)
                     U.warn(log, "Attempting to stop an already stopped grid instance (ignore): " + name);
 
@@ -1961,7 +2016,7 @@ public class GridFactory {
             unregisterFactoryMBean();
 
             try {
-                grid.stop(cancel, wait);
+                grid0.stop(cancel, wait);
 
                 if (log.isDebugEnabled())
                     log.debug("Grid instance stopped ok: " + name);
@@ -1970,7 +2025,7 @@ public class GridFactory {
                 U.error(log, "Failed to properly stop grid instance due to undeclared exception.", e);
             }
             finally {
-                state = grid.context().segmented() ? STOPPED_ON_SEGMENTATION : STOPPED;
+                state = grid0.context().segmented() ? STOPPED_ON_SEGMENTATION : STOPPED;
 
                 grid = null;
 
@@ -2098,7 +2153,7 @@ public class GridFactory {
         /**
          * Unregister delegate Mbean instance for {@link GridFactory}.
          */
-        public void unregisterFactoryMBean() {
+        private void unregisterFactoryMBean() {
             synchronized (mbeans) {
                 Iterator<Entry<MBeanServer, GridMBeanServerData>> iter = mbeans.entrySet().iterator();
 
@@ -2139,7 +2194,7 @@ public class GridFactory {
          * Contains necessary data for selected MBeanServer.
          *
          * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-         * @version 3.5.0c.13102011
+         * @version 3.5.0c.20102011
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

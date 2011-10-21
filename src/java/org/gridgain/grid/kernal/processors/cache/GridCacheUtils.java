@@ -33,9 +33,12 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Cache utility methods.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
-public abstract class GridCacheUtils {
+public class GridCacheUtils {
+    /** Flag to turn off DHT cache for debugging purposes. */
+    public static final boolean DHT_ENABLED = true;
+
     /** Peek flags. */
     private static final GridCachePeekMode[] PEEK_FLAGS = new GridCachePeekMode[]{GLOBAL, SWAP};
 
@@ -205,6 +208,13 @@ public abstract class GridCacheUtils {
             return "Cache extended entry to key converter.";
         }
     };
+
+    /**
+     * Ensure singleton.
+     */
+    protected GridCacheUtils() {
+        // No-op.
+    }
 
     /**
      * Gets per-thread-unique ID for this thread.
@@ -682,7 +692,7 @@ public abstract class GridCacheUtils {
         String name = ctx.cache().name();
 
         if (name == null)
-            name = "gg-dflt-space";
+            name = "gg-dflt-cache-space";
 
         return name;
     }
@@ -1147,7 +1157,7 @@ public abstract class GridCacheUtils {
         Collection<V> vals = mappings.get(k);
 
         if (vals == null) {
-            Collection<V> old = mappings.putIfAbsent(k, vals = new ConcurrentLinkedQueue<V>());
+            Collection<V> old = mappings.putIfAbsent(k, vals = new GridConcurrentLinkedDeque<V>());
 
             if (old != null)
                 vals = old;

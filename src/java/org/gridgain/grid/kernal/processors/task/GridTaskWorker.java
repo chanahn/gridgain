@@ -36,7 +36,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
  * Grid task worker. Handles full task life cycle.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  * @param <T> Task argument type.
  * @param <R> Task return value type.
  */
@@ -212,7 +212,8 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
      * @param <T> Type of the return value.
      * @return Thread-local context value, if any.
      */
-    private <T> T getThreadContext(GridTaskThreadContextKey key) {
+    @SuppressWarnings({"unchecked"})
+    @Nullable private <T> T getThreadContext(GridTaskThreadContextKey key) {
         return thCtx == null ? null : (T)thCtx.get(key);
     }
 

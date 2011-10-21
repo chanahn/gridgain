@@ -24,7 +24,7 @@ import java.util.*;
  * Lock request message.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridDistributedLockRequest<K, V> extends GridDistributedBaseMessage<K, V> {
     /** Sender node ID. */
@@ -61,6 +61,9 @@ public class GridDistributedLockRequest<K, V> extends GridDistributedBaseMessage
     /** Array indicating whether value should be returned for a key. */
     @GridToStringInclude
     private boolean[] retVals;
+
+    /** Key-bytes index. */
+    protected transient int idx;
 
     /**
      * Empty constructor (required by {@link Externalizable}).
@@ -201,13 +204,17 @@ public class GridDistributedLockRequest<K, V> extends GridDistributedBaseMessage
      */
     public void addKeyBytes(K key, byte[] keyBytes, boolean retVal, Collection<GridCacheMvccCandidate<K>> cands,
         GridCacheContext<K, V> ctx) throws GridException {
-        prepareObject(key, ctx);
+        if (keyBytes != null) {
+            prepareObject(key, ctx);
 
-        candidatesByIndex(this.keyBytes.size(), cands);
+            this.keyBytes.add(keyBytes);
+        }
 
-        retVals[this.keyBytes.size()] = retVal;
+        candidatesByIndex(idx, cands);
 
-        this.keyBytes.add(keyBytes);
+        retVals[idx] = retVal;
+
+        idx++;
     }
 
     /**
@@ -294,7 +301,7 @@ public class GridDistributedLockRequest<K, V> extends GridDistributedBaseMessage
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(GridDistributedLockRequest.class, this, "keysCnt", keyBytes.size(),
+        return S.toString(GridDistributedLockRequest.class, this, "keysCnt", retVals.length,
             "super", super.toString());
     }
 }

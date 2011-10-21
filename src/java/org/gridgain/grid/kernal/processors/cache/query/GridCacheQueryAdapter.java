@@ -26,7 +26,7 @@ import java.util.*;
  * Adapter for cache queries.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridCacheQueryAdapter<K, V> extends GridCacheQueryBaseAdapter<K, V> implements GridCacheQuery<K, V> {
     /**
@@ -90,7 +90,7 @@ public class GridCacheQueryAdapter<K, V> extends GridCacheQueryBaseAdapter<K, V>
 
     /** {@inheritDoc} */
     @Override public GridFuture<Map.Entry<K, V>> executeSingle(GridProjection[] grid) {
-        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cacheCtx), true, nodes(grid));
+        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cctx), true, nodes(grid));
 
         if (qryLog.isDebugEnabled())
             qryLog.debug(U.compact("Executing query for single result." + toShortString(nodes)));
@@ -100,7 +100,7 @@ public class GridCacheQueryAdapter<K, V> extends GridCacheQueryBaseAdapter<K, V>
 
     /** {@inheritDoc} */
     @Override public GridCacheQueryFuture<Map.Entry<K, V>> execute(GridProjection[] grid) {
-        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cacheCtx), true, nodes(grid));
+        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cctx), true, nodes(grid));
 
         if (qryLog.isDebugEnabled())
             qryLog.debug(U.compact("Executing query: " + toShortString(nodes)));
@@ -110,7 +110,7 @@ public class GridCacheQueryAdapter<K, V> extends GridCacheQueryBaseAdapter<K, V>
 
     /** {@inheritDoc} */
     @Override public GridFuture<?> visit(GridPredicate<Map.Entry<K, V>> vis, GridProjection[] grid) {
-        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cacheCtx), true, nodes(grid));
+        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cctx), true, nodes(grid));
 
         if (qryLog.isDebugEnabled())
             qryLog.debug(U.compact("Executing query with visitor " + toShortString(nodes)));
@@ -152,7 +152,7 @@ public class GridCacheQueryAdapter<K, V> extends GridCacheQueryBaseAdapter<K, V>
          * @param nodes Nodes.
          */
         VisitorFuture(final GridPredicate<Map.Entry<K, V>> vis, Collection<GridRichNode> nodes) {
-            super(cacheCtx.kernalContext());
+            super(cctx.kernalContext());
 
             fut = execute(nodes, false, false, null);
 

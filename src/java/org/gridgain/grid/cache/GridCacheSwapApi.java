@@ -19,7 +19,7 @@ import java.util.*;
  * TODO: Add interface description.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public interface GridCacheSwapApi<K, V> {
     /**
@@ -102,7 +102,7 @@ public interface GridCacheSwapApi<K, V> {
     public GridCacheSwapSpace<K, V> swapspace();
 
     /**
-     * Provides read-onlhy view on a given swap store snapshot. This method is similar to {@link #swapspace()}
+     * Provides read-only view on a given swap store snapshot. This method is similar to {@link #swapspace()}
      * method, except that it provides a view over swap snapshot taken before and not over current swap
      * store.
      * <p>

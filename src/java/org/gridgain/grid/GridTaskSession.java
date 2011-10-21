@@ -95,7 +95,7 @@ import java.util.*;
  * on Wiki.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public interface GridTaskSession extends GridMetadataAware {
     /**
@@ -469,54 +469,6 @@ public interface GridTaskSession extends GridMetadataAware {
      * @see GridCheckpointSpi
      */
     public boolean removeCheckpoint(String key) throws GridException;
-
-    /**
-     * Writes data to swap space.
-     *
-     * @param key Data key.
-     * @param val Data value.
-     * @param scope Swap space scope. If {@link GridTaskSessionScope#SESSION_SCOPE}, then
-     *      data will be automatically removed at the task completion. If
-     *      {@link GridTaskSessionScope#GLOBAL_SCOPE}, then data will not be automatically
-     *      removed and can be reused from different tasks.
-     * @throws GridException Thrown in case of any errors.
-     */
-    public void writeToSwap(Object key, @Nullable Object val, GridTaskSessionScope scope) throws GridException;
-
-    /**
-     * Writes data to swap space defaulting to {@link GridTaskSessionScope#SESSION_SCOPE} lifetime scope.
-     *
-     * @param key Data key.
-     * @param val Data value.
-     * @throws GridException Thrown in case of any errors.
-     */
-    public void writeToSwap(Object key, @Nullable Object val) throws GridException;
-
-    /**
-     * Reads data previously stored by {@link #writeToSwap(Object, Object, GridTaskSessionScope)}
-     * method.
-     *
-     * @param key Data key.
-     * @return Data read from swap space or <tt>null</tt> if no data was stored.
-     * @throws GridException Thrown in case of any errors.
-     */
-    @Nullable public <T> T readFromSwap(Object key) throws GridException;
-
-    /**
-     * Removes data previously stored by {@link #writeToSwap(Object, Object, GridTaskSessionScope)}
-     * method.
-     *
-     * @param key Data key.
-     * @throws GridException Thrown in case of any errors.
-     */
-    public void removeFromSwap(Object key) throws GridException;
-
-    /**
-     * Clears the swap space associated with this session.
-     *
-     * @throws GridException Thrown in case of any errors.
-     */
-    public void clearSwap() throws GridException;
 
     /**
      * Gets a collection of grid nodes IDs. Grid nodes are discovered via underlying

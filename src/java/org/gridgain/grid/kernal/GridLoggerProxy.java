@@ -22,9 +22,12 @@ import static org.gridgain.grid.GridSystemProperties.*;
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridLoggerProxy extends GridMetadataAwareAdapter implements GridLogger, Externalizable {
+    /** Global flag to enable/disable GridGain debug logging. */
+    private static final boolean GG_DEBUG_ENABLED = Boolean.valueOf(X.getSystemOrEnv(GridSystemProperties.GG_DEBUG_ENABLED, "false"));
+
     /** */
     private static ThreadLocal<GridTuple2<String, Object>> stash = new ThreadLocal<GridTuple2<String, Object>>() {
         @Override protected GridTuple2<String, Object> initialValue() {
@@ -120,7 +123,7 @@ public class GridLoggerProxy extends GridMetadataAwareAdapter implements GridLog
     /** {@inheritDoc} */
     @Override public GridLogger getLogger(Object ctgr) {
         assert ctgr != null;
-        
+
         return new GridLoggerProxy(impl.getLogger(ctgr), ctgr, gridName, id8);
     }
 
@@ -155,7 +158,11 @@ public class GridLoggerProxy extends GridMetadataAwareAdapter implements GridLog
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings({"SimplifiableIfStatement"})
     @Override public boolean isDebugEnabled() {
+        if (gg && !GG_DEBUG_ENABLED)
+            return false;
+
         return (!quiet || !gg) && impl.isDebugEnabled();
     }
 

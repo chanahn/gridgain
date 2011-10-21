@@ -61,7 +61,7 @@ import java.util.concurrent.*;
  * <p>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, DisposableBean, InitializingBean,
     ApplicationContextAware {
@@ -760,26 +760,28 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
     }
 
     /** {@inheritDoc} */
-    @Override public void writeToSwap(@Nullable String space, Object key, @Nullable Object val) throws GridException {
+    @Override public void writeToSwap(@Nullable String space, Object key, @Nullable Object val,
+        @Nullable ClassLoader ldr) throws GridException {
         assert g != null;
 
-        g.writeToSwap(space, key, val);
+        g.writeToSwap(space, key, val, ldr);
     }
 
     /** {@inheritDoc} */
     @SuppressWarnings("RedundantTypeArguments")
-    @Override public <T> T readFromSwap(@Nullable String space, Object key) throws GridException {
-        assert g != null;
-
-        return g.<T>readFromSwap(space, key);
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean removeFromSwap(@Nullable String space, Object key, @Nullable GridInClosure<Object> c)
+    @Override public <T> T readFromSwap(@Nullable String space, Object key, @Nullable ClassLoader ldr)
         throws GridException {
         assert g != null;
 
-        return g.removeFromSwap(space, key, c);
+        return g.<T>readFromSwap(space, key, ldr);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void removeFromSwap(@Nullable String space, Object key, @Nullable GridInClosure<Object> c,
+        @Nullable ClassLoader ldr) throws GridException {
+        assert g != null;
+
+        g.removeFromSwap(space, key, c, ldr);
     }
 
     /** {@inheritDoc} */

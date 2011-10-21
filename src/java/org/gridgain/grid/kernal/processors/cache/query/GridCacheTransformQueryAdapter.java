@@ -26,7 +26,7 @@ import java.util.*;
  * Adapter for transforming cache queries.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridCacheTransformQueryAdapter<K, V, T> extends GridCacheQueryBaseAdapter<K, V>
     implements GridCacheTransformQuery<K, V, T> {
@@ -77,14 +77,14 @@ public class GridCacheTransformQueryAdapter<K, V, T> extends GridCacheQueryBaseA
     /** {@inheritDoc} */
     @Override public GridFuture<Map.Entry<K, T>> executeSingle(GridProjection[] grid) {
         if (trans == null) {
-            GridFutureAdapter<Map.Entry<K, T>> err = new GridFutureAdapter<Map.Entry<K, T>>(cacheCtx.kernalContext());
+            GridFutureAdapter<Map.Entry<K, T>> err = new GridFutureAdapter<Map.Entry<K, T>>(cctx.kernalContext());
 
             err.onDone(new GridException("Transformer must be set."));
 
             return err;
         }
 
-        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cacheCtx), true, nodes(grid));
+        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cctx), true, nodes(grid));
 
         if (qryLog.isDebugEnabled())
             qryLog.debug("Executing transform query for single result " + toShortString(nodes));
@@ -96,9 +96,9 @@ public class GridCacheTransformQueryAdapter<K, V, T> extends GridCacheQueryBaseA
     @Override public GridCacheQueryFuture<Map.Entry<K, T>> execute(GridProjection[] grid) {
         if (trans == null)
             return new GridCacheErrorQueryFuture<Map.Entry<K, T>>
-                (cacheCtx.kernalContext(), new GridException("Transformer must be set for transform query."));
+                (cctx.kernalContext(), new GridException("Transformer must be set for transform query."));
 
-        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cacheCtx), true, nodes(grid));
+        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cctx), true, nodes(grid));
 
         if (qryLog.isDebugEnabled())
             qryLog.debug(U.compact("Executing transform query " + toShortString(nodes)));

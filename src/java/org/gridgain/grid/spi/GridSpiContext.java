@@ -23,7 +23,7 @@ import java.util.*;
  * SPI context provides common functionality for all SPI implementations.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public interface GridSpiContext {
     /**
@@ -225,14 +225,14 @@ public interface GridSpiContext {
     /**
      * Puts object into cache if there was no previous object associated with
      * given key.
-     * 
+     *
      * @param cacheName Cache name.
      * @param key Cache key.
      * @param val Cache value.
      * @param ttl Time to live.
      * @param <K> Cache key type.
      * @param <V> Cache value type.
-     * @return Either existing value or {@code null} if there was no value for given key. 
+     * @return Either existing value or {@code null} if there was no value for given key.
      * @throws GridException If put failed.
      */
     @Nullable public <K, V> V putIfAbsent(String cacheName, K key, V val, long ttl) throws GridException;
@@ -265,28 +265,30 @@ public interface GridSpiContext {
      * @param spaceName Swap space name.
      * @param key Key.
      * @param val Value.
+     * @param ldr Class loader (optional).
      * @throws GridException If any exception occurs.
      */
-    public void writeToSwap(String spaceName, Object key, @Nullable Object val) throws GridException;
+    public void writeToSwap(String spaceName, Object key, @Nullable Object val, @Nullable ClassLoader ldr)
+        throws GridException;
 
     /**
      * Reads object from swap.
      *
      * @param spaceName Swap space name.
      * @param key Key.
-     * @param <T> Value type.
+     * @param ldr Class loader (optional).
      * @return Swapped value.
      * @throws GridException If any exception occurs.
      */
-    @Nullable public <T> T readFromSwap(String spaceName, Object key) throws GridException;
+    @Nullable public <T> T readFromSwap(String spaceName, Object key, @Nullable ClassLoader ldr) throws GridException;
 
     /**
      * Removes object from swap.
      *
      * @param spaceName Swap space name.
      * @param key Key.
-     * @return {@code true} if value was actually removed, {@code false} otherwise.
+     * @param ldr Class loader (optional).
      * @throws GridException If any exception occurs.
      */
-    public boolean removeFromSwap(String spaceName, Object key) throws GridException;
+    public void removeFromSwap(String spaceName, Object key, @Nullable ClassLoader ldr) throws GridException;
 }

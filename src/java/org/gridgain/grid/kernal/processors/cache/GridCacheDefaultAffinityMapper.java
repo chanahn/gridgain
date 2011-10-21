@@ -35,7 +35,7 @@ import java.util.concurrent.*;
  * {@link GridCacheConfiguration#getAffinityMapper()} configuration property.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMapper<K> {
     /** Weak fields cache. If class is GC'ed, then it will be removed from this cache. */
@@ -61,7 +61,9 @@ public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMappe
     @Override public Object affinityKey(K key) {
         GridArgumentCheck.notNull(key, "key");
 
-        Field f = field(key.getClass());
+        Class<?> cls = key.getClass();
+
+        Field f = field(cls);
 
         if (f != null) {
             try {
@@ -72,7 +74,7 @@ public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMappe
             }
         }
         else {
-            Method m = method(key.getClass());
+            Method m = method(cls);
 
             if (m != null) {
                 try {

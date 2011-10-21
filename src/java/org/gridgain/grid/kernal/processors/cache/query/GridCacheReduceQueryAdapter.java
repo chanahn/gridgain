@@ -26,7 +26,7 @@ import java.util.*;
  * Adapter for reduce cache queries.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridCacheReduceQueryAdapter<K, V, R1, R2> extends GridCacheQueryBaseAdapter<K, V>
     implements GridCacheReduceQuery<K, V, R1, R2> {
@@ -117,7 +117,7 @@ public class GridCacheReduceQueryAdapter<K, V, R1, R2> extends GridCacheQueryBas
 
     /** {@inheritDoc} */
     @Override public GridFuture<R2> reduce(GridProjection[] grid) {
-        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cacheCtx), true, nodes(grid));
+        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cctx), true, nodes(grid));
 
         if (qryLog.isDebugEnabled())
             qryLog.debug(U.compact("Executing reduce query " + toShortString(nodes)));
@@ -131,7 +131,7 @@ public class GridCacheReduceQueryAdapter<K, V, R1, R2> extends GridCacheQueryBas
      */
     private GridFuture<R2> reduce(Collection<GridRichNode> nodes) {
         if (rmtRdc == null) {
-            GridFutureAdapter<R2> err = new GridFutureAdapter<R2>(cacheCtx.kernalContext());
+            GridFutureAdapter<R2> err = new GridFutureAdapter<R2>(cctx.kernalContext());
 
             err.onDone(new GridException("Remote reducer must be set."));
 
@@ -139,7 +139,7 @@ public class GridCacheReduceQueryAdapter<K, V, R1, R2> extends GridCacheQueryBas
         }
 
         if (locRdc == null) {
-            GridFutureAdapter<R2> err = new GridFutureAdapter<R2>(cacheCtx.kernalContext());
+            GridFutureAdapter<R2> err = new GridFutureAdapter<R2>(cctx.kernalContext());
 
             err.onDone(new GridException("Local reducer must be set."));
 
@@ -169,14 +169,14 @@ public class GridCacheReduceQueryAdapter<K, V, R1, R2> extends GridCacheQueryBas
     /** {@inheritDoc} */
     @Override public GridFuture<Collection<R1>> reduceRemote(GridProjection[] grid) {
         if (rmtRdc == null) {
-            GridFutureAdapter<Collection<R1>> err = new GridFutureAdapter<Collection<R1>>(cacheCtx.kernalContext());
+            GridFutureAdapter<Collection<R1>> err = new GridFutureAdapter<Collection<R1>>(cctx.kernalContext());
 
             err.onDone(new GridException("Remote reducer must be set."));
 
             return err;
         }
 
-        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cacheCtx), true, nodes(grid));
+        Collection<GridRichNode> nodes = F.retain(CU.allNodes(cctx), true, nodes(grid));
 
         if (qryLog.isDebugEnabled())
             qryLog.debug(U.compact("Executing reduce remote query " + toShortString(nodes)));
@@ -207,7 +207,7 @@ public class GridCacheReduceQueryAdapter<K, V, R1, R2> extends GridCacheQueryBas
          * @param fut General query future.
          */
         private ReduceFuture(GridCacheQueryFuture<R2> fut) {
-            super(cacheCtx.kernalContext());
+            super(cctx.kernalContext());
 
             this.fut = fut;
         }

@@ -23,34 +23,36 @@ import java.util.*;
  * This task has {@link GridTaskSession} injected.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridSwapSpaceTask extends GridTaskSplitAdapter<String, String> {
     /** Grid task session. */
     @GridTaskSessionResource
     private GridTaskSession ses;
 
+    /** Grid. */
+    @GridInstanceResource
+    private Grid g;
+
     /** {@inheritDoc} */
     @Override public Collection<? extends GridJob> split(int gridSize, String arg) throws GridException {
-        // Writes data to swap space.
-        ses.writeToSwap("example", arg, GridTaskSessionScope.SESSION_SCOPE);
+        // Writes data to swap space (global scope).
+        g.writeToSwap(null, "example", arg, classLoader());
 
         Collection<GridJob> jobs = new ArrayList<GridJob>(gridSize);
 
         for (int i = 0; i < gridSize; i++) {
             jobs.add(new GridJobAdapterEx() {
-                /*
-                 * Do none for the purpose of this example.
-                 */
-                @Nullable
-                @Override public Serializable execute() {
+                @Nullable @Override public Serializable execute() {
+                    // This method does nothing
+                    // for the purpose of this example.
                     return null;
                 }
             });
         }
 
-        // Reads data from swap space.
-        String val = (String)ses.readFromSwap("example");
+        // Reads data from swap space (global scope).
+        String val = (String)g.readFromSwap(null, "example", classLoader());
 
         X.println("Loaded data from swap space: " + val);
 
@@ -63,6 +65,6 @@ public class GridSwapSpaceTask extends GridTaskSplitAdapter<String, String> {
         // we have no returned data to reduce.
         // For the purpose of this example, we
         // return data stored in swap space.
-        return ses.readFromSwap("example");
+        return g.readFromSwap(null, "example", classLoader());
     }
 }

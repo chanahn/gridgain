@@ -42,7 +42,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Adapter for different cache implementations.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter implements GridCache<K, V>,
     Externalizable {
@@ -284,6 +284,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
     /**
      * @param implicit {@code True} if transaction is implicit.
+     * @param implicitSingle Implicit-with-single-key flag.
      * @param concurrency Concurrency.
      * @param isolation Isolation.
      * @param timeout transaction timeout.
@@ -296,6 +297,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
      */
     public abstract GridCacheTxLocalAdapter<K, V> newTx(
         boolean implicit,
+        boolean implicitSingle,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
         long timeout,
@@ -309,9 +311,10 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
      * Creates transaction with all defaults.
      *
      * @param implicit Implicit flag.
+     * @param implicitSingle Implicit-with-one-key flag.
      * @return New transaction.
      */
-    private GridCacheTxLocalAdapter<K, V> newTx(boolean implicit) {
+    private GridCacheTxLocalAdapter<K, V> newTx(boolean implicit, boolean implicitSingle) {
         GridCacheConfigurationAdapter cfg = ctx.config();
 
         GridCacheTxConcurrency concurrency = implicit ? PESSIMISTIC : cfg.getDefaultTxConcurrency();
@@ -319,6 +322,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         return newTx(
             implicit,
+            implicitSingle,
             concurrency,
             isolation,
             cfg.getDefaultTxTimeout(),
@@ -1896,7 +1900,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         GridCacheTxLocalAdapter<K, V> tx = null;
 
         if (checkTx)
-            tx = ctx.tm().localTx();
+            tx = ctx.tm().threadLocalTx();
 
         if (tx == null || tx.implicit()) {
             try {
@@ -2055,7 +2059,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         ctx.denyOnLocalRead();
 
-        return ctx.cloneOnFlag(syncOp(new SyncOp<V>() {
+        return ctx.cloneOnFlag(syncOp(new SyncOp<V>(true) {
             @Override public V op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 return tx.put(key, val, filter);
             }
@@ -2091,7 +2095,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         ctx.denyOnLocalRead();
 
-        return syncOp(new SyncOp<Boolean>() {
+        return syncOp(new SyncOp<Boolean>(true) {
             @Override public Boolean op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 return tx.putx(key, val, filter);
             }
@@ -2126,7 +2130,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         ctx.denyOnLocalRead();
 
-        return ctx.cloneOnFlag(syncOp(new SyncOp<V>() {
+        return ctx.cloneOnFlag(syncOp(new SyncOp<V>(true) {
             @Override public V op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 return tx.put(key, val, ctx.noPeekArray());
             }
@@ -2160,7 +2164,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         ctx.denyOnLocalRead();
 
-        return syncOp(new SyncOp<Boolean>() {
+        return syncOp(new SyncOp<Boolean>(true) {
             @Override public Boolean op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 return tx.putx(key, val, ctx.noPeekArray());
             }
@@ -2195,7 +2199,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         ctx.denyOnLocalRead();
 
-        return ctx.cloneOnFlag(syncOp(new SyncOp<V>() {
+        return ctx.cloneOnFlag(syncOp(new SyncOp<V>(true) {
             @Override public V op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 return tx.put(key, val, ctx.hasPeekArray());
             }
@@ -2229,7 +2233,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         ctx.denyOnLocalRead();
 
-        return syncOp(new SyncOp<Boolean>() {
+        return syncOp(new SyncOp<Boolean>(true) {
             @Override public Boolean op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 return tx.putx(key, val, ctx.hasPeekArray());
             }
@@ -2263,7 +2267,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         ctx.denyOnLocalRead();
 
-        return syncOp(new SyncOp<Boolean>() {
+        return syncOp(new SyncOp<Boolean>(true) {
             @Override public Boolean op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 // Register before hiding in the filter.
                 ctx.deploy().registerClass(oldVal);
@@ -2307,7 +2311,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         final GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
         ctx.denyOnLocalRead();
 
-        syncOp(new SyncInOp() {
+        syncOp(new SyncInOp(m.size() == 1) {
             @Override public void inOp(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 tx.putAll(m, filter);
             }
@@ -2342,7 +2346,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         A.notNull(key, "key");
 
-        return ctx.cloneOnFlag(syncOp(new SyncOp<V>() {
+        return ctx.cloneOnFlag(syncOp(new SyncOp<V>(true) {
             @Override public V op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 return tx.remove(key, filter);
             }
@@ -2376,7 +2380,10 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         final GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
         ctx.denyOnLocalRead();
 
-        syncOp(new SyncInOp() {
+        if (keys.isEmpty())
+            return;
+
+        syncOp(new SyncInOp(keys.size() == 1) {
             @Override public void inOp(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 tx.removeAll(keys, filter);
             }
@@ -2410,7 +2417,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         A.notNull(key, "key");
 
-        return syncOp(new SyncOp<Boolean>() {
+        return syncOp(new SyncOp<Boolean>(true) {
             @Override public Boolean op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 return tx.removex(key, filter);
             }
@@ -2445,7 +2452,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         A.notNull(key, "key", val, "val");
 
-        return syncOp(new SyncOp<Boolean>() {
+        return syncOp(new SyncOp<Boolean>(true) {
             @Override public Boolean op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 // Register before hiding in the filter.
                 ctx.deploy().registerClass(val);
@@ -2493,7 +2500,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         final GridPredicate<? super GridCacheEntry<K, V>>[] p = filter;
 
-        syncOp(new SyncInOp() {
+        syncOp(new SyncInOp(false) {
             @Override public void inOp(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
                 tx.removeAll(keySet(p), CU.<K, V>empty());
             }
@@ -2808,6 +2815,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         tx = ctx.tm().onCreated(
             newTx(
                 false,
+                false,
                 concurrency,
                 isolation,
                 timeout,
@@ -2863,6 +2871,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
                             tx = ctx.tm().onCreated(
                                 newTx(
+                                    false,
                                     false,
                                     cfg.getDefaultTxConcurrency(),
                                     cfg.getDefaultTxIsolation(),
@@ -3478,10 +3487,10 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     @Nullable private <T> T syncOp(SyncOp<T> op) throws GridException {
         checkJta();
 
-        GridCacheTxLocalAdapter<K, V> tx = ctx.tm().localTx();
+        GridCacheTxLocalAdapter<K, V> tx = ctx.tm().threadLocalTx();
 
         if (tx == null || tx.implicit()) {
-            tx = ctx.tm().onCreated(newTx(true));
+            tx = ctx.tm().onCreated(newTx(true, op.single()));
 
             assert tx != null;
 
@@ -3552,7 +3561,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         GridCacheTxLocalAdapter<K, V> tx = ctx.tm().threadLocalTx();
 
         if (tx == null || tx.implicit())
-            tx = ctx.tm().onCreated(newTx(true));
+            tx = ctx.tm().onCreated(newTx(true, op.single()));
 
         GridFuture<T> last = lastFut.get();
 
@@ -3872,6 +3881,23 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
      * Cache operation.
      */
     private abstract class SyncOp<T> {
+        /** Flag to indicate only-one-key operation. */
+        private final boolean single;
+
+        /**
+         * @param single Flag to indicate only-one-key operation.
+         */
+        SyncOp(boolean single) {
+            this.single = single;
+        }
+
+        /**
+         * @return Flag to indicate only-one-key operation.
+         */
+        final boolean single() {
+            return single;
+        }
+
         /**
          * @param tx Transaction.
          * @return Operation return value.
@@ -3884,6 +3910,13 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
      * Cache operation.
      */
     private abstract class SyncInOp extends SyncOp<Object> {
+        /**
+         * @param single Flag to indicate only-one-key operation.
+         */
+        SyncInOp(boolean single) {
+            super(single);
+        }
+
         /** {@inheritDoc} */
         @Nullable @Override public final Object op(GridCacheTxLocalAdapter<K, V> tx) throws GridException {
             inOp(tx);
@@ -3902,6 +3935,9 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
      * Cache operation.
      */
     private abstract class AsyncOp<T> {
+        /** Flag to indicate only-one-key operation. */
+        private final boolean single;
+
         /** Keys. */
         private final Collection<? extends K> keys;
 
@@ -3910,6 +3946,8 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
          */
         protected AsyncOp(K key) {
             keys = Arrays.asList(key);
+
+            single = true;
         }
 
         /**
@@ -3917,6 +3955,15 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
          */
         protected AsyncOp(Collection<? extends K> keys) {
             this.keys = keys;
+
+            single = keys.size() == 1;
+        }
+
+        /**
+         * @return Flag to indicate only-one-key operation.
+         */
+        final boolean single() {
+            return single;
         }
 
         /**

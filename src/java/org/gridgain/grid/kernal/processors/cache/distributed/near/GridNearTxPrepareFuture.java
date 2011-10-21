@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTxEx<K, V>>
     implements GridCacheMvccFuture<K, V, GridCacheTxEx<K, V>> {
@@ -56,6 +56,9 @@ public final class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFut
     /** Error. */
     @GridToStringExclude
     private AtomicReference<Throwable> err = new AtomicReference<Throwable>(null);
+
+    /** Trackable flag. */
+    private boolean trackable = true;
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -130,6 +133,16 @@ public final class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFut
         }
 
         return false;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
     }
 
     /**

@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.*;
  * generated to prevent starvation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridCacheMvcc<K> {
     /** Logger reference. */
@@ -286,9 +286,7 @@ public final class GridCacheMvcc<K> {
 
                     reassign();
 
-                    if (!cand.local())
-                        cctx.mvcc().removeRemote(cand);
-                    else
+                    if (cand.local())
                         cctx.mvcc().removeLocal(cand);
 
                     return true;
@@ -476,12 +474,14 @@ public final class GridCacheMvcc<K> {
      * @param reenter Reentry flag ({@code true} if reentry is allowed).
      * @param ec Eventually consistent flag.
      * @param tx Transaction flag.
+     * @param implicitSingle Implicit transaction flag.
      * @return New lock candidate if lock was added, or current owner if lock was reentered,
      *      or <tt>null</tt> if lock was owned by another thread and timeout is negative.
      */
     @Nullable public GridCacheMvccCandidate<K> addLocal(GridCacheEntryEx<K, ?> parent, long threadId,
-        GridCacheVersion ver, long timeout, boolean reenter, boolean ec, boolean tx) {
-        return addLocal(parent, /*nearNodeId*/null, /*nearVer*/null, threadId, ver, timeout, reenter, ec, tx, false);
+        GridCacheVersion ver, long timeout, boolean reenter, boolean ec, boolean tx, boolean implicitSingle) {
+        return addLocal(parent, /*nearNodeId*/null, /*nearVer*/null, threadId, ver, timeout, reenter, ec, tx,
+            implicitSingle, /*dht-local*/false);
     }
 
     /**
@@ -494,13 +494,14 @@ public final class GridCacheMvcc<K> {
      * @param reenter Reentry flag ({@code true} if reentry is allowed).
      * @param ec Eventually consistent flag.
      * @param tx Transaction flag.
+     * @param implicitSingle Implicit flag.
      * @param dhtLocal DHT local flag.
      * @return New lock candidate if lock was added, or current owner if lock was reentered,
      *      or <tt>null</tt> if lock was owned by another thread and timeout is negative.
      */
     @Nullable public GridCacheMvccCandidate<K> addLocal(GridCacheEntryEx<K, ?> parent,
         @Nullable UUID nearNodeId, @Nullable GridCacheVersion nearVer, long threadId, GridCacheVersion ver,
-        long timeout, boolean reenter, boolean ec, boolean tx, boolean dhtLocal) {
+        long timeout, boolean reenter, boolean ec, boolean tx, boolean implicitSingle, boolean dhtLocal) {
         if (log.isDebugEnabled())
             log.debug("Adding local candidate [mvcc=" + this + ", parent=" + parent + ", threadId=" + threadId +
                 ", ver=" + ver + ", timeout=" + timeout + ", reenter=" + reenter + ", ec=" + ec + ", tx=" + tx + "]");
@@ -529,7 +530,7 @@ public final class GridCacheMvcc<K> {
 
         // If this is a reentry, then reentry flag will be flipped within 'add0(..)' method.
         GridCacheMvccCandidate<K> cand = new GridCacheMvccCandidate<K>(parent, locNodeId, nearNodeId, nearVer, threadId,
-            ver, timeout, /*local*/true, /*reenter*/false, /*EC*/ec, /*TX*/tx, false, dhtLocal);
+            ver, timeout, /*local*/true, /*reenter*/false, ec, tx, implicitSingle, /*near-local*/false, dhtLocal);
 
         cctx.mvcc().addLocal(cand);
 
@@ -552,14 +553,15 @@ public final class GridCacheMvcc<K> {
      * @param timeout Lock acquire timeout.
      * @param ec Eventually consistent flag.
      * @param tx Transaction flag.
+     * @param implicitSingle Implicit flag.
      * @param nearLocal Near-local flag.
-     * @return Remote candidate.
+     * @return Add remote candidate.
      */
     public GridCacheMvccCandidate<K> addRemote(GridCacheEntryEx<K, ?> parent, UUID nodeId,
         @Nullable UUID otherNodeId, long threadId, GridCacheVersion ver, long timeout, boolean ec, boolean tx,
-        boolean nearLocal) {
+        boolean implicitSingle, boolean nearLocal) {
         GridCacheMvccCandidate<K> cand = new GridCacheMvccCandidate<K>(parent, nodeId, otherNodeId, null, threadId, ver,
-            timeout, /*local*/false, /*reentry*/false, ec, tx, nearLocal, false);
+            timeout, /*local*/false, /*reentry*/false, ec, tx, implicitSingle, nearLocal, false);
 
         addRemote(cand);
 
@@ -578,8 +580,6 @@ public final class GridCacheMvcc<K> {
         cctx.versions().onReceived(cand.nodeId(), cand.version());
 
         add0(cand);
-
-        cctx.mvcc().addRemote(cand);
     }
 
     /**
@@ -1048,6 +1048,17 @@ public final class GridCacheMvcc<K> {
         GridCacheMvccCandidate<K> owner = localOwner();
 
         return owner != null && owner.version().id().equals(lockId);
+    }
+
+    /**
+     * @param lockId Lock ID.
+     * @param threadId Thread ID.
+     * @return {@code True} if locked by lock ID or thread ID.
+     */
+    public boolean isLocallyOwnedByIdOrThread(GridUuid lockId, long threadId) {
+        GridCacheMvccCandidate<K> owner = localOwner();
+
+        return owner != null && (owner.version().id().equals(lockId) || owner.threadId() == threadId);
     }
 
     /**

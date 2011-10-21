@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.*;
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridNearTxFinishFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTx>
     implements GridCacheFuture<GridCacheTx> {
@@ -61,6 +61,9 @@ public final class GridNearTxFinishFuture<K, V> extends GridCompoundIdentityFutu
     /** Node mappings. */
     private ConcurrentMap<UUID, GridDistributedTxMapping<K, V>> mappings;
 
+    /** Trackable flag. */
+    private boolean trackable = true;
+
     /**
      * Empty constructor required for {@link Externalizable}.
      */
@@ -73,21 +76,8 @@ public final class GridNearTxFinishFuture<K, V> extends GridCompoundIdentityFutu
      * @param tx Transaction.
      * @param commit Commit flag.
      */
-    public GridNearTxFinishFuture(GridCacheContext<K, V> cctx, final GridNearTxLocal<K, V> tx, boolean commit) {
-        super(cctx.kernalContext(), new GridReducer<GridCacheTx, GridCacheTx>() {
-            @Override public boolean collect(GridCacheTx e) {
-                return true;
-            }
-
-            @Override public GridCacheTx apply() {
-                return tx; // Nothing to aggregate.
-            }
-
-            @Override public String toString() {
-                // Can't print the whole transaction here due to stack overflow.
-                return "Near finish reducer for tx: " + tx.xidVersion();
-            }
-        });
+    public GridNearTxFinishFuture(GridCacheContext<K, V> cctx, GridNearTxLocal<K, V> tx, boolean commit) {
+        super(cctx.kernalContext(), F.<GridCacheTx>identityReducer(tx));
 
         assert cctx != null;
 
@@ -144,6 +134,18 @@ public final class GridNearTxFinishFuture<K, V> extends GridCompoundIdentityFutu
             }
 
         return false;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /**
+     * Marks this future as not trackable.
+     */
+    @Override public void markNotTrackable() {
+        trackable = false;
     }
 
     /**
@@ -323,11 +325,16 @@ public final class GridNearTxFinishFuture<K, V> extends GridCompoundIdentityFutu
         if (n.isLocal()) {
             req.miniId(GridUuid.randomUuid());
 
-            GridFuture<GridCacheTx> fut = commit ?
-                dht().commitTx(n.id(), req) : dht().rollbackTx(n.id(), req);
+            if (CU.DHT_ENABLED) {
+                GridFuture<GridCacheTx> fut = commit ?
+                    dht().commitTx(n.id(), req) : dht().rollbackTx(n.id(), req);
 
-            // Add new future.
-            add(fut);
+                // Add new future.
+                add(fut);
+            }
+            else
+                // Add done future for testing.
+                add(new GridFinishedFuture<GridCacheTx>(ctx));
         }
         else {
             MiniFuture fut = new MiniFuture(m);

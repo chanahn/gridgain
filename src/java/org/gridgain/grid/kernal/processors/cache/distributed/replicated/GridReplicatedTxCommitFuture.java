@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Replicated cache transaction future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridReplicatedTxCommitFuture<K, V> extends GridFutureAdapter<GridCacheTx>
     implements GridCacheMvccFuture<K, V, GridCacheTx> {
@@ -68,6 +68,9 @@ public final class GridReplicatedTxCommitFuture<K, V> extends GridFutureAdapter<
 
     /** */
     private AtomicBoolean released = new AtomicBoolean(false);
+
+    /** Trackable flag. */
+    private boolean trackable = true;
 
     /**
      * Empty constructor required by {@link Externalizable}.
@@ -140,6 +143,16 @@ public final class GridReplicatedTxCommitFuture<K, V> extends GridFutureAdapter<
      */
     @Override public Collection<? extends GridNode> nodes() {
         return cctx.discovery().nodes(nodes);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
     }
 
     /**

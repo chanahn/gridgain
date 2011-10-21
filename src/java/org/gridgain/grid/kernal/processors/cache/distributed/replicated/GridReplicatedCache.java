@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Fully replicated cache implementation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Preloader. */
@@ -54,6 +54,7 @@ public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V>
     /** {@inheritDoc} */
     @Override public GridCacheTxLocalAdapter<K, V> newTx(
         boolean implicit,
+        boolean implicitSingle,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
         long timeout,
@@ -62,7 +63,7 @@ public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V>
         boolean syncRollback,
         boolean swapEnabled,
         boolean storeEnabled) {
-        return new GridReplicatedTxLocal<K, V>(ctx, implicit, concurrency, isolation, timeout,
+        return new GridReplicatedTxLocal<K, V>(ctx, implicit, implicitSingle, concurrency, isolation, timeout,
             invalidate, syncCommit, syncRollback, swapEnabled, storeEnabled);
     }
 
@@ -238,7 +239,7 @@ public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V>
 
                             // Add remote candidate before reordering.
                             entry.addRemote(msg.nodeId(), null, msg.threadId(), msg.version(), msg.timeout(),
-                                tx != null && tx.ec(), tx != null);
+                                tx != null && tx.ec(), tx != null, tx != null && tx.implicitSingle());
 
                             // Remote candidates for ordered lock queuing.
                             entry.addRemoteCandidates(

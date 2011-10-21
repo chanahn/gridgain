@@ -19,13 +19,12 @@ import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
-import java.util.*;
 
 /**
  * Handles all swap operations.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
     /** Swap manager. */
@@ -91,16 +90,20 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
-     * @param keyBytes Key to remove.
-     * @return {@code true} if value was actually removed, {@code false} otherwise.
+     * @param key Key to read.
+     * @param keyBytes Key bytes.
+     * @return Value from swap or {@code null}.
      * @throws GridException If failed.
      */
     @SuppressWarnings({"unchecked"})
-    @Nullable GridCacheSwapEntry<V> read(byte[] keyBytes) throws GridException {
+    @Nullable GridCacheSwapEntry<V> read(K key, byte[] keyBytes) throws GridException {
         if (!enabled)
             return null;
 
-        GridSwapByteArray valBytes = swapMgr.read(spaceName, new GridSwapByteArray(keyBytes));
+        assert key != null;
+
+        byte[] valBytes = swapMgr.read(spaceName, new GridSwapKey(key, cctx.partition(key), keyBytes),
+            cctx.deploy().localLoader());
 
         if (valBytes == null)
             return null;
@@ -110,22 +113,23 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
-     * @param keyBytes Key to remove.
+     * @param key Key to remove.
+     * @param keyBytes Key bytes.
      * @return {@code true} if value was actually removed, {@code false} otherwise.
      * @throws GridException If failed.
      */
     @SuppressWarnings({"unchecked"})
-    @Nullable GridCacheSwapEntry<V> readAndRemove(byte[] keyBytes) throws GridException {
+    @Nullable GridCacheSwapEntry<V> readAndRemove(K key, byte[] keyBytes) throws GridException {
         if (!enabled)
             return null;
 
-        final GridTuple<GridSwapByteArray> t = F.t1();
+        final GridTuple<byte[]> t = F.t1();
 
-        swapMgr.remove(spaceName, new GridSwapByteArray(keyBytes), new CI1<GridSwapByteArray>() {
-            @Override public void apply(GridSwapByteArray removed) {
+        swapMgr.remove(spaceName, new GridSwapKey(key, cctx.partition(key), keyBytes), new CI1<byte[]>() {
+            @Override public void apply(byte[] removed) {
                 t.set(removed);
             }
-        });
+        }, cctx.deploy().localLoader());
 
         if (t.get() == null)
             return null;
@@ -143,7 +147,7 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
         if (!enabled)
             return null;
 
-        return read(entry.getOrMarshalKeyBytes());
+        return read(entry.key(), entry.getOrMarshalKeyBytes());
     }
 
     /**
@@ -155,7 +159,7 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
         if (!enabled)
             return null;
 
-        return read(CU.marshal(cctx, key).getEntireArray());
+        return read(key, CU.marshal(cctx, key).getEntireArray());
     }
 
     /**
@@ -167,7 +171,7 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
         if (!enabled)
             return null;
 
-        return readAndRemove(entry.getOrMarshalKeyBytes());
+        return readAndRemove(entry.key(), entry.getOrMarshalKeyBytes());
     }
 
     /**
@@ -179,16 +183,20 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
         if (!enabled)
             return null;
 
-        return readAndRemove(CU.marshal(cctx, key).getEntireArray());
+        return readAndRemove(key, CU.marshal(cctx, key).getEntireArray());
     }
 
     /**
      * @param key Key to remove.
-     * @return {@code true} if value was actually removed, {@code false} otherwise.
+     * @param keyBytes Key bytes.
      * @throws GridException If failed.
      */
-    boolean remove(byte[] key) throws GridException {
-        return enabled && swapMgr.remove(spaceName, new GridSwapByteArray(key), null);
+    void remove(K key, byte[] keyBytes) throws GridException {
+        if (!enabled)
+            return;
+
+        swapMgr.remove(spaceName, new GridSwapKey(key, cctx.partition(key), keyBytes), null,
+            cctx.deploy().localLoader());
     }
 
     /**
@@ -196,6 +204,7 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
      *
      *
      * @param key Key.
+     * @param keyBytes Key bytes.
      * @param val Value.
      * @param ver Version.
      * @param ttl Entry time to live.
@@ -204,14 +213,15 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
      * @param clsLdrId Class loader id for entry value.
      * @throws GridException If failed.
      */
-    void write(byte[] key, byte[] val, GridCacheVersion ver, long ttl, long expireTime,
+    void write(K key, byte[] keyBytes, byte[] val, GridCacheVersion ver, long ttl, long expireTime,
         GridCacheMetricsAdapter metrics, GridUuid clsLdrId) throws GridException {
         if (!enabled)
             return;
 
         GridCacheSwapEntry<V> entry = new GridCacheSwapEntry<V>(val, ver, ttl, expireTime, metrics, clsLdrId);
 
-        swapMgr.write(spaceName, new GridSwapByteArray(key), new GridSwapByteArray(marshal(entry)));
+        swapMgr.write(spaceName, new GridSwapKey(key, cctx.partition(key), keyBytes),
+            marshal(entry), cctx.deploy().localLoader());
     }
 
     /**
@@ -224,19 +234,6 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
     @SuppressWarnings({"unchecked", "TypeMayBeWeakened"})
     private <T> T unmarshal(byte[] bytes, ClassLoader ldr) throws GridException {
         return (T)U.unmarshal(cctx.marshaller(), new ByteArrayInputStream(bytes), ldr);
-    }
-
-    /**
-     * @param bytes Bytes to unmarshal.
-     * @param ldr Class loader.
-     * @param <T> Type to unmarshal.
-     * @return Unmarshalled value.
-     * @throws GridException If unmarshal failed.
-     */
-    @SuppressWarnings({"unchecked", "TypeMayBeWeakened"})
-    private <T> T unmarshal(GridSwapByteArray bytes, ClassLoader ldr) throws GridException {
-        return (T)U.unmarshal(cctx.marshaller(),
-            new ByteArrayInputStream(bytes.getArray(), bytes.getOffset(), bytes.getLength()), ldr);
     }
 
     /**

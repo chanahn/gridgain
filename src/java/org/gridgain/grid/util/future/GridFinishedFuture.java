@@ -23,7 +23,7 @@ import java.util.concurrent.*;
  * Future that is completed at creation time.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridFinishedFuture<T> extends GridMetadataAwareAdapter implements GridFuture<T>, Externalizable {
     /** Synchronous notification flag. */
@@ -171,7 +171,7 @@ public class GridFinishedFuture<T> extends GridMetadataAwareAdapter implements G
     @SuppressWarnings({"unchecked"})
     @Override public void listenAsync(final GridInClosure<? super GridFuture<T>> lsnr) {
         if (ctx == null)
-            throw new IllegalStateException("Cannot attach listener to deserialized future: " + this);
+            throw new IllegalStateException("Cannot attach listener to deserialized future (context is null): " + this);
 
         if (lsnr != null) {
             if (syncNotify)

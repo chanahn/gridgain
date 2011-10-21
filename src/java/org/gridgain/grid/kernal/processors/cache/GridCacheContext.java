@@ -51,7 +51,7 @@ import static org.gridgain.grid.cache.GridCachePreloadMode.*;
  * Cache context.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 @GridToStringExclude
 public class GridCacheContext<K, V> implements Externalizable {
@@ -180,9 +180,9 @@ public class GridCacheContext<K, V> implements Externalizable {
         GridCacheConfigurationAdapter cacheCfg,
 
         /*
-        * Managers in starting order!
-        * ===========================
-        */
+         * Managers in starting order!
+         * ===========================
+         */
 
         GridCacheMvccManager<K, V> mvccMgr,
         GridCacheVersionManager<K, V> verMgr,
@@ -283,6 +283,13 @@ public class GridCacheContext<K, V> implements Externalizable {
      */
     public boolean isNear() {
         return cache instanceof GridNearCache;
+    }
+
+    /**
+     * @return {@code True} if cache is local.
+     */
+    public boolean isLocal() {
+        return cache instanceof GridLocalCache;
     }
 
     /**
@@ -1403,9 +1410,10 @@ public class GridCacheContext<K, V> implements Externalizable {
      * @param log Log.
      * @param dhtMap Dht mappings.
      * @param nearMap Near mappings.
+     * @return {@code True} if mapped.
      * @throws GridCacheEntryRemovedException If reader for entry is removed.
      */
-    public void dhtMap(UUID nearNodeId, long topVer, GridDhtCacheEntry<K, V> entry, GridLogger log,
+    public boolean dhtMap(UUID nearNodeId, long topVer, GridDhtCacheEntry<K, V> entry, GridLogger log,
         Map<GridNode, List<GridDhtCacheEntry<K, V>>> dhtMap,
         Map<GridNode, List<GridDhtCacheEntry<K, V>>> nearMap) throws GridCacheEntryRemovedException {
         Collection<GridNode> dhtNodes = dht().topology().nodes(entry.partition(), topVer);
@@ -1426,18 +1434,24 @@ public class GridCacheContext<K, V> implements Externalizable {
         else if (log.isDebugEnabled())
             log.debug("Entry has no near readers: " + entry);
 
-        map(entry, F.view(dhtNodes, F.remoteNodes(nodeId())), dhtMap); // Exclude local node.
-        map(entry, F.view(nearNodes, F.notIn(dhtMap.keySet())), nearMap); // Exclude DHT nodes.
+        boolean ret = map(entry, F.view(dhtNodes, F.remoteNodes(nodeId())), dhtMap); // Exclude local node.
+
+        ret |= map(entry, F.view(nearNodes, F.notIn(dhtMap.keySet())), nearMap); // Exclude DHT nodes.
+
+        return ret;
     }
 
     /**
      * @param entry Entry.
      * @param nodes Nodes.
      * @param map Map.
+     * @return {@code True} if mapped.
      */
     @SuppressWarnings({"MismatchedQueryAndUpdateOfCollection"})
-    private void map(GridDhtCacheEntry<K, V> entry, Iterable<GridNode> nodes,
+    private boolean map(GridDhtCacheEntry<K, V> entry, Iterable<GridNode> nodes,
         Map<GridNode, List<GridDhtCacheEntry<K, V>>> map) {
+        boolean ret = false;
+
         if (nodes != null) {
             for (GridNode n : nodes) {
                 List<GridDhtCacheEntry<K, V>> entries = map.get(n);
@@ -1446,8 +1460,12 @@ public class GridCacheContext<K, V> implements Externalizable {
                     map.put(n, entries = new LinkedList<GridDhtCacheEntry<K, V>>());
 
                 entries.add(entry);
+
+                ret = true;
             }
         }
+
+        return ret;
     }
 
     /**

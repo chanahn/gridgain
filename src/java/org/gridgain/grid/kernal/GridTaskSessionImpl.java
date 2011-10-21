@@ -23,7 +23,7 @@ import java.util.*;
  * Task session.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements GridTaskSessionInternal {
     /** */
@@ -76,9 +76,6 @@ public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements Gri
 
     /** */
     private String loadSpi;
-
-    /** */
-    private String swapSpi;
 
     /** */
     private final Object mux = new Object();
@@ -596,58 +593,6 @@ public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements Gri
     }
 
     /** {@inheritDoc} */
-    @Override public void writeToSwap(Object key, Object val, GridTaskSessionScope scope) throws GridException {
-        A.notNull(key, "key");
-
-        synchronized (mux) {
-            if (closed)
-                throw new GridException("Failed to write data (session closed): " + this);
-        }
-
-        ctx.swap().write(this, key, val, scope);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void writeToSwap(Object key, Object val) throws GridException {
-        writeToSwap(key, val, GridTaskSessionScope.SESSION_SCOPE);
-    }
-
-    /** {@inheritDoc} */
-    @SuppressWarnings({"unchecked"})
-    @Override public <T> T readFromSwap(Object key) throws GridException {
-        A.notNull(key, "key");
-
-        synchronized (mux) {
-            if (closed)
-                throw new GridException("Failed to read data (session closed): " + this);
-        }
-
-        return (T)ctx.swap().read(this, key);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void removeFromSwap(Object key) throws GridException {
-        A.notNull(key, "key");
-
-        synchronized (mux) {
-            if (closed)
-                throw new GridException("Failed to remove data (session closed): " + this);
-        }
-
-        ctx.swap().remove(this, key);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void clearSwap() throws GridException {
-        synchronized (mux) {
-            if (closed)
-                throw new GridException("Failed to remove data (session closed): " + this);
-        }
-
-        ctx.swap().clear(this);
-    }
-
-    /** {@inheritDoc} */
     @Override public Collection<UUID> getTopology() throws GridException {
         return F.nodeIds(ctx.topology().getTopology(this, ctx.discovery().allNodes()));
     }
@@ -695,22 +640,6 @@ public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements Gri
      */
     public void setCheckpointSpi(String cpSpi) {
         this.cpSpi = cpSpi;
-    }
-
-    /**
-     *
-     * @return SwapSpace SPI name.
-     */
-    public String getSwapSpaceSpi() {
-        return swapSpi;
-    }
-
-    /**
-     *
-     * @param swapSpi SwapSpace SPI name.
-     */
-    public void setSwapSpaceSpi(String swapSpi) {
-        this.swapSpi = swapSpi;
     }
 
     /**

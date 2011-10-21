@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.*;
  *
  * @param <R> Result type.
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAdapter<Collection<R>>
     implements GridCacheQueryFuture<R>, GridTimeoutObject {
@@ -123,9 +123,17 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
 
         startTime = System.currentTimeMillis();
 
-        endTime = startTime + qry.timeout();
+        long timeout = qry.timeout();
 
-        cctx.time().addTimeoutObject(this);
+        if (timeout > 0) {
+            endTime = startTime + timeout;
+
+            // Protect against overflow.
+            if (endTime < 0)
+                endTime = Long.MAX_VALUE;
+
+            cctx.time().addTimeoutObject(this);
+        }
 
         if (qry instanceof GridCacheReduceQueryAdapter) {
             GridCacheReduceQueryAdapter rdcQry = (GridCacheReduceQueryAdapter)qry;
@@ -235,7 +243,10 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
                     break;
 
                 if (c == null && !isDone()) {
-                    long waitTime = qry.timeout() - (System.currentTimeMillis() - startTime);
+                    long timeout = qry.timeout();
+
+                    long waitTime = timeout == 0 ?
+                        Long.MAX_VALUE : timeout - (System.currentTimeMillis() - startTime);
 
                     if (waitTime <= 0)
                         continue;

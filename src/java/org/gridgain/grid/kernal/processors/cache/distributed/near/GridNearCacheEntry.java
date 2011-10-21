@@ -28,7 +28,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Replicated cache entry.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
@@ -485,6 +485,23 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     }
 
     /** {@inheritDoc} */
+    @Override public boolean lockedLocallyByIdOrThread(GridUuid lockId, long threadId)
+        throws GridCacheEntryRemovedException {
+        lock();
+
+        try {
+            checkObsolete();
+
+            GridCacheMvccCandidate<K> c = mvcc.remoteOwner();
+
+            return c != null && (c.version().id().equals(lockId) || c.threadId() == threadId);
+        }
+        finally {
+            unlock();
+        }
+    }
+
+    /** {@inheritDoc} */
     @Override public GridCacheMvccCandidate<K> candidate(UUID nodeId, long threadId)
         throws GridCacheEntryRemovedException {
         lock();
@@ -559,8 +576,8 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
     /** {@inheritDoc} */
     @Override public GridCacheMvccCandidate<K> addLocal(long threadId, GridCacheVersion ver, long timeout,
-        boolean reenter, boolean ec, boolean tx) throws GridCacheEntryRemovedException {
-        return addNearLocal(null, threadId, ver, timeout, reenter, ec, tx);
+        boolean reenter, boolean ec, boolean tx, boolean implicitSingle) throws GridCacheEntryRemovedException {
+        return addNearLocal(null, threadId, ver, timeout, reenter, ec, tx, implicitSingle);
     }
 
     /**
@@ -573,73 +590,61 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
      * @param reenter Reentry flag.
      * @param ec Eventually consistent flag.
      * @param tx Transaction flag.
+     * @param implicitSingle Implicit flag.
      * @return New candidate.
      * @throws GridCacheEntryRemovedException If entry has been removed.
      */
     @Nullable public GridCacheMvccCandidate<K> addNearLocal(@Nullable UUID dhtNodeId, long threadId, GridCacheVersion ver,
-        long timeout, boolean reenter, boolean ec, boolean tx) throws GridCacheEntryRemovedException {
+        long timeout, boolean reenter, boolean ec, boolean tx, boolean implicitSingle)
+        throws GridCacheEntryRemovedException {
+        GridCacheMvccCandidate<K> prev;
+        GridCacheMvccCandidate<K> owner;
+        GridCacheMvccCandidate<K> cand;
+
+        V val;
+
+        UUID locId = cctx.nodeId();
+
+        lock();
+
         try {
-            GridCacheMvccCandidate<K> prev;
-            GridCacheMvccCandidate<K> owner;
-            GridCacheMvccCandidate<K> cand;
+            checkObsolete();
 
-            V val;
+            GridCacheMvccCandidate<K> c = mvcc.remoteCandidate(locId, threadId);
 
-            UUID locId = cctx.nodeId();
+            if (c != null)
+                return reenter ? c.reenter() : null;
 
-            lock();
+            prev = mvcc.anyOwner();
 
-            try {
-                // Check removed locks prior to obsolete flag.
-                checkRemoved(ver);
+            boolean emptyBefore = mvcc.isEmpty();
 
-                checkObsolete();
+            // Lock could not be acquired.
+            if (timeout < 0 && !emptyBefore)
+                return null;
 
-                GridCacheMvccCandidate<K> c = mvcc.remoteCandidate(locId, threadId);
+            // Local lock for near cache is a remote lock.
+            cand = mvcc.addRemote(this, locId, dhtNodeId, threadId, ver, timeout, ec, tx, implicitSingle,
+                /*near-local*/true);
 
-                if (c != null)
-                    return reenter ? c.reenter() : null;
+            owner = mvcc.anyOwner();
 
-                prev = mvcc.anyOwner();
+            boolean emptyAfter = mvcc.isEmpty();
 
-                boolean emptyBefore = mvcc.isEmpty();
+            checkCallbacks(emptyBefore, emptyAfter);
 
-                // Lock could not be acquired.
-                if (timeout < 0 && !emptyBefore)
-                    return null;
+            val = this.val;
 
-                // Local lock for near cache is a remote lock.
-                mvcc.addRemote(this, locId, dhtNodeId, threadId, ver, timeout, ec, tx, true);
-
-                owner = mvcc.anyOwner();
-
-                boolean emptyAfter = mvcc.isEmpty();
-
-                checkCallbacks(emptyBefore, emptyAfter);
-
-                val = this.val;
-
-                refreshRemotes();
-
-                // Make sure to return the added candidate.
-                cand = mvcc.candidate(ver);
-            }
-            finally {
-                unlock();
-            }
-
-            // This call must be outside of synchronization.
-            checkOwnerChanged(prev, owner, val);
-
-            return cand;
+            refreshRemotes();
         }
-        catch (GridDistributedLockCancelledException e) {
-            e.printStackTrace();
-
-            assert false : "Local lock for near transaction got cancelled: " + this;
-
-            return null;
+        finally {
+            unlock();
         }
+
+        // This call must be outside of synchronization.
+        checkOwnerChanged(prev, owner, val);
+
+        return cand;
     }
 
     /**

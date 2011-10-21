@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Transaction adapter for cache transactions.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K, V>
     implements GridCacheTxLocalEx<K, V> {
@@ -57,13 +57,13 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
     protected AtomicBoolean doneFlag = new AtomicBoolean(false);
 
     /** Committed versions, relative to base. */
-    protected Collection<GridCacheVersion> committedVers = Collections.emptyList();
+    private Collection<GridCacheVersion> committedVers = Collections.emptyList();
 
     /** Rolled back versions, relative to base. */
-    protected Collection<GridCacheVersion> rolledbackVers = Collections.emptyList();
+    private Collection<GridCacheVersion> rolledbackVers = Collections.emptyList();
 
     /** Base for completed versions. */
-    protected GridCacheVersion completedBase;
+    private GridCacheVersion completedBase;
 
     /** Commit error. */
     protected AtomicReference<Throwable> commitErr = new AtomicReference<Throwable>();
@@ -80,6 +80,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      * @param xidVer Transaction ID.
      * @param implicit {@code True} if transaction was implicitly started by the system,
      *      {@code false} if it was started explicitly by user.
+     * @param implicitSingle {@code True} if transaction is implicit with only one key.
      * @param concurrency Concurrency.
      * @param isolation Isolation.
      * @param timeout Timeout.
@@ -91,13 +92,15 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
         GridCacheContext<K, V> cctx,
         GridCacheVersion xidVer,
         boolean implicit,
+        boolean implicitSingle,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
         long timeout,
         boolean invalidate,
         boolean swapEnabled,
         boolean storeEnabled) {
-        super(cctx, xidVer, implicit, true, concurrency, isolation, timeout, invalidate, swapEnabled, storeEnabled);
+        super(cctx, xidVer, implicit, implicitSingle, /*local*/true, concurrency, isolation, timeout, invalidate,
+            swapEnabled, storeEnabled);
 
         minVer = xidVer;
     }
@@ -564,9 +567,11 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
             // Unlock all locks.
             cctx.tm().commitTx(this);
 
-            assert completedBase != null;
-            assert committedVers != null;
-            assert rolledbackVers != null;
+            boolean needsCompletedVersions = needsCompletedVersions();
+
+            assert !needsCompletedVersions || completedBase != null;
+            assert !needsCompletedVersions || committedVers != null;
+            assert !needsCompletedVersions || rolledbackVers != null;
         }
     }
 
@@ -1930,7 +1935,9 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      */
     public boolean init() {
         if (txMap == null) {
-            txMap = GridCollections.lockedMap(new LinkedHashMap<K, GridCacheTxEntry<K, V>>());
+            txMap = dht() ?
+                GridCollections.lockedMap(new LinkedHashMap<K, GridCacheTxEntry<K, V>>()) :
+                new LinkedHashMap<K, GridCacheTxEntry<K, V>>();
 
             readView = new GridCacheTxMap<K, V>(txMap, CU.<K, V>reads());
             writeView = new GridCacheTxMap<K, V>(txMap, CU.<K, V>writes());
@@ -1997,6 +2004,10 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
         assert state == GridCacheTxState.ACTIVE || timedOut() :
             "Invalid tx state for adding entry [op=" + op + ", val=" + val + ", entry=" + entry + ", filter=" +
                 Arrays.toString(filter) + ", txCtx=" + cctx.tm().txContextVersion() + ", tx=" + this + ']';
+
+        assert dht() || Thread.currentThread().getId() == threadId : "Invalid thread for enlisting entry [op=" +
+            op + ", val=" + val + ", entry=" + entry + ", filter=" + Arrays.toString(filter) + ", txCtx=" +
+            cctx.tm().txContextVersion() + ", tx=" + this + ']';
 
         while (true) {
             try {

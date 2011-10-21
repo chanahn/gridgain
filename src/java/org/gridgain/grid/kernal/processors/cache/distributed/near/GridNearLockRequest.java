@@ -26,7 +26,7 @@ import java.util.*;
  * Near cache lock request.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridNearLockRequest<K, V> extends GridDistributedLockRequest<K, V> {
     /** Topology version. */
@@ -50,6 +50,9 @@ public class GridNearLockRequest<K, V> extends GridDistributedLockRequest<K, V> 
     /** Implicit flag. */
     private boolean implicitTx;
 
+    /** Implicit transaction with one key flag. */
+    private boolean implicitSingleTx;
+
     /** Array of mapped DHT versions for this entry. */
     @GridToStringInclude
     private GridCacheVersion[] dhtVers;
@@ -69,6 +72,7 @@ public class GridNearLockRequest<K, V> extends GridDistributedLockRequest<K, V> 
      * @param lockVer Cache version.
      * @param isInTx {@code True} if implicit transaction lock.
      * @param implicitTx Flag to indicate that transaction is implicit.
+     * @param implicitSingleTx Implicit-transaction-with-one-key flag.
      * @param isRead Indicates whether implicit lock is for read or write operation.
      * @param isolation Transaction isolation.
      * @param isInvalidate Invalidation flag.
@@ -78,14 +82,15 @@ public class GridNearLockRequest<K, V> extends GridDistributedLockRequest<K, V> 
      * @param keyCnt Number of keys.
      */
     public GridNearLockRequest(long topVer, UUID nodeId, long threadId, GridUuid futId, GridCacheVersion lockVer,
-        boolean isInTx, boolean implicitTx, boolean isRead, GridCacheTxIsolation isolation, boolean isInvalidate,
-        long timeout, boolean syncCommit, boolean syncRollback, int keyCnt) {
+        boolean isInTx, boolean implicitTx, boolean implicitSingleTx, boolean isRead, GridCacheTxIsolation isolation,
+        boolean isInvalidate, long timeout, boolean syncCommit, boolean syncRollback, int keyCnt) {
         super(nodeId, threadId, futId, lockVer, isInTx, isRead, isolation, isInvalidate, timeout, keyCnt);
 
         assert topVer > 0;
 
         this.topVer = topVer;
         this.implicitTx = implicitTx;
+        this.implicitSingleTx = implicitSingleTx;
         this.syncCommit = syncCommit;
         this.syncRollback = syncRollback;
 
@@ -104,6 +109,13 @@ public class GridNearLockRequest<K, V> extends GridDistributedLockRequest<K, V> 
      */
     public boolean implicitTx() {
         return implicitTx;
+    }
+
+    /**
+     * @return Implicit-transaction-with-one-key flag.
+     */
+    public boolean implicitSingleTx() {
+        return implicitSingleTx;
     }
 
     /**
@@ -166,7 +178,7 @@ public class GridNearLockRequest<K, V> extends GridDistributedLockRequest<K, V> 
      */
     public void addKeyBytes(K key, byte[] keyBytes, boolean retVal, Collection<GridCacheMvccCandidate<K>> cands,
         @Nullable GridCacheVersion dhtVer, GridCacheContext<K, V> ctx) throws GridException {
-        dhtVers[keyBytes().size()] = dhtVer;
+        dhtVers[idx] = dhtVer;
 
         // Delegate to super.
         addKeyBytes(key, keyBytes, retVal, cands, ctx);
@@ -202,6 +214,7 @@ public class GridNearLockRequest<K, V> extends GridDistributedLockRequest<K, V> 
 
         out.writeLong(topVer);
         out.writeBoolean(implicitTx);
+        out.writeBoolean(implicitSingleTx);
         out.writeBoolean(syncCommit);
         out.writeBoolean(syncRollback);
         out.writeObject(filterBytes);
@@ -219,6 +232,7 @@ public class GridNearLockRequest<K, V> extends GridDistributedLockRequest<K, V> 
 
         topVer = in.readLong();
         implicitTx = in.readBoolean();
+        implicitSingleTx = in.readBoolean();
         syncCommit = in.readBoolean();
         syncRollback = in.readBoolean();
         filterBytes = (byte[][])in.readObject();

@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.*;
  * typedef.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridFunc {
     /** */
@@ -1168,6 +1168,26 @@ public class GridFunc {
             }
 
             @Override public R apply() {
+                return elem;
+            }
+        };
+    }
+
+    /**
+     * Gets reducer which always returns {@code true} from {@link GridReducer#collect(Object)}
+     * method and passed in {@code element} from {@link GridReducer#apply()} method.
+     *
+     * @param elem Element to return from {@link GridReducer#apply()} method.
+     * @param <T> Reducer element type.
+     * @return Passed in element.
+     */
+    public static <T> GridReducer<T, T> identityReducer(final T elem) {
+        return new R1<T, T>() {
+            @Override public boolean collect(T e) {
+                return true;
+            }
+
+            @Override public T apply() {
                 return elem;
             }
         };
@@ -4298,7 +4318,7 @@ public class GridFunc {
      * @return Collections' first element or {@code null} in case if the collection is empty.
      */
     @Nullable public static <T> T first(@Nullable Iterable<? extends T> c) {
-        if (isEmpty(c))
+        if (c == null)
             return null;
 
         assert c != null;
@@ -4316,7 +4336,7 @@ public class GridFunc {
      * @return Collections' first element or {@code null} in case if the collection is empty.
      */
     @Nullable public static <T> T last(@Nullable Iterable<? extends T> c) {
-        if (isEmpty(c))
+        if (c == null)
             return null;
 
         assert c != null;

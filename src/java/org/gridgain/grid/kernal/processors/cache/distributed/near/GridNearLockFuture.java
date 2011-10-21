@@ -35,10 +35,10 @@ import static org.gridgain.grid.GridEventType.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
-    implements GridCacheMvccLockFuture<K, V, Boolean> {
+    implements GridCacheMvccFuture<K, V, Boolean> {
     /** Logger reference. */
     private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
 
@@ -95,7 +95,7 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
     private GridNearTxLocal<K, V> tx;
 
     /** Left nodes. */
-    private Collection<GridRichNode> leftNodes = new GridConcurrentHashSet<GridRichNode>();
+    private Collection<GridRichNode> leftNodes = new GridConcurrentLinkedDeque<GridRichNode>();
 
     /** */
     private AtomicLong topVer = new AtomicLong(-1);
@@ -105,6 +105,9 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
 
     /** Map of current values. */
     private Map<K, GridTuple3<GridCacheVersion, V, byte[]>> valMap;
+
+    /** Trackable flag. */
+    private boolean trackable = true;
 
     /**
      * Empty constructor required by {@link Externalizable}.
@@ -158,12 +161,7 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
             cctx.time().addTimeoutObject(timeoutObj);
         }
 
-        valMap = new ConcurrentHashMap<K, GridTuple3<GridCacheVersion, V, byte[]>>(keys.size());
-    }
-
-    /** {@inheritDoc} */
-    @Override public UUID nodeId() {
-        return ctx.localNodeId();
+        valMap = new ConcurrentHashMap<K, GridTuple3<GridCacheVersion, V, byte[]>>(keys.size(), 1f, 1);
     }
 
     /**
@@ -171,12 +169,12 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
      */
     @Override public Collection<? extends GridNode> nodes() {
         return
-            F.viewReadOnly(futures(), new GridClosure<GridFuture<?>, GridRichNode>() {
-                @Nullable @Override public GridRichNode apply(GridFuture<?> f) {
+            F.viewReadOnly(futures(), new GridClosure<GridFuture<?>, GridNode>() {
+                @Nullable @Override public GridNode apply(GridFuture<?> f) {
                     if (isMini(f))
                         return ((MiniFuture)f).node();
 
-                    return cctx.rich().rich(cctx.discovery().localNode());
+                    return cctx.discovery().localNode();
                 }
             });
     }
@@ -195,11 +193,6 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
         }
     }
 
-    /** {@inheritDoc} */
-    @Override public Collection<? extends K> keys() {
-        return keys;
-    }
-
     /**
      * @return Future ID.
      */
@@ -207,11 +200,28 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
         return futId;
     }
 
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
+    }
+
     /**
      * @return {@code True} if transaction is not {@code null}.
      */
     private boolean inTx() {
         return tx != null;
+    }
+
+    /**
+     * @return {@code True} if implicit-single-tx flag is set.
+     */
+    private boolean implicitSingleTx() {
+        return tx != null && tx.implicitSingle();
     }
 
     /**
@@ -262,19 +272,8 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
      * @throws GridCacheEntryRemovedException If removed.
      */
     private boolean locked(GridCacheEntryEx<K, V> cached) throws GridCacheEntryRemovedException {
-        // Reentry-aware check.
-        return (cached.lockedLocally(lockVer.id()) || cached.lockedByThread(threadId)) &&
-            filter(cached); // If filter failed, lock is failed.
-    }
-
-    /**
-     * @param cached Entry.
-     * @param owner Lock owner.
-     * @return {@code True} if locked.
-     */
-    private boolean locked(GridCacheEntryEx<K, V> cached, GridCacheMvccCandidate<K> owner) {
-        // Reentry-aware check (if filter failed, lock is failed).
-        return owner != null && owner.matches(lockVer, cctx.nodeId(), threadId) && filter(cached);
+        // Reentry-aware check (If filter failed, lock is failed).
+        return cached.lockedLocallyByIdOrThread(lockVer.id(), threadId) && filter(cached);
     }
 
     /**
@@ -302,7 +301,7 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
         }
 
         // Add local lock first, as it may throw GridCacheEntryRemovedException.
-        c = entry.addNearLocal(dhtNodeId, threadId, lockVer, timeout, !inTx(), ec(), inTx());
+        c = entry.addNearLocal(dhtNodeId, threadId, lockVer, timeout, !inTx(), ec(), inTx(), implicitSingleTx());
 
         if (c != null)
             c.topologyVersion(topVer);
@@ -669,7 +668,7 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
                 Collection<GridRichNode> nodes = F.view(CU.allNodes(cctx, topVer), F.notIn(leftNodes));
 
                 ConcurrentMap<GridRichNode, Collection<K>> mappings =
-                    new ConcurrentHashMap<GridRichNode, Collection<K>>(nodes.size());
+                    new ConcurrentHashMap<GridRichNode, Collection<K>>(nodes.size(), 0.75f, 1);
 
                 reqMap = new HashMap<GridRichNode, T2<GridNearLockRequest<K, V>, Collection<K>>>(nodes.size());
 
@@ -725,8 +724,8 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
                                 if (cand != null) {
                                     if (req == null) {
                                         req = new GridNearLockRequest<K, V>(topVer, cctx.nodeId(), threadId, futId,
-                                            lockVer, inTx(), implicitTx(), read, isolation(), isInvalidate(), timeout,
-                                            syncCommit(), syncRollback(), mappedKeys.size());
+                                            lockVer, inTx(), implicitTx(), implicitSingleTx(), read, isolation(),
+                                            isInvalidate(), timeout, syncCommit(), syncRollback(), mappedKeys.size());
 
                                         reqMap.put(node,
                                             new T2<GridNearLockRequest<K, V>, Collection<K>>(req, mappedKeys));
@@ -751,7 +750,7 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
 
                                     req.addKeyBytes(
                                         key,
-                                        cand.reentry() ? null : entry.getOrMarshalKeyBytes(),
+                                        cand.reentry() || node.isLocal() ? null : entry.getOrMarshalKeyBytes(),
                                         retval && dhtVer == null,
                                         Collections.<GridCacheMvccCandidate<K>>emptyList(),
                                         dhtVer, // Include DHT version to match remote DHT entry.
@@ -806,8 +805,19 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
                     if (log.isDebugEnabled())
                         log.debug("Before locally locking near request: " + req);
 
-                    GridFuture<GridNearLockResponse<K, V>> fut = dht().lockAllAsync(cctx.localNode(), req,
-                        mappedKeys, filter);
+                    GridFuture<GridNearLockResponse<K, V>> fut;
+
+                    if (CU.DHT_ENABLED)
+                        fut = dht().lockAllAsync(cctx.localNode(), req, mappedKeys, filter);
+                    else {
+                        // Create dummy values for testing.
+                        GridNearLockResponse<K, V> res = new GridNearLockResponse<K, V>(lockVer, futId, null, 1, null);
+
+                        res.addValueBytes(null, null,
+                            new GridCacheVersion(lockVer.order() + 1, GridUuid.randomUuid()), cctx);
+
+                        fut = new GridFinishedFuture<GridNearLockResponse<K, V>>(ctx, res);
+                    }
 
                     // Add new future.
                     add(new GridEmbeddedFuture<Boolean, GridNearLockResponse<K, V>>(

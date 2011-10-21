@@ -22,7 +22,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Entry for distributed (replicated/partitioned) cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
@@ -68,11 +68,12 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
      * @param reenter Reentry flag.
      * @param ec Eventually consistent flag.
      * @param tx Transaction flag.
+     * @param implicitSingle Implicit flag.
      * @return New candidate.
      * @throws GridCacheEntryRemovedException If entry has been removed.
      */
     @Nullable public GridCacheMvccCandidate<K> addLocal(long threadId, GridCacheVersion ver, long timeout,
-        boolean reenter, boolean ec, boolean tx) throws GridCacheEntryRemovedException {
+        boolean reenter, boolean ec, boolean tx, boolean implicitSingle) throws GridCacheEntryRemovedException {
         GridCacheMvccCandidate<K> cand;
         GridCacheMvccCandidate<K> prev;
         GridCacheMvccCandidate<K> owner;
@@ -88,7 +89,7 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             boolean emptyBefore = mvcc.isEmpty();
 
-            cand = mvcc.addLocal(this, threadId, ver, timeout, reenter, ec, tx);
+            cand = mvcc.addLocal(this, threadId, ver, timeout, reenter, ec, tx, implicitSingle);
 
             owner = mvcc.anyOwner();
 
@@ -142,11 +143,13 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
      * @param timeout Lock acquire timeout.
      * @param ec Eventually consistent flag.
      * @param tx Transaction flag.
+     * @param implicitSingle Implicit flag.
      * @throws GridDistributedLockCancelledException If lock has been canceled.
      * @throws GridCacheEntryRemovedException If this entry is obsolete.
      */
     public void addRemote(UUID nodeId, @Nullable UUID otherNodeId, long threadId, GridCacheVersion ver, long timeout,
-        boolean ec, boolean tx) throws GridDistributedLockCancelledException, GridCacheEntryRemovedException {
+        boolean ec, boolean tx, boolean implicitSingle) throws GridDistributedLockCancelledException,
+        GridCacheEntryRemovedException {
         GridCacheMvccCandidate<K> prev;
         GridCacheMvccCandidate<K> owner;
 
@@ -164,7 +167,8 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
 
             boolean emptyBefore = mvcc.isEmpty();
 
-            mvcc.addRemote(this, nodeId, otherNodeId, threadId, ver, timeout, ec, tx, false);
+            mvcc.addRemote(this, nodeId, otherNodeId, threadId, ver, timeout, ec, tx, implicitSingle,
+                /*near-local*/false);
 
             owner = mvcc.anyOwner();
 
@@ -323,12 +327,13 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
         lock();
 
         try {
-            addRemoved(ver);
+            doomed = mvcc.candidate(ver);
+
+            if (doomed == null || doomed.dhtLocal() || (!doomed.local() && !doomed.nearLocal()))
+                addRemoved(ver);
 
             if (obsoleteVer != null && !obsoleteVer.equals(ver))
                 checkObsolete();
-
-            doomed = mvcc.candidate(ver);
 
             if (doomed != null) {
                 prev = mvcc.anyOwner();
@@ -625,10 +630,11 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
         throws GridCacheEntryRemovedException, GridDistributedLockCancelledException {
         if (tx.local())
             // Null is returned if timeout is negative and there is other lock owner.
-            return addLocal(tx.threadId(), tx.xidVersion(), timeout, false, tx.ec(), true) != null;
+            return addLocal(tx.threadId(), tx.xidVersion(), timeout, false, tx.ec(), true, tx.implicitSingle()) != null;
 
         try {
-            addRemote(tx.nodeId(), tx.otherNodeId(), tx.threadId(), tx.xidVersion(), tx.timeout(), tx.ec(), true);
+            addRemote(tx.nodeId(), tx.otherNodeId(), tx.threadId(), tx.xidVersion(), tx.timeout(), tx.ec(), true,
+                tx.implicitSingle());
 
             return true;
         }

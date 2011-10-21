@@ -33,10 +33,10 @@ import java.util.concurrent.atomic.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
-    implements GridCacheMvccLockFuture<K, V, Boolean>, GridDhtFuture<Boolean>, GridCacheMappedVersion {
+    implements GridCacheMvccFuture<K, V, Boolean>, GridDhtFuture<Boolean>, GridCacheMappedVersion {
     /** Logger reference. */
     private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
 
@@ -114,6 +114,9 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
     /** */
     private Collection<Integer> invalidParts = new GridLeanSet<Integer>();
 
+    /** Trackable flag. */
+    private boolean trackable = true;
+
     /** Mutex. */
     private final Object mux = new Object();
 
@@ -182,11 +185,6 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
     }
 
     /** {@inheritDoc} */
-    @Override public UUID nodeId() {
-        return nearNodeId;
-    }
-
-    /** {@inheritDoc} */
     @Override public Collection<Integer> invalidPartitions() {
         return invalidParts;
     }
@@ -203,11 +201,6 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
 
         if (log.isDebugEnabled())
             log.debug("Added invalid partition to future [invalidPart=" + invalidPart + ", fut=" + this + ']');
-    }
-
-    /** {@inheritDoc} */
-    @Override public Collection<? extends K> keys() {
-        return F.viewReadOnly(entries, CU.<K, V>entry2Key());
     }
 
     /**
@@ -227,6 +220,16 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
     /** {@inheritDoc} */
     @Override public GridCacheVersion version() {
         return lockVer;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
     }
 
     /**
@@ -269,6 +272,13 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
      */
     private boolean inTx() {
         return tx != null;
+    }
+
+    /**
+     * @return {@code True} if transaction is implicit.
+     */
+    private boolean implicitSingle() {
+        return tx != null && tx.implicitSingle();
     }
 
     /**
@@ -333,7 +343,7 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
 
         // Add local lock first, as it may throw GridCacheEntryRemovedException.
         GridCacheMvccCandidate<K> c = entry.addDhtLocal(nearNodeId, nearLockVer, topVer, threadId, lockVer, timeout,
-            /*reenter*/false, ec(), inTx());
+            /*reenter*/false, ec(), inTx(), implicitSingle());
 
         if (c == null && timeout < 0) {
             if (log.isDebugEnabled())
@@ -744,6 +754,8 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
      */
     @SuppressWarnings( {"ForLoopReplaceableByForEach"})
     private boolean map(Iterable<GridDhtCacheEntry<K, V>> entries) {
+        boolean hasRemoteNodes = false;
+
         // Assign keys to primary nodes.
         for (GridDhtCacheEntry<K, V> entry : entries) {
             try {
@@ -752,7 +764,7 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
                         if (log.isDebugEnabled())
                             log.debug("Mapping entries for DHT lock future: " + this);
 
-                        cctx.dhtMap(nearNodeId, topVer, entry, log, dhtMap, nearMap);
+                        hasRemoteNodes = cctx.dhtMap(nearNodeId, topVer, entry, log, dhtMap, nearMap);
 
                         GridCacheMvccCandidate<K> cand = entry.mappings(lockVer,
                             F.nodeIds(F.concat(false, dhtMap.keySet(), nearMap.keySet())));
@@ -784,6 +796,8 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
         if (tx != null) {
             tx.addDhtMapping(dhtMap);
             tx.addNearMapping(nearMap);
+
+            tx.needsCompletedVersions(hasRemoteNodes);
         }
 
         if (isDone()) {
@@ -801,8 +815,9 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
 
         GridCacheVersion minVer = tx == null ? lockVer : tx.minVersion();
 
-        Collection<GridCacheVersion> committed = cctx.tm().committedVersions(minVer);
-        Collection<GridCacheVersion> rolledback = cctx.tm().rolledbackVersions(minVer);
+        // Lazily initialize so we don't have
+        Collection<GridCacheVersion> committed = null;
+        Collection<GridCacheVersion> rolledback = null;
 
         // Create mini futures.
         for (Map.Entry<GridNode, List<GridDhtCacheEntry<K, V>>> mapped : dhtMap.entrySet()) {
@@ -833,6 +848,12 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
                     }
 
                     add(fut); // Append new future.
+
+                    if (committed == null)
+                        committed = cctx.tm().committedVersions(minVer);
+
+                    if (rolledback == null)
+                        rolledback = cctx.tm().rolledbackVersions(minVer);
 
                     req.completedVersions(committed, rolledback);
 
@@ -879,6 +900,12 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
                         }
 
                         add(fut); // Append new future.
+
+                        if (committed == null)
+                            committed = cctx.tm().committedVersions(minVer);
+
+                        if (rolledback == null)
+                            rolledback = cctx.tm().rolledbackVersions(minVer);
 
                         req.completedVersions(committed, rolledback);
 

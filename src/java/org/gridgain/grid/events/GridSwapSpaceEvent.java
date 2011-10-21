@@ -45,13 +45,14 @@ import java.util.*;
  * {@link GridConfiguration#getIncludeEventTypes()} methods in GridGain configuration. Note that certain
  * events are required for GridGain's internal operations and such events will still be generated but not stored by
  * event storage SPI if they are disabled in GridGain configuration.
- * 
+ *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  * @see GridEventType#EVT_SWAP_SPACE_DATA_READ
  * @see GridEventType#EVT_SWAP_SPACE_DATA_STORED
  * @see GridEventType#EVT_SWAP_SPACE_DATA_REMOVED
  * @see GridEventType#EVT_SWAP_SPACE_CLEARED
+ * @see GridEventType#EVT_SWAP_SPACE_DATA_EVICTED
  */
 public class GridSwapSpaceEvent extends GridEventAdapter {
     /** Swap space name. */

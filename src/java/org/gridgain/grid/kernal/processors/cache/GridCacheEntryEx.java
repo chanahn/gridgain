@@ -23,7 +23,7 @@ import java.util.*;
  * Internal API for cache entry ({@code 'Ex'} stands for extended).
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
     /**
@@ -445,6 +445,14 @@ public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
      * @throws GridCacheEntryRemovedException If entry was removed.
      */
     public boolean lockedByThread(GridCacheVersion exclude) throws GridCacheEntryRemovedException;
+
+    /**
+     * @param lockId Lock ID.
+     * @param threadId Thread ID.
+     * @return {@code True} if locked either locally or by thread.
+     * @throws GridCacheEntryRemovedException If removed.
+     */
+    public boolean lockedLocallyByIdOrThread(GridUuid lockId, long threadId) throws GridCacheEntryRemovedException;
 
     /**
      *

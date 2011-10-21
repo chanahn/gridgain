@@ -31,7 +31,7 @@ import static java.util.concurrent.TimeUnit.*;
  * Future adapter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements GridFuture<R>, Externalizable {
     /** Logger reference. */
@@ -54,10 +54,10 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
 
     /** Result. */
     @GridToStringInclude
-    private volatile R res;
+    private R res;
 
     /** Error. */
-    private volatile Throwable err;
+    private Throwable err;
 
     /** Set to {@code false} on deserialization whenever incomplete future is serialized. */
     private boolean valid = true;
@@ -260,15 +260,10 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
         checkValid();
 
         try {
-            boolean b = done.get();
-
-            if (!b && !cancelled.get()) {
+            if (doneLatch.getCount() != 0)
                 latchAwait();
 
-                b = done.get();
-            }
-
-            if (b) {
+            if (done.get()) {
                 Throwable err = this.err;
 
                 if (err != null)
@@ -292,24 +287,17 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
         checkValid();
 
         try {
-            boolean d = done.get();
-            boolean c = cancelled.get();
-
-            if (!d && !c) {
+            if (doneLatch.getCount() != 0)
                 latchAwait(timeout, unit);
 
-                d = done.get();
-                c = cancelled.get();
-            }
-
-            if (d) {
+            if (done.get()) {
                 if (err != null)
                     throw U.cast(err);
 
                 return res;
             }
 
-            if (c)
+            if (cancelled.get())
                 throw new GridFutureCancelledException("Future was cancelled: " + this);
 
             throw new GridFutureTimeoutException("Timeout was reached before computation completed [duration=" +
@@ -432,9 +420,9 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
         try {
             lsnr.apply(this);
         }
-        catch (IllegalStateException ignore) {
-            U.warn(null, "Failed to notify listener (grid is stopped) [grid=" + ctx.gridName() +
-                ", lsnr=" + lsnr + ']');
+        catch (IllegalStateException e) {
+            U.warn(null, "Failed to notify listener (is grid stopped?) [grid=" + ctx.gridName() +
+                ", lsnr=" + lsnr + ", err=" + e.getMessage() + ']');
         }
         catch (RuntimeException e) {
             U.error(log, "Failed to notify listener: " + lsnr, e);

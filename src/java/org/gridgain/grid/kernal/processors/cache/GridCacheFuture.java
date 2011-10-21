@@ -18,7 +18,7 @@ import java.util.*;
  * This interface should be implemented by all distributed futures.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public interface GridCacheFuture<R> extends GridFuture<R> {
     /**
@@ -43,4 +43,14 @@ public interface GridCacheFuture<R> extends GridFuture<R> {
      * @return {@code True} if future cared about this node.
      */
     public boolean onNodeLeft(UUID nodeId);
+
+    /**
+     * @return {@code True} if future should be tracked.
+     */
+    public boolean trackable();
+
+    /**
+     * Marks this future as non-trackable.
+     */
+    public void markNotTrackable();
 }

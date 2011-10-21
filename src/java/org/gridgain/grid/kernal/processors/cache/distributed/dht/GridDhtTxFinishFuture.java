@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.*;
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.13102011
+ * @version 3.5.0c.20102011
  */
 public final class GridDhtTxFinishFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTx>
     implements GridCacheFuture<GridCacheTx> {
@@ -63,6 +63,9 @@ public final class GridDhtTxFinishFuture<K, V> extends GridCompoundIdentityFutur
     /** Near mappings. */
     private Map<UUID, GridDistributedTxMapping<K, V>> nearMap;
 
+    /** Trackable flag. */
+    private boolean trackable = true;
+
     /**
      * Empty constructor required for {@link Externalizable}.
      */
@@ -75,20 +78,8 @@ public final class GridDhtTxFinishFuture<K, V> extends GridCompoundIdentityFutur
      * @param tx Transaction.
      * @param commit Commit flag.
      */
-    public GridDhtTxFinishFuture(GridCacheContext<K, V> cctx, final GridDhtTxLocal<K, V> tx, boolean commit) {
-        super(cctx.kernalContext(), new GridReducer<GridCacheTx, GridCacheTx>() {
-            @Override public boolean collect(GridCacheTx e) {
-                return true;
-            }
-
-            @Override public GridCacheTx apply() {
-                return tx; // Nothing to aggregate.
-            }
-
-            @Override public String toString() {
-                return "DHT finish reducer for tx: " + tx;
-            }
-        });
+    public GridDhtTxFinishFuture(GridCacheContext<K, V> cctx, GridDhtTxLocal<K, V> tx, boolean commit) {
+        super(cctx.kernalContext(), F.<GridCacheTx>identityReducer(tx));
 
         assert cctx != null;
 
@@ -143,6 +134,16 @@ public final class GridDhtTxFinishFuture<K, V> extends GridCompoundIdentityFutur
             }
 
         return false;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean trackable() {
+        return trackable;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void markNotTrackable() {
+        trackable = false;
     }
 
     /**
