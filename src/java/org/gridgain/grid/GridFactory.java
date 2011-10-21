@@ -130,7 +130,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * For more information refer to {@link GridSpringBean} documentation.
 
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.20102011
+ * @version 3.5.0c.21102011
  */
 public class GridFactory {
     /**
@@ -1211,7 +1211,7 @@ public class GridFactory {
      * instance (and correspondingly its node) belongs to.
      *
      * @param name Grid name to which requested grid instance belongs to. If {@code null},
-     *      then grid instanced belonging to a default no-name grid will be returned.
+     *      then grid instance belonging to a default no-name grid will be returned.
      * @return An instance of named grid. This method never returns
      *      {@code null}.
      * @throws IllegalStateException Thrown if default grid was not properly
@@ -1290,7 +1290,7 @@ public class GridFactory {
      * Grid data container.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.20102011
+     * @version 3.5.0c.21102011
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
@@ -2194,7 +2194,7 @@ public class GridFactory {
          * Contains necessary data for selected MBeanServer.
          *
          * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-         * @version 3.5.0c.20102011
+         * @version 3.5.0c.21102011
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

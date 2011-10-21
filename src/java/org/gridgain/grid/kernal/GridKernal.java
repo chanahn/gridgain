@@ -79,14 +79,14 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * misspelling.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.20102011
+ * @version 3.5.0c.21102011
  */
 public class GridKernal extends GridProjectionAdapter implements Grid, GridKernalMBean, Externalizable {
     /** Ant-augmented version number. */
     private static final String VER = "3.5.0c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "20102011";
+    private static final String BUILD = "21102011";
 
     /** Ant-augmented copyright blurb. */
     private static final String COPYRIGHT = "2005-2011 Copyright (C) GridGain Systems, Inc.";
@@ -564,12 +564,6 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         ackSmtpConfiguration();
         ackCacheConfiguration();
         ackP2pConfiguration();
-
-        // Ensure that 'java.net.preferIPv4Stack' system property is 'true'.
-        if (!"true".equals(System.getProperty("java.net.preferIPv4Stack")))
-            U.warn(log, "'java.net.preferIPv4Stack' system property is not 'true'. Ensure that " +
-                "all hosts in the grid use the same version of IP protocol (v4 or v6).",
-                "'java.net.preferIPv4Stack' system property is not 'true'.");
 
         // Run background network diagnostics.
         GridDiagnostic.runBackgroundCheck(gridName, cfg.getExecutorService(), log);

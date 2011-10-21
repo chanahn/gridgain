@@ -98,7 +98,7 @@ import java.util.concurrent.*;
  * </ul>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.20102011
+ * @version 3.5.0c.21102011
  * @see GridCache#queue(String)
  * @see GridCache#queue(String, GridCacheQueueType)
  * @see GridCache#queue(String, GridCacheQueueType, int)
@@ -543,7 +543,7 @@ public interface GridCacheQueue<T> extends GridMetadataAware, Collection<T> {
      * @param unit Type of time representations.
      * @return {@code false} if timed out while waiting for queue to go below maximum capacity,
      *      {@code true} otherwise. If queue is not bounded, then {@code true} is always returned.
-     * @throws GridException If operation failed or timeout was exceeded.
+     * @throws GridException If operation failed.
      */
     public boolean put(T item, long timeout, TimeUnit unit) throws GridException;
 

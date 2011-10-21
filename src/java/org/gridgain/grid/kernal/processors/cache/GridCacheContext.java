@@ -51,7 +51,7 @@ import static org.gridgain.grid.cache.GridCachePreloadMode.*;
  * Cache context.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.20102011
+ * @version 3.5.0c.21102011
  */
 @GridToStringExclude
 public class GridCacheContext<K, V> implements Externalizable {
@@ -423,6 +423,13 @@ public class GridCacheContext<K, V> implements Externalizable {
         assert loc != null;
 
         return loc;
+    }
+
+    /**
+     * @return Local node ID.
+     */
+    public UUID localNodeId() {
+        return discovery().localNode().id();
     }
 
     /**

@@ -15,7 +15,7 @@ import weblogic.common.*;
  * This MBean interface for GridGain startup class for WebLogic.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.20102011
+ * @version 3.5.0c.21102011
  */
 @SuppressWarnings("deprecation")
 public interface GridWeblogicStartupMBean extends T3StartupDef {

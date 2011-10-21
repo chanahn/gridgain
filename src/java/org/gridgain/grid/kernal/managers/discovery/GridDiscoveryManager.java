@@ -37,7 +37,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * Discovery SPI manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.20102011
+ * @version 3.5.0c.21102011
  */
 public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     /** System line separator. */
@@ -279,10 +279,12 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         // Fetch local node attributes once.
         String locEnt = locNode.attribute(ATTR_ENT_EDITION);
         String locBuildVer = locNode.attribute(ATTR_BUILD_VER);
+        String locPreferIpV4 = locNode.attribute("java.net.preferIPv4Stack");
 
         for (GridNode n : discoCache().remoteNodes()) {
             String rmtEnt = n.attribute(ATTR_ENT_EDITION);
             String rmtBuildVer = n.attribute(ATTR_BUILD_VER);
+            String rmtPreferIpV4 = n.attribute("java.net.preferIPv4Stack");
 
             if (!F.eq(rmtEnt, locEnt))
                 throw new GridException("Local node's edition differs from remote node's " +
@@ -294,6 +296,13 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                 throw new GridException("Local node's build version differs from remote node's " +
                     "(all nodes in topology should have identical build version) " +
                     "[locBuildVer=" + locBuildVer + ", rmtBuildVer=" + rmtBuildVer +
+                    ", locNode=" + locNode + ", rmtNode=" + n + ']');
+
+            if (!F.eq(rmtPreferIpV4, locPreferIpV4))
+                throw new GridException("Local node's value of 'java.net.preferIPv4Stack' " +
+                    "system property differs from remote node's " +
+                    "(all nodes in topology should have identical value) " +
+                    "[locPreferIpV4=" + locPreferIpV4 + ", rmtPreferIpV4=" + rmtPreferIpV4 +
                     ", locNode=" + locNode + ", rmtNode=" + n + ']');
         }
 

@@ -32,7 +32,7 @@ import java.util.concurrent.locks.*;
  * Future for exchanging partition maps.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.20102011
+ * @version 3.5.0c.21102011
  */
 public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Object>
     implements Comparable<GridDhtPartitionsExchangeFuture<K, V>> {
@@ -615,8 +615,9 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
                                 onDone();
                             }
                             else if (log.isDebugEnabled())
-                                log.debug("Exchange future full map is not sent [allReceived=" + allReceived() + ", ready=" +
-                                    ready + ", replied=" + replied.get() + ", init=" + init.get() + ", fut=" + this + ']');
+                                log.debug("Exchange future full map is not sent [allReceived=" + allReceived() +
+                                    ", ready=" + ready + ", replied=" + replied.get() + ", init=" + init.get() +
+                                    ", fut=" + this + ']');
                         }
                     }
                     catch (GridException e) {
@@ -703,7 +704,7 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
 
                             boolean set = false;
 
-                            GridNode newOldest = CU.oldest(CU.allNodes(cctx));
+                            GridNode newOldest = CU.oldest(CU.allNodes(cctx, exchId.lastJoinOrder()));
 
                             // If local node is now oldest.
                             if (newOldest.id().equals(cctx.nodeId())) {
@@ -725,6 +726,17 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
                                     }
                                 }
                             }
+                            else {
+                                boolean b;
+
+                                synchronized (mux) {
+                                    b = oldestNode.compareAndSet(oldest, newOldest);
+                                }
+
+                                if (b && log.isDebugEnabled())
+                                    log.debug("Reassigned oldest node [this=" + cctx.localNodeId() +
+                                        ", old=" + oldest.id() + ", new=" + newOldest.id() + ']');
+                            }
 
                             if (set) {
                                 for (Map.Entry<UUID, GridDhtPartitionsSingleMessage<K, V>> m :
@@ -732,11 +744,10 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
                                     // If received any messages, process them.
                                     onReceive(m.getKey(), m.getValue());
                                 }
-                            }
 
-                            if (set)
                                 // Reassign oldest node and resend.
                                 recheck();
+                            }
                         }
                         else if (rmtIds.contains(nodeId)) {
                             if (log.isDebugEnabled())
