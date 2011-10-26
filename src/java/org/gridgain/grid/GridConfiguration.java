@@ -52,7 +52,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * property.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.21102011
+ * @version 3.5.0c.26102011
  */
 public interface GridConfiguration {
     /**
@@ -70,7 +70,7 @@ public interface GridConfiguration {
      */
     public static final long DFLT_METRICS_EXPIRE_TIME = Long.MAX_VALUE;
 
-    /** Default maximum peer class loading timeout in milliseconds (value is {@code 5,000ms}). */
+    /** Default maximum timeout to wait for network responses in milliseconds (value is {@code 5,000ms}). */
     public static final long DFLT_NETWORK_TIMEOUT = 5000;
 
     /** Default discovery startup delay in milliseconds (value is {@code 60,000ms}). */

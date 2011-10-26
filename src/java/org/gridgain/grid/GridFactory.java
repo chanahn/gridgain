@@ -130,7 +130,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * For more information refer to {@link GridSpringBean} documentation.
 
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.21102011
+ * @version 3.5.0c.26102011
  */
 public class GridFactory {
     /**
@@ -352,16 +352,21 @@ public class GridFactory {
         if (grid != null && grid.state() == STARTED) {
             grid.stop(cancel, wait);
 
-            boolean fireEvt;
+            boolean fireEvt = false;
 
             synchronized (mux) {
                 if (name == null) {
-                    fireEvt = dfltGrid != null;
+                    if (dfltGrid == grid) { // This particular grid was just stopped.
+                        fireEvt = true;
 
-                    dfltGrid = null;
+                        dfltGrid = null;
+                    }
                 }
-                else
-                    fireEvt = grids.remove(name) != null;
+                else if (grids.get(name) == grid) { // This particular grid was just stopped.
+                    fireEvt = true;
+
+                    grids.remove(name);
+                }
             }
 
             if (fireEvt)
@@ -1099,13 +1104,17 @@ public class GridFactory {
             single = (grids.size() == 1 && dfltGrid == null) || (grids.isEmpty() && dfltGrid != null);
         }
 
+        boolean success = false;
+
         try {
             grid.start(cfg, single, ctx);
 
             notifyStateChange(name, STARTED);
+
+            success = true;
         }
         finally {
-            if (grid.state() != STARTED) {
+            if (!success) {
                 synchronized (mux) {
                     if (name == null)
                         dfltGrid = null;
@@ -1290,7 +1299,7 @@ public class GridFactory {
      * Grid data container.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.21102011
+     * @version 3.5.0c.26102011
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
@@ -2194,7 +2203,7 @@ public class GridFactory {
          * Contains necessary data for selected MBeanServer.
          *
          * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-         * @version 3.5.0c.21102011
+         * @version 3.5.0c.26102011
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

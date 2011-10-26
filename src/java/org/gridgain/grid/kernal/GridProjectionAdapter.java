@@ -36,7 +36,7 @@ import static org.gridgain.grid.util.nodestart.GridNodeStartUtils.*;
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.21102011
+ * @version 3.5.0c.26102011
  */
 abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements GridProjection {
     /** Log reference. */
@@ -714,6 +714,24 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
         finally {
             unguard();
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridProjection projectionForCaches(@Nullable final String cacheName,
+        @Nullable final String[] cacheNames) {
+        return projectionForPredicate(new PN() {
+            @Override public boolean apply(GridRichNode n) {
+                if (!U.hasCache(n, cacheName))
+                    return false;
+
+                if (!F.isEmpty(cacheNames))
+                    for (String cn : cacheNames)
+                        if (!U.hasCache(n, cn))
+                            return false;
+
+                return true;
+            }
+        });
     }
 
     /** {@inheritDoc} */

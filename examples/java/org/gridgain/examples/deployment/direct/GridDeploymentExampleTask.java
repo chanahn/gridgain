@@ -28,7 +28,7 @@ import java.util.*;
  * default to the task class name.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.21102011
+ * @version 3.5.0c.26102011
  */
 @GridTaskName(GridDeploymentExample.TASK_NAME)
 public class GridDeploymentExampleTask extends GridTaskSplitAdapter<String, Object> {

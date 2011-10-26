@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.GridAbsClosure
  * Wrapping Scala function for `Runnable`.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.21102011
+ * @version 3.5.0c.26102011
  */
 class ScalarRunnableFunction(val inner: Runnable) extends (() => Unit) {
     assert(inner != null)

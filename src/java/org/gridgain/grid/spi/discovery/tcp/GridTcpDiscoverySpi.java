@@ -145,14 +145,14 @@ import static org.gridgain.grid.spi.discovery.tcp.topologystore.GridTcpDiscovery
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.21102011
+ * @version 3.5.0c.26102011
  * @see GridDiscoverySpi
  */
 @GridSpiInfo(
     author = "GridGain Systems, Inc.",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.5.0c.21102011")
+    version = "3.5.0c.26102011")
 @GridSpiMultipleInstancesSupport(true)
 @GridDiscoverySpiOrderSupport(true)
 @GridDiscoverySpiReconnectSupport(true)
@@ -852,7 +852,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
 
     /** {@inheritDoc} */
     @Override public void spiStop() throws GridSpiException {
-        spiStop(false);
+        spiStop0(false);
     }
 
     /**
@@ -861,7 +861,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
      * @param restart {@code True} if SPI is about to be restarted.
      * @throws GridSpiException If failed.
      */
-    private void spiStop(boolean restart) throws GridSpiException {
+    private void spiStop0(boolean restart) throws GridSpiException {
         if (log.isDebugEnabled()) {
             if (restart)
                 log.debug("Restarting SPI.");
@@ -884,7 +884,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
 
                 long timeout = netTimeout;
 
-                while (spiState != LEFT && timeout > 0)
+                while (spiState != LEFT && timeout > 0) {
                     try {
                         mux.wait(timeout);
 
@@ -893,6 +893,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
                     catch (InterruptedException e) {
                         throw new GridSpiException("Thread has been interrupted.", e);
                     }
+                }
 
                 if (spiState == LEFT) {
                     if (log.isDebugEnabled())
@@ -1098,7 +1099,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
 
     /** {@inheritDoc} */
     @Override public void disconnect() throws GridSpiException {
-        spiStop(true);
+        spiStop0(true);
 
     }
 
@@ -1300,13 +1301,12 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
      *
      * @param msg Message to send.
      * @param addr Address to send message to.
-     * @param readRes Read response. If {@code true} response is read and returned,
-     * otherwise {@code null} is returned.
+     * @param readRes Read response. If {@code true} integer response is read and returned,
+     *      otherwise {@code null} is returned.
      * @return Response read from the recipient or {@code null} if no response is supposed.
      * @throws GridSpiException If an error occurs.
      */
-    @SuppressWarnings({"RedundantTypeArguments"})
-    @Nullable private <T> T sendMessageDirectly(GridTcpDiscoveryAbstractMessage msg, InetSocketAddress addr,
+    @Nullable private Integer sendMessageDirectly(GridTcpDiscoveryAbstractMessage msg, InetSocketAddress addr,
         boolean readRes)
         throws GridSpiException {
         assert msg != null;
@@ -1339,39 +1339,41 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
                     log.debug("Message has been sent directly to address [msg=" + msg + ", addr=" + addr +
                         ", remoteNodeId=" + remoteNodeId + ']');
 
-                T res = null;
+                Integer res = null;
 
                 if (readRes) {
                     // Response is required.
-                    try {
-                        res = marsh.<T>unmarshal(sock.getInputStream(), getClass().getClassLoader());
+                    res = marsh.unmarshal(sock.getInputStream(), getClass().getClassLoader());
 
-                        if (log.isDebugEnabled())
-                            log.debug("Received response for message [res=" + res + ", msg=" + msg +
-                                ", remoteAddr=" + addr + ']');
-                    }
-                    catch (ClassCastException e) {
-                        // This issue is rarely reproducible on AmazonEC2, but never
-                        // on dedicated machines.
-                        if (log.isDebugEnabled())
-                            log.debug("Class cast exception on join request send: " + e.getMessage());
-
-                        if (err == null)
-                            err = e;
-
-                        continue;
-                    }
+                    if (log.isDebugEnabled())
+                        log.debug("Received response for message [res=" + res + ", msg=" + msg +
+                            ", remoteAddr=" + addr + ']');
                 }
 
                 stats.onMessageSent(msg, System.currentTimeMillis() - tstamp);
 
                 return res;
             }
+            catch (ClassCastException e) {
+                // This issue is rarely reproducible on AmazonEC2, but never
+                // on dedicated machines.
+                if (log.isDebugEnabled())
+                    log.debug("Class cast exception on join request send: " + e.getMessage());
+
+                if (err == null)
+                    err = e;
+            }
             catch (IOException e) {
+                if (log.isDebugEnabled())
+                    log.debug("IO exception on join request send: " + e.getMessage());
+
                 if (err == null  || err instanceof ClassCastException)
                     err = e;
             }
             catch (GridException e) {
+                if (log.isDebugEnabled())
+                    log.debug("Grid exception on join request send: " + e.getMessage());
+
                 if (err == null  || err instanceof ClassCastException)
                     err = e;
             }
@@ -2745,7 +2747,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
                 }
                 else {
                     // Sender is not in topology, it should reconnect.
-                    msg.status(STATUS_RECONNECT);
+                    msg.status(STATUS_RECON);
 
                     try {
                         sendMessageDirectly(msg, msg.creatorNode().address(), false);
@@ -2789,7 +2791,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
                     if (log.isDebugEnabled())
                         log.debug("Received OK status response from coordinator: " + msg);
                 }
-                else if (msg.status() == STATUS_RECONNECT) {
+                else if (msg.status() == STATUS_RECON) {
                     U.warn(log, "Node is out of topology (probably, due to short-time network problems).");
 
                     notifyDiscovery(EVT_NODE_SEGMENTED, locNode);

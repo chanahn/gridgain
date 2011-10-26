@@ -41,7 +41,7 @@ import java.util.concurrent.*;
  * in {@link NullPointerException} and may be harder to catch.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.21102011
+ * @version 3.5.0c.26102011
  */
 public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAware {
     /**
@@ -1721,6 +1721,16 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @return Monadic projection.
      */
     public GridProjection projectionForAttribute(String n, @Nullable String v);
+
+    /**
+     * Creates monadic projection with the nodes from this projection that have configured
+     * caches with given names.
+     *
+     * @param cacheName Cache name.
+     * @param cacheNames Cache names.
+     * @return Monadic projection.
+     */
+    public GridProjection projectionForCaches(@Nullable String cacheName, @Nullable String... cacheNames);
 
     /**
      * Splits this projection into two: first will have nodes that evaluate to {@code true} for all

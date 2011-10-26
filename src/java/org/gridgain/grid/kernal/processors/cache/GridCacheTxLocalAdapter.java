@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Transaction adapter for cache transactions.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.21102011
+ * @version 3.5.0c.26102011
  */
 public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K, V>
     implements GridCacheTxLocalEx<K, V> {
