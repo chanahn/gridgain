@@ -31,7 +31,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Cache communication manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.26102011
+ * @version 3.5.0c.28102011
  */
 public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
     /** Number of retries using to send messages. */
@@ -282,7 +282,7 @@ public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
                 // Even if there is no exception, we still check here, as node could have
                 // ignored the message during stopping.
                 if (!cctx.discovery().alive(node.id()))
-                    throw new GridTopologyException("Node left grid while sending message: " + msg);
+                    throw new GridTopologyException("Node left grid while sending message to: " + node.id());
 
                 return;
             }
@@ -291,7 +291,7 @@ public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
             }
             catch (GridException e) {
                 if (!cctx.discovery().alive(node.id()))
-                    throw new GridTopologyException("Node left grid while sending message: " + msg, e);
+                    throw new GridTopologyException("Node left grid while sending message to: " + node.id(), e);
 
                 if (cnt == RETRY_CNT)
                     throw e;
@@ -459,11 +459,16 @@ public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
                     log.debug("Sent ordered cache message [topic=" + topic + ", msg=" + msg +
                         ", nodeId=" + node.id() + ']');
 
+                // Even if there is no exception, we still check here, as node could have
+                // ignored the message during stopping.
+                if (!cctx.discovery().alive(node.id()))
+                    throw new GridTopologyException("Node left grid while sending ordered message to: " + node.id());
+
                 return;
             }
             catch (GridException e) {
                 if (cctx.discovery().node(node.id()) == null)
-                    throw new GridTopologyException("Node left grid while sending message: " + msg, e);
+                    throw new GridTopologyException("Node left grid while sending ordered message to: " + node.id(), e);
 
                 if (cnt == RETRY_CNT)
                     throw e;

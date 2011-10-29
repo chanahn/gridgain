@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.*;
  * Cache lock future.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.26102011
+ * @version 3.5.0c.28102011
  */
 public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
     implements GridCacheMvccFuture<K, V, Boolean>, GridDhtFuture<Boolean>, GridCacheMappedVersion {
@@ -661,7 +661,14 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
     }
 
     /** {@inheritDoc} */
-    @Override public boolean onDone(Boolean success, Throwable err) {
+    @Override public boolean onDone(@Nullable Boolean success, @Nullable Throwable err) {
+        // Protect against NPE.
+        if (success == null) {
+            assert err != null;
+
+            success = false;
+        }
+
         assert err == null || !success;
         assert !success || (initialized() && !hasPending()) : "Invalid done callback [success=" + success +
             ", fut=" + this + ']';

@@ -36,7 +36,7 @@ import static org.gridgain.grid.util.GridConcurrentFactory.*;
  * Cache transaction manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.26102011
+ * @version 3.5.0c.28102011
  */
 public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     /** Maximum number of transactions that have completed (initialized to 100K). */
@@ -134,13 +134,6 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
         GridCacheTxState state = tx.state();
 
         if (state == ACTIVE || state == PREPARING || state == PREPARED) {
-            if (warn) {
-                // This print out cannot print any peer-deployed entity either
-                // directly or indirectly.
-                U.warn(log, "Invalidating transaction because originating node either " +
-                    "crashed or left grid: " + CU.txString(tx));
-            }
-
             try {
                 if (!tx.markFinalizing()) {
                     if (log.isDebugEnabled())
@@ -169,6 +162,13 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
                 }
 
                 tx.commit();
+
+                if (warn) {
+                    // This print out cannot print any peer-deployed entity either
+                    // directly or indirectly.
+                    U.warn(log, "Invalidated transaction because originating node either " +
+                        "crashed or left grid: " + CU.txString(tx));
+                }
             }
             catch (GridCacheTxOptimisticException ignore) {
                 if (log.isDebugEnabled())

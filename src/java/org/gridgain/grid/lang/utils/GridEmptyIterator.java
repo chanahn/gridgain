@@ -17,7 +17,7 @@ import java.util.*;
  * Empty iterator.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.26102011
+ * @version 3.5.0c.28102011
  */
 public class GridEmptyIterator<T> extends GridIteratorAdapter<T> {
     /** {@inheritDoc} */
