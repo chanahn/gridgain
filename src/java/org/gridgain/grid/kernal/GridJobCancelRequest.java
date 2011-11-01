@@ -18,7 +18,7 @@ import java.io.*;
  * This class defines externalizable job cancellation request.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.28102011
+ * @version 3.5.0c.01112011
  */
 public class GridJobCancelRequest implements Externalizable {
     /** */

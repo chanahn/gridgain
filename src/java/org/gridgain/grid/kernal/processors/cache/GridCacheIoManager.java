@@ -31,7 +31,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Cache communication manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.28102011
+ * @version 3.5.0c.01112011
  */
 public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
     /** Number of retries using to send messages. */
@@ -207,9 +207,6 @@ public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
 
             // Unwind eviction notifications.
             CU.unwindEvicts(cctx);
-
-            // Unwind event queue after every cache message.
-            cctx.events().unwind();
         }
     }
 
@@ -860,9 +857,6 @@ public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
 
                 // Unwind eviction notifications.
                 CU.unwindEvicts(cctx);
-
-                // Unwind event queue after every cache message.
-                cctx.events().unwind();
             }
         }
     }

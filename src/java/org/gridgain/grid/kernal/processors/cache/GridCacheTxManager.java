@@ -36,7 +36,7 @@ import static org.gridgain.grid.util.GridConcurrentFactory.*;
  * Cache transaction manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.28102011
+ * @version 3.5.0c.01112011
  */
 public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     /** Maximum number of transactions that have completed (initialized to 100K). */
@@ -101,7 +101,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
                     }
                 }
             },
-            EVT_NODE_FAILED, EVT_NODE_LEFT, EVT_NODE_SEGMENTED);
+            EVT_NODE_FAILED, EVT_NODE_LEFT);
 
         for (GridCacheTxEx<K, V> tx : idMap.values()) {
             if ((!tx.local() || tx.dht()) && !tx.ec() && !cctx.discovery().aliveAll(tx.masterNodeIds())) {
@@ -977,10 +977,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
             // 13. Clear context.
             txContextReset();
 
-            // 14. Unwind any left-over events.
-            cctx.events().unwind();
-
-            // 15. Update metrics.
+            // 14. Update metrics.
             if (!tx.dht() && tx.local())
                 cctx.cache().metrics0().onTxCommit();
 

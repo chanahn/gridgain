@@ -40,7 +40,7 @@ import org.jetbrains.annotations.*;
  * to undefined behavior and explicitly not supported.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.28102011
+ * @version 3.5.0c.01112011
  */
 public interface GridCollisionSpi extends GridSpi, GridSpiJsonConfigurable {
     /**

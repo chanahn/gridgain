@@ -10,16 +10,13 @@
 package org.gridgain.grid.kernal.processors.cache.distributed.replicated.preloader;
 
 import org.gridgain.grid.*;
-import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.lang.*;
-import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.thread.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
-import org.gridgain.grid.util.future.*;
 import org.gridgain.grid.util.worker.*;
 import org.jetbrains.annotations.*;
 
@@ -37,7 +34,7 @@ import static org.gridgain.grid.kernal.GridTopic.*;
  * Thread pool for demanding entries.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.28102011
+ * @version 3.5.0c.01112011
  */
 class GridReplicatedPreloadDemandPool<K, V> {
     /** Dummy message to wake up demand worker. */
@@ -49,9 +46,6 @@ class GridReplicatedPreloadDemandPool<K, V> {
     /** Logger. */
     private final GridLogger log;
 
-    /** Future for preload finish. */
-    private final GridFutureAdapter<?> syncPreloadFut;
-
     /** Busy lock. */
     private final ReadWriteLock busyLock;
 
@@ -59,37 +53,32 @@ class GridReplicatedPreloadDemandPool<K, V> {
     private final Collection<DemandWorker> workers = new LinkedList<DemandWorker>();
 
     /** Assignments. */
-    private BlockingQueue<Assignment> assigns = new LinkedBlockingQueue<Assignment>();
-
-    /** Left assignments count. */
-    private final AtomicInteger leftAssigns = new AtomicInteger();
+    private BlockingQueue<GridReplicatedPreloadAssignment> assigns =
+        new LinkedBlockingQueue<GridReplicatedPreloadAssignment>();
 
     /** Timeout. */
     private final AtomicLong timeout = new AtomicLong();
 
-    /** Max order of the elder nodes that completed preloading. */
-    private final GridAtomicLong maxOrder = new GridAtomicLong();
-
     /** Lock to prevent preloading for the time of eviction. */
     private final Lock lock;
 
-    /** Barrier for undeploys. */
-    private final CyclicBarrier barrier;
+    /** Current session. */
+    private final AtomicReference<GridReplicatedPreloadSession> curSes =
+        new AtomicReference<GridReplicatedPreloadSession>();
+
+    /** Demand lock for undeploys. */
+    private ReadWriteLock demandLock = new ReentrantReadWriteLock();
 
     /**
      * @param cctx Cache context.
-     * @param syncPreloadFut Preload future.
      * @param busyLock Shutdown lock.
      * @param lock Preloading lock.
      */
-    GridReplicatedPreloadDemandPool(GridCacheContext<K, V> cctx, GridFutureAdapter<?> syncPreloadFut,
-        ReadWriteLock busyLock, Lock lock) {
+    GridReplicatedPreloadDemandPool(GridCacheContext<K, V> cctx, ReadWriteLock busyLock, Lock lock) {
         assert cctx != null;
-        assert syncPreloadFut != null;
         assert busyLock != null;
 
         this.cctx = cctx;
-        this.syncPreloadFut = syncPreloadFut;
         this.busyLock = busyLock;
         this.lock = lock;
 
@@ -99,12 +88,6 @@ class GridReplicatedPreloadDemandPool<K, V> {
 
         timeout.set(cctx.gridConfig().getNetworkTimeout());
 
-        barrier = new CyclicBarrier(poolSize, new Runnable() {
-            @Override public void run() {
-                GridReplicatedPreloadDemandPool.this.cctx.deploy().unwind();
-            }
-        });
-
         for (int i = 0; i < poolSize; i++)
             workers.add(new DemandWorker(i));
     }
@@ -113,38 +96,6 @@ class GridReplicatedPreloadDemandPool<K, V> {
      *
      */
     void start() {
-        if (cctx.preloadEnabled()) {
-            long maxOrder0 = cctx.localNode().order() - 1; // Preload only from elder nodes.
-
-            maxOrder.set(maxOrder0);
-
-            Collection<GridRichNode> rmts = CU.allNodes(cctx, maxOrder0);
-
-            if (!rmts.isEmpty()) {
-                for (int part : partitions(cctx.localNode())) {
-                    Collection<GridRichNode> partNodes = cctx.config().getAffinity().nodes(part, rmts);
-
-                    int cnt = partNodes.size();
-
-                    if (cnt == 0)
-                        continue;
-
-                    for (int mod = 0; mod < cnt; mod++) {
-                        Assignment assignment = new Assignment(part, mod, cnt);
-
-                        assigns.add(assignment);
-
-                        if (log.isDebugEnabled())
-                            log.debug("Created assignment: " + workers.size());
-
-                        leftAssigns.incrementAndGet();
-                    }
-                }
-            }
-        }
-
-        finish(); // Finish if preload is disabled or no assigns has been created.
-
         for (DemandWorker w : workers)
             new GridThread(cctx.gridName(), "preldr-demand-wrk", w).start();
 
@@ -153,22 +104,69 @@ class GridReplicatedPreloadDemandPool<K, V> {
     }
 
     /**
-     *
+     * @param ses Session to set.
      */
-    private void finish() {
-        // Act as a guard here.
-        if (leftAssigns.compareAndSet(0, -1)) {
-            boolean res = syncPreloadFut.onDone();
+    void currentSession(GridReplicatedPreloadSession ses) {
+        assert ses != null;
 
-            assert res;
+        GridReplicatedPreloadSession curSes0 = curSes.get();
+
+        boolean b = curSes.compareAndSet(curSes0, ses);
+
+        if (!b) {
+            if (log.isDebugEnabled())
+                log.debug("Session was concurrently replaced: " + curSes0);
+
+            assert curSes0 != null;
+
+            b = curSes.compareAndSet(null, ses);
+
+            assert b;
         }
+
+        if (log.isDebugEnabled())
+            log.debug("Set current session to demand pool: " + ses);
+
+        assert assigns.isEmpty();
+
+        assigns.addAll(ses.assigns());
     }
 
     /**
-     * @return {@code True} if preload finished.
+     * @return Current session.
      */
-    boolean finished() {
-        return leftAssigns.get() == -1;
+    GridReplicatedPreloadSession currentSession() {
+        return curSes.get();
+    }
+
+    /**
+     *
+     * @throws GridException If failed.
+     */
+    void cancelCurrentSession() throws GridException {
+        GridReplicatedPreloadSession ses = curSes.get();
+
+        if (ses == null)
+            return;
+
+        if (log.isDebugEnabled())
+            log.debug("Cancelling current preload session: " + ses);
+
+        ses.cancel();
+
+        // Drain assignment queue.
+        while (true) {
+            GridReplicatedPreloadAssignment assign = assigns.poll();
+
+            if (assign == null)
+                break;
+
+            if (assign.session().onAssignmentProcessed())
+                // That was the last assignment in this session.
+                curSes.compareAndSet(assign.session(), null);
+        }
+
+        ses.finishFuture().get();
     }
 
     /**
@@ -187,7 +185,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
             return true;
 
         if (log.isDebugEnabled())
-            log.debug("Failed to enter to busy state (supplier is stopping): " + cctx.nodeId());
+            log.debug("Failed to enter to busy state (demand pool is stopping): " + cctx.nodeId());
 
         return false;
     }
@@ -238,32 +236,6 @@ class GridReplicatedPreloadDemandPool<K, V> {
         return queue.poll(time, MILLISECONDS);
     }
 
-
-    /**
-     * @param node Node.
-     * @return Collection of partition numbers for the node.
-     */
-    Set<Integer> partitions(GridRichNode node) {
-        assert node != null;
-
-        GridCacheAffinity<Object> aff = cctx.config().getAffinity();
-
-        Collection<GridRichNode> nodes = CU.allNodes(cctx);
-
-        Set<Integer> parts = new HashSet<Integer>();
-
-        int partCnt = aff.partitions();
-
-        for (int i = 0; i < partCnt; i++) {
-            Collection<GridRichNode> affNodes = aff.nodes(i, nodes);
-
-            if (affNodes.contains(node))
-                parts.add(i);
-        }
-
-        return parts;
-    }
-
     /**
      * Demand worker.
      */
@@ -307,7 +279,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
         }
 
         /**
-         * @param timeout Timed out value.
+         * @param timeout Timeout value.
          */
         private void growTimeout(long timeout) {
             long newTimeout = (long)(timeout * 1.5D);
@@ -333,23 +305,34 @@ class GridReplicatedPreloadDemandPool<K, V> {
         /** {@inheritDoc} */
         @Override protected void body() throws InterruptedException, GridInterruptedException {
             while (!isCancelled()) {
-                try {
-                    barrier.await();
-                }
-                catch (BrokenBarrierException ignored) {
-                    throw new InterruptedException("Demand worker stopped.");
-                }
+                GridReplicatedPreloadAssignment assign = assigns.poll(cctx.gridConfig().getNetworkTimeout(),
+                    MILLISECONDS);
 
-                Assignment assign = assigns.poll(cctx.gridConfig().getNetworkTimeout(), MILLISECONDS);
+                if (assign == null) {
+                    if (demandLock.writeLock().tryLock()) {
+                        try {
+                            cctx.deploy().unwind();
+                        }
+                        finally {
+                            demandLock.writeLock().unlock();
+                        }
+                    }
 
-                if (assign == null)
                     continue;
+                }
 
-                processAssignment(assign);
+                demandLock.readLock().lock();
 
-                leftAssigns.decrementAndGet();
+                try {
+                    processAssignment(assign);
+                }
+                finally {
+                    demandLock.readLock().unlock();
+                }
 
-                finish(); // Preloading finished with this assignment?
+                if (assign.session().onAssignmentProcessed())
+                    // That was the last assignment in this session.
+                    curSes.compareAndSet(assign.session(), null);
             }
         }
 
@@ -358,7 +341,8 @@ class GridReplicatedPreloadDemandPool<K, V> {
          * @throws GridInterruptedException If thread is interrupted.
          * @throws InterruptedException If thread is interrupted.
          */
-        private void processAssignment(Assignment assign) throws GridInterruptedException, InterruptedException {
+        private void processAssignment(GridReplicatedPreloadAssignment assign) throws GridInterruptedException,
+            InterruptedException {
             assert assign != null;
 
             assert cctx.preloadEnabled();
@@ -367,7 +351,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
                 log.debug("Processing assignment: " + assign);
 
             while (!isCancelled()) {
-                Collection<GridRichNode> rmts = CU.allNodes(cctx, maxOrder.get());
+                Collection<GridRichNode> rmts = CU.allNodes(cctx, assign.session().maxOrder());
 
                 if (rmts.isEmpty())
                     return;
@@ -408,8 +392,11 @@ class GridReplicatedPreloadDemandPool<K, V> {
          * @throws InterruptedException If thread is interrupted.
          * @throws GridException If failed.
          */
-        private boolean demandFromNode(final GridNode node, Assignment assign) throws InterruptedException,
-            GridException {
+        private boolean demandFromNode(final GridNode node, GridReplicatedPreloadAssignment assign)
+            throws InterruptedException, GridException {
+
+            // Drain queue before processing a new node.
+            drainQueue();
 
             GridLocalEventListener discoLsnr = new GridLocalEventListener() {
                 @SuppressWarnings({"unchecked"})
@@ -427,9 +414,6 @@ class GridReplicatedPreloadDemandPool<K, V> {
 
             GridReplicatedPreloadDemandMessage<K, V> d = new GridReplicatedPreloadDemandMessage<K, V>(
                 assign.partition(), assign.mod(), assign.nodeCount(), topic(cntr), timeout.get(), id);
-
-            // Drain queue before processing a new node.
-            drainQueue();
 
             if (isCancelled())
                 return true; // Pool is being stopped.
@@ -450,9 +434,6 @@ class GridReplicatedPreloadDemandPool<K, V> {
                 do {
                     retry = false;
 
-                    // Create copy.
-                    d = new GridReplicatedPreloadDemandMessage<K, V>(d);
-
                     long timeout = GridReplicatedPreloadDemandPool.this.timeout.get();
 
                     d.timeout(timeout);
@@ -468,12 +449,16 @@ class GridReplicatedPreloadDemandPool<K, V> {
                     while (!isCancelled()) {
                         SupplyMessage<K, V> s = poll(msgQ, timeout);
 
+                        if (assign.session().cancelled())
+                            // Session has been cancelled.
+                            return true;
+
                         // If timed out.
                         if (s == null) {
                             if (msgQ.isEmpty()) { // Safety check.
-                                U.warn(log, "Timed out waiting for preload response, will retry in " + timeout +
-                                    " ms (you may need to increase 'networkTimeout' or 'preloadBatchSize'" +
-                                    " configuration properties).");
+                                U.warn(log, "Timed out waiting for preload response from node " +
+                                    "(you may need to increase 'networkTimeout' or 'preloadBatchSize' " +
+                                    "configuration properties): " + node.id());
 
                                 growTimeout(timeout);
 
@@ -530,7 +515,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
 
                         if (supply.failed()) {
                             // Node is preloading now and therefore cannot supply.
-                            maxOrder.setIfLess(node.order() - 1); // Preload from nodes elder, than node.
+                            assign.session().maxOrder(node.order() - 1); // Preload from nodes elder, than node.
 
                             // Quit preloading.
                             break;
@@ -660,57 +645,6 @@ class GridReplicatedPreloadDemandPool<K, V> {
         /** {@inheritDoc} */
         @Override public String toString() {
             return "SupplyMessage [senderId=" + senderId() + ", msg=" + message() + ']';
-        }
-    }
-
-    /**
-     * Assignment.
-     */
-    private static class Assignment {
-        /** */
-        private final int part;
-
-        /** */
-        private final int mod;
-
-        /** */
-        private final int cnt;
-
-        /**
-         * @param part Partition.
-         * @param mod Mod.
-         * @param cnt Node count.
-         */
-        private Assignment(int part, int mod, int cnt) {
-            this.part = part;
-            this.mod = mod;
-            this.cnt = cnt;
-        }
-
-        /**
-         * @return Partition.
-         */
-        public int partition() {
-            return part;
-        }
-
-        /**
-         * @return Mod.
-         */
-        public int mod() {
-            return mod;
-        }
-
-        /**
-         * @return Node count.
-         */
-        public int nodeCount() {
-            return cnt;
-        }
-
-        /** {@inheritDoc} */
-        @Override public String toString() {
-            return S.toString(Assignment.class, this);
         }
     }
 }

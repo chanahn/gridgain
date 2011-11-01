@@ -18,7 +18,7 @@ import org.jetbrains.annotations.*;
  * Cache gateway.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.28102011
+ * @version 3.5.0c.01112011
  */
 @GridToStringExclude
 public class GridCacheGateway<K, V> {
@@ -49,9 +49,6 @@ public class GridCacheGateway<K, V> {
     public void leave() {
         // Unwind eviction notifications.
         CU.unwindEvicts(ctx);
-
-        // Unwind events queue after every method call.
-        ctx.cache().context().events().unwind();
 
         ctx.kernalContext().gateway().readUnlock();
     }
@@ -88,9 +85,6 @@ public class GridCacheGateway<K, V> {
     public void leave(GridCacheProjectionImpl<K, V> prev) {
         // Unwind eviction notifications.
         CU.unwindEvicts(ctx);
-
-        // Unwind events queue after every method call.
-        ctx.cache().context().events().unwind();
 
         // Return back previous thread local projection per call.
         ctx.projectionPerCall(prev);

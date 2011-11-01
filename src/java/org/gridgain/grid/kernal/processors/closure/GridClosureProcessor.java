@@ -27,7 +27,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.28102011
+ * @version 3.5.0c.01112011
  */
 @SuppressWarnings({"UnusedDeclaration"})
 public class GridClosureProcessor extends GridProcessorAdapter {
@@ -1153,6 +1153,8 @@ public class GridClosureProcessor extends GridProcessorAdapter {
 
             final LocalExecutionFuture fut = new LocalExecutionFuture(ctx);
 
+            final ClassLoader ldr = Thread.currentThread().getContextClassLoader();
+
             GridWorker w = new GridWorker(ctx.gridName(), "closure-proc-worker", log) {
                 @SuppressWarnings({"ConstantConditions"})
                 @Override protected void body() {
@@ -1160,7 +1162,7 @@ public class GridClosureProcessor extends GridProcessorAdapter {
                         return;
 
                     try {
-                        c.run();
+                        U.wrapThreadLoader(ldr, c);
 
                         fut.onDone();
                     }
@@ -1258,13 +1260,15 @@ public class GridClosureProcessor extends GridProcessorAdapter {
 
             final LocalExecutionFuture<R> fut = new LocalExecutionFuture<R>(ctx);
 
+            final ClassLoader ldr = Thread.currentThread().getContextClassLoader();
+
             GridWorker w = new GridWorker(ctx.gridName(), "closure-proc-worker", log) {
                 @Override protected void body() {
                     if (!enterBusy(c))
                         return;
 
                     try {
-                        fut.onDone(c.call());
+                        fut.onDone(U.wrapThreadLoader(ldr, F.as(c)));
                     }
                     catch (Throwable e) {
                         if (e instanceof Error)

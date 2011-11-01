@@ -17,23 +17,16 @@ import org.gridgain.grid.typedef.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
-import java.util.concurrent.atomic.*;
 
 /**
  * Cache event manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.28102011
+ * @version 3.5.0c.01112011
  */
 public class GridCacheEventManager<K, V> extends GridCacheManager<K, V> {
     /** Local node ID. */
     private UUID locNodeId;
-
-    /** Event queue. */
-    private GridConcurrentLinkedDeque<GridCacheEvent> evts = new GridConcurrentLinkedDeque<GridCacheEvent>();
-
-    /** Unwinding flag to make sure that only one thread unwinds. */
-    private AtomicBoolean unwinding = new AtomicBoolean(false);
 
     /** {@inheritDoc} */
     @Override public void start0() {
@@ -83,8 +76,8 @@ public class GridCacheEventManager<K, V> extends GridCacheManager<K, V> {
      * @param newVal New value.
      * @param oldVal Old value.
      */
-    public void addEvent(int part, K key, UUID nodeId, GridCacheTx tx,
-        GridCacheMvccCandidate<K> owner, int type, V newVal, V oldVal) {
+    public void addEvent(int part, K key, UUID nodeId, GridCacheTx tx, GridCacheMvccCandidate<K> owner,
+        int type, V newVal, V oldVal) {
         addEvent(part, key, nodeId, tx == null ? null : tx.xid(), owner == null ? null : owner.id(), type,
             newVal, oldVal);
     }
@@ -116,15 +109,14 @@ public class GridCacheEventManager<K, V> extends GridCacheManager<K, V> {
      * @param newVal New value.
      * @param oldVal Old value.
      */
-    public void addEvent(int part, K key, UUID evtNodeId, GridUuid xid, @Nullable GridUuid lockId, int type, @Nullable V newVal,
-        @Nullable V oldVal) {
+    public void addEvent(int part, K key, UUID evtNodeId, GridUuid xid, @Nullable GridUuid lockId, int type,
+        @Nullable V newVal, @Nullable V oldVal) {
         assert key != null;
 
-        if (cctx.gridEvents().isRecordable(type))
-            // Events are not made for internal entry.
-            if (!(key instanceof GridCacheInternal))
-                evts.add(new GridCacheEvent(cctx.name(), cctx.nodeId(), evtNodeId, "Cache event.", type, part, key, xid,
-                    lockId, newVal, oldVal));
+        // Events are not made for internal entry.
+        if (!(key instanceof GridCacheInternal))
+            cctx.gridEvents().record(new GridCacheEvent(cctx.name(), cctx.nodeId(), evtNodeId,
+                "Cache event.", type, part, key, xid, lockId, newVal, oldVal));
     }
 
     /**
@@ -142,31 +134,14 @@ public class GridCacheEventManager<K, V> extends GridCacheManager<K, V> {
         assert discoType > 0;
         assert discoTimestamp > 0;
 
-        if (cctx.gridEvents().isRecordable(type))
-            cctx.gridEvents().record(new GridCachePreloadEvent(cctx.name(), locNodeId, "Cache preloading event.",
-                type, part, discoNode, discoType, discoTimestamp));
-    }
-
-    /**
-     * Processes all events in the queue.
-     */
-    void unwind() {
-        // Only one thread should unwind for efficiency.
-        if (unwinding.compareAndSet(false, true)) {
-            try {
-                for (GridEvent evt = evts.poll(); evt != null; evt = evts.poll())
-                    cctx.gridEvents().record(evt);
-            }
-            finally {
-                unwinding.set(false);
-            }
-        }
+        cctx.gridEvents().record(new GridCachePreloadEvent(cctx.name(), locNodeId, "Cache preloading event.",
+            type, part, discoNode, discoType, discoTimestamp));
     }
 
     /** {@inheritDoc} */
     @Override protected void printMemoryStats() {
         X.println(">>> ");
-        X.println(">>> Cache event manager memory stats [grid=" + cctx.gridName() + ", cache=" + cctx.name() + ']');
-        X.println(">>>   evtsSize: " + evts.size());
+        X.println(">>> Cache event manager memory stats [grid=" + cctx.gridName() + ", cache=" + cctx.name() +
+            ", stats=" + "N/A" + ']');
     }
 }
