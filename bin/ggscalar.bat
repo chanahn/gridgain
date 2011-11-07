@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 3.5.0c.01112011
+:: Version: 3.5.0c.07112011
 ::
 
 ::
@@ -72,6 +72,6 @@ set JAVA_OPTS=-Xss2m  -DGRIDGAIN_SCRIPT -DGRIDGAIN_HOME="%GRIDGAIN_HOME%" -DGRID
 ::
 :: Start REPL.
 ::
-scala %QUIET% -cp "%CP%" -i %GRIDGAIN_HOME%\bin\scalar.scala
+scala -Yrepl-sync %QUIET% -cp "%CP%" -i %GRIDGAIN_HOME%\bin\scalar.scala
 
 :error_finish

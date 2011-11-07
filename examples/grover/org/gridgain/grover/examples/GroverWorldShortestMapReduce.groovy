@@ -21,7 +21,7 @@ import org.gridgain.grover.categories.*
  * on thousands requiring no special configuration or deployment.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 @Typed
 @Use(GroverProjectionCategory)
@@ -34,7 +34,7 @@ class GroverWorldShortestMapReduce {
             def input = "World shortest mapreduce application"
 
             println("Non-space characters count: " +
-                grid$.reduce$(SPREAD, input.split(" ").collect { { -> it.length() } }, { c -> c.sum() })
+                grid$.reduce$(SPREAD, input.split(" ").collect { { -> it.length() } }, { it.sum() })
             )
         }
     }

@@ -16,7 +16,7 @@ import java.util.concurrent.*;
  * NIO server.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridNioServer {
     /** */
@@ -139,9 +139,8 @@ public class GridNioServer {
                         iter.remove();
 
                         // Was key closed?
-                        if (!key.isValid()) {
+                        if (!key.isValid())
                             continue;
-                        }
 
                         if (key.isAcceptable()) {
                             // The key indexes into the selector so we
@@ -154,9 +153,9 @@ public class GridNioServer {
 
                             sockCh.register(selector, SelectionKey.OP_READ, new GridNioServerBuffer());
 
-                            if (log.isDebugEnabled()) {
-                                log.debug("Accepted new client connection: " + sockCh.socket().getRemoteSocketAddress());
-                            }
+                            if (log.isDebugEnabled())
+                                log.debug("Accepted new client connection: " +
+                                    sockCh.socket().getRemoteSocketAddress());
                         }
                         else if (key.isReadable()) {
                             SocketChannel sockCh = (SocketChannel)key.channel();
@@ -170,23 +169,20 @@ public class GridNioServer {
                                 // Attempt to read off the channel
                                 int cnt = sockCh.read(readBuf);
 
-                                if (log.isDebugEnabled()) {
-                                    log.debug("Read bytes from client socket [cnt=" + cnt + ", rmtAddr=" + rmtAddr +
-                                        ']');
-                                }
+                                if (log.isDebugEnabled())
+                                    log.debug("Read bytes from client socket [cnt=" + cnt +
+                                        ", rmtAddr=" + rmtAddr + ']');
 
                                 if (cnt == -1) {
-                                    if (log.isDebugEnabled()) {
+                                    if (log.isDebugEnabled())
                                         log.debug("Remote client closed connection: " + rmtAddr);
-                                    }
 
                                     U.close(key, log);
 
                                     continue;
                                 }
-                                else if (cnt == 0) {
+                                else if (cnt == 0)
                                     continue;
-                                }
 
                                 // Sets limit to current position and
                                 // resets position to 0.
@@ -200,9 +196,8 @@ public class GridNioServer {
                                     nioBuf.read(readBuf);
 
                                     if (nioBuf.isFilled()) {
-                                        if (log.isDebugEnabled()) {
+                                        if (log.isDebugEnabled())
                                             log.debug("Read full message from client socket: " + rmtAddr);
-                                        }
 
                                         // Copy array so we can keep reading into the same buffer.
                                         final byte[] data = nioBuf.getMessageBytes().getArray();
@@ -217,10 +212,9 @@ public class GridNioServer {
                                     }
                                 }
                             }
-                            // Ignore this exception as thread interruption is equal to 'close' call.
                             catch (ClosedByInterruptException e) {
-                                if (log.isDebugEnabled())
-                                    log.debug("Closing selector due to thread interruption: " + e.getMessage());
+                                // This exception will be handled below.
+                                throw e;
                             }
                             catch (IOException e) {
                                 if (!closed) {
@@ -236,9 +230,8 @@ public class GridNioServer {
         }
         // Ignore this exception as thread interruption is equal to 'close' call.
         catch (ClosedByInterruptException e) {
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled())
                 log.debug("Closing selector due to thread interruption: " + e.getMessage());
-            }
         }
         catch (ClosedSelectorException e) {
             throw new GridException("Selector got closed while active.", e);
@@ -250,24 +243,20 @@ public class GridNioServer {
             closed = true;
 
             if (selector.isOpen()) {
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled())
                     log.debug("Closing all client sockets.");
-                }
 
                 workerPool.join(true);
 
                 // Close all channels registered with selector.
-                for (SelectionKey key : selector.keys()) {
+                for (SelectionKey key : selector.keys())
                     U.close(key.channel(), log);
-                }
 
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled())
                     log.debug("Closing NIO selector.");
-                }
 
                 U.close(selector, log);
             }
         }
     }
 }
-

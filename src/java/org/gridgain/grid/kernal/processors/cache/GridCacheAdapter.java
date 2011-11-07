@@ -42,7 +42,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Adapter for different cache implementations.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter implements GridCache<K, V>,
     Externalizable {
@@ -124,8 +124,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     }
 
     /** {@inheritDoc} */
-    @Nullable
-    @Override public <K, V> GridCacheProjection<K, V> parent() {
+    @Nullable @Override public <K, V> GridCacheProjection<K, V> parent() {
         return null;
     }
 
@@ -1029,7 +1028,6 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     }
 
     /**
-     *
      * @param key Entry key.
      * @return Entry (never {@code null}).
      */

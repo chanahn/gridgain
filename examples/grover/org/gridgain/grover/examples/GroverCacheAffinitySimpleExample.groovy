@@ -33,7 +33,7 @@ import org.gridgain.grover.categories.*
  * edition is used respectively.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 @Typed
 @Use(GroverProjectionCategory)

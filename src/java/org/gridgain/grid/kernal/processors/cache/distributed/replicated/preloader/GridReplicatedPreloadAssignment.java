@@ -16,9 +16,6 @@ import org.gridgain.grid.typedef.internal.*;
  */
 class GridReplicatedPreloadAssignment {
     /** */
-    private final GridReplicatedPreloadSession ses;
-
-    /** */
     private final int part;
 
     /** */
@@ -28,25 +25,14 @@ class GridReplicatedPreloadAssignment {
     private final int cnt;
 
     /**
-     * @param ses Session.
      * @param part Partition.
      * @param mod  Mod.
      * @param cnt  Node count.
      */
-    GridReplicatedPreloadAssignment(GridReplicatedPreloadSession ses, int part, int mod, int cnt) {
-        assert ses != null;
-
-        this.ses = ses;
+    GridReplicatedPreloadAssignment(int part, int mod, int cnt) {
         this.part = part;
         this.mod = mod;
         this.cnt = cnt;
-    }
-
-    /**
-     * @return Session.
-     */
-    GridReplicatedPreloadSession session() {
-        return ses;
     }
 
     /**

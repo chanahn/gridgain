@@ -2,6 +2,7 @@ package org.gridgain.grid.events;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -47,7 +48,7 @@ import java.util.*;
  * event storage SPI if they are disabled in GridGain configuration.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  * @see GridEventType#EVT_SWAP_SPACE_DATA_READ
  * @see GridEventType#EVT_SWAP_SPACE_DATA_STORED
  * @see GridEventType#EVT_SWAP_SPACE_DATA_REMOVED
@@ -69,12 +70,10 @@ public class GridSwapSpaceEvent extends GridEventAdapter {
      * @param nodeId Node ID.
      * @param msg Optional message.
      * @param type Event type.
-     * @param space Swap space name.
+     * @param space Swap space name ({@code null} for default space).
      */
-    public GridSwapSpaceEvent(UUID nodeId, String msg, int type, String space) {
+    public GridSwapSpaceEvent(UUID nodeId, String msg, int type, @Nullable String space) {
         super(nodeId, msg, type);
-
-        assert space != null;
 
         this.space = space;
     }
@@ -82,9 +81,9 @@ public class GridSwapSpaceEvent extends GridEventAdapter {
     /**
      * Gets swap space name.
      *
-     * @return Swap space name.
+     * @return Swap space name or {@code null} for default space.
      */
-    public String space() {
+    @Nullable public String space() {
         return space;
     }
 

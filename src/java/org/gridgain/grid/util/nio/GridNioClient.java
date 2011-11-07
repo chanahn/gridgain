@@ -1,44 +1,42 @@
 package org.gridgain.grid.util.nio;
 
 import org.gridgain.grid.*;
-import org.gridgain.grid.logger.*;
-import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.lang.utils.*;
+import org.gridgain.grid.typedef.internal.*;
+
 import java.io.*;
 import java.net.*;
+import java.util.concurrent.atomic.*;
 
 /**
- * TODO: add file description.
+ * Grid client for NIO server.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridNioClient {
-    /** */
+    /** Socket. */
     private final Socket sock;
 
     /** Cached byte buffer. */
     private final GridByteArrayList bytes = new GridByteArrayList(512);
 
-    /** Grid logger. */
-    private final GridLogger log;
-
     /** Time when this client was last used. */
-    private long lastUsed = System.currentTimeMillis();
+    private volatile long lastUsed = System.currentTimeMillis();
+
+    /** Reservations. */
+    private final AtomicInteger reserves = new AtomicInteger();
 
     /**
-     *
-     * @param addr TODO
-     * @param port TODO
-     * @param localHost TODO
-     * @param log TODO
-     * @throws GridException TODO
+     * @param addr Address.
+     * @param port Port.
+     * @param localHost Local address.
+     * @throws GridException If failed.
      */
-    public GridNioClient(InetAddress addr, int port, InetAddress localHost, GridLogger log) throws GridException {
+    public GridNioClient(InetAddress addr, int port, InetAddress localHost) throws GridException {
         assert addr != null;
         assert port > 0 && port < 0xffff;
         assert localHost != null;
-        assert log != null;
 
         try {
             sock = new Socket(addr, port, localHost, 0);
@@ -47,17 +45,59 @@ public class GridNioClient {
             throw new GridException("Failed to connect to remote host [addr=" + addr + ", port=" + port +
                 ", localHost=" + localHost + ']', e);
         }
-
-        this.log = log;
     }
 
-    /** */
-    public synchronized void close() {
-        if (log.isDebugEnabled()) {
-            log.debug("Closing client: " + this);
+    /**
+     * @return {@code True} if client has been closed by this call,
+     *      {@code false} if failed to close client (due to concurrent reservation or concurrent close).
+     */
+    public boolean close() {
+        if (reserves.compareAndSet(0, -1)) {
+            // Future reservation is not possible.
+            U.closeQuiet(sock);
+
+            return true;
         }
 
-        U.close(sock, log);
+        return false;
+    }
+
+    /**
+     * @return {@code True} if client is closed;
+     */
+    public boolean closed() {
+        return reserves.get() == -1;
+    }
+
+    /**
+     * @return {@code True} if client was reserved, {@code false} otherwise.
+     */
+    public boolean reserve() {
+        while (true) {
+            int r = reserves.get();
+
+            if (r == -1)
+                return false;
+
+            if (reserves.compareAndSet(r, r + 1))
+                return true;
+        }
+    }
+
+    /**
+     * Releases this client by decreasing reservations.
+     */
+    public void release() {
+        int r = reserves.decrementAndGet();
+
+        assert r >= 0;
+    }
+
+    /**
+     * @return {@code True} if client was reserved.
+     */
+    public boolean reserved() {
+        return reserves.get() > 0;
     }
 
     /**
@@ -65,15 +105,14 @@ public class GridNioClient {
      *
      * @return Idle time of this client.
      */
-    public synchronized long getIdleTime() {
+    public long getIdleTime() {
         return System.currentTimeMillis() - lastUsed;
     }
 
     /**
-     *
      * @param data Data to send.
      * @param len Size of data in bytes.
-     * @throws GridException TODO
+     * @throws GridException If failed.
      */
     public synchronized void sendMessage(byte[] data, int len) throws GridException {
         lastUsed = System.currentTimeMillis();
@@ -100,4 +139,3 @@ public class GridNioClient {
         return S.toString(GridNioClient.class, this);
     }
 }
-

@@ -11,16 +11,12 @@ package org.gridgain.grid.kernal.processors.cache.distributed.replicated.preload
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.affinity.*;
-import org.gridgain.grid.events.*;
 import org.gridgain.grid.kernal.processors.cache.*;
-import org.gridgain.grid.thread.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.future.*;
-import org.gridgain.grid.util.worker.*;
 
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
 
 import static org.gridgain.grid.GridEventType.*;
@@ -30,7 +26,7 @@ import static org.gridgain.grid.cache.GridCachePreloadMode.*;
  * Class that takes care about entries preloading in replicated cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
     /** Busy lock to control activeness of threads (loader, sender). */
@@ -40,19 +36,13 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
     private final GridFutureAdapter<?> syncPreloadFut = new GridFutureAdapter(cctx.kernalContext());
 
     /** Lock to prevent preloading for the time of eviction. */
-    private final Lock lock = new ReentrantLock();
+    private final ReadWriteLock evictLock = new ReentrantReadWriteLock();
 
     /** Supply pool. */
     private GridReplicatedPreloadSupplyPool<K, V> supplyPool;
 
     /** Demand pool. */
     private GridReplicatedPreloadDemandPool<K, V> demandPool;
-
-    /** */
-    private final PreloadSegmentationWorker preloadWrk = new PreloadSegmentationWorker();
-
-    /** */
-    private final CountDownLatch initSesCreated = new CountDownLatch(1);
 
     /**
      * @param cctx Cache context.
@@ -65,12 +55,12 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
      * @throws GridException In case of error.
      */
     @Override public void start() throws GridException {
-        demandPool = new GridReplicatedPreloadDemandPool<K, V>(cctx, busyLock, lock);
+        demandPool = new GridReplicatedPreloadDemandPool<K, V>(cctx, busyLock, evictLock);
 
         supplyPool = new GridReplicatedPreloadSupplyPool<K, V>(cctx,
             new PA() {
                 @Override public boolean apply() {
-                    return demandPool.currentSession() == null;
+                    return syncPreloadFut.isDone();
                 }
             }, busyLock);
     }
@@ -79,17 +69,12 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
      * @throws GridException In case of error.
      */
     @Override public void onKernalStart() throws GridException {
-        if (cctx.accountForReconnect())
-            new GridThread(preloadWrk).start();
-
         if (cctx.preloadEnabled()) {
             if (log.isDebugEnabled())
-                log.debug("Creating initial session.");
+                log.debug("Creating initial assignments.");
 
-            createSession(EVT_NODE_JOINED, syncPreloadFut);
+            createAssignments(EVT_NODE_JOINED, syncPreloadFut);
         }
-
-        initSesCreated.countDown();
 
         supplyPool.start();
         demandPool.start();
@@ -108,17 +93,17 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
 
     /**
      * @param discoEvtType Corresponding discovery event.
-     * @param finishFut Finish future for session.
+     * @param finishFut Finish future for assignments.
      */
-    void createSession(final int discoEvtType, GridFutureAdapter<?> finishFut) {
+    void createAssignments(final int discoEvtType, GridFutureAdapter<?> finishFut) {
         assert cctx.preloadEnabled();
         assert finishFut != null;
 
-        long maxOrder0 = cctx.localNode().order() - 1; // Preload only from elder nodes.
+        long maxOrder = cctx.localNode().order() - 1; // Preload only from elder nodes.
 
-        GridReplicatedPreloadSession ses = new GridReplicatedPreloadSession(maxOrder0, finishFut);
+        Collection<GridReplicatedPreloadAssignment> assigns = new LinkedList<GridReplicatedPreloadAssignment>();
 
-        Collection<GridRichNode> rmts = CU.allNodes(cctx, maxOrder0);
+        Collection<GridRichNode> rmts = CU.allNodes(cctx, maxOrder);
 
         if (!rmts.isEmpty()) {
             for (int part : partitions(cctx.localNode())) {
@@ -131,9 +116,9 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
 
                 for (int mod = 0; mod < cnt; mod++) {
                     GridReplicatedPreloadAssignment assign =
-                        new GridReplicatedPreloadAssignment(ses, part, mod, cnt);
+                        new GridReplicatedPreloadAssignment(part, mod, cnt);
 
-                    ses.addAssignment(assign);
+                    assigns.add(assign);
 
                     if (log.isDebugEnabled())
                         log.debug("Created assignment: " + assign);
@@ -144,8 +129,8 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
         cctx.events().addPreloadEvent(-1, EVT_CACHE_PRELOAD_STARTED, cctx.discovery().shadow(cctx.localNode()),
             discoEvtType, cctx.localNode().metrics().getNodeStartTime());
 
-        if (!ses.assigns().isEmpty())
-            demandPool.currentSession(ses);
+        if (!assigns.isEmpty())
+            demandPool.assign(assigns, finishFut, maxOrder);
         else
             finishFut.onDone();
 
@@ -195,9 +180,6 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
         // Acquire write lock.
         busyLock.writeLock().lock();
 
-        U.cancel(preloadWrk);
-        U.join(preloadWrk, log);
-
         supplyPool.stop();
         demandPool.stop();
 
@@ -211,104 +193,30 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
     }
 
     /**
-     * @return {@code True} if lock was acquired (this makes preloading impossible).
+     * Acquires lock for evictions to proceed (this makes preloading impossible).
+     *
+     * @return {@code True} if lock was acuired.
      */
     @SuppressWarnings({"LockAcquiredButNotSafelyReleased"})
     public boolean lock() {
-        lock.lock();
+        if (!syncPreloadFut.isDone()) {
+            evictLock.writeLock().lock();
 
-        return true;
+            return true;
+        }
+
+        return false;
     }
 
     /**
      * Makes preloading possible.
      */
     public void unlock() {
-        lock.unlock();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void onSegmentationEvent(GridDiscoveryEvent evt) {
-        assert evt != null;
-
-        if (busyLock.readLock().tryLock()) {
-            try {
-                preloadWrk.addEvent(evt);
-            }
-            finally {
-                busyLock.readLock().unlock();
-            }
-        }
+        evictLock.writeLock().unlock();
     }
 
     /** {@inheritDoc} */
     @Override public String toString() {
         return S.toString(GridReplicatedPreloader.class, this);
-    }
-
-    /**
-     *
-     */
-    private class PreloadSegmentationWorker extends GridWorker {
-        /** */
-        private final BlockingQueue<GridDiscoveryEvent> evts = new LinkedBlockingQueue<GridDiscoveryEvent>();
-
-        /**
-         *
-         */
-        private PreloadSegmentationWorker() {
-            super(cctx.gridName(), "replicated-preldr-seg-wrk", log);
-        }
-
-        /**
-         * @param evt Event.
-         */
-        void addEvent(GridDiscoveryEvent evt) {
-            assert evt != null;
-
-            evts.add(evt);
-        }
-
-        /** {@inheritDoc} */
-        @Override protected void body() throws InterruptedException, GridInterruptedException {
-            // First wait for initial preloading session to create.
-            initSesCreated.await();
-
-            int lastEvt = -1;
-
-            while (!isCancelled()) {
-                GridDiscoveryEvent evt = evts.take();
-
-                int evtType = evt.type();
-
-                assert evtType != lastEvt : "Unexpected event type [last=" + lastEvt + ", new=" + evtType + ']';
-
-                if (log.isDebugEnabled())
-                    log.debug("Processing event: " + evt);
-
-                if (evtType == EVT_NODE_SEGMENTED) {
-                    try {
-                        demandPool.cancelCurrentSession();
-
-                        for (GridCacheTxEx<K, V> tx : cctx.tm().txs()) {
-                            cctx.tm().salvageTx(tx);
-
-                            tx.finishFuture().get();
-                        }
-                    }
-                    catch (GridException e) {
-                        U.error(log, "Failed to cancel current preload session.", e);
-                    }
-                }
-                else {
-                    assert evtType == EVT_NODE_RECONNECTED :
-                        "Unexpected event type [last=" + lastEvt + ", new=" + evtType + ']';
-
-                    createSession(EVT_NODE_RECONNECTED, new GridFutureAdapter<Object>());
-                }
-
-                lastEvt = evtType;
-            }
-        }
     }
 }

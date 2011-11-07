@@ -27,7 +27,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 @SuppressWarnings({"UnusedDeclaration"})
 public class GridClosureProcessor extends GridProcessorAdapter {
@@ -1147,13 +1147,18 @@ public class GridClosureProcessor extends GridProcessorAdapter {
         enterBusy2();
 
         try {
+            ClassLoader ldr = null;
+
             // Inject only if needed.
-            if (!(c instanceof GridPlainRunnable))
+            if (!(c instanceof GridPlainRunnable)) {
                 ctx.resource().inject(ctx.deploy().getDeployment(c.getClass().getName()), c.getClass(), c);
+
+                ldr = Thread.currentThread().getContextClassLoader();
+            }
 
             final LocalExecutionFuture fut = new LocalExecutionFuture(ctx);
 
-            final ClassLoader ldr = Thread.currentThread().getContextClassLoader();
+            final ClassLoader ldr0 = ldr;
 
             GridWorker w = new GridWorker(ctx.gridName(), "closure-proc-worker", log) {
                 @SuppressWarnings({"ConstantConditions"})
@@ -1162,7 +1167,10 @@ public class GridClosureProcessor extends GridProcessorAdapter {
                         return;
 
                     try {
-                        U.wrapThreadLoader(ldr, c);
+                        if (ldr0 != null)
+                            U.wrapThreadLoader(ldr0, c);
+                        else
+                            c.run();
 
                         fut.onDone();
                     }
@@ -1254,13 +1262,18 @@ public class GridClosureProcessor extends GridProcessorAdapter {
         enterBusy2();
 
         try {
+            ClassLoader ldr = null;
+
             // Inject only if needed.
-            if (!(c instanceof GridPlainCallable))
+            if (!(c instanceof GridPlainCallable)) {
                 ctx.resource().inject(ctx.deploy().getDeployment(c.getClass().getName()), c.getClass(), c);
+
+                ldr = Thread.currentThread().getContextClassLoader();
+            }
 
             final LocalExecutionFuture<R> fut = new LocalExecutionFuture<R>(ctx);
 
-            final ClassLoader ldr = Thread.currentThread().getContextClassLoader();
+            final ClassLoader ldr0 = ldr;
 
             GridWorker w = new GridWorker(ctx.gridName(), "closure-proc-worker", log) {
                 @Override protected void body() {
@@ -1268,7 +1281,10 @@ public class GridClosureProcessor extends GridProcessorAdapter {
                         return;
 
                     try {
-                        fut.onDone(U.wrapThreadLoader(ldr, F.as(c)));
+                        if (ldr0 != null)
+                            fut.onDone(U.wrapThreadLoader(ldr0, c));
+                        else
+                            fut.onDone(c.call());
                     }
                     catch (Throwable e) {
                         if (e instanceof Error)

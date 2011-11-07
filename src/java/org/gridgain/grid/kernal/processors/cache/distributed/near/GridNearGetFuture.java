@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.*;
  *
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Map<K, V>>
     implements GridCacheFuture<Map<K, V>> {
@@ -300,15 +300,28 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
 
                 // First we peek into near cache.
                 if (entry != null)
-                    v = entry.innerGet(tx, /*swap*/true, /*read-through*/false, /*fail-fast*/true, true, true, filters);
+                    v = entry.innerGet(tx, /*swap*/false, /*read-through*/false, /*fail-fast*/true,
+                        true, true, filters);
 
                 if (v == null) {
-                    entry = cache().dht().peekEx(key);
+                    try {
+                        GridDhtCache<K, V> dht = cache().dht();
+
+                        entry = dht.context().isSwapEnabled() ? dht.entryEx(key) : dht.peekEx(key);
+                    }
+                    catch (GridDhtInvalidPartitionException ignored) {
+                        // No-op.
+                    }
 
                     // If near cache does not have value, then we peek DHT cache.
-                    if (entry != null)
+                    if (entry != null) {
                         v = entry.innerGet(tx, /*swap*/true, /*read-through*/false, /*fail-fast*/true, true, !near,
                             filters);
+
+                        // Entry was not in memory or in swap, so we remove it from cache.
+                        if (v == null && entry.markObsolete(ver))
+                            cache().dht().removeIfObsolete(key);
+                    }
                 }
 
                 if (v != null && !reload)

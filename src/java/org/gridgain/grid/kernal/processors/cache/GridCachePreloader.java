@@ -10,6 +10,7 @@
 package org.gridgain.grid.kernal.processors.cache;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.events.*;
 
 import java.util.*;
 
@@ -18,7 +19,7 @@ import java.util.*;
  * nodes (for distributed cache) or anywhere else at cache startup.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public interface GridCachePreloader<K, V> {
     /**

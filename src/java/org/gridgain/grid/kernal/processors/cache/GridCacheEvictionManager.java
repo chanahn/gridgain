@@ -14,7 +14,6 @@ import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.events.*;
-import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.cache.distributed.dht.*;
 import org.gridgain.grid.kernal.processors.cache.distributed.replicated.preloader.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
@@ -41,7 +40,7 @@ import static org.gridgain.grid.lang.utils.GridConcurrentLinkedDeque.*;
  * Cache eviction manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /** Number of entries in the queue before unwinding happens. */
@@ -294,10 +293,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                     return;
 
                 try {
-                    final GridCacheEvictionResponse<K, V> res = new GridCacheEvictionResponse<K, V>(req.futureId());
-
-                    final GridCompoundIdentityFuture<GridTuple2<K, Boolean>> compFut =
-                        new GridCompoundIdentityFuture<GridTuple2<K, Boolean>>(cctx.kernalContext());
+                    GridCacheEvictionResponse<K, V> res = new GridCacheEvictionResponse<K, V>(req.futureId());
 
                     GridCacheVersion obsoleteVer = cctx.versions().next();
 
@@ -309,22 +305,18 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                         boolean locked = !near && lockPartition(key);
 
                         try {
-                            GridFuture<GridTuple2<K, Boolean>> fut = evictLocally(key, ver, near, obsoleteVer);
+                            boolean evicted = evictLocally(key, ver, near, obsoleteVer);
 
                             if (log.isDebugEnabled())
-                                log.debug("Got eviction future [key=" + key + ", ver=" + ver + ", near=" + near +
-                                    ", fut=" + fut +']');
+                                log.debug("Evicted key [key=" + key + ", ver=" + ver + ", near=" + near +
+                                    ", evicted=" + evicted +']');
 
-                            try {
-                                if (locked && fut.isDone() && fut.get().get2())
-                                    // Preloading is in progress, we need to save eviction info.
-                                    saveEvictionInfo(key, ver);
-                            }
-                            catch (GridException ignored) {
-                                // No-op, since this exception will be reported on response send.
-                            }
+                            if (locked && evicted)
+                                // Preloading is in progress, we need to save eviction info.
+                                saveEvictionInfo(key, ver);
 
-                            compFut.add(fut);
+                            if (!evicted)
+                                res.addRejected(key);
                         }
                         finally {
                             if (locked)
@@ -332,42 +324,9 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                         }
                     }
 
-                    compFut.markInitialized();
+                    sendEvictionResponse(nodeId, res);
 
-                    compFut.listenAsync(new CI1<GridFuture<GridTuple2<K, Boolean>>>() {
-                        @Override public void apply(GridFuture<GridTuple2<K, Boolean>> f) {
-                            if (!busyLock.enterBusy())
-                                return;
-
-                            try {
-                                try {
-                                    // Check if the future completed successfully.
-                                    f.get();
-
-                                    for (GridFuture<GridTuple2<K, Boolean>> fut : compFut.futures()) {
-                                        GridTuple2<K, Boolean> t = fut.get();
-
-                                        if (!t.get2())
-                                            res.addRejected(t.get1());
-                                    }
-                                }
-                                catch (GridException e) {
-                                    U.error(log, "Failed to evict keys from eviction request (all will be rejected)" +
-                                        " [req=" + req + ", localNode=" + cctx.nodeId() + ']', e);
-
-                                    for (K key : req.keys().keySet())
-                                        res.addRejected(key);
-                                }
-
-                                unwind();
-
-                                sendEvictionResponse(nodeId, res);
-                            }
-                            finally {
-                                busyLock.leaveBusy();
-                            }
-                        }
-                    });
+                    unwind();
                 }
                 finally {
                     busyLock.leaveBusy();
@@ -552,9 +511,8 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
      * @param obsoleteVer Obsolete version.
      * @return {@code true} if evicted successfully, {@code false} if could not be evicted.
      */
-    @SuppressWarnings({"TypeMayBeWeakened", "unchecked"})
-    private GridFuture<GridTuple2<K, Boolean>> evictLocally(final K key, final GridCacheVersion ver, boolean near,
-        final GridCacheVersion obsoleteVer) {
+    @SuppressWarnings({"TypeMayBeWeakened"})
+    private boolean evictLocally(K key, final GridCacheVersion ver, boolean near, GridCacheVersion obsoleteVer) {
         assert key != null;
         assert ver != null;
         assert obsoleteVer != null;
@@ -563,23 +521,21 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
             log.debug("Evicting key locally [key=" + key + ", ver=" + ver + ", obsoleteVer=" + obsoleteVer +
                 ", localNode=" + cctx.localNode() + ']');
 
-        GridKernalContext ctx = cctx.kernalContext();
+        GridCacheAdapter<K, V> cache = near ? cctx.dht().near() : cctx.cache();
 
-        final GridCacheAdapter<K, V> cache = near ? cctx.dht().near() : cctx.cache();
-
-        final GridCacheEntryEx<K, V> entry = cache.peekEx(key);
+        GridCacheEntryEx<K, V> entry = cache.peekEx(key);
 
         if (entry == null)
-            return new GridFinishedFuture(ctx, F.t(key, true));
+            return true;
 
         try {
             // If entry should be evicted from near cache it can be done safely
             // without any consistency risks. We don't use filter in this case.
             if (near)
-                return new GridFinishedFuture(ctx, F.t(key, evict0(cache, entry, obsoleteVer, true, null)));
+                return evict0(cache, entry, obsoleteVer, true, null);
 
             // Create filter that will not evict entry if its version changes after we get it.
-            final GridPredicate<? super GridCacheEntry<K, V>>[] filter =
+            GridPredicate<? super GridCacheEntry<K, V>>[] filter =
                 cctx.vararg(new P1<GridCacheEntry<K, V>>() {
                     @Override public boolean apply(GridCacheEntry<K, V> e) {
                         GridCacheVersion v = (GridCacheVersion)e.version();
@@ -590,80 +546,18 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
 
             GridCacheVersion v = entry.version();
 
-            if (ver.compareTo(v) == 0) {
-                return new GridFinishedFuture(ctx, F.t(key, evict0(cache, entry, obsoleteVer, true, filter)));
-            }
-            else if (ver.compareTo(v) < 0) {
-                // Received version is less than entry local version.
-                // Cannot evict in this case.
-                return new GridFinishedFuture(ctx, F.t(key, false));
-            }
-            else {
-                // If the received version is greater than local then try to wait
-                // till all locks are released if there are no versions in entry
-                // mvcc list greater than received. This block is needed to have
-                // more chances to evict entry.
-                Collection<GridCacheMvccCandidate<K>> cands =
-                    F.concat(true, entry.localCandidates(ver), entry.remoteMvccSnapshot(ver));
-
-                if (!F.isEmpty(cands)) {
-                    boolean foundGreater = false;
-
-                    for (GridCacheMvccCandidate<K> cand : cands)
-                        if (ver.compareTo(cand.version()) < 0) {
-                            foundGreater = true;
-
-                            break;
-                        }
-
-                    if (foundGreater)
-                        return new GridFinishedFuture(ctx, F.t(key, false));
-
-                    GridFuture fut = cctx.mvcc().finishKeys(new GridPredicate[]{
-                        new P1<K>() {
-                            @Override public boolean apply(K k) {
-                                return key.equals(k);
-                            }
-                        }});
-
-                    return new GridEmbeddedFuture<GridTuple2<K, Boolean>, Object>(
-                        ctx, fut,
-                        new CX2<Object, Exception, GridTuple2<K, Boolean>>() {
-                            @Override public GridTuple2<K, Boolean> applyx(Object o, Exception e) throws GridException {
-                                if (e != null)
-                                    return F.t(key, false);
-
-                                boolean locked = lockPartition(entry.key());
-
-                                try {
-                                    boolean res = evict0(cache, entry, obsoleteVer, true, filter);
-
-                                    if (locked && res)
-                                        // Preloading is in progress, we need to save eviction info.
-                                        saveEvictionInfo(key, ver);
-
-                                    return F.t(key, res);
-                                }
-                                finally {
-                                    if (locked)
-                                        unlockPartition(entry.key());
-                                }
-                            }
-                        }
-                    );
-                }
-
-                return new GridFinishedFuture(ctx, F.t(key, false));
-            }
+            // If received version is less or greater than entry local version,
+            // then don't evict.
+            return ver.equals(v) && evict0(cache, entry, obsoleteVer, true, filter);
         }
         catch (GridCacheEntryRemovedException ignored) {
             // Entry was concurrently removed.
-            return new GridFinishedFuture(ctx, F.t(key, true));
+            return true;
         }
         catch (GridException e) {
             U.error(log, "Failed to evict entry on remote node [key=" + key + ", localNode=" + cctx.nodeId() + ']', e);
 
-            return new GridFinishedFuture(ctx, F.t(key, false));
+            return false;
         }
     }
 

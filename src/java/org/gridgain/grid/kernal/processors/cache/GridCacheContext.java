@@ -52,7 +52,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.RECONNECT;
  * Cache context.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 @GridToStringExclude
 public class GridCacheContext<K, V> implements Externalizable {
@@ -1504,14 +1504,6 @@ public class GridCacheContext<K, V> implements Externalizable {
             return new GridFinishedFuture<Object>(kernalContext());
 
         return dht().near().context().mvcc().finishPartitions(parts, topVer);
-    }
-
-    /**
-     * @return {@code True} if cache should account for reconnect.
-     */
-    public boolean accountForReconnect() {
-        return (isDht() || isReplicated()) && !F.isEmpty(gridConfig().getSegmentationResolvers()) &&
-            gridConfig().getSegmentationPolicy() == RECONNECT;
     }
 
     /**

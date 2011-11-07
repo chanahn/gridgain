@@ -18,13 +18,11 @@ import org.jetbrains.annotations.*;
 
 import java.util.*;
 
-import static org.gridgain.grid.GridEventType.*;
-
 /**
  * Adapter for preloading which always assumes that preloading finished.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridCachePreloaderAdapter<K, V> implements GridCachePreloader<K, V> {
     /** Cache context. */
@@ -39,15 +37,6 @@ public class GridCachePreloaderAdapter<K, V> implements GridCachePreloader<K, V>
     /** Start future (always completed by default). */
     private final GridFuture finFut;
 
-    /** Segmentation/Reconnect listener. */
-    private final GridLocalEventListener discoSegLsnr = new GridLocalEventListener() {
-        @Override public void onEvent(GridEvent evt) {
-            assert evt.type() == EVT_NODE_SEGMENTED || evt.type() == EVT_NODE_RECONNECTED;
-
-            onSegmentationEvent((GridDiscoveryEvent)evt);
-        }
-    };
-
     /**
      * @param cctx Cache context.
      */
@@ -60,13 +49,6 @@ public class GridCachePreloaderAdapter<K, V> implements GridCachePreloader<K, V>
         aff = cctx.config().getAffinity();
 
         finFut = new GridFinishedFuture(cctx.kernalContext());
-
-        if (cctx.accountForReconnect()) {
-            cctx.events().addListener(discoSegLsnr, EVT_NODE_SEGMENTED, EVT_NODE_RECONNECTED);
-
-            if (log.isDebugEnabled())
-                log.debug("Added node segmentation listener.");
-        }
     }
 
     /** {@inheritDoc} */
@@ -76,12 +58,7 @@ public class GridCachePreloaderAdapter<K, V> implements GridCachePreloader<K, V>
 
     /** {@inheritDoc} */
     @Override public void stop() {
-        if (cctx.accountForReconnect()) {
-            cctx.events().removeListener(discoSegLsnr);
-
-            if (log.isDebugEnabled())
-                log.debug("Removed segmentation listener.");
-        }
+        // No-op.
     }
 
     /** {@inheritDoc} */
@@ -97,16 +74,6 @@ public class GridCachePreloaderAdapter<K, V> implements GridCachePreloader<K, V>
     /** {@inheritDoc} */
     @Override public GridFuture<?> startFuture() {
         return finFut;
-    }
-
-    /**
-     * Child classes should override this method
-     * to provide custom behavior on node segmentation/reconnect.
-     *
-     * @param evt Local node segmented or reconnected event.
-     */
-    protected void onSegmentationEvent(GridDiscoveryEvent evt) {
-        // No-op.
     }
 
     /**

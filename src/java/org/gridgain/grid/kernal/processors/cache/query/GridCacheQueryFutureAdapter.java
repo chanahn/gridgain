@@ -12,7 +12,6 @@ package org.gridgain.grid.kernal.processors.cache.query;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.query.*;
-import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
 import org.gridgain.grid.lang.*;
@@ -31,7 +30,7 @@ import java.util.concurrent.atomic.*;
  *
  * @param <R> Result type.
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAdapter<Collection<R>>
     implements GridCacheQueryFuture<R>, GridTimeoutObject {
@@ -479,7 +478,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
     /**
      *
      */
-    protected static class LocalQueryRunnable<K, V, R> implements GridPlainRunnable {
+    protected static class LocalQueryRunnable<K, V, R> extends GridRunnable {
         /** */
         private GridCacheQueryFutureAdapter<K, V, R> fut;
 

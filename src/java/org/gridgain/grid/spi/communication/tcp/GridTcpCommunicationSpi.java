@@ -11,7 +11,9 @@ import org.gridgain.grid.spi.*;
 import org.gridgain.grid.spi.communication.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.*;
 import org.gridgain.grid.util.nio.*;
+
 import java.io.*;
 import java.net.*;
 import java.nio.*;
@@ -93,7 +95,7 @@ import java.util.concurrent.atomic.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  * @see GridCommunicationSpi
  */
 @SuppressWarnings({"deprecation"}) @GridSpiInfo(
@@ -132,7 +134,6 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     private static final long ERR_WAIT_TIME = 2000;
 
     /** */
-    @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
     @GridLoggerResource
     private GridLogger log;
 
@@ -180,7 +181,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     private IdleClientWorker idleClientWorker;
 
     /** */
-    private Map<UUID, GridNioClient> clients;
+    private final ConcurrentMap<UUID, GridNioClient> clients = GridConcurrentFactory.newMap();
 
     /** SPI listener. */
     private volatile GridMessageListener lsnr;
@@ -205,9 +206,6 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
     /** */
     private final AtomicLong sentBytesCnt = new AtomicLong();
-
-    /** */
-    private final Object mux = new Object();
 
     /**
      * Sets local host address for socket binding. Note that one node could have
@@ -487,10 +485,6 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
         registerMBean(gridName, this, GridTcpCommunicationSpiMBean.class);
 
-        synchronized (mux) {
-            clients = new HashMap<UUID, GridNioClient>();
-        }
-
         tcpSrvr = new TcpServer(nioSrvr);
 
         tcpSrvr.start();
@@ -527,7 +521,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
             /** {@inheritDoc} */
             @Override public void onMessage(byte[] data) {
                 try {
-                    GridTcpCommunicationMessage msg = (GridTcpCommunicationMessage)U.unmarshal(marshaller,
+                    GridTcpCommunicationMessage msg = U.unmarshal(marshaller,
                         new GridByteArrayList(data, data.length), clsLdr);
 
                     rcvdMsgsCnt.incrementAndGet();
@@ -570,8 +564,8 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
                         throw new GridException("Failed to bind to any port within range [startPort=" + localPort +
                             ", portRange=" + localPortRange + ", localHost=" + localHost + ']', e);
                 }
-        // If bound TCP port is set, then always bind to it.
         else
+            // If bound TCP port is set, then always bind to it.
             srvr = new GridNioServer(localHost, boundTcpPort, listener, log, nioExec, gridName, directBuf);
 
         assert srvr != null;
@@ -581,31 +575,24 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
     /** {@inheritDoc} */
     @Override public void spiStop() throws GridSpiException {
-        U.interrupt(idleClientWorker);
-        U.join(idleClientWorker, log);
-
-        List<GridNioClient> clientsCopy = null;
-
-        // Close all client connections.
-        synchronized (mux) {
-            if (clients != null)
-                clientsCopy = new ArrayList<GridNioClient>(clients.values());
-
-            clients = null;
-        }
-
-        if (clientsCopy != null)
-            for (GridNioClient client : clientsCopy)
-                client.close();
+        unregisterMBean();
 
         // Stop TCP server.
         U.interrupt(tcpSrvr);
         U.join(tcpSrvr, log);
 
-        unregisterMBean();
-
         // Stop NIO thread pool.
         U.shutdownNow(getClass(), nioExec, log);
+
+        U.interrupt(idleClientWorker);
+        U.join(idleClientWorker, log);
+
+        // Close all client connections.
+        for (GridNioClient client : clients.values()) {
+            boolean b = client.close();
+
+            assert b : "Failed to close client: " + client;
+        }
 
         // Clear resources.
         tcpSrvr = null;
@@ -666,9 +653,11 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
             // callback in a different thread, so there should not be
             // a deadlock.
             notifyListener(new GridTcpCommunicationMessage(nodeId, msg));
-        else
+        else {
+            GridNioClient client = null;
+
             try {
-                GridNioClient client = getOrCreateClient(node);
+                client = reserveClient(node);
 
                 GridByteArrayList buf = U.marshal(marshaller, new GridTcpCommunicationMessage(nodeId, msg));
 
@@ -681,6 +670,11 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
             catch (GridException e) {
                 throw new GridSpiException("Failed to send message to remote node: " + node, e);
             }
+            finally {
+                if (client != null)
+                    client.release();
+            }
+        }
     }
 
     /**
@@ -691,88 +685,108 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      * @throws GridException Thrown if any exception occurs.
      */
     @SuppressWarnings("unchecked")
-    private GridNioClient getOrCreateClient(GridNode node) throws GridException {
+    private GridNioClient reserveClient(GridNode node) throws GridException {
         assert node != null;
 
-        GridNioClient client;
-
-        synchronized (mux) {
-            client = clients.get(node.id());
+        while (true) {
+            GridNioClient client = clients.get(node.id());
 
             if (client == null) {
-                Collection<String> addrs = new LinkedHashSet<String>();
+                GridNioClient old = clients.putIfAbsent(node.id(), client = createNioClient(node));
 
-                // Try to connect first on bound address.
-                InetAddress boundAddr = (InetAddress)node.attribute(createSpiAttributeName(ATTR_ADDR));
+                if (old != null) {
+                    boolean b = client.close();
 
-                if (boundAddr != null)
-                    addrs.add(boundAddr.getHostAddress());
+                    assert b;
 
-                Collection<String> addrs1;
-
-                // Then on internal addresses.
-                if ((addrs1 = node.internalAddresses()) != null)
-                    addrs.addAll(addrs1);
-
-                // And finally, try external addresses.
-                if ((addrs1 = node.externalAddresses()) != null)
-                    addrs.addAll(addrs1);
-
-                if (addrs.isEmpty())
-                    throw new GridException("Node doesn't have any bound, internal or external IP addresses: " + node);
-
-                Collection<Integer> ports = new LinkedHashSet<Integer>();
-
-                // Try to connect first on bound port.
-                Integer boundPort = (Integer)node.attribute(createSpiAttributeName(ATTR_PORT));
-
-                ports.add(boundPort);
-
-                // Then on mapped external ports, if any.
-                Collection<Integer> extPorts = (Collection<Integer>)node.attribute(
-                    createSpiAttributeName(ATTR_EXT_PORTS));
-
-                if (extPorts != null)
-                    ports.addAll(extPorts);
-
-                boolean conn = false;
-
-                for (String addr : addrs) {
-                    for (Integer port : ports)
-                        try {
-                            client = new GridNioClient(InetAddress.getByName(addr), port, localHost, log);
-
-                            clients.put(node.id(), client);
-
-                            conn = true;
-
-                            break;
-                        }
-                        catch (Exception e) {
-                            if (log.isDebugEnabled())
-                                log.debug("Client creation failed [addr=" + addr + ", port=" + port +
-                                    ", err=" + e + ']');
-                        }
-
-                    if (conn)
-                        break;
+                    client = old;
                 }
-
-                // Wake up idle connection worker.
-                mux.notifyAll();
             }
-        }
 
-        if (client == null)
+            if (client.reserve())
+                return client;
+            else
+                clients.remove(node.id(), client);
+        }
+    }
+
+    /**
+     * @param node Node to create client for.
+     * @return Client.
+     * @throws GridException If failed.
+     */
+    private GridNioClient createNioClient(GridNode node) throws GridException {
+        Collection<String> addrs = new LinkedHashSet<String>();
+
+        // Try to connect first on bound address.
+        InetAddress boundAddr = (InetAddress)node.attribute(createSpiAttributeName(ATTR_ADDR));
+
+        if (boundAddr != null)
+            addrs.add(boundAddr.getHostAddress());
+
+        Collection<String> addrs1;
+
+        // Then on internal addresses.
+        if ((addrs1 = node.internalAddresses()) != null)
+            addrs.addAll(addrs1);
+
+        // And finally, try external addresses.
+        if ((addrs1 = node.externalAddresses()) != null)
+            addrs.addAll(addrs1);
+
+        if (addrs.isEmpty())
+            throw new GridException("Node doesn't have any bound, internal or external IP addresses: " + node.id());
+
+        Collection<Integer> ports = new LinkedHashSet<Integer>();
+
+        // Try to connect first on bound port.
+        Integer boundPort = (Integer)node.attribute(createSpiAttributeName(ATTR_PORT));
+
+        if (boundPort != null)
+            ports.add(boundPort);
+
+        // Then on mapped external ports, if any.
+        Collection<Integer> extPorts = (Collection<Integer>)node.attribute(
+            createSpiAttributeName(ATTR_EXT_PORTS));
+
+        if (extPorts != null)
+            ports.addAll(extPorts);
+
+        if (addrs.isEmpty() || ports.isEmpty())
             throw new GridSpiException("Failed to send message to the destination node. " +
                 "Node does not have IP address or port set up. Check configuration and make sure " +
                 "that you use the same communication SPI on all nodes. Remote node id: " + node.id());
+
+        boolean conn = false;
+
+        GridNioClient client = null;
+
+        for (String addr : addrs) {
+            for (Integer port : ports)
+                try {
+                    client = new GridNioClient(InetAddress.getByName(addr), port, localHost);
+
+                    conn = true;
+
+                    break;
+                }
+                catch (Exception e) {
+                    if (log.isDebugEnabled())
+                        log.debug("Client creation failed [addr=" + addr + ", port=" + port +
+                            ", err=" + e + ']');
+                }
+
+            if (conn)
+                break;
+        }
+
+        if (client == null)
+            throw new GridException("Failed to connect to node (did node left grid?): " + node.id());
 
         return client;
     }
 
     /**
-     *
      * @param msg Communication message.
      */
     private void notifyListener(GridTcpCommunicationMessage msg) {
@@ -791,43 +805,50 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      */
     private class TcpServer extends GridSpiThread {
         /** */
+        @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
         private GridNioServer srvr;
 
         /**
-         *
          * @param srvr NIO server.
          */
         TcpServer(GridNioServer srvr) {
             super(gridName, "grid-tcp-nio-srv", log);
 
+            assert srvr != null;
+
             this.srvr = srvr;
         }
 
         /** {@inheritDoc} */
-        @Override public void interrupt() {
+        @Override public synchronized void interrupt() {
             super.interrupt();
 
-            synchronized (mux) {
-                if (srvr != null)
-                    srvr.close();
-            }
+            if (srvr != null)
+                srvr.close();
         }
 
         /** {@inheritDoc} */
         @SuppressWarnings({"BusyWait"})
         @Override protected void body() throws InterruptedException {
-            while (!isInterrupted())
+            boolean reset = false;
+
+            while (!isInterrupted()) {
                 try {
-                    GridNioServer locSrvr;
+                    if (reset) {
+                        reset = false;
 
-                    synchronized (mux) {
-                        if (isInterrupted())
-                            return;
+                        synchronized (this) {
+                            if (isInterrupted())
+                                return;
 
-                        locSrvr = srvr == null ? resetServer() : srvr;
+                            if (srvr != null)
+                                srvr.close();
+
+                            srvr = resetServer();
+                        }
                     }
 
-                    locSrvr.accept();
+                    srvr.accept();
                 }
                 catch (GridException e) {
                     if (!isInterrupted()) {
@@ -835,57 +856,45 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
                         Thread.sleep(ERR_WAIT_TIME);
 
-                        synchronized (mux) {
-                            srvr.close();
-
-                            srvr = null;
-                        }
+                        reset = true;
                     }
                 }
+            }
         }
     }
 
-    /** */
+    /**
+     *
+     */
     private class IdleClientWorker extends GridSpiThread {
-        /** */
+        /**
+         *
+         */
         IdleClientWorker() {
             super(gridName, "nio-idle-client-collector", log);
         }
 
         /** {@inheritDoc} */
+        @SuppressWarnings({"BusyWait"})
         @Override protected void body() throws InterruptedException {
             while (!isInterrupted()) {
+                for (Map.Entry<UUID, GridNioClient> e : clients.entrySet()) {
+                    UUID nodeId = e.getKey();
 
-                long nextIdleTime = System.currentTimeMillis() + idleConnTimeout;
+                    GridNioClient client = e.getValue();
 
-                long now = System.currentTimeMillis();
+                    long idleTime = client.getIdleTime();
 
-                synchronized (mux) {
-                    for (Iterator<Map.Entry<UUID, GridNioClient>> iter = clients.entrySet().iterator();
-                         iter.hasNext();) {
-                        Map.Entry<UUID, GridNioClient> e = iter.next();
+                    if (getSpiContext().node(nodeId) == null || idleTime >= idleConnTimeout) {
+                        if (log.isDebugEnabled())
+                            log.debug("Closing idle or non-existent node connection: " + nodeId);
 
-                        GridNioClient client = e.getValue();
-
-                        long idleTime = client.getIdleTime();
-
-                        if (idleTime >= idleConnTimeout) {
-                            if (log.isDebugEnabled())
-                                log.debug("Closing idle connection to node: " + e.getKey());
-
-                            client.close();
-
-                            iter.remove();
-                        }
-                        else if (now + idleConnTimeout - idleTime < nextIdleTime)
-                            nextIdleTime = now + idleConnTimeout - idleTime;
+                        if (client.close() || client.closed())
+                            clients.remove(nodeId, client);
                     }
-
-                    now = System.currentTimeMillis();
-
-                    if (nextIdleTime - now > 0)
-                        mux.wait(nextIdleTime - now);
                 }
+
+                Thread.sleep(idleConnTimeout);
             }
         }
     }

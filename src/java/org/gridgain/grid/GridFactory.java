@@ -67,6 +67,7 @@ import java.util.concurrent.atomic.*;
 import static org.gridgain.grid.GridConfiguration.*;
 import static org.gridgain.grid.GridFactoryState.*;
 import static org.gridgain.grid.GridSystemProperties.*;
+import static org.gridgain.grid.cache.GridCacheMode.*;
 import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
 
 /**
@@ -130,7 +131,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * For more information refer to {@link GridSpringBean} documentation.
 
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridFactory {
     /**
@@ -1299,7 +1300,7 @@ public class GridFactory {
      * Grid data container.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.01112011
+     * @version 3.5.0c.07112011
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
@@ -1737,7 +1738,6 @@ public class GridFactory {
             myCfg.setRestJettyPath(cfg.getRestJettyPath());
             myCfg.setRestSecretKey(cfg.getRestSecretKey());
 
-
             // Validate segmentation configuration.
             if (!F.isEmpty(cfg.getSegmentationResolvers())) {
                 // Segment check enabled, validate configuration.
@@ -1755,23 +1755,19 @@ public class GridFactory {
 
                 if ((cfg.getSegmentationPolicy() == RESTART_JVM || cfg.getSegmentationPolicy() == RECONNECT) &&
                     !cfg.isWaitForSegmentOnStart()) {
-                    U.warn(log, "Found potential configuration problem (forgot to enable waiting for segment?) " +
-                        "[segPlc=" + cfg.getSegmentationPolicy() + ", wait=false]");
+                    U.warn(log, "Found potential configuration problem (forgot to enable waiting for segment" +
+                        "on start?) [segPlc=" + cfg.getSegmentationPolicy() + ", wait=false]");
                 }
 
                 if (cfg.getSegmentationPolicy() == RECONNECT) {
-                    boolean hasDistrCache = F.forAny(
-                        cfg.getCacheConfiguration(),
-                        new P1<GridCacheConfiguration>() {
-                            @Override public boolean apply(GridCacheConfiguration cfg) {
-                                return cfg.getCacheMode() != GridCacheMode.LOCAL;
-                            }
-                        }
-                    );
+                    GridCacheConfiguration[] cacheCfgs = cfg.getCacheConfiguration();
 
-                    if (hasDistrCache)
-                        U.warn(log, "It is not recommended to use RECONNECT segmentation policy " +
-                            "when running distributed data grid.");
+                    if (cacheCfgs != null) {
+                        for (GridCacheConfiguration cc : cacheCfgs)
+                            if (cc.getCacheMode() == REPLICATED || cc.getCacheMode() == PARTITIONED)
+                                throw new GridException("RECONNECT segmentation policy is not supported " +
+                                    "when running distributed data grid.");
+                    }
                 }
             }
 
@@ -2203,7 +2199,7 @@ public class GridFactory {
          * Contains necessary data for selected MBeanServer.
          *
          * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-         * @version 3.5.0c.01112011
+         * @version 3.5.0c.07112011
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

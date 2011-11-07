@@ -16,6 +16,7 @@ import org.gridgain.grid.cache.*
 import org.gridgain.grid.resources.*
 import org.gridgain.grid.typedef.*
 import static org.gridgain.grover.Grover.*
+import org.gridgain.grover.categories.GroverProjectionCategory
 
 /**
  * Example shows how can GridGain be used to count triangles in undirectional graph.
@@ -36,9 +37,10 @@ import static org.gridgain.grover.Grover.*
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 @Typed
+@Use(GroverProjectionCategory)
 class GroverCountGraphTrianglesExample {
     /** Cache name. */
     private static String CACHE_NAME = "partitioned"
@@ -110,7 +112,7 @@ class GroverCountGraphTrianglesExample {
         def counts = grid.affinityCall(CACHE_NAME, vertices, new AlgorithmClosure());
 
         // Reduce and return total number of triangles in graph.
-        F.sum(counts)
+        counts.sum()
     }
 
     /**
@@ -129,7 +131,7 @@ class GroverCountGraphTrianglesExample {
      * Main algorithm closure.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.01112011
+     * @version 3.5.0c.07112011
      */
     @Typed
     private static class AlgorithmClosure extends COX<Integer> {
@@ -172,7 +174,7 @@ class GroverCountGraphTrianglesExample {
                             // Check if edge (i -> j) exists. To do this, we run a closure on the
                             // node that stores adjacency list for vertex 'i' and check whether
                             // vertex 'j' is found among its neighbors.
-                            def exists = grid.affinityCall(CACHE_NAME, i) {
+                            def exists = grid.affinityCallOneKey(CACHE_NAME, i) {
                                 def l = GroverCountGraphTrianglesExample.cache(grid).peek(i)
 
                                 assert l != null

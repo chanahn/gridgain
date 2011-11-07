@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Fully replicated cache implementation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Preloader. */
@@ -921,7 +921,7 @@ public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V>
             ctx.io().safeSend(nodes, req, null);
         }
         catch (GridException e) {
-            U.error(log, "Failed to unlock class for keys: " + keys, e);
+            U.error(log, "Failed to unlock keys: " + keys, e);
         }
     }
 

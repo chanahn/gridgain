@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * DHT cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Near cache. */
@@ -180,6 +180,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
     /** {@inheritDoc} */
     @Override public void onKernalStop() {
+        super.onKernalStop();
+
         if (preldr != null)
             preldr.onKernalStop();
     }

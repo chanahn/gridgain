@@ -36,7 +36,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
  * Grid task worker. Handles full task life cycle.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  * @param <T> Task argument type.
  * @param <R> Task return value type.
  */
@@ -373,7 +373,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
             // Inject resources.
             ctx.resource().inject(dep, getTask(), ses, balancer, mapper);
 
-            Map<? extends GridJob, GridNode> mappedJobs = U.withThreadLoader(dep.classLoader(),
+            Map<? extends GridJob, GridNode> mappedJobs = U.wrapThreadLoader(dep.classLoader(),
                 new Callable<Map<? extends GridJob, GridNode>>() {
                     @Override public Map<? extends GridJob, GridNode> call() throws GridException {
                         return getTask().map(shuffledNodes, arg);
@@ -790,7 +790,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
 
             try {
                 // Reduce results.
-                reduceRes = U.withThreadLoader(dep.classLoader(), new Callable<R>() {
+                reduceRes = U.wrapThreadLoader(dep.classLoader(), new Callable<R>() {
                     @Nullable @Override public R call() throws GridException {
                         return getTask().reduce(results);
                     }

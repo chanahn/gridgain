@@ -36,7 +36,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Job worker.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridJobWorker extends GridWorker implements GridTimeoutObject {
     /** Per-thread halted flag. */
@@ -431,7 +431,7 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
                 sendRes = false;
             }
             else {
-                res = U.withThreadLoader(dep.classLoader(), new Callable<Object>() {
+                res = U.wrapThreadLoader(dep.classLoader(), new Callable<Object>() {
                     @Nullable @Override public Object call() throws GridException {
                         return job.get().execute();
                     }

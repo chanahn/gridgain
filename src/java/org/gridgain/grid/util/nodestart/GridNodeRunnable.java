@@ -11,7 +11,6 @@ package org.gridgain.grid.util.nodestart;
 
 import com.jcraft.jsch.*;
 import org.gridgain.grid.lang.*;
-import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
@@ -21,14 +20,14 @@ import java.util.*;
  * SSH-based node starter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridNodeRunnable implements Runnable {
     /** Default start script path for Windows. */
-    private static final String DFLT_SCRIPT_WIN = "bin\\ggstart.bat -v";
+    private static final String DFLT_SCRIPT_WIN = "%GRIDGAIN_HOME%\\bin\\ggstart.bat -v";
 
     /** Default start script path for Linux. */
-    private static final String DFLT_SCRIPT_LINUX = "bin/ggstart.sh -v";
+    private static final String DFLT_SCRIPT_LINUX = "$GRIDGAIN_HOME/bin/ggstart.sh -v";
 
     /** Default log location for Windows. */
     private static final String DFLT_LOG_PATH_WIN = "%GRIDGAIN_HOME%\\work\\log\\gridgain.log";
@@ -61,7 +60,7 @@ public class GridNodeRunnable implements Runnable {
     private final String cfg;
 
     /** Log file path. */
-    private String log;
+    private final String log;
 
     /** Start results. */
     private final Collection<GridTuple3<String, Boolean, String>> res;
@@ -121,18 +120,11 @@ public class GridNodeRunnable implements Runnable {
 
             ChannelExec ch = (ChannelExec)ses.openChannel("exec");
 
-            if (log != null) {
-                File dir = new File(log).getParentFile();
-
-                if (!dir.exists() || !dir.isDirectory())
-                    log = U.getGridGainHome() + File.separator + log;
-            }
-
             if (isWindows(ses))
-                ch.setCommand("%GRIDGAIN_HOME%\\" + (script != null ? script : DFLT_SCRIPT_WIN) + " " +
+                ch.setCommand((script != null ? script : DFLT_SCRIPT_WIN) + " " +
                     (cfg != null ? cfg : "") + " > " + (log != null ? log : DFLT_LOG_PATH_WIN) + "." + i);
             else
-                ch.setCommand("$GRIDGAIN_HOME/" + (script != null ? script : DFLT_SCRIPT_LINUX) + " " +
+                ch.setCommand((script != null ? script : DFLT_SCRIPT_LINUX) + " " +
                     (cfg != null ? cfg : "") + " > " + (log != null ? log : DFLT_LOG_PATH_LINUX) + "." + i +
                     " 2>& 1 &");
 

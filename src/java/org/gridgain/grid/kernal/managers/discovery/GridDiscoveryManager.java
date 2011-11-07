@@ -37,7 +37,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * Discovery SPI manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     /** System line separator. */
@@ -281,6 +281,8 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         String locBuildVer = locNode.attribute(ATTR_BUILD_VER);
         String locPreferIpV4 = locNode.attribute("java.net.preferIPv4Stack");
 
+        boolean warned = false;
+
         for (GridNode n : discoCache().remoteNodes()) {
             String rmtEnt = n.attribute(ATTR_ENT_EDITION);
             String rmtBuildVer = n.attribute(ATTR_BUILD_VER);
@@ -298,12 +300,17 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                     "[locBuildVer=" + locBuildVer + ", rmtBuildVer=" + rmtBuildVer +
                     ", locNode=" + locNode + ", rmtNode=" + n + ']');
 
-            if (!F.eq(rmtPreferIpV4, locPreferIpV4))
-                throw new GridException("Local node's value of 'java.net.preferIPv4Stack' " +
-                    "system property differs from remote node's " +
-                    "(all nodes in topology should have identical value) " +
-                    "[locPreferIpV4=" + locPreferIpV4 + ", rmtPreferIpV4=" + rmtPreferIpV4 +
-                    ", locNode=" + locNode + ", rmtNode=" + n + ']');
+            if (!F.eq(rmtPreferIpV4, locPreferIpV4)) {
+                if (!warned)
+                    U.warn(log, "Local node's value of 'java.net.preferIPv4Stack' " +
+                        "system property differs from remote node's " +
+                        "(all nodes in topology should have identical value) " +
+                        "[locPreferIpV4=" + locPreferIpV4 + ", rmtPreferIpV4=" + rmtPreferIpV4 +
+                        ", locId8=" + U.id8(locNode.id()) + ", rmtId8=" + U.id8(n.id()) + ']',
+                        "Local and remote 'java.net.preferIPv4Stack' system properties do not match.");
+
+                warned = true;
+            }
         }
 
         if (log.isDebugEnabled())
@@ -1030,9 +1037,6 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                             // Set to 'false' here since if exception is thrown, no further reconnects
                             // are possible.
                             segGuard.set(false);
-                        }
-                        catch (GridSpiException e) {
-                            throw new GridRuntimeException("Failed to reconnect discovery SPI to topology.", e);
                         }
                         catch (GridException e) {
                             throw new GridRuntimeException("Failed to reconnect discovery SPI to topology.", e);

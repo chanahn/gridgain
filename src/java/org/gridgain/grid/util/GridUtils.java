@@ -68,7 +68,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Collection of utility methods used throughout the system.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -1495,7 +1495,7 @@ public abstract class GridUtils {
      * Verifier always returns successful result for any host.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.01112011
+     * @version 3.5.0c.07112011
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.
@@ -4631,7 +4631,7 @@ public abstract class GridUtils {
      * @return Return value.
      * @throws GridException If call failed.
      */
-    @Nullable public static <R> R withThreadLoader(ClassLoader ldr, Callable<R> c) throws GridException {
+    @Nullable public static <R> R wrapThreadLoader(ClassLoader ldr, Callable<R> c) throws GridException {
         Thread curThread = Thread.currentThread();
 
         // Get original context class loader.
@@ -5607,7 +5607,7 @@ public abstract class GridUtils {
     public static <K, V> void printConcurrentHashMapInfo(ConcurrentHashMap<K, V> map) {
         assert map != null;
 
-        Object[] segs = (Object[])getField(map, "segments");
+        Object[] segs = (Object[]) field(map, "segments");
 
         X.println("Concurrent map stats [identityHash= " + System.identityHashCode(map) +
             ", segsCnt=" + segs.length + ']');
@@ -5617,7 +5617,7 @@ public abstract class GridUtils {
         int totalCollisions = 0;
 
         for (int i = 0; i < segs.length; i++) {
-            int segCnt = (Integer)getField(segs[i], "count");
+            int segCnt = (Integer) field(segs[i], "count");
 
             if (segCnt == 0) {
                 emptySegsCnt++;
@@ -5625,7 +5625,7 @@ public abstract class GridUtils {
                 continue;
             }
 
-            Object[] tab = (Object[]) getField(segs[i], "table");
+            Object[] tab = (Object[]) field(segs[i], "table");
 
             int tabLen = tab.length;
 
@@ -5642,7 +5642,7 @@ public abstract class GridUtils {
                 while (entry != null) {
                     cnt++;
 
-                    entry = getField(entry, "next");
+                    entry = field(entry, "next");
                 }
 
                 Integer bucketCnt = bucketsStats.get(cnt);
@@ -5670,7 +5670,7 @@ public abstract class GridUtils {
      * @param fieldName Field.
      * @return Field value.
      */
-    static Object getField(Object obj, String fieldName) {
+    public static <T> T field(Object obj, String fieldName) {
         try {
             for (Field field : obj.getClass().getDeclaredFields())
                 if (field.getName().equals(fieldName)) {
@@ -5678,7 +5678,7 @@ public abstract class GridUtils {
 
                     field.setAccessible(true);
 
-                    Object val = field.get(obj);
+                    T val = (T)field.get(obj);
 
                     if (!accessible)
                         field.setAccessible(false);

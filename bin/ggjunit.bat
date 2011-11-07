@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 3.5.0c.01112011
+:: Version: 3.5.0c.07112011
 ::
 
 ::
@@ -113,7 +113,10 @@ set JMX_MON=%JMX_MON% -Dcom.sun.management.jmxremote.port=%JMX_PORT% -Dcom.sun.m
 ::
 :: ADD YOUR/CHANGE ADDITIONAL OPTIONS HERE
 ::
-set JVM_OPTS=-ea -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxNewSize=32m -XX:NewSize=32m -Xms256m -Xmx256m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0  -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -Djava.net.preferIPv4Stack=true
+set JVM_OPTS=-ea -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxNewSize=32m -XX:NewSize=32m -Xms256m -Xmx256m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0  -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
+
+:: Uncomment to set preference to IPv4 stack.
+:: set JVM_OPTS=%JVM_OPTS% -Djava.net.preferIPv4Stack=true
 
 ::
 :: Set program name.

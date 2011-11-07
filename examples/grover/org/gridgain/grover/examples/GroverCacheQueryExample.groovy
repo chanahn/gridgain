@@ -23,7 +23,7 @@ import org.gridgain.grover.lang.*
  * Demonstrates cache ad-hoc queries with Grover.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.01112011
+ * @version 3.5.0c.07112011
  */
 @Typed
 @Use(GroverCacheProjectionCategory)
@@ -62,12 +62,12 @@ class GroverCacheQueryExample {
         // Example for SQL-based querying employees based on salary ranges.
         // Gets all persons with 'salary > 1000'.
         print("People with salary more than 1000: ", cache.sql(prj, Person, "salary > 1000").
-            collect { t -> t._2 })
+            collect { it._2 })
 
         // Example for TEXT-based querying for a given string in people resumes.
         // Gets all persons with 'Bachelor' degree.
         print("People with Bachelor degree: ", cache.lucene(prj, Person, "Bachelor").
-            collect { t -> t._2 })
+            collect { it._2 })
 
         // Example for SQL-based querying with custom remote transformer to make sure
         // that only required data without any overhead is returned to caller.
@@ -79,7 +79,7 @@ class GroverCacheQueryExample {
                 "from Person, Organization where Person.orgId = Organization.id " +
                     "and Organization.name = 'GridGain'",
                 { Person p -> p.lastName }
-            ).collect { t -> t._2 }
+            ).collect { it._2 }
         )
 
         // Example for SQL-based querying with custom remote and local reducers
@@ -91,12 +91,12 @@ class GroverCacheQueryExample {
                 Person.class,
                 "Master",
                 { Collection<GroverTuple<GridCacheAffinityKey<UUID>, Person>> c ->
-                    def sum = c.collect { t -> t._2.salary }.sum()
+                    def sum = c.collect { it._2.salary }.sum() ?: 0
 
                     new GroverTuple(sum, c.size())
                 },
                 { Collection<GroverTuple<Double, Integer>> c ->
-                    (c.collect { t -> t._1 }.sum() as double) / (c.collect { t -> t._2 }.sum() as int)
+                    (c.collect { it._1 }.sum() as double) / (c.collect { it._2 }.sum() as int)
                 }
             )
         )
@@ -158,7 +158,7 @@ class GroverCacheQueryExample {
 
         switch(o) {
             case Iterable:
-                o.each { i -> println(">>>     ${i}") }
+                o.each { println(">>>     ${it}") }
 
                 break
             default:
@@ -170,7 +170,7 @@ class GroverCacheQueryExample {
      * Organization class.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.01112011
+     * @version 3.5.0c.07112011
      */
     private static class Organization {
         @GridCacheQuerySqlField
@@ -189,7 +189,7 @@ class GroverCacheQueryExample {
      * Person class.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.0c.01112011
+     * @version 3.5.0c.07112011
      */
     private static class Person {
         final Organization org
