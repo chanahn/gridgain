@@ -19,7 +19,7 @@ import java.util.*;
  * Data affinity controller.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public interface GridAffinityController extends GridController {
     /**
@@ -30,8 +30,8 @@ public interface GridAffinityController extends GridController {
      * @return Affinity map.
      * @throws GridException If failed.
      */
-    public <K> Map<GridRichNode, Collection<K>> mapKeysToNodes(@Nullable String cacheName, Collection<GridRichNode> nodes,
-        @Nullable Collection<? extends K> keys, boolean sys) throws GridException;
+    public <K> Map<GridRichNode, Collection<K>> mapKeysToNodes(@Nullable String cacheName,
+        Collection<GridRichNode> nodes, @Nullable Collection<? extends K> keys, boolean sys) throws GridException;
 
     /**
      * @param keys Keys.
@@ -61,5 +61,6 @@ public interface GridAffinityController extends GridController {
      * @return Affinity map.
      * @throws GridException If failed.
      */
-    @Nullable public <K> GridRichNode mapKeyToNode(Collection<GridRichNode> nodes, K key, boolean sys) throws GridException;
+    @Nullable public <K> GridRichNode mapKeyToNode(Collection<GridRichNode> nodes, K key, boolean sys)
+        throws GridException;
 }

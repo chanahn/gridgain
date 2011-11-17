@@ -21,7 +21,7 @@ import java.util.*;
  * {@code Spring} configuration file.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 class GridUriDeploymentSpringDocument {
     /** Initialized springs beans factory. */
@@ -57,9 +57,9 @@ class GridUriDeploymentSpringDocument {
             if (tasks == null) {
                 tasks = new ArrayList<Class<? extends GridTask<?, ?>>>();
 
-                Map<String, List<String>> beans = factory.getBeansOfType(List.class);
+                Map<String, List> beans = factory.getBeansOfType(List.class);
 
-                if (beans.size() > 0) {
+                if (!beans.isEmpty()) {
                     for (List<String> list : beans.values()) {
                         for (String clsName : list) {
                             Class taskCls;

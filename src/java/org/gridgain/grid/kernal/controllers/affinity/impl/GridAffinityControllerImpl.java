@@ -33,7 +33,7 @@ import static org.gridgain.grid.kernal.controllers.affinity.impl.GridAffinityUti
  * Processor responsible for getting key affinity nodes.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public class GridAffinityControllerImpl extends GridControllerAdapter implements GridAffinityController {
     /** Retries to get affinity in case of error. */
@@ -46,8 +46,8 @@ public class GridAffinityControllerImpl extends GridControllerAdapter implements
     private static final String NULL_NAME = UUID.randomUUID().toString();
 
     /** Affinity map. */
-    private final ConcurrentMap<String, GridTuple3<GridCacheAffinity, GridException, CountDownLatch>> affMap =
-        new ConcurrentHashMap<String, GridTuple3<GridCacheAffinity, GridException, CountDownLatch>>();
+    private final ConcurrentMap<String, GridTuple4<GridCacheAffinityMapper, GridCacheAffinity, GridException, CountDownLatch>> affMap =
+        new ConcurrentHashMap<String, GridTuple4<GridCacheAffinityMapper, GridCacheAffinity, GridException, CountDownLatch>>();
 
     /** Listener. */
     private final GridLocalEventListener lsnr = new GridLocalEventListener() {
@@ -144,15 +144,16 @@ public class GridAffinityControllerImpl extends GridControllerAdapter implements
      * @throws GridException If failed.
      */
     @SuppressWarnings({"unchecked"})
-    private <K> Map<GridRichNode, Collection<K>> keysToNodes(@Nullable final String cacheName, Collection<? extends K> keys,
-        Collection<GridRichNode> nodes, boolean sys) throws GridException {
+    private <K> Map<GridRichNode, Collection<K>> keysToNodes(@Nullable final String cacheName,
+        Collection<? extends K> keys, Collection<GridRichNode> nodes, boolean sys) throws GridException {
         if (F.isEmpty(keys) || F.isEmpty(nodes))
             return Collections.emptyMap();
 
-        GridTuple3<GridCacheAffinity, GridException, CountDownLatch> tup = affMap.get(maskNull(cacheName));
+        GridTuple4<GridCacheAffinityMapper, GridCacheAffinity, GridException, CountDownLatch> tup =
+            affMap.get(maskNull(cacheName));
 
-        if (tup != null && tup.get1() != null && tup.get3().getCount() == 0)
-            return affinityMap(cacheName, tup.get1(), keys, nodes);
+        if (tup != null && tup.get1() != null && tup.get4().getCount() == 0)
+            return affinityMap(cacheName, tup.get1(), tup.get2(), keys, nodes);
 
         GridRichNode loc = ctx.rich().rich(ctx.discovery().localNode());
 
@@ -162,11 +163,14 @@ public class GridAffinityControllerImpl extends GridControllerAdapter implements
             if (ctx.cache().cache(cacheName).configuration().getCacheMode() == LOCAL)
                 return F.asMap(loc, (Collection<K>)keys);
 
-            GridCacheAffinity<K> a = ctx.cache().cache(cacheName).configuration().getAffinity();
+            GridCache<K, ?> cache = ctx.cache().cache(cacheName);
 
-            affMap.put(maskNull(cacheName), F.t((GridCacheAffinity)a, (GridException)null, new CountDownLatch(0)));
+            GridCacheAffinity a = cache.configuration().getAffinity();
+            GridCacheAffinityMapper m = cache.configuration().getAffinityMapper();
 
-            return affinityMap(cacheName, a, keys, nodes);
+            affMap.put(maskNull(cacheName), F.t(m, a, (GridException)null, new CountDownLatch(0)));
+
+            return affinityMap(cacheName, m, a, keys, nodes);
         }
 
         // In Community Edition we always return null if
@@ -183,17 +187,18 @@ public class GridAffinityControllerImpl extends GridControllerAdapter implements
         if (F.isEmpty(cacheNodes))
             return Collections.emptyMap();
 
-        GridTuple3<GridCacheAffinity, GridException, CountDownLatch> old =
-            affMap.putIfAbsent(maskNull(cacheName), tup = F.t((GridCacheAffinity)null, null, new CountDownLatch(1)));
+        GridTuple4<GridCacheAffinityMapper, GridCacheAffinity, GridException, CountDownLatch> old =
+            affMap.putIfAbsent(maskNull(cacheName),
+                tup = F.t((GridCacheAffinityMapper)null, (GridCacheAffinity)null, null, new CountDownLatch(1)));
 
         if (old != null) {
-            U.await(old.get3());
+            U.await(old.get4());
+
+            if (old.get3() != null)
+                throw old.get3();
 
             if (old.get2() != null)
-                throw old.get2();
-
-            if (old.get1() != null)
-                return affinityMap(cacheName, old.get1(), keys, nodes);
+                return affinityMap(cacheName, old.get1(), old.get2(), keys, nodes);
         }
 
         int max = ERROR_RETRIES;
@@ -216,26 +221,29 @@ public class GridAffinityControllerImpl extends GridControllerAdapter implements
 
             // Map all keys to a single node, if the cache mode is LOCAL.
             if (mode == LOCAL) {
-                tup.get3().countDown();
+                tup.get4().countDown();
 
                 return F.asMap(ctx.rich().rich(n), (Collection<K>)keys);
             }
 
             try {
-                GridCacheAffinity a = ctx.closure().callAsync(UNICAST, affinityJob(cacheName), F.asList(n),
-                    /*system pool*/sys).get();
+                GridTuple2<GridCacheAffinityMapper, GridCacheAffinity> affTup = affinityFromNode(cacheName, n, sys);
+
+                GridCacheAffinityMapper m = affTup.get1();
+                GridCacheAffinity a = affTup.get2();
 
                 assert a != null;
-
-                ctx.resource().injectGeneric(a);
+                assert m != null;
 
                 // Bring to initial state.
                 a.reset();
+                m.reset();
 
-                // Set affinity before counting down on latch.
-                tup.set1(a);
+                // Set affinity and affinity mapper before counting down on latch.
+                tup.set1(m);
+                tup.set2(a);
 
-                tup.get3().countDown();
+                tup.get4().countDown();
 
                 break;
             }
@@ -243,12 +251,12 @@ public class GridAffinityControllerImpl extends GridControllerAdapter implements
                 if (e instanceof GridExecutionRejectedException || cnt == max && ctx.discovery().node(n.id()) != null) {
                     affMap.remove(maskNull(cacheName));
 
-                    tup.set2(new GridException("Failed to get affinity mapping from node: " + n, e));
+                    tup.set3(new GridException("Failed to get affinity mapping from node: " + n, e));
 
                     // Failed... no point to wait any longer.
-                    tup.get3().countDown();
+                    tup.get4().countDown();
 
-                    throw tup.get2();
+                    throw tup.get3();
                 }
 
                 if (log.isDebugEnabled())
@@ -259,11 +267,38 @@ public class GridAffinityControllerImpl extends GridControllerAdapter implements
             }
         }
 
-        return affinityMap(cacheName, tup.get1(), keys, nodes);
+        return affinityMap(cacheName, tup.get1(), tup.get2(), keys, nodes);
+    }
+
+    /**
+     * Requests {@link GridCacheAffinity} and {@link GridCacheAffinityMapper} from remote node.
+     *
+     * @param cacheName Name of cache on which affinity is requested.
+     * @param n Node from which affinity is requested.
+     * @param sys flag indicating if request should be done in system pool.
+     * @return Tuple with result objects.
+     * @throws GridException If either local or remote node cannot get deployment for affinity objects.
+     */
+    private GridTuple2<GridCacheAffinityMapper, GridCacheAffinity> affinityFromNode(String cacheName, GridNode n,
+        boolean sys) throws GridException {
+        GridTuple3<GridAffinityMessage, GridAffinityMessage, GridException> t = ctx.closure()
+            .callAsync(UNICAST, affinityJob(cacheName), F.asList(n), /*system pool*/sys).get();
+
+        // Throw exception if remote node failed to deploy result.
+        GridException err = t.get3();
+
+        if (err != null)
+            throw err;
+
+        GridCacheAffinityMapper m = (GridCacheAffinityMapper)unmarshall(ctx, n.id(), t.get1());
+        GridCacheAffinity a = (GridCacheAffinity)unmarshall(ctx, n.id(), t.get2());
+
+        return F.t(m, a);
     }
 
     /**
      * @param cacheName Cache name.
+     * @param mapper Affinity mapper.
      * @param aff Affinity.
      * @param keys Keys.
      * @param nodes Nodes.
@@ -271,8 +306,10 @@ public class GridAffinityControllerImpl extends GridControllerAdapter implements
      * @throws GridException If failed.
      */
     @SuppressWarnings({"unchecked"})
-    private <K> Map<GridRichNode, Collection<K>> affinityMap(final String cacheName, GridCacheAffinity<K> aff,
-        Collection<? extends K> keys, Collection<GridRichNode> nodes) throws GridException {
+    private <K> Map<GridRichNode, Collection<K>> affinityMap(final String cacheName, GridCacheAffinityMapper<K> mapper,
+        GridCacheAffinity<Object> aff, Collection<? extends K> keys, Collection<GridRichNode> nodes) throws GridException {
+        assert mapper != null;
+        assert aff != null;
         assert !F.isEmpty(keys);
 
         try {
@@ -283,12 +320,12 @@ public class GridAffinityControllerImpl extends GridControllerAdapter implements
             });
 
             if (keys.size() == 1)
-                return Collections.singletonMap(affinityNode(aff, F.first(keys), nodes), (Collection<K>)keys);
+                return Collections.singletonMap(affinityNode(mapper, aff, F.first(keys), nodes), (Collection<K>)keys);
 
             Map<GridRichNode, Collection<K>> map = new GridLeanMap<GridRichNode, Collection<K>>(nodes.size());
 
             for (K k : keys) {
-                int part = aff.partition(k);
+                int part = aff.partition(mapper.affinityKey(k));
 
                 GridRichNode n = F.first(aff.nodes(part, nodes));
 
@@ -311,17 +348,18 @@ public class GridAffinityControllerImpl extends GridControllerAdapter implements
     }
 
     /**
+     * @param mapper Affinity mapper.
      * @param aff Affinity.
      * @param key Key.
      * @param nodes Nodes.
      * @return Affinity node ID.
      * @throws GridTopologyException If topology is empty.
      */
-    private <K> GridRichNode affinityNode(GridCacheAffinity<K> aff, K key, Collection<GridRichNode> nodes)
-        throws GridTopologyException {
+    private <K> GridRichNode affinityNode(GridCacheAffinityMapper<K> mapper, GridCacheAffinity<Object> aff,
+        K key, Collection<GridRichNode> nodes) throws GridTopologyException {
         assert key != null;
 
-        GridRichNode n = F.first(aff.nodes(aff.partition(key), nodes));
+        GridRichNode n = F.first(aff.nodes(aff.partition(mapper.affinityKey(key)), nodes));
 
         if (n == null)
             throw new GridTopologyException("Key affinity cannot be determined (topology is empty): " + key);

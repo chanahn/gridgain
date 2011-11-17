@@ -22,7 +22,7 @@ import java.util.*;
  * Management bean for {@link GridTcpDiscoverySpi}.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
     /**

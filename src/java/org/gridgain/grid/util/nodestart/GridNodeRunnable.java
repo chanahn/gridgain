@@ -11,6 +11,7 @@ package org.gridgain.grid.util.nodestart;
 
 import com.jcraft.jsch.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
@@ -20,20 +21,26 @@ import java.util.*;
  * SSH-based node starter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public class GridNodeRunnable implements Runnable {
+    /** Default GridGain home path for Windows (taken from environment variable). */
+    private static final String DFLT_GG_HOME_WIN = "%GRIDGAIN_HOME%";
+
+    /** Default GridGain home path for Linux (taken from environment variable). */
+    private static final String DFLT_GG_HOME_LINUX = "$GRIDGAIN_HOME";
+
     /** Default start script path for Windows. */
-    private static final String DFLT_SCRIPT_WIN = "%GRIDGAIN_HOME%\\bin\\ggstart.bat -v";
+    private static final String DFLT_SCRIPT_WIN = "bin\\ggstart.bat -v";
 
     /** Default start script path for Linux. */
-    private static final String DFLT_SCRIPT_LINUX = "$GRIDGAIN_HOME/bin/ggstart.sh -v";
+    private static final String DFLT_SCRIPT_LINUX = "bin/ggstart.sh -v";
 
     /** Default log location for Windows. */
-    private static final String DFLT_LOG_PATH_WIN = "%GRIDGAIN_HOME%\\work\\log\\gridgain.log";
+    private static final String DFLT_LOG_PATH_WIN = "work\\log\\gridgain.log";
 
     /** Default log location for Linux. */
-    private static final String DFLT_LOG_PATH_LINUX = "$GRIDGAIN_HOME/work/log/gridgain.log";
+    private static final String DFLT_LOG_PATH_LINUX = "work/log/gridgain.log";
 
     /** Node number. */
     private final int i;
@@ -53,14 +60,17 @@ public class GridNodeRunnable implements Runnable {
     /** Private key file. */
     private final File key;
 
+    /** GridGain installation path. */
+    private String ggHome;
+
     /** Start script path. */
-    private final String script;
+    private String script;
 
     /** Configuration file path. */
-    private final String cfg;
+    private String cfg;
 
     /** Log file path. */
-    private final String log;
+    private String log;
 
     /** Start results. */
     private final Collection<GridTuple3<String, Boolean, String>> res;
@@ -74,14 +84,15 @@ public class GridNodeRunnable implements Runnable {
      * @param uname Username.
      * @param passwd Password.
      * @param key Private key file.
+     * @param ggHome GridGain installation path.
      * @param script Start script path.
      * @param cfg Configuration file path.
      * @param log Log file path.
      * @param res Start results.
      */
     public GridNodeRunnable(int i, String host, int port, String uname, @Nullable String passwd,
-        @Nullable File key, @Nullable String script, @Nullable String cfg, @Nullable String log,
-        Collection<GridTuple3<String, Boolean, String>> res) {
+        @Nullable File key, @Nullable String ggHome, @Nullable String script, @Nullable String cfg,
+        @Nullable String log, Collection<GridTuple3<String, Boolean, String>> res) {
         assert host != null;
         assert port > 0;
         assert uname != null;
@@ -93,6 +104,7 @@ public class GridNodeRunnable implements Runnable {
         this.uname = uname;
         this.passwd = passwd;
         this.key = key;
+        this.ggHome = ggHome;
         this.script = script;
         this.cfg = cfg;
         this.log = log;
@@ -120,13 +132,31 @@ public class GridNodeRunnable implements Runnable {
 
             ChannelExec ch = (ChannelExec)ses.openChannel("exec");
 
-            if (isWindows(ses))
-                ch.setCommand((script != null ? script : DFLT_SCRIPT_WIN) + " " +
-                    (cfg != null ? cfg : "") + " > " + (log != null ? log : DFLT_LOG_PATH_WIN) + "." + i);
-            else
-                ch.setCommand((script != null ? script : DFLT_SCRIPT_LINUX) + " " +
-                    (cfg != null ? cfg : "") + " > " + (log != null ? log : DFLT_LOG_PATH_LINUX) + "." + i +
-                    " 2>& 1 &");
+            boolean win = isWindows(ses);
+
+            String separator = win ? "\\" : "/";
+
+            if (ggHome == null)
+                ggHome = win ? DFLT_GG_HOME_WIN : DFLT_GG_HOME_LINUX;
+
+            if (script == null)
+                script = win ? DFLT_SCRIPT_WIN : DFLT_SCRIPT_LINUX;
+
+            if (cfg == null)
+                cfg = "";
+
+            if (log == null)
+                log = win ? DFLT_LOG_PATH_WIN : DFLT_LOG_PATH_LINUX;
+
+            SB sb = new SB();
+
+            String cmd = sb.
+                a(ggHome).a(separator).a(script).a(" ").a(cfg).a(" > ").
+                a(ggHome).a(separator).a(log).a(".").a(i).
+                a(win ? "" : " 2>& 1 &").
+                toString();
+
+            ch.setCommand(cmd);
 
             try {
                 ch.connect();

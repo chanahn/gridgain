@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * Partitioned cache entry public API.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public class GridPartitionedCacheEntryImpl<K, V> extends GridCacheEntryImpl<K, V> {
     /**
@@ -107,7 +107,13 @@ public class GridPartitionedCacheEntryImpl<K, V> extends GridCacheEntryImpl<K, V
     /** {@inheritDoc} */
     @SuppressWarnings({"unchecked"})
     @Nullable @Override public V peek(@Nullable GridCachePeekMode mode) throws GridException {
-        V val = super.peek(mode);
+        if (mode == NEAR_ONLY)
+            return peekNear0(GLOBAL, CU.<K, V>empty());
+
+        V val = null;
+
+        if (mode != PARTITIONED_ONLY)
+            val = super.peek(mode);
 
         if (val == null)
             val = peekDht0(mode, CU.<K, V>empty());
@@ -117,7 +123,13 @@ public class GridPartitionedCacheEntryImpl<K, V> extends GridCacheEntryImpl<K, V
 
     /** {@inheritDoc} */
     @Override public V peek(@Nullable Collection<GridCachePeekMode> modes) throws GridException {
-        V val = super.peek(modes);
+        if (modes.contains(NEAR_ONLY))
+            return peekNear0(modes, CU.<K, V>empty());
+
+        V val = null;
+
+        if (!modes.contains(PARTITIONED_ONLY))
+            val = super.peek(modes);
 
         if (val == null)
             val = peekDht0(modes, CU.<K, V>empty());
@@ -136,6 +148,71 @@ public class GridPartitionedCacheEntryImpl<K, V> extends GridCacheEntryImpl<K, V
         catch (GridException e) {
             // Should never happen.
             throw new GridRuntimeException("Unable to perform entry peek() operation.", e);
+        }
+    }
+
+    /**
+     * @param modes Peek modes.
+     * @param filter Optional entry filter.
+     * @return Peeked value.
+     * @throws GridException If failed.
+     */
+    @Nullable private V peekNear0(@Nullable Collection<GridCachePeekMode> modes,
+        @Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
+        if (F.isEmpty(modes))
+            return peekNear0(SMART, filter);
+
+        assert modes != null;
+
+        for (GridCachePeekMode mode : modes) {
+            V val = peekNear0(mode, filter);
+
+            if (val != null)
+                return val;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param mode Peek mode.
+     * @param filter Optional entry filter.
+     * @return Peeked value.
+     * @throws GridException If failed.
+     */
+    @SuppressWarnings({"unchecked"})
+    @Nullable private V peekNear0(@Nullable GridCachePeekMode mode,
+        @Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
+        if (mode == null)
+            mode = SMART;
+
+        while (true) {
+            GridCacheProjectionImpl<K, V> prjPerCall =
+                (prj instanceof GridCacheProjectionImpl) ? ((GridCacheProjectionImpl)prj) : null;
+
+            if (prjPerCall != null)
+                filter = ctx.vararg(F.and(ctx.vararg(prj.entryPredicate()), filter));
+
+            GridCacheProjectionImpl<K, V> prev = ctx.gate().enter(prjPerCall);
+
+            try {
+                GridCacheEntryEx<K, V> entry = near().peekEx(key);
+
+                return entry == null ? null : ctx.cloneOnFlag(entry.peek0(false, mode, filter, ctx.tm().localTxx()));
+            }
+            catch (GridCacheEntryRemovedException ignore) {
+                // No-op.
+            }
+            catch (GridCacheFilterFailedException e) {
+                e.printStackTrace();
+
+                assert false;
+
+                return null;
+            }
+            finally {
+                ctx.gate().leave(prev);
+            }
         }
     }
 
@@ -220,20 +297,20 @@ public class GridPartitionedCacheEntryImpl<K, V> extends GridCacheEntryImpl<K, V
     /** {@inheritDoc} */
     @Override protected GridCacheEntryEx<K, V> entryEx() {
         try {
-            return ctx.belongs(key, ctx.localNode()) ? dht().entryEx(key) : ctx.near().entryEx(key);
+            return ctx.belongs(key, ctx.localNode()) ? dht().entryEx(key) : near().entryEx(key);
         }
         catch (GridDhtInvalidPartitionException ignore) {
-            return ctx.near().entryEx(key);
+            return near().entryEx(key);
         }
     }
 
     /** {@inheritDoc} */
     @Override protected GridCacheEntryEx<K, V> peekEx() {
         try {
-            return ctx.belongs(key, ctx.localNode()) ? dht().peekEx(key) : ctx.near().peekEx(key);
+            return ctx.belongs(key, ctx.localNode()) ? dht().peekEx(key) : near().peekEx(key);
         }
         catch (GridDhtInvalidPartitionException ignore) {
-            return ctx.near().peekEx(key);
+            return near().peekEx(key);
         }
     }
 

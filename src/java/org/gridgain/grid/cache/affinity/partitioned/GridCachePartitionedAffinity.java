@@ -51,7 +51,7 @@ import static org.gridgain.grid.GridEventType.*;
  * </ul>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
     /** Default number of partitions. */
@@ -68,16 +68,6 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
      * Default value is {@code gg:affinity:node:replicas}.
      */
     public static final String DFLT_REPLICA_COUNT_ATTR_NAME = "gg:affinity:node:replicas";
-
-    /** Value to calculate replicas for partition hash. */
-    private static final int MAX_PARTITIONS = Short.MAX_VALUE;
-
-    /** Cache of partition consistent hashes to save on memory and initialization time. */
-    private static final ConcurrentMap<Integer, GridConsistentHash<Integer>> partHashCache =
-        new ConcurrentHashMap<Integer, GridConsistentHash<Integer>>();
-
-    /** Partition hash. */
-    private transient GridConsistentHash<Integer> partHash;
 
     /** Node hash. */
     private transient GridConsistentHash<UUID> nodeHash;
@@ -458,7 +448,7 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
     @Override public int partition(K key) {
         initialize();
 
-        return partHash.node(key);
+        return Math.abs(key.hashCode() % parts);
     }
 
     /** {@inheritDoc} */
@@ -488,24 +478,6 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
     private void initialize() {
         if (init.compareAndSet(false, true)) {
             nodeHash = new GridConsistentHash<UUID>(hasher);
-
-            GridConsistentHash<Integer> partHash = partHashCache.get(parts);
-
-            if (partHash == null) {
-                partHash = new GridConsistentHash<Integer>(hasher);
-
-                int partReplicas = MAX_PARTITIONS / parts;
-
-                // Initialize partition hash.
-                for (int i = 0; i < parts; i++)
-                    partHash.addNode(i, partReplicas);
-
-                // Cache consistent hash for given number of partitions to reuse
-                // in other caches.
-                partHashCache.put(parts, partHash);
-            }
-
-            this.partHash = partHash;
 
             // Only listen to removals, adding happens on demand.
             grid.addLocalEventListener(new GridLocalEventListener() {

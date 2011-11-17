@@ -41,7 +41,7 @@ import java.util.concurrent.*;
  * in {@link NullPointerException} and may be harder to catch.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAware {
     /**
@@ -66,9 +66,9 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      provided - all nodes in this projection will be included.
      * @return {@code True} if closure successfully executed on unchanged topology - {@code false} if number
      *      of attempts is exceeded.
-     * @see #runOptimisticAsync(GridAbsClosure, int, GridAbsClosure, GridPredicate[]) 
+     * @see #runOptimisticAsync(GridAbsClosure, int, GridAbsClosure, GridPredicate[])
      */
-    public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback, 
+    public boolean runOptimistic(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback,
         @Nullable GridPredicate<? super GridRichNode>... p);
 
     /**
@@ -95,7 +95,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @see #callOptimisticAsync(GridOutClosure, int, Object, GridAbsClosure, GridPredicate[])
      * @param <R> Type of the closure return value.
      */
-    public <R> R callOptimistic(GridOutClosure<R> c, int attempts, R dfltVal, @Nullable GridAbsClosure rollback, 
+    public <R> R callOptimistic(GridOutClosure<R> c, int attempts, R dfltVal, @Nullable GridAbsClosure rollback,
         @Nullable GridPredicate<? super GridRichNode>... p);
 
     /**
@@ -121,7 +121,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      topology, or {@code false} if number of attempts is exceeded.
      * @see #runOptimistic(GridAbsClosure, int, GridAbsClosure, GridPredicate[])
      */
-    public GridFuture<Boolean> runOptimisticAsync(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback, 
+    public GridFuture<Boolean> runOptimisticAsync(GridAbsClosure c, int attempts, @Nullable GridAbsClosure rollback,
         @Nullable GridPredicate<? super GridRichNode>... p);
 
     /**
@@ -4000,13 +4000,35 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
     @Nullable public <K> GridRichNode mapKeyToNode(@Nullable String cacheName, K key) throws GridException;
 
     /**
-     * Starts one or more nodes on remote host(s).
+     * Starts one or more nodes on remote host(s) defined by file with host specifications
+     * (one specification per line).
      * <p>
-     * Uses SSH protocol to execute commands.
+     * Parameters for each host are defined in specification which has the following format:
+     * <tt>&lt;username&gt;:&lt;password&gt;@&lt;hostname&gt;:&lt;port&gt;#&lt;nodes&gt;</tt>
+     * (only hostname is required).
      * <p>
-     * Note that SSH remote execution requires that all environment properties
-     * be set globally on the remote node. Standard GridGain ggstart.{sh|bat}
-     * script needs both GRIDGAIN_HOME and JAVA_HOME environment variables
+     * If username or password are not provided in specification, default values from
+     * {@code dfltUname} and {@code dfltPasswd} parameters are used.
+     * <p>
+     * Default port is {@code 22}.
+     * <p>
+     * <tt>&lt;nodes&gt;</tt> defines number of nodes that should run on the host. E.g., if
+     * {@code 5} nodes are expected and {@code 3} are already running, only {@code 2} new
+     * nodes will be started.
+     * <p>
+     * One specification can define several hosts if their IPs are sequential.
+     * E.g., {@code 10.0.0.1~5} defines range of five IP addresses. Other parameters
+     * (username, password, etc.) are applied to all hosts equally.
+     * <p>
+     * Returned result contains tuples. Each corresponds to one node start attempt and contains
+     * hostname, success flag and error message if attempt was not successful. Note that successful
+     * attempt doesn't mean that node was actually started and joined topology. For large topologies
+     * (> 100s nodes) it can take over 10 minutes for all nodes to start. See individual node logs
+     * for details.
+     * <p>
+     * Note that SSH remote execution requires that all environment properties be set globally
+     * on the remote node. Standard GridGain ggstart.{sh|bat} script needs both GRIDGAIN_HOME
+     * (cam also be passed in {@code ggHome} parameter) and JAVA_HOME environment variables
      * set globally for SSH-based execution to work.
      * <p>
      * On Linux - you can use '/etc/environment' file to set global
@@ -4015,15 +4037,22 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * variable and you need to provide custom start script in this case.
      * On Windows use standard way to set environment properties.
      *
-     * @param file File with hosts specifications.
+     * @param file File with host specifications.
      * @param dfltUname Default username (used if specification doesn't contain username).
      * @param dfltPasswd Default password (used if specification doesn't contain password).
-     * @param key Private key file.
-     * @param nodes Nodes count.
+     * @param key Private key file. Define it if server requires key authentication.
+     * @param nodes Expected number of nodes on the host. If some nodes are started
+     *      already, then only remaining nodes will be started. If current count of
+     *      nodes is equal to this number, and {@code restart} flag is {@code false},
+     *      then nothing will happen.
+     * @param ggHome Path to GridGain installation folder. If {@code null}, global
+     *      GRIDGAIN_HOME environment variable must be set on remote hosts.
      * @param cfg Path to configuration file (optional).
      * @param script Path to start script (optional).
      * @param log Path to log file (optional).
-     * @param restart Whether to restart existing nodes.
+     * @param restart Whether to stop existing nodes. If {@code true}, all existing
+     *      nodes on the host will be stopped before starting new ones. If {@code false},
+     *      nodes will be started only if there are less nodes on the host than expected.
      * @return Collection of tuples, each contains host name, result (success of failure)
      *      and error message (if any).
      * @throws GridException In case of error.
@@ -4034,6 +4063,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
         @Nullable String dfltPasswd,
         @Nullable File key,
         int nodes,
+        @Nullable String ggHome,
         @Nullable String cfg,
         @Nullable String script,
         @Nullable String log,
@@ -4041,13 +4071,34 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
     ) throws GridException;
 
     /**
-     * Starts one or more nodes on remote host(s).
+     * Starts one or more nodes on remote host(s) defined by collection of host specifications.
      * <p>
-     * Uses SSH protocol to execute commands.
+     * Parameters for each host are defined in specification which has the following format:
+     * <tt>&lt;username&gt;:&lt;password&gt;@&lt;hostname&gt;:&lt;port&gt;#&lt;nodes&gt;</tt>
+     * (only hostname is required).
      * <p>
-     * Note that SSH remote execution requires that all environment properties
-     * be set globally on the remote node. Standard GridGain ggstart.{sh|bat}
-     * script needs both GRIDGAIN_HOME and JAVA_HOME environment variables
+     * If username or password are not provided in specification, default values from
+     * {@code dfltUname} and {@code dfltPasswd} parameters are used.
+     * <p>
+     * Default port is {@code 22}.
+     * <p>
+     * <tt>&lt;nodes&gt;</tt> defines number of nodes that should run on the host. E.g., if
+     * {@code 5} nodes are expected and {@code 3} are already running, only {@code 2} new
+     * nodes will be started.
+     * <p>
+     * One specification can define several hosts if their IPs are sequential.
+     * E.g., {@code 10.0.0.1~5} defines range of five IP addresses. Other parameters
+     * (username, password, etc.) are applied to all hosts equally.
+     * <p>
+     * Returned result contains tuples. Each corresponds to one node start attempt and contains
+     * hostname, success flag and error message if attempt was not successful. Note that successful
+     * attempt doesn't mean that node was actually started and joined topology. For large topologies
+     * (> 100s nodes) it can take over 10 minutes for all nodes to start. See individual node logs
+     * for details.
+     * <p>
+     * Note that SSH remote execution requires that all environment properties be set globally
+     * on the remote node. Standard GridGain ggstart.{sh|bat} script needs both GRIDGAIN_HOME
+     * (cam also be passed in {@code ggHome} parameter) and JAVA_HOME environment variables
      * set globally for SSH-based execution to work.
      * <p>
      * On Linux - you can use '/etc/environment' file to set global
@@ -4056,15 +4107,22 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * variable and you need to provide custom start script in this case.
      * On Windows use standard way to set environment properties.
      *
-     * @param hostSpecs Collection of hosts specifications.
+     * @param hostSpecs Collection of host specifications.
      * @param dfltUname Default username (used if specification doesn't contain username).
      * @param dfltPasswd Default password (used if specification doesn't contain password).
-     * @param key Private key file.
-     * @param nodes Nodes count.
+     * @param key Private key file. Define it if server requires key authentication.
+     * @param nodes Expected number of nodes on the host. If some nodes are started
+     *      already, then only remaining nodes will be started. If current count of
+     *      nodes is equal to this number, and {@code restart} flag is {@code false},
+     *      then nothing will happen.
+     * @param ggHome Path to GridGain installation folder. If {@code null}, global
+     *      GRIDGAIN_HOME environment variable must be set on remote hosts.
      * @param cfg Path to configuration file (optional).
      * @param script Path to start script (optional).
      * @param log Path to log file (optional).
-     * @param restart Whether to restart existing nodes.
+     * @param restart Whether to stop existing nodes. If {@code true}, all existing
+     *      nodes on the host will be stopped before starting new ones. If {@code false},
+     *      nodes will be started only if there are less nodes on the host than expected.
      * @return Collection of tuples, each contains host name, result (success of failure)
      *      and error message (if any).
      * @throws GridException In case of error.
@@ -4075,9 +4133,62 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
         @Nullable String dfltPasswd,
         @Nullable File key,
         int nodes,
+        @Nullable String ggHome,
         @Nullable String cfg,
         @Nullable String script,
         @Nullable String log,
         boolean restart
     ) throws GridException;
+
+    /**
+     * Stops nodes satisfying optional set of predicates.
+     *
+     * @param p Optional set of filtering predicates. If none provided - all nodes in this projection
+     *      will be stopped.
+     * @throws GridException In case of error.
+     */
+    public void stopNodes(@Nullable GridPredicate<? super GridRichNode>... p) throws GridException;
+
+    /**
+     * Stops nodes defined by provided IDs.
+     *
+     * @param id ID defining node to stop.
+     * @param ids IDs defining nodes to stop.
+     * @throws GridException In case of error.
+     */
+    public void stopNodes(UUID id, @Nullable UUID... ids) throws GridException;
+
+    /**
+     * Stops nodes defined by provided IDs.
+     *
+     * @param ids IDs defining nodes to stop.
+     * @throws GridException In case of error.
+     */
+    public void stopNodes(Collection<UUID> ids) throws GridException;
+
+    /**
+     * Restarts nodes satisfying optional set of predicates.
+     *
+     * @param p Optional set of filtering predicates. If none provided - all nodes in this projection
+     *      will be restarted.
+     * @throws GridException In case of error.
+     */
+    public void restartNodes(@Nullable GridPredicate<? super GridRichNode>... p) throws GridException;
+
+    /**
+     * Restarts nodes defined by provided IDs.
+     *
+     * @param id ID defining node to restart.
+     * @param ids IDs defining nodes to restart.
+     * @throws GridException In case of error.
+     */
+    public void restartNodes(UUID id, @Nullable UUID... ids) throws GridException;
+
+    /**
+     * Restarts nodes defined by provided IDs.
+     *
+     * @param ids IDs defining nodes to restart.
+     * @throws GridException In case of error.
+     */
+    public void restartNodes(Collection<UUID> ids) throws GridException;
 }

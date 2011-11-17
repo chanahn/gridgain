@@ -35,20 +35,20 @@ import java.util.concurrent.*;
  * {@link GridCacheConfiguration#getAffinityMapper()} configuration property.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMapper<K> {
     /** Weak fields cache. If class is GC'ed, then it will be removed from this cache. */
-    private final ConcurrentMap<String, GridTuple2<Field, Class<?>>> fields =
+    private transient ConcurrentMap<String, GridTuple2<Field, Class<?>>> fields =
         new ConcurrentHashMap<String, GridTuple2<Field, Class<?>>>();
 
     /** Weak methods cache. If class is GC'ed, then it will be removed from this cache. */
-    private final ConcurrentMap<String, GridTuple2<Method, Class<?>>> mtds =
+    private transient ConcurrentMap<String, GridTuple2<Method, Class<?>>> mtds =
         new ConcurrentHashMap<String, GridTuple2<Method, Class<?>>>();
 
     /** Logger. */
     @GridLoggerResource
-    private GridLogger log;
+    private transient GridLogger log;
 
     /**
      * If key class has annotation {@link GridCacheAffinityMapped},
@@ -90,6 +90,16 @@ public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMappe
         }
 
         return key;
+    }
+
+    /**
+     * Creates empty maps for field and method accessors and brings mapper to it's initial state.
+     *
+     * @see GridCacheAffinityMapper#reset()
+     */
+    @Override public void reset() {
+        fields = new ConcurrentHashMap<String, GridTuple2<Field, Class<?>>>();
+        mtds = new ConcurrentHashMap<String, GridTuple2<Method, Class<?>>>();
     }
 
     /**

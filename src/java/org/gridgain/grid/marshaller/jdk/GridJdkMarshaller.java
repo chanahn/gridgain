@@ -11,6 +11,7 @@ package org.gridgain.grid.marshaller.jdk;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.marshaller.*;
+import org.gridgain.grid.marshaller.optimized.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 import java.io.*;
@@ -22,7 +23,7 @@ import java.io.*;
  * <h2 class="header">Mandatory</h2>
  * This marshaller has no mandatory configuration parameters.
  * <h2 class="header">Java Example</h2>
- * GridJdkMarshaller needs to be explicitly configured to override default JBoss marshaller.
+ * {@code GridJdkMarshaller} needs to be explicitly configured to override default {@link GridOptimizedMarshaller}.
  * <pre name="code" class="java">
  * GridJdkMarshaller marshaller = new GridJdkMarshaller();
  *
@@ -74,7 +75,7 @@ import java.io.*;
  * </pre>
  * <br>
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public class GridJdkMarshaller implements GridMarshaller {
     /** {@inheritDoc} */

@@ -36,7 +36,7 @@ import static org.gridgain.grid.util.nodestart.GridNodeStartUtils.*;
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements GridProjection {
     /** Log reference. */
@@ -2418,6 +2418,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
         @Nullable String dfltPasswd,
         @Nullable File key,
         int nodes,
+        @Nullable String ggHome,
         @Nullable String cfg,
         @Nullable String script,
         @Nullable String log,
@@ -2437,7 +2438,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
             while ((line = r.readLine()) != null)
                 specs.add(line);
 
-            return startNodes(specs, dfltUname, dfltPasswd, key, nodes, cfg, script, log, restart);
+            return startNodes(specs, dfltUname, dfltPasswd, key, nodes, ggHome, cfg, script, log, restart);
         }
         catch (IOException e) {
             throw new GridException(e);
@@ -2451,6 +2452,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
         @Nullable String dfltPasswd,
         @Nullable File key,
         int nodes,
+        @Nullable String ggHome,
         @Nullable String cfg,
         @Nullable String script,
         @Nullable String log,
@@ -2500,7 +2502,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
 
             if (neighbors != null) {
                 if (restart)
-                    neighbors.withName("grid-kill").execute(new GridKillTask(false), null).get();
+                    neighbors.stopNodes();
                 else
                     startIdx = neighbors.size() + 1;
             }
@@ -2509,7 +2511,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
 
             for (int i = startIdx; i <= h.nodes(); i++)
                 nodeRuns.add(new GridNodeRunnable(i, h.host(), h.port(), h.uname(),
-                    h.password(), key, script, cfg, log, res));
+                    h.password(), key, ggHome, script, cfg, log, res));
 
             if (!nodeRuns.isEmpty())
                 hostRuns.add(new GridHostRunnable(ctx.config().getSystemExecutorService(), nodeRuns, 5));
@@ -2529,5 +2531,57 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
         }
 
         return res;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void stopNodes(@Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
+        guard();
+
+        try {
+            projectionForPredicate(p).withName("grid-kill").execute(new GridKillTask(false), null).get();
+        }
+        finally {
+            unguard();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public void stopNodes(UUID id, @Nullable UUID... ids) throws GridException {
+        A.notNull(id, "id");
+
+        stopNodes(F.<GridNode>or(F.nodeForNodeId(id), F.nodeForNodeIds(ids)));
+    }
+
+    /** {@inheritDoc} */
+    @Override public void stopNodes(Collection<UUID> ids) throws GridException {
+        A.notNull(ids, "ids");
+
+        stopNodes(F.nodeForNodeIds(ids));
+    }
+
+    /** {@inheritDoc} */
+    @Override public void restartNodes(@Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
+        guard();
+
+        try {
+            projectionForPredicate(p).withName("grid-restart").execute(new GridKillTask(true), null).get();
+        }
+        finally {
+            unguard();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public void restartNodes(UUID id, @Nullable UUID... ids) throws GridException {
+        A.notNull(id, "id");
+
+        restartNodes(F.<GridNode>or(F.nodeForNodeId(id), F.nodeForNodeIds(ids)));
+    }
+
+    /** {@inheritDoc} */
+    @Override public void restartNodes(Collection<UUID> ids) throws GridException {
+        A.notNull(ids, "ids");
+
+        restartNodes(F.nodeForNodeIds(ids));
     }
 }

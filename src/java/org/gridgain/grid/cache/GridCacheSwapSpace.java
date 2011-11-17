@@ -17,10 +17,10 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * TODO: Add interface description.
+ * Represents swap space on cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 @GridEnterpriseFeature
 public interface GridCacheSwapSpace<K, V> extends GridMetadataAware, Iterable<Map.Entry<K, V>> {

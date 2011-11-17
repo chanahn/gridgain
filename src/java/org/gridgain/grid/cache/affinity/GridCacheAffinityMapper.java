@@ -11,6 +11,8 @@ package org.gridgain.grid.cache.affinity;
 
 import org.gridgain.grid.cache.*;
 
+import java.io.*;
+
 /**
  * Affinity mapper which maps cache key to an affinity key. Affinity key is a key which will be
  * used to determine a node on which this key will be cached. Every cache key will first be passed
@@ -33,11 +35,11 @@ import org.gridgain.grid.cache.*;
  * {@link GridCacheAffinityMapped @GridCacheAffinityMapped} documentation.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  * @see GridCacheAffinity
  * @see GridCacheAffinityMapped
  */
-public interface GridCacheAffinityMapper<K> {
+public interface GridCacheAffinityMapper<K> extends Serializable {
     /**
      * Maps passed in key to a key which will be used for node affinity.
      *
@@ -46,4 +48,12 @@ public interface GridCacheAffinityMapper<K> {
      *      key as passed in).
      */
     public Object affinityKey(K key);
+
+    /**
+     * Resets cache affinity mapper to its initial state. This method will be called by
+     * the system any time the affinity mapper has been sent to remote node where
+     * it has to be reinitialized. If your implementation of affinity mapper
+     * has no initialization logic, leave this method empty.
+     */
+    public void reset();
 }

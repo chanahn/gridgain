@@ -22,7 +22,7 @@ import static org.gridgain.grid.cache.GridCacheMode.*;
  * Local query manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public class GridCacheLocalQueryManager<K, V> extends GridCacheQueryManager<K, V> {
     /** {@inheritDoc} */
@@ -58,7 +58,17 @@ public class GridCacheLocalQueryManager<K, V> extends GridCacheQueryManager<K, V
 
         assert cctx.config().getCacheMode() == LOCAL;
 
-        return new GridCacheLocalQueryFuture<K, V, R>(cctx, qry, true, single, rmtRdcOnly, pageLsnr);
+        GridCacheLocalQueryFuture<K, V, R> fut =
+            new GridCacheLocalQueryFuture<K, V, R>(cctx, qry, true, single, rmtRdcOnly, pageLsnr);
+
+        try {
+            validateQuery(qry);
+        }
+        catch (GridException e) {
+            fut.onDone(e);
+        }
+
+        return fut;
     }
 
     /** {@inheritDoc} */

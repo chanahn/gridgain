@@ -27,7 +27,7 @@ import org.jetbrains.annotations.*;
  * </ul>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public enum GridCachePeekMode {
     /** Peeks value only from in-transaction memory of an ongoing transaction, if any. */
@@ -47,7 +47,21 @@ public enum GridCachePeekMode {
     SWAP,
 
     /** Peek value from the underlying persistent storage without loading this value into cache. */
-    DB;
+    DB,
+
+    /**
+     * Peek value from near cache only (don't peek from partitioned cache).
+     * In case of {@link GridCacheMode#LOCAL} or {@link GridCacheMode#REPLICATED} cache,
+     * behaves as {@link #GLOBAL} mode.
+     */
+    NEAR_ONLY,
+
+    /**
+     * Peek value from partitioned cache only (skip near cache).
+     * In case of {@link GridCacheMode#LOCAL} or {@link GridCacheMode#REPLICATED} cache,
+     * behaves as {@link #GLOBAL} mode.
+     */
+    PARTITIONED_ONLY;
 
     /** Enumerated values. */
     private static final GridCachePeekMode[] VALS = values();

@@ -61,7 +61,7 @@ import java.util.concurrent.*;
  * <p>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, DisposableBean, InitializingBean,
     ApplicationContextAware {
@@ -1556,13 +1556,14 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
         @Nullable String dfltPasswd,
         @Nullable File key,
         int nodes,
+        @Nullable String ggHome,
         @Nullable String cfg,
         @Nullable String script,
         @Nullable String log,
         boolean restart) throws GridException {
         assert g != null;
 
-        return g.startNodes(file, dfltUname, dfltPasswd, key, nodes, cfg, script, log, restart);
+        return g.startNodes(file, dfltUname, dfltPasswd, key, nodes, ggHome, cfg, script, log, restart);
     }
 
     /** {@inheritDoc} */
@@ -1572,13 +1573,56 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
         @Nullable String dfltPasswd,
         @Nullable File key,
         int nodes,
+        @Nullable String ggHome,
         @Nullable String cfg,
         @Nullable String script,
         @Nullable String log,
         boolean restart) throws GridException {
         assert g != null;
 
-        return g.startNodes(hostSpecs, dfltUname, dfltPasswd, key, nodes, cfg, script, log, restart);
+        return g.startNodes(hostSpecs, dfltUname, dfltPasswd, key, nodes, ggHome, cfg, script, log, restart);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void stopNodes(@Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
+        assert g != null;
+
+        g.stopNodes(p);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void stopNodes(UUID id, @Nullable UUID... ids) throws GridException {
+        assert g != null;
+
+        g.stopNodes(id, ids);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void stopNodes(Collection<UUID> ids) throws GridException {
+        assert g != null;
+
+        g.stopNodes(ids);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void restartNodes(@Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
+        assert g != null;
+
+        g.restartNodes(p);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void restartNodes(UUID id, @Nullable UUID... ids) throws GridException {
+        assert g != null;
+
+        g.restartNodes(id, ids);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void restartNodes(Collection<UUID> ids) throws GridException {
+        assert g != null;
+
+        g.restartNodes(ids);
     }
 
     /** {@inheritDoc} */

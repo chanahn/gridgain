@@ -95,7 +95,7 @@ import java.util.concurrent.atomic.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  * @see GridCommunicationSpi
  */
 @SuppressWarnings({"deprecation"}) @GridSpiInfo(
@@ -146,7 +146,6 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     private GridMarshaller marshaller;
 
     /** Local IP address. */
-    @GridLocalHostResource
     private String localAddr;
 
     /** Complex variable that represents this node IP address. */
@@ -216,8 +215,11 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      *      IP address.
      */
     @GridSpiConfiguration(optional = true)
+    @GridLocalHostResource
     public void setLocalAddress(String localAddr) {
-        this.localAddr = localAddr;
+        // Injection should not override value already set by Spring or user.
+        if (this.localAddr == null)
+            this.localAddr = localAddr;
     }
 
     /** {@inheritDoc} */

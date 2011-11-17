@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * Query and index manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 @SuppressWarnings({"UnnecessaryFullyQualifiedName"})
 public abstract class GridCacheQueryManager<K, V> extends GridCacheManager<K, V> {
@@ -529,13 +529,11 @@ public abstract class GridCacheQueryManager<K, V> extends GridCacheManager<K, V>
             throw new GridException("Type must be set for query.");
 
         if (qry.type() == SQL || qry.type() == H2TEXT || qry.type() == LUCENE) {
-            String type = qry.type() == SQL ? "SQL" : qry.type() == H2TEXT ? "H2 text" : "Lucene";
-
             if (F.isEmpty(qry.className()))
-                throw new GridException("Class must be set for " + type + " query.");
+                throw new GridException("Class must be set for " + qry.type().name() + " query.");
 
             if (F.isEmpty(qry.clause()))
-                throw new GridException("Clause must be set for " + type + " query.");
+                throw new GridException("Clause must be set for " + qry.type().name() + " query.");
         }
     }
 

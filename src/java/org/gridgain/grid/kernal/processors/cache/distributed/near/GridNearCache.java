@@ -24,6 +24,7 @@ import org.jetbrains.annotations.*;
 import java.io.*;
 import java.util.*;
 
+import static java.util.Collections.*;
 import static org.gridgain.grid.cache.GridCacheFlag.*;
 import static org.gridgain.grid.cache.GridCachePeekMode.*;
 import static org.gridgain.grid.cache.GridCacheTxConcurrency.*;
@@ -32,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxConcurrency.*;
  * Near cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** DHT cache. */
@@ -1175,7 +1176,7 @@ public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     @Override public Map<K, V> peekAll(@Nullable Collection<? extends K> keys,
         @Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
         if (keys == null || keys.isEmpty())
-            return Collections.emptyMap();
+            return emptyMap();
 
         final Collection<K> skipped = new GridLeanSet<K>();
 
@@ -1194,19 +1195,21 @@ public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
     /** {@inheritDoc} */
     @Override public V peek(K key, @Nullable Collection<GridCachePeekMode> modes) throws GridException {
-        V val;
+        V val = null;
 
-        try {
-            val = peek0(true, key, modes, ctx.tm().txx());
+        if (!modes.contains(PARTITIONED_ONLY)) {
+            try {
+                val = peek0(true, key, modes, ctx.tm().txx());
+            }
+            catch (GridCacheFilterFailedException ignored) {
+                if (log.isDebugEnabled())
+                    log.debug("Filter validation failed for key: " + key);
+
+                return null;
+            }
         }
-        catch (GridCacheFilterFailedException ignored) {
-            if (log.isDebugEnabled())
-                log.debug("Filter validation failed for key: " + key);
 
-            return null;
-        }
-
-        return val == null ? dht.peek(key, modes) : val;
+        return val == null && !modes.contains(NEAR_ONLY) ? dht.peek(key, modes) : val;
     }
 
     /** {@inheritDoc} */
@@ -1226,13 +1229,15 @@ public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     @Override public Map<K, V> peekAll(@Nullable Collection<? extends K> keys,
         @Nullable Collection<GridCachePeekMode> modes) throws GridException {
         if (keys == null || keys.isEmpty())
-            return Collections.emptyMap();
+            return emptyMap();
 
         final Collection<K> skipped = new GridLeanSet<K>();
 
-        final Map<K, V> map = peekAll0(keys, modes, ctx.tm().localTxx(), skipped);
+        final Map<K, V> map = !modes.contains(PARTITIONED_ONLY) ?
+            peekAll0(keys, modes, ctx.tm().localTxx(), skipped) :
+            new GridLeanMap<K, V>(0);
 
-        if (map.size() != keys.size()) {
+        if (map.size() != keys.size() && !modes.contains(NEAR_ONLY)) {
             map.putAll(dht.peekAll(F.view(keys, new P1<K>() {
                 @Override public boolean apply(K k) {
                     return !map.containsKey(k) && !skipped.contains(k);

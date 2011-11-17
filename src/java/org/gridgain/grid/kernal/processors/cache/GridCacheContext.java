@@ -46,13 +46,12 @@ import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.cache.GridCacheFlag.*;
 import static org.gridgain.grid.cache.GridCachePreloadMode.*;
-import static org.gridgain.grid.segmentation.GridSegmentationPolicy.RECONNECT;
 
 /**
  * Cache context.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 @GridToStringExclude
 public class GridCacheContext<K, V> implements Externalizable {
@@ -523,7 +522,7 @@ public class GridCacheContext<K, V> implements Externalizable {
      */
     public boolean belongs(int part, GridRichNode node, Collection<GridRichNode> allNodes) {
         assert node != null;
-        assert part >= 0;
+        assert part >= 0 : "Invalid partition: " + part;
 
         return cacheCfg.getAffinity().nodes(part, allNodes).contains(node);
     }

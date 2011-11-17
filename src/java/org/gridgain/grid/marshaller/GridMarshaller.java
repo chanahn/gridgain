@@ -21,10 +21,10 @@ import java.io.*;
  * <p>
  * Gridgain provides the following {@code GridMarshaller} implementations:
  * <ul>
- * <li>{@link org.gridgain.grid.marshaller.jboss.GridJBossMarshaller} - default</li>
+ * <li>{@link org.gridgain.grid.marshaller.optimized.GridOptimizedMarshaller} - default</li>
+ * <li>{@link org.gridgain.grid.marshaller.jboss.GridJBossMarshaller}</li>
  * <li>{@link org.gridgain.grid.marshaller.jdk.GridJdkMarshaller}</li>
  * <li>{@link org.gridgain.grid.marshaller.xstream.GridXstreamMarshaller}</li>
- * <li>{@link org.gridgain.grid.marshaller.optimized.GridOptimizedMarshaller}</li>
  * </ul>
  * <p>
  * Below are examples of marshaller configuration, usage, and injection into tasks, jobs,
@@ -86,7 +86,7 @@ import java.io.*;
  * </pre>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.0c.07112011
+ * @version 3.5.1c.17112011
  */
 public interface GridMarshaller {
     /**
