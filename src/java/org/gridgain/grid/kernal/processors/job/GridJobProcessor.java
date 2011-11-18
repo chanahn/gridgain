@@ -38,7 +38,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Responsible for all grid job execution and communication.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.17112011
+ * @version 3.5.1c.18112011
  */
 @SuppressWarnings({"deprecation"})
 public class GridJobProcessor extends GridProcessorAdapter {
@@ -67,7 +67,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
     private final GridMessageListener cancelLsnr;
 
     /** */
-    private final GridMessageListener reqLsnr;
+    private final GridMessageListener jobExecLsnr;
 
     /** */
     private final GridLocalEventListener discoLsnr;
@@ -109,7 +109,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
 
         evtLsnr = new JobEventListener();
         cancelLsnr = new JobCancelListener();
-        reqLsnr = new JobExecutionListener();
+        jobExecLsnr = new JobExecutionListener();
         discoLsnr = new JobDiscoveryListener();
         colLsnr = new CollisionExternalListener();
     }
@@ -121,7 +121,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
         GridIoManager ioMgr = ctx.io();
 
         ioMgr.addMessageListener(TOPIC_CANCEL, cancelLsnr);
-        ioMgr.addMessageListener(TOPIC_JOB, reqLsnr);
+        ioMgr.addMessageListener(TOPIC_JOB, jobExecLsnr);
 
         if (log.isDebugEnabled())
             log.debug("Job processor started.");
@@ -215,7 +215,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
         // Stop receiving new requests and sending responses.
         GridIoManager commMgr = ctx.io();
 
-        commMgr.removeMessageListener(TOPIC_JOB, reqLsnr);
+        commMgr.removeMessageListener(TOPIC_JOB, jobExecLsnr);
         commMgr.removeMessageListener(TOPIC_CANCEL, cancelLsnr);
 
         // Ignore external collision events.
@@ -949,13 +949,20 @@ public class GridJobProcessor extends GridProcessorAdapter {
      * Handles job execution requests.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.17112011
+     * @version 3.5.1c.18112011
      */
     private class JobExecutionListener implements GridMessageListener {
         @SuppressWarnings({"unchecked", "ThrowableInstanceNeverThrown"})
         @Override public void onMessage(UUID nodeId, Object msg) {
             assert nodeId != null;
             assert msg != null;
+
+            if (!ctx.discovery().alive(nodeId)) {
+                U.warn(log, "Received job request message from unknown node (ignoring) " +
+                    "[msg=" + msg + ", nodeId=" + nodeId + ']');
+
+                return;
+            }
 
             if (log.isDebugEnabled())
                 log.debug("Received job request message [msg=" + msg + ", nodeId=" + nodeId + ']');
@@ -1281,7 +1288,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
      * Listener to node discovery events.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.17112011
+     * @version 3.5.1c.18112011
      */
     private class JobDiscoveryListener implements GridLocalEventListener {
         /**

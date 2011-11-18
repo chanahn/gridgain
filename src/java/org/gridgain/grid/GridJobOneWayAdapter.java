@@ -15,7 +15,7 @@ import java.util.*;
  * Utility adapter for jobs returning no value.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.17112011
+ * @version 3.5.1c.18112011
  */
 public abstract class GridJobOneWayAdapter extends GridJobAdapterEx {
     /** {@inheritDoc} */

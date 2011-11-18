@@ -19,7 +19,7 @@ import org.gridgain.grid.typedef.*;
  * into {@link GridClosureException} instance.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.17112011
+ * @version 3.5.1c.18112011
  * @see CX3
  */
 public abstract class GridClosure3X<E1, E2, E3, R> extends GridClosure3<E1, E2, E3, R> {

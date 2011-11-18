@@ -22,11 +22,11 @@ import java.util.concurrent.atomic.*;
  * This class defines a collision manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.17112011
+ * @version 3.5.1c.18112011
  */
 public class GridCollisionManager extends GridManagerAdapter<GridCollisionSpi> {
     /** */
-    private final AtomicReference<GridCollisionExternalListener> extListener =
+    private final AtomicReference<GridCollisionExternalListener> extLsnr =
         new AtomicReference<GridCollisionExternalListener>(null);
 
     /**
@@ -42,7 +42,7 @@ public class GridCollisionManager extends GridManagerAdapter<GridCollisionSpi> {
 
         getSpi().setExternalCollisionListener(new GridCollisionExternalListener() {
             @Override public void onExternalCollision() {
-                GridCollisionExternalListener lsnr = extListener.get();
+                GridCollisionExternalListener lsnr = extLsnr.get();
 
                 if (lsnr != null)
                     lsnr.onExternalCollision();
@@ -75,7 +75,7 @@ public class GridCollisionManager extends GridManagerAdapter<GridCollisionSpi> {
      * @param lsnr Listener to external collision events.
      */
     public void setCollisionExternalListener(@Nullable GridCollisionExternalListener lsnr) {
-        if (lsnr != null && !extListener.compareAndSet(null, lsnr))
+        if (lsnr != null && !extLsnr.compareAndSet(null, lsnr))
             assert false : "Collision external listener has already been set " +
                 "(perhaps need to add support for multiple listeners)";
         else if (log.isDebugEnabled())

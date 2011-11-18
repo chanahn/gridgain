@@ -7,7 +7,7 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 3.5.1c.17112011
+# Version: 3.5.1c.18112011
 #
 
 #
@@ -38,7 +38,7 @@ if [ ! -e "$JAVA" ]; then
     exit 1
 fi
 
-JAVA_VER=`$JAVA -version 2>&1 | grep -E "1\.[67]\."`
+JAVA_VER=`$JAVA -version 2>&1 | egrep "1\.[67]\."`
 
 if [ "$JAVA_VER" == "" ]; then
     echo $0", ERROR: The version of JAVA installed in $JAVA_HOME is incorrect."
