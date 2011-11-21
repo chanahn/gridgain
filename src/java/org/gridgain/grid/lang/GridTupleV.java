@@ -25,7 +25,7 @@ import java.util.*;
  * synchronization, if needed.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.21112011
  * @see GridFunc#tv(Object...)
  */
 public class GridTupleV extends GridMetadataAwareAdapter implements GridProduct, GridPeerDeployAware, Externalizable {

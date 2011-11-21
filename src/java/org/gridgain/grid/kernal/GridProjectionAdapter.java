@@ -36,7 +36,7 @@ import static org.gridgain.grid.util.nodestart.GridNodeStartUtils.*;
 
 /**
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.21112011
  */
 abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements GridProjection {
     /** Log reference. */
@@ -897,7 +897,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
             for (GridRichNode n : nodes()) {
                 String macs = n.attribute(ATTR_MACS);
 
-                assert macs != null;
+                assert macs != null : "Missing MACs attribute: " + n;
 
                 Collection<GridRichNode> neighbors = map.get(macs);
 

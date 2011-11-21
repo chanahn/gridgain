@@ -7,7 +7,7 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 3.5.1c.18112011
+# Version: 3.5.1c.21112011
 #
 
 #
@@ -36,7 +36,7 @@ if [ ! -e "$JAVA_HOME/bin/java" ]; then
     exit 1
 fi
 
-JAVA_VER=`${JAVA_HOME}/bin/java -version 2>&1 | grep -E "1\.[67]\."`
+JAVA_VER=`${JAVA_HOME}/bin/java -version 2>&1 | egrep "1\.[67]\."`
 
 if [ "$JAVA_VER" == "" ]; then
     echo $0", ERROR: The version of JAVA installed in $JAVA_HOME is incorrect."
@@ -121,7 +121,7 @@ done
 #
 # Find available port for JMX
 #
-JMX_PORT=`java -cp ${GRIDGAIN_HOME}/${ANT_AUGMENTED_GGJAR} org.gridgain.grid.tools.portscanner.GridPortScanner`
+JMX_PORT=`${JAVA_HOME}/bin/java -cp ${GRIDGAIN_HOME}/${ANT_AUGMENTED_GGJAR} org.gridgain.grid.tools.portscanner.GridPortScanner`
 
 
 # This variable defines necessary parameters for JMX

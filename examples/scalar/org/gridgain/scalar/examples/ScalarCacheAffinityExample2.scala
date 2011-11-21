@@ -31,7 +31,7 @@ import scala.util.control.Breaks._
  * edition is used respectively.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.21112011
  */
 object ScalarCacheAffinityExample2 {
     /** Configuration file name. */

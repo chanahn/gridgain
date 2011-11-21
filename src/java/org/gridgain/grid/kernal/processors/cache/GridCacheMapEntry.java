@@ -26,15 +26,15 @@ import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.cache.GridCacheFlag.*;
+import static org.gridgain.grid.cache.GridCachePeekMode.*;
 import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
 import static org.gridgain.grid.cache.GridCacheTxState.*;
-import static org.gridgain.grid.cache.GridCachePeekMode.*;
 
 /**
  * Adapter for cache entry.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.21112011
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapter implements GridCacheEntryEx<K, V> {
@@ -2158,49 +2158,52 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
             }
             else {
                 // For optimistic check.
-                GridCacheVersion v;
+                while (true) {
+                    GridCacheVersion v;
 
-                lock();
+                    lock();
 
-                try {
-                    v = ver;
-                }
-                finally {
-                    unlock();
-                }
-
-                if (!cctx.isAll(this, filter))
-                    return false;
-
-                lock();
-
-                try {
-                    if (!v.equals(ver))
-                        // Version has changed since entry passed the filter. Do it again.
-                        return evictInternal(swap, obsoleteVer, filter);
-
-                    if (!hasReaders() && markObsolete(obsoleteVer)) {
-                        if (swap) {
-                            if (startVer != ver)
-                                try {
-                                    // Write to swap.
-                                    swap();
-                                }
-                                catch (GridException e) {
-                                    U.error(log, "Failed to write entry to swap storage: " + this, e);
-                                }
-                        }
-                        else
-                            clearIndex();
-
-                        // Nullify value after swap.
-                        val = null;
-
-                        return true;
+                    try {
+                        v = ver;
                     }
-                }
-                finally {
-                    unlock();
+                    finally {
+                        unlock();
+                    }
+
+                    if (!cctx.isAll(this, filter))
+                        return false;
+
+                    lock();
+
+                    try {
+                        if (!v.equals(ver))
+                            // Version has changed since entry passed the filter. Do it again.
+                            continue;
+
+                        if (!hasReaders() && markObsolete(obsoleteVer)) {
+                            if (swap) {
+                                if (startVer != ver) {
+                                    try {
+                                        // Write to swap.
+                                        swap();
+                                    }
+                                    catch (GridException e) {
+                                        U.error(log, "Failed to write entry to swap storage: " + this, e);
+                                    }
+                                }
+                            }
+                            else
+                                clearIndex();
+
+                            // Nullify value after swap.
+                            val = null;
+
+                            return true;
+                        }
+                    }
+                    finally {
+                        unlock();
+                    }
                 }
             }
         }

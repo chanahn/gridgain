@@ -26,7 +26,7 @@ import java.util.*;
  * Adapter for reduce cache queries.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.21112011
  */
 public class GridCacheReduceQueryAdapter<K, V, R1, R2> extends GridCacheQueryBaseAdapter<K, V>
     implements GridCacheReduceQuery<K, V, R1, R2> {
