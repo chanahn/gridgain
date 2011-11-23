@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
  * is divisible by any of these divisors.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.22112011
  */
 public final class GridSimplePrimeChecker {
     /**

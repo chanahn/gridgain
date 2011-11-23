@@ -34,7 +34,7 @@ import java.util.*;
  * default configuration.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.22112011
  */
 public interface GridCacheConfiguration {
     /** Default query log name. */
@@ -126,7 +126,7 @@ public interface GridCacheConfiguration {
      * Default value for 'idxMemoryOnly' flag indicating if query index
      * database should be in-memory.
      */
-    public static final boolean DFLT_IDX_MEM_ONLY = false;
+    public static final boolean DFLT_IDX_MEM_ONLY = true;
 
     /**
      * Default value for maximum memory used per single operation with query index
@@ -514,6 +514,13 @@ public interface GridCacheConfiguration {
      * <p>
      * Note that cache queries with {@link GridCacheQueryType#LUCENE LUCENE} type cannot
      * be used in case of in-memory index database, i.e. if this property is {@code true}.
+     * <p>
+     * It is reasonable to configure this property with opposite value of {@link #isSwapEnabled()}
+     * property. If swap is enabled, then most likely indexes will not fit in memory and
+     * it is reasonable to overflow them to disk. Otherwise, if swap id disabled,
+     * then indexes should fit in memory.
+     * <p>
+     * Default is {@code true} and is defined by {@link #DFLT_IDX_MEM_ONLY} constant.
      *
      * @return {@code True} if index should be stored only in memory (not on disk).
      */

@@ -21,7 +21,7 @@ import java.util.*;
  * method. Look at <tt>GridFunctionPingPong.java</tt> example class for usage sample.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.22112011
  */
 public abstract class GridListenActor<T> extends GridPredicate2<UUID, T> {
     /** */

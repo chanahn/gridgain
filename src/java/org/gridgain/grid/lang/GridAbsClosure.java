@@ -26,7 +26,7 @@ import org.gridgain.grid.typedef.internal.*;
  * {@link GridJobAdapterEx}.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.22112011
  * @see GridFunc
  */
 public abstract class GridAbsClosure extends GridLambdaAdapter implements Runnable, GridJob {

@@ -17,7 +17,7 @@ import java.util.*;
  * Convenient adapter for "rich" iterable interface.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.22112011
  */
 public class GridIterableAdapter<T> implements GridIterable<T> {
     private GridIterator<T> impl;

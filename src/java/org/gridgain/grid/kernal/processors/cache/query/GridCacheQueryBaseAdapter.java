@@ -12,6 +12,7 @@ package org.gridgain.grid.kernal.processors.cache.query;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.query.*;
+import org.gridgain.grid.gridify.*;
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.logger.*;
@@ -29,12 +30,13 @@ import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.cache.GridCacheConfiguration.*;
 import static org.gridgain.grid.cache.GridCacheFlag.*;
+import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
 
 /**
  * Query adapter.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.22112011
  */
 public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareAdapter implements
     GridCacheQueryBase<K, V> {
@@ -147,6 +149,10 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
         @Nullable String clause, @Nullable String clsName, GridPredicate<GridCacheEntry<K, V>> prjFilter,
         Collection<GridCacheFlag> prjFlags) {
         assert cctx != null;
+
+        if (cctx.config().isIndexMemoryOnly() && (type == H2TEXT || type == LUCENE))
+            throw new GridifyRuntimeException("Text queries are not supported for in-memory index " +
+                "(change GridCacheConfiguration.isIndexMemoryOnly() property to false)");
 
         this.cctx = cctx;
         this.type = type;
