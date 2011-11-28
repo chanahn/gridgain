@@ -28,7 +28,7 @@ import java.util.concurrent.locks.*;
  * <a href="http://weblogs.java.net/blog/tomwhite/archive/2007/11/consistent_hash.html">Tom White's Blog</a>.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.28112011
  */
 public class GridConsistentHash<N> implements Serializable {
     /**

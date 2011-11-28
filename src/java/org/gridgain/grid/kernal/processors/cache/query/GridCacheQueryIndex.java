@@ -41,7 +41,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * Cache query index. Manages full life-cycle of query index database (h2).
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.28112011
  */
 @SuppressWarnings({"UnnecessaryFullyQualifiedName"})
 public class GridCacheQueryIndex<K, V> {
@@ -345,18 +345,20 @@ public class GridCacheQueryIndex<K, V> {
             try {
                 Connection conn = connectionForThread(false);
 
-                try {
-                    FullText.dropAll(conn);
-                }
-                catch (SQLException e) {
-                    U.warn(log, "Failed to drop H2 fulltext indexes: " + e.getMessage());
-                }
+                if (!cctx.config().isIndexMemoryOnly()) {
+                    try {
+                        FullText.dropAll(conn);
+                    }
+                    catch (SQLException e) {
+                        U.warn(log, "Failed to drop H2 fulltext indexes: " + e.getMessage());
+                    }
 
-                try {
-                    FullTextLucene.dropAll(conn);
-                }
-                catch (SQLException e) {
-                    U.warn(log, "Failed to drop H2 lucene indexes: " + e.getMessage());
+                    try {
+                        FullTextLucene.dropAll(conn);
+                    }
+                    catch (SQLException e) {
+                        U.warn(log, "Failed to drop H2 lucene indexes: " + e.getMessage());
+                    }
                 }
 
                 if (conn != null) {
@@ -1552,10 +1554,10 @@ public class GridCacheQueryIndex<K, V> {
             }
         }
 
-        if (h2TxtCols.length() != 0)
+        if (!cctx.config().isIndexMemoryOnly() && h2TxtCols.length() != 0)
             FullText.createIndex(conn, schema, table.tableName().toUpperCase(), h2TxtCols.toString());
 
-        if (lucTxtCols.length() != 0)
+        if (!cctx.config().isIndexMemoryOnly() && lucTxtCols.length() != 0)
             FullTextLucene.createIndex(conn, schema, table.tableName().toUpperCase(), lucTxtCols.toString());
     }
 

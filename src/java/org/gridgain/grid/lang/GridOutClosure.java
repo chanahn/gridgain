@@ -30,7 +30,7 @@ import java.util.concurrent.*;
  * {@link GridJobAdapterEx}.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.28112011
  * @param <T> Type of return value from this closure.
  * @see GridFunc
  */

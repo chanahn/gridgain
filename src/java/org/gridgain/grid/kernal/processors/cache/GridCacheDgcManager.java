@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheConfiguration.*;
  * Distributed Garbage Collector for cache.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.28112011
  */
 public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
     /** DGC thread. */
@@ -421,7 +421,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
          * Constructor.
          */
         private DgcWorker() {
-            super(cctx.gridName(), "cache-dgc-wrk", log);
+            super(cctx.gridName(), "cache-dgc-worker", log);
         }
 
         /** {@inheritDoc} */
@@ -454,7 +454,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
          * Default constructor.
          */
         RequestWorker() {
-            super(cctx.gridName(), "cache-dgc-req-wrk", log);
+            super(cctx.gridName(), "cache-dgc-req-worker", log);
         }
 
         /**
@@ -539,7 +539,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
          * Default constructor.
          */
         ResponseWorker() {
-            super(cctx.gridName(), "cache-dgc-res-wrk", log);
+            super(cctx.gridName(), "cache-dgc-res-worker", log);
         }
 
         /**
@@ -892,7 +892,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
      * DGC request.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @version 3.5.1c.28112011
      */
     private static class GridCacheDgcRequest<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable {
         /** */
@@ -999,7 +999,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
      * DGC response.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @version 3.5.1c.28112011
      */
     private static class GridCacheDgcResponse<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable {
         /** */

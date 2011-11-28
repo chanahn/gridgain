@@ -36,7 +36,7 @@ import static org.gridgain.grid.kernal.GridTopic.*;
  * Thread pool for demanding entries.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.5.1c.28112011
  */
 class GridReplicatedPreloadDemandPool<K, V> {
     /** Dummy message to wake up demand worker. */
@@ -105,7 +105,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
      */
     void start() {
         for (DemandWorker w : workers)
-            new GridThread(cctx.gridName(), "preldr-demand-wrk", w).start();
+            new GridThread(cctx.gridName(), "preldr-demand-worker", w).start();
 
         if (log.isDebugEnabled())
             log.debug("Started demand pool: " + workers.size());
@@ -226,7 +226,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
          * @param id Worker ID.
          */
         private DemandWorker(int id) {
-            super(cctx.gridName(), "preloader-demand-wrk", log);
+            super(cctx.gridName(), "preloader-demand-worker", log);
 
             assert id >= 0;
 
