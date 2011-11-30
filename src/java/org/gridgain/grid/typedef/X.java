@@ -26,7 +26,7 @@ import java.util.*;
  * when this typedef <b>does not sacrifice</b> the code readability.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.29112011
  */
 public final class X {
     /** Time span dividers. */
@@ -283,6 +283,10 @@ public final class X {
         if (clone != null)
             return clone;
 
+        if (obj instanceof Class)
+            // No clone needed for java.lang.Class instance.
+            return obj;
+
         Class cls = obj.getClass();
 
         if (cls.isArray()) {
@@ -392,8 +396,6 @@ public final class X {
     @Nullable public static <T extends Throwable> T cause(@Nullable Throwable t, @Nullable Class<T> cls) {
         if (t == null || cls == null)
             return null;
-
-        assert cls != null;
 
         for (Throwable th = t; th != null; th = th.getCause()) {
             if (cls.isAssignableFrom(th.getClass()))

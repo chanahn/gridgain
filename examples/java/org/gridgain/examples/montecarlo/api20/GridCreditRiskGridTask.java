@@ -28,7 +28,7 @@ import java.util.*;
  * adapt to the load, use {@link GridAdaptiveLoadBalancingSpi} SPI.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.29112011
  */
 public class GridCreditRiskGridTask extends GridTaskSplitAdapter<GridifyArgument, Double> {
     /** {@inheritDoc} */

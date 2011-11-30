@@ -1,6 +1,7 @@
 package org.gridgain.grid.spi.communication.tcp;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.events.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.port.*;
 import org.gridgain.grid.lang.utils.*;
@@ -20,6 +21,8 @@ import java.nio.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+
+import static org.gridgain.grid.GridEventType.*;
 
 /**
  * <tt>GridTcpCommunicationSpi</tt> is default communication SPI which uses
@@ -95,7 +98,7 @@ import java.util.concurrent.atomic.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.29112011
  * @see GridCommunicationSpi
  */
 @SuppressWarnings({"deprecation"}) @GridSpiInfo(
@@ -124,6 +127,9 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     /** Default idle connection timeout (value is <tt>30000</tt>ms). */
     public static final int DFLT_IDLE_CONN_TIMEOUT = 30000;
 
+    /** Default connection timeout (value is <tt>1000</tt>ms). */
+    public static final int DFLT_CONN_TIMEOUT = 1000;
+
     /**
      * Default local port range (value is <tt>100</tt>).
      * See {@link #setLocalPortRange(int)} for details.
@@ -133,17 +139,17 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     /** Time, which SPI will wait before retry operation. */
     private static final long ERR_WAIT_TIME = 2000;
 
-    /** */
+    /** Logger. */
     @GridLoggerResource
     private GridLogger log;
 
-    /** */
+    /** Node ID. */
     @GridLocalNodeIdResource
     private UUID nodeId;
 
-    /** */
+    /** Marshaller. */
     @GridMarshallerResource
-    private GridMarshaller marshaller;
+    private GridMarshaller marsh;
 
     /** Local IP address. */
     private String localAddr;
@@ -154,57 +160,70 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     /** Local port which node uses. */
     private int localPort = DFLT_PORT;
 
-    /** */
+    /** Local port range. */
     private int localPortRange = DFLT_PORT_RANGE;
 
-    /** */
+    /** Grid name. */
     @GridNameResource
     private String gridName;
 
     /** Allocate direct buffer or heap buffer. */
     private boolean directBuf = true;
 
-    /** */
-    private volatile long idleConnTimeout = DFLT_IDLE_CONN_TIMEOUT;
+    /** Idle connection timeout. */
+    private long idleConnTimeout = DFLT_IDLE_CONN_TIMEOUT;
 
-    /** */
+    /** Connect timeout. */
+    private int connTimeout = DFLT_CONN_TIMEOUT;
+
+    /** NIO server. */
     private GridNioServer nioSrvr;
 
-    /** */
+    /** TCP server. */
     private TcpServer tcpSrvr;
 
     /** Number of threads responsible for handling messages. */
     private int msgThreads = DFLT_MSG_THREADS;
 
-    /** */
+    /** Idle client worker. */
     private IdleClientWorker idleClientWorker;
 
-    /** */
+    /** Clients. */
     private final ConcurrentMap<UUID, GridNioClient> clients = GridConcurrentFactory.newMap();
 
     /** SPI listener. */
     private volatile GridMessageListener lsnr;
 
-    /** */
+    /** Bound port. */
     private int boundTcpPort = -1;
 
-    /** */
+    /** NIO pool. */
     private ThreadPoolExecutor nioExec;
 
-    /** */
+    /** Port resolver. */
     private GridSpiPortResolver portRsvr;
 
-    /** */
+    /** Received messages count. */
     private final AtomicInteger rcvdMsgsCnt = new AtomicInteger();
 
-    /** */
+    /** Sent messages count.*/
     private final AtomicInteger sentMsgsCnt = new AtomicInteger();
 
-    /** */
+    /** Received bytes count. */
     private final AtomicLong rcvdBytesCnt = new AtomicLong();
 
-    /** */
+    /** Sent bytes count. */
     private final AtomicLong sentBytesCnt = new AtomicLong();
+
+    /** Discovery listener. */
+    private final GridLocalEventListener discoLsnr = new GridLocalEventListener() {
+        @Override public void onEvent(GridEvent evt) {
+            assert evt instanceof GridDiscoveryEvent;
+            assert evt.type() == EVT_NODE_LEFT || evt.type() == EVT_NODE_FAILED;
+
+            onNodeLeft(((GridDiscoveryEvent)evt).eventNodeId());
+        }
+    };
 
     /**
      * Sets local host address for socket binding. Note that one node could have
@@ -319,6 +338,26 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     /** {@inheritDoc} */
     @Override public long getIdleConnectionTimeout() {
         return idleConnTimeout;
+    }
+
+    /**
+     * Sets connect timeout used when establishing connection
+     * with remote nodes.
+     * <p>
+     * {@code 0} is interpreted as infinite timeout.
+     * <p>
+     * If not provided, default value is {@link #DFLT_CONN_TIMEOUT}.
+     *
+     * @param connTimeout Connect timeout.
+     */
+    @GridSpiConfiguration(optional = true)
+    public void setConnectTimeout(int connTimeout) {
+        this.connTimeout = connTimeout;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getConnectTimeout() {
+        return connTimeout;
     }
 
     /**
@@ -450,7 +489,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
         Collection<Integer> extPorts = null;
 
-        if (portRsvr != null)
+        if (portRsvr != null) {
             try {
                 extPorts = portRsvr.getExternalPorts(boundTcpPort);
             }
@@ -458,6 +497,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
                 throw new GridSpiException("Failed to get mapped external ports for bound port: [portRsvr=" + portRsvr +
                     ", boundTcpPort=" + boundTcpPort + ']', e);
             }
+        }
 
         // Set local node attributes.
         return F.asMap(
@@ -505,6 +545,8 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
         super.onContextInitialized(spiCtx);
 
         getSpiContext().registerPort(boundTcpPort, GridPortProtocol.TCP);
+
+        getSpiContext().addLocalEventListener(discoLsnr, EVT_NODE_LEFT, EVT_NODE_FAILED);
     }
 
     /**
@@ -523,7 +565,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
             /** {@inheritDoc} */
             @Override public void onMessage(byte[] data) {
                 try {
-                    GridTcpCommunicationMessage msg = U.unmarshal(marshaller,
+                    GridTcpCommunicationMessage msg = U.unmarshal(marsh,
                         new GridByteArrayList(data, data.length), clsLdr);
 
                     rcvdMsgsCnt.incrementAndGet();
@@ -590,11 +632,8 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
         U.join(idleClientWorker, log);
 
         // Close all client connections.
-        for (GridNioClient client : clients.values()) {
-            boolean b = client.close();
-
-            assert b : "Failed to close client: " + client;
-        }
+        for (GridNioClient client : clients.values())
+            client.forceClose();
 
         // Clear resources.
         tcpSrvr = null;
@@ -612,7 +651,28 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     @Override public void onContextDestroyed() {
         getSpiContext().deregisterPorts();
 
+        getSpiContext().removeLocalEventListener(discoLsnr);
+
         super.onContextDestroyed();
+    }
+
+    /**
+     * @param nodeId Left node ID.
+     */
+    private void onNodeLeft(UUID nodeId) {
+        assert nodeId != null;
+
+        GridNioClient client = clients.get(nodeId);
+
+        if (client != null) {
+            if (log.isDebugEnabled())
+                log.debug("Forcing NIO client close since node has left [nodeId=" + nodeId +
+                    ", client=" + client + ']');
+
+            client.forceClose();
+
+            clients.remove(nodeId, client);
+        }
     }
 
     /** {@inheritDoc} */
@@ -661,7 +721,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
             try {
                 client = reserveClient(node);
 
-                GridByteArrayList buf = U.marshal(marshaller, new GridTcpCommunicationMessage(nodeId, msg));
+                GridByteArrayList buf = U.marshal(marsh, new GridTcpCommunicationMessage(nodeId, msg));
 
                 client.sendMessage(buf.getInternalArray(), buf.getSize());
 
@@ -690,11 +750,13 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     private GridNioClient reserveClient(GridNode node) throws GridException {
         assert node != null;
 
+        UUID nodeId = node.id();
+
         while (true) {
-            GridNioClient client = clients.get(node.id());
+            GridNioClient client = clients.get(nodeId);
 
             if (client == null) {
-                GridNioClient old = clients.putIfAbsent(node.id(), client = createNioClient(node));
+                GridNioClient old = clients.putIfAbsent(nodeId, client = createNioClient(node));
 
                 if (old != null) {
                     boolean b = client.close();
@@ -703,12 +765,20 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
                     client = old;
                 }
+
+                if (getSpiContext().node(nodeId) == null) {
+                    client.forceClose();
+
+                    clients.remove(nodeId, client);
+
+                    throw new GridSpiException("Destination node is not in topology: " + node.id());
+                }
             }
 
             if (client.reserve())
                 return client;
             else
-                clients.remove(node.id(), client);
+                clients.remove(nodeId, client);
         }
     }
 
@@ -718,6 +788,8 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      * @throws GridException If failed.
      */
     private GridNioClient createNioClient(GridNode node) throws GridException {
+        assert node != null;
+
         Collection<String> addrs = new LinkedHashSet<String>();
 
         // Try to connect first on bound address.
@@ -764,9 +836,9 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
         GridNioClient client = null;
 
         for (String addr : addrs) {
-            for (Integer port : ports)
+            for (Integer port : ports) {
                 try {
-                    client = new GridNioClient(InetAddress.getByName(addr), port, localHost);
+                    client = new GridNioClient(InetAddress.getByName(addr), port, localHost, connTimeout);
 
                     conn = true;
 
@@ -776,7 +848,12 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
                     if (log.isDebugEnabled())
                         log.debug("Client creation failed [addr=" + addr + ", port=" + port +
                             ", err=" + e + ']');
+
+                    if (X.hasCause(e, SocketTimeoutException.class))
+                        LT.warn(log, null, "Connect timed out. Consider changing 'connTimeout' " +
+                            "configuration property.");
                 }
+            }
 
             if (conn)
                 break;
@@ -885,11 +962,22 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
                     GridNioClient client = e.getValue();
 
+                    if (getSpiContext().node(nodeId) == null) {
+                        if (log.isDebugEnabled())
+                            log.debug("Forcing close of non-existent node connection: " + nodeId);
+
+                        client.forceClose();
+
+                        clients.remove(nodeId, client);
+
+                        continue;
+                    }
+
                     long idleTime = client.getIdleTime();
 
-                    if (getSpiContext().node(nodeId) == null || idleTime >= idleConnTimeout) {
+                    if (idleTime >= idleConnTimeout) {
                         if (log.isDebugEnabled())
-                            log.debug("Closing idle or non-existent node connection: " + nodeId);
+                            log.debug("Closing idle node connection: " + nodeId);
 
                         if (client.close() || client.closed())
                             clients.remove(nodeId, client);
