@@ -7,7 +7,7 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 3.5.1c.18112011
+# Version: 3.6.0c.01122011
 #
 
 #
@@ -51,7 +51,7 @@ fi
 #
 # Set property JAR name during the Ant build.
 #
-ANT_AUGMENTED_GGJAR=gridgain-3.5.1c.jar
+ANT_AUGMENTED_GGJAR=gridgain-3.6.0c.jar
 
 osname=`uname`
 
@@ -117,7 +117,7 @@ done
 #
 # Find available port for JMX
 #
-JMX_PORT=`java -cp ${GRIDGAIN_HOME}/${ANT_AUGMENTED_GGJAR} org.gridgain.grid.tools.portscanner.GridPortScanner`
+JMX_PORT=`$JAVA -cp ${GRIDGAIN_HOME}/${ANT_AUGMENTED_GGJAR} org.gridgain.grid.tools.portscanner.GridPortScanner`
 
 # This variable defines necessary parameters for JMX
 # monitoring and management.

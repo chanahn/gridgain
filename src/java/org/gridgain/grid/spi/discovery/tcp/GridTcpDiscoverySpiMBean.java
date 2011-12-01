@@ -22,7 +22,7 @@ import java.util.*;
  * Management bean for {@link GridTcpDiscoverySpi}.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.01122011
  */
 public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
     /**
@@ -242,4 +242,28 @@ public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
      */
     @GridMBeanDescription("Coordinator node ID.")
     @Nullable public UUID getCoordinator();
+
+    /**
+     * Gets message acknowledgement timeout.
+     *
+     * @return Message acknowledgement timeout.
+     */
+    @GridMBeanDescription("Message acknowledgement timeout.")
+    public int getAckTimeout();
+
+    /**
+     * Gets socket timeout.
+     *
+     * @return Socket timeout.
+     */
+    @GridMBeanDescription("Socket timeout.")
+    public int getSocketTimeout();
+
+    /**
+     * Gets join timeout.
+     *
+     * @return Join timeout.
+     */
+    @GridMBeanDescription("Join timeout.")
+    public int getJoinTimeout();
 }

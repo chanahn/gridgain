@@ -16,7 +16,7 @@ import java.util.concurrent.*;
  * Wraps {@link Runnable} task with predefined result.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.01122011
  * @param <T> The result type of the {@link Callable} argument.
  */
 class GridExecutorRunnableAdapter<T> implements Callable<T>, Serializable {

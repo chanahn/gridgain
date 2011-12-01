@@ -12,14 +12,14 @@ package org.gridgain.grid.util.nio;
 import java.util.*;
 
 /**
- * TODO: add file description.
+ * NIO server listener.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.01122011
  */
 public interface GridNioServerListener extends EventListener {
     /**
-     * @param data TODO
+     * @param data Data.
      */
     public void onMessage(byte[] data);
 }

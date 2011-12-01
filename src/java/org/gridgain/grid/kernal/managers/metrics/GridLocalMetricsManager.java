@@ -18,7 +18,7 @@ import org.gridgain.grid.spi.metrics.*;
  * This class defines a grid local metric manager manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.01122011
  */
 public class GridLocalMetricsManager extends GridManagerAdapter<GridLocalMetricsSpi> {
     /**

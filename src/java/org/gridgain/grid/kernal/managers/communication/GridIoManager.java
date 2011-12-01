@@ -41,7 +41,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Grid communication manager.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.01122011
  */
 public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
     /** */
@@ -771,8 +771,8 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
                         return;
                 }
 
-                if (!orderedMsgs.isEmpty())
-                    for (GridIoMessage msg : orderedMsgs)
+                if (!orderedMsgs.isEmpty()) {
+                    for (GridIoMessage msg : orderedMsgs) {
                         try {
                             Object obj = unmarshal(msg);
 
@@ -786,14 +786,17 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
                         catch (GridException e) {
                             U.error(log, "Failed to deserialize ordered communication message:" + msg, e);
                         }
+                    }
+                }
                 else if (log.isDebugEnabled())
                     log.debug("No messages were unwound: " + msgSet);
             }
             finally {
-                if (selfReserved)
+                if (selfReserved) {
                     synchronized (msgSet) {
                         msgSet.release();
                     }
+                }
             }
         }
     }
@@ -825,6 +828,11 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
         assert topic != null;
         assert msg != null;
         assert policy != null;
+
+        GridNode node0 = ctx.discovery().node(node.id());
+
+        if (node0 == null)
+            throw new GridException("Failed to send message to node (has node left grid?): " + node.id());
 
         GridByteArrayList serMsg = marshalSendingMessage(msg);
 
@@ -1068,8 +1076,8 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
                             U.error(log, "Failed to send user message [node=" + nodeId + ", message=" + msg + ']', e);
                         }
 
-                        if (srcMsg != null)
-                            for (GridPredicate2<UUID, T> p : ps)
+                        if (srcMsg != null) {
+                            for (GridPredicate2<UUID, T> p : ps) {
                                 synchronized (p) {
                                     if (!p.apply(nodeId, (T)srcMsg)) {
                                         removeMessageListener(TOPIC_COMM_USER, this);
@@ -1078,6 +1086,8 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
                                         return;
                                     }
                                 }
+                            }
+                        }
                     }
                 }
             }, F.<Object>alwaysTrue());
@@ -1736,7 +1746,7 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
      * This class represents a pair of listener and its corresponding message p.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @version 3.6.0c.01122011
      */
     @SuppressWarnings("deprecation")
     private class GridFilteredMessageListener implements GridMessageListener {
@@ -1788,7 +1798,7 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
      * This class represents a message listener wrapper that knows about peer deployment.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @version 3.6.0c.01122011
      */
     @SuppressWarnings("deprecation")
     private class GridUserMessageListener implements GridMessageListener {
@@ -1884,7 +1894,7 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
      * Ordered communication message set.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @version 3.6.0c.01122011
      */
     private class GridCommunicationMessageSet implements GridTimeoutObject {
         /** */

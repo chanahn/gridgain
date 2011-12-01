@@ -19,10 +19,10 @@ import java.util.*;
  * Base class to implement discovery messages.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.01122011
  */
 public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable {
-    /** Sender of the message. */
+    /** Sender of the message (transient). */
     private UUID senderNodeId;
 
     /** Message ID. */
@@ -146,7 +146,6 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
-        U.writeUuid(out, senderNodeId);
         U.writeGridUuid(out, id);
         U.writeUuid(out, verifierNodeId);
         out.writeBoolean(verified);
@@ -155,7 +154,6 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        senderNodeId = U.readUuid(in);
         id = U.readGridUuid(in);
         verifierNodeId = U.readUuid(in);
         verified = in.readBoolean();
@@ -167,7 +165,7 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
         if (this == obj)
             return true;
         else if (obj instanceof GridTcpDiscoveryAbstractMessage)
-            return id.equals(((GridTcpDiscoveryAbstractMessage) obj).id);
+            return id.equals(((GridTcpDiscoveryAbstractMessage)obj).id);
 
         return false;
     }

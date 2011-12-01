@@ -86,7 +86,7 @@ import java.io.*;
  * </pre>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.01122011
  */
 public interface GridMarshaller {
     /**

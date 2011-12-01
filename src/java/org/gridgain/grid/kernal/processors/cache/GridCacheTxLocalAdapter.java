@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Transaction adapter for cache transactions.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.01122011
  */
 public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K, V>
     implements GridCacheTxLocalEx<K, V> {
@@ -351,7 +351,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      */
     @SuppressWarnings({"CatchGenericClass"})
     protected void batchStoreCommit(Iterable<GridCacheTxEntry<K, V>> writeEntries) throws GridException {
-        GridCacheStore store = cctx.config().getStore();
+        GridCacheStore store = cctx.cacheStore();
 
         if (store != null && storeEnabled) {
             try {
@@ -803,7 +803,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      */
     @SuppressWarnings({"CatchGenericClass"})
     private void batchStoreCommitEC(Iterable<GridCacheTxEntry<K, V>> commitList) {
-        GridCacheStore store = cctx.config().getStore();
+        GridCacheStore store = cctx.cacheStore();
 
         if (commitList != null && store != null && storeEnabled) {
             assert isBatchUpdate();
@@ -875,7 +875,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
                 cctx.tm().rollbackTx(this);
 
-                GridCacheStore store = cctx.config().getStore();
+                GridCacheStore store = cctx.cacheStore();
 
                 if (store != null && (isSingleUpdate() || isBatchUpdate()))
                     store.txEnd(cctx.namex(), this, false);
@@ -2048,14 +2048,14 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      * @return {@code True} if updates should be batched up.
      */
     protected boolean isBatchUpdate() {
-        return storeEnabled && (implicit() || cctx.config().getStore() != null && cctx.config().isBatchUpdateOnCommit());
+        return storeEnabled && (implicit() || cctx.cacheStore() != null && cctx.config().isBatchUpdateOnCommit());
     }
 
     /**
      * @return {@code True} if updates should be done individually.
      */
     protected boolean isSingleUpdate() {
-        return storeEnabled && !implicit() && cctx.config().getStore() != null && !cctx.config().isBatchUpdateOnCommit();
+        return storeEnabled && !implicit() && cctx.cacheStore() != null && !cctx.config().isBatchUpdateOnCommit();
     }
 
     /** {@inheritDoc} */
