@@ -17,6 +17,8 @@ import org.gridgain.grid.cache.affinity.replicated.*;
 import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.cache.eviction.always.*;
 import org.gridgain.grid.cache.eviction.lru.*;
+import org.gridgain.grid.cache.store.*;
+import org.gridgain.grid.cache.store.writefrombehind.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.*;
 import org.gridgain.grid.kernal.processors.cache.datastructures.*;
@@ -43,7 +45,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Cache processor.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 public class GridCacheProcessor extends GridProcessorAdapter {
     /** Null cache name. */
@@ -174,6 +176,17 @@ public class GridCacheProcessor extends GridProcessorAdapter {
                     "(most likely misconfiguration - either update 'isTxSerializableEnabled' or " +
                     "'defaultTxIsolationLevel' properties)",
                 "Serializable transactions are disabled while default transaction isolation is SERIALIZABLE.");
+
+        if (cfg.isWriteFromBehindEnabled()) {
+            if (cfg.getStore() == null)
+                throw new GridException("Cannot enable write-from-behind cache (cache store is not provided): " +
+                    "cacheName=" + cfg.getName());
+
+            assertParameter(cfg.getWriteFromBehindBatchSize() > 0, "writeFromBehindBatchSize > 0");
+            assertParameter(cfg.getWriteFromBehindFlushSize() > 0, "writeFromBehindFlushSize > 0");
+            assertParameter(cfg.getWriteFromBehindFlushFrequency() > 0, "writeFromBehindFlushFrequency > 0");
+            assertParameter(cfg.getWriteFromBehindFlushThreadCount() > 0, "writeFromBehindFlushThreadCount > 0");
+        }
     }
 
     /**
@@ -293,9 +306,12 @@ public class GridCacheProcessor extends GridProcessorAdapter {
             GridCacheIoManager ioMgr = new GridCacheIoManager();
             GridCacheDataStructuresManager dataStructuresMgr = dataStructuresManager();
 
+            GridCacheStore store = cacheStore(ctx.gridName(), cfg);
+
             GridCacheContext<?, ?> cacheCtx = new GridCacheContext(
                 ctx,
                 cfg,
+                store,
 
                 /*
                  * Managers in starting order!
@@ -377,9 +393,12 @@ public class GridCacheProcessor extends GridProcessorAdapter {
                 swapMgr = new GridCacheSwapManager(true);
                 evictMgr = new GridCacheEvictionManager();
 
+                GridCacheStore dhtStore = cacheStore(ctx.gridName(), cfg);
+
                 cacheCtx = new GridCacheContext(
                     ctx,
                     cfg,
+                    dhtStore,
 
                     /*
                      * Managers in starting order!
@@ -411,10 +430,22 @@ public class GridCacheProcessor extends GridProcessorAdapter {
                 for (GridCacheManager mgr : dhtManagers(cacheCtx))
                     mgr.start(cacheCtx);
 
+                if (dhtStore instanceof GridCacheWriteFromBehindStore) {
+                    ((GridCacheWriteFromBehindStore)dhtStore).start();
+
+                    registerMbean(dhtStore, dht.name(), false);
+                }
+
                 dht.start();
 
                 if (log.isDebugEnabled())
                     log.debug("Started DHT cache: " + dht.name());
+            }
+
+            if (store instanceof GridCacheWriteFromBehindStore) {
+                ((GridCacheWriteFromBehindStore)store).start();
+
+                registerMbean(store, cache.name(), cache instanceof GridNearCache);
             }
 
             cache.start();
@@ -589,14 +620,31 @@ public class GridCacheProcessor extends GridProcessorAdapter {
 
             GridCacheContext ctx = cache.context();
 
+            GridCacheStore store = ctx.getStore();
+
+            if (store instanceof GridCacheWriteFromBehindStore) {
+                unregisterMbean(store, cache.name(), cache instanceof GridNearCache);
+
+                ((GridCacheWriteFromBehindStore)store).stop();
+            }
+
             if (ctx.config().getCacheMode() == PARTITIONED) {
                 GridDhtCache dht = ctx.near().dht();
 
+                // Check whether dht cache has been started.
                 if (dht != null) {
-                    // Check whether dht cache has been started.
                     dht.stop();
 
                     GridCacheContext<?, ?> dhtCtx = dht.context();
+
+                    // Check whether write-from-behind is configured.
+                    GridCacheStore dhtStore = dhtCtx.getStore();
+
+                    if (dhtStore instanceof GridCacheWriteFromBehindStore) {
+                        unregisterMbean(dhtStore, dht.name(), false);
+
+                        ((GridCacheWriteFromBehindStore)dhtStore).stop();
+                    }
 
                     for (GridCacheManager mgr : dhtManagers(dhtCtx))
                         mgr.stop(cancel, wait);
@@ -850,6 +898,30 @@ public class GridCacheProcessor extends GridProcessorAdapter {
                 break;
             }
         }
+    }
+
+    /**
+     * Creates a wrapped cache store if write from behind cache is configured.
+     *
+     * @param gridName Name of grid.
+     * @param cfg Cache configuration.
+     * @return Instance if {@link GridCacheWriteFromBehindStore} if write from behind store is configured,
+     *         or user-defined cache store.
+     */
+    @SuppressWarnings({"unchecked"})
+    private GridCacheStore cacheStore(String gridName, GridCacheConfiguration cfg) {
+        if (cfg.getStore() == null || !cfg.isWriteFromBehindEnabled())
+            return cfg.getStore();
+
+        GridCacheWriteFromBehindStore store = new GridCacheWriteFromBehindStore(gridName, log, cfg.getStore(),
+            cfg.getName());
+
+        store.setFlushSize(cfg.getWriteFromBehindFlushSize());
+        store.setFlushThreadCount(cfg.getWriteFromBehindFlushThreadCount());
+        store.setFlushFrequency(cfg.getWriteFromBehindFlushFrequency());
+        store.setBatchSize(cfg.getWriteFromBehindBatchSize());
+
+        return store;
     }
 
     /**

@@ -13,10 +13,10 @@ import org.gridgain.grid.lang.utils.*;
 import java.nio.*;
 
 /**
- * TODO: add file description.
+ * NIO server buffer.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 class GridNioServerBuffer {
     /** Preallocate 8K. */
@@ -54,7 +54,7 @@ class GridNioServerBuffer {
     boolean isFilled() { return msgSize > 0 && msgBytes.getSize() == msgSize; }
 
     /**
-     * @param buf TODO
+     * @param buf Buffer.
      */
     void read(ByteBuffer buf) {
         if (msgSize < 0) {

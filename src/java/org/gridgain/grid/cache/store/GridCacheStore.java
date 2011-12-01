@@ -55,7 +55,7 @@ import java.util.*;
  * </pre>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 public interface GridCacheStore<K, V> {
     /**
@@ -110,49 +110,53 @@ public interface GridCacheStore<K, V> {
 
     /**
      * Stores a given value in persistent storage. Note that cache transaction is implicitly created
-     * even for a single put, so the passed in transaction can never be {@code null}.
+     * even for a single put. However, if write-from-behind is configured for a particular cache,
+     * transaction object passed in the cache store will be always {@code null}.
      *
      * @param cacheName Cache name ({@code null} for default no-name cache).
-     * @param tx Cache transaction.
+     * @param tx Cache transaction, if write-from-behind is not enabled, {@code null} otherwise.
      * @param key Key to put.
      * @param val Value to put.
      * @throws GridException If put failed.
      */
-    public void put(@Nullable String cacheName, GridCacheTx tx, K key, @Nullable V val) throws GridException;
+    public void put(@Nullable String cacheName, @Nullable GridCacheTx tx, K key, @Nullable V val) throws GridException;
 
     /**
      * Stores given key value pairs in persistent storage. Note that cache transaction is implicitly created
-     * even for a single put, so the passed in transaction can never be {@code null}.
+     * even for a single put. However, if write-from-behind is configured for a particular cache,
+     * transaction object passed in the cache store will be always {@code null}.
      *
      * @param cacheName Cache name ({@code null} for default no-name cache).
-     * @param tx Cache transaction.
+     * @param tx Cache transaction, if write-from-behind is not enabled, {@code null} otherwise.
      * @param map Values to store.
      * @throws GridException If store failed.
      */
-    public void putAll(@Nullable String cacheName, GridCacheTx tx, @Nullable Map<? extends K, ? extends V> map)
-        throws GridException;
+    public void putAll(@Nullable String cacheName, @Nullable GridCacheTx tx,
+        @Nullable Map<? extends K, ? extends V> map) throws GridException;
 
     /**
      * Removes the value identified by given key from persistent storage. Note that cache transaction is
-     * implicitly created even for a single put, so the passed in transaction can never be {@code null}.
+     * implicitly created even for a single put. However, if write-from-behind is configured for a particular cache,
+     * transaction object passed in the cache store will be always {@code null}.
      *
      * @param cacheName Cache name ({@code null} for default no-name cache).
-     * @param tx Cache transaction.
+     * @param tx Cache transaction, if write-from-behind is not enabled, {@code null} otherwise.
      * @param key Key to remove.
      * @throws GridException If remove failed.
      */
-    public void remove(@Nullable String cacheName, GridCacheTx tx, K key) throws GridException;
+    public void remove(@Nullable String cacheName, @Nullable GridCacheTx tx, K key) throws GridException;
 
     /**
      * Removes all vales identified by given keys from persistent storage. Note that cache transaction
-     * is implicitly created even for a single put, so the passed in transaction can never be {@code null}.
+     * is implicitly created even for a single put. However, if write-from-behind is configured for a particular cache,
+     * transaction object passed in the cache store will be always {@code null}.
      *
      * @param cacheName Cache name ({@code null} for default no-name cache).
-     * @param tx Cache transaction.
+     * @param tx Cache transaction, if write-from-behind is not enabled, {@code null} otherwise.
      * @param keys Keys to remove.
      * @throws GridException If remove failed.
      */
-    public void removeAll(@Nullable String cacheName, GridCacheTx tx, @Nullable Collection<? extends K> keys)
+    public void removeAll(@Nullable String cacheName, @Nullable GridCacheTx tx, @Nullable Collection<? extends K> keys)
         throws GridException;
 
     /**

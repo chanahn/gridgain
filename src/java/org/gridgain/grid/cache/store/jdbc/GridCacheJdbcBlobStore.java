@@ -76,7 +76,7 @@ import java.util.concurrent.atomic.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
     /** Default connection URL (value is <tt>jdbc:h2:mem:jdbcCacheStore;DB_CLOSE_DELAY=-1</tt>). */
@@ -142,7 +142,7 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
     private final CountDownLatch initLatch = new CountDownLatch(1);
 
     /** Successful initialization flag. */
-    private volatile boolean initOk;
+    private boolean initOk;
 
     /** {@inheritDoc} */
     @Override public void txEnd(@Nullable String cacheName, GridCacheTx tx, boolean commit) throws GridException {
@@ -157,8 +157,8 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
                 else
                     conn.rollback();
 
-                    if (log.isDebugEnabled())
-                        log.debug("Transaction ended [xid=" + tx.xid() + ", commit=" + commit + ']');
+                if (log.isDebugEnabled())
+                    log.debug("Transaction ended [xid=" + tx.xid() + ", commit=" + commit + ']');
             }
             catch (SQLException e) {
                 throw new GridException("Failed to end transaction [xid=" + tx.xid() + ", commit=" + commit + ']', e);
@@ -172,7 +172,7 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
 
     /** {@inheritDoc} */
     @SuppressWarnings({"RedundantTypeArguments"})
-    @Override public V load(@Nullable String cacheName, @Nullable GridCacheTx tx, Object key) throws GridException {
+    @Override public V load(@Nullable String cacheName, @Nullable GridCacheTx tx, K key) throws GridException {
         init();
 
         if (log.isDebugEnabled())
@@ -198,27 +198,25 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
             throw new GridException("Failed to load object: " + key, e);
         }
         finally {
-            U.closeQuiet(stmt);
-
-            if (tx == null)
-                // Close connection right away if there is no transaction.
-                U.closeQuiet(conn);
+            end(tx, conn, stmt);
         }
 
         return null;
     }
 
     /** {@inheritDoc} */
-    @Override public void put(@Nullable String cacheName, GridCacheTx tx, K key, V val) throws GridException {
+    @Override public void put(@Nullable String cacheName, @Nullable GridCacheTx tx, K key, V val) throws GridException {
         init();
 
         if (log.isDebugEnabled())
             log.debug("Store put [key=" + key + ", val=" + val + ", tx=" + tx + ']');
 
+        Connection conn = null;
+
         PreparedStatement stmt = null;
 
         try {
-            Connection conn = connection(tx);
+            conn = connection(tx);
 
             stmt = conn.prepareStatement(updateQry);
 
@@ -240,19 +238,21 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
             throw new GridException("Failed to put object [key=" + key + ", val=" + val + ']', e);
         }
         finally {
-            U.closeQuiet(stmt);
+            end(tx, conn, stmt);
         }
     }
 
     /** {@inheritDoc} */
-    @Override public void remove(@Nullable String cacheName, GridCacheTx tx, K key) throws GridException {
+    @Override public void remove(@Nullable String cacheName, @Nullable GridCacheTx tx, K key) throws GridException {
         if (log.isDebugEnabled())
             log.debug("Store remove [key=" + key + ", tx=" + tx + ']');
+
+        Connection conn = null;
 
         PreparedStatement stmt = null;
 
         try {
-            Connection conn = connection(tx);
+            conn = connection(tx);
 
             stmt = conn.prepareStatement(delQry);
 
@@ -264,7 +264,7 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
             throw new GridException("Failed to remove object: " + key, e);
         }
         finally {
-            U.closeQuiet(stmt);
+            end(tx, conn, stmt);
         }
     }
 
@@ -291,7 +291,7 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
             Connection conn = tx.meta(ATTR_CONN);
 
             if (conn == null) {
-                conn = openConnection();
+                conn = openConnection(false);
 
                 // Store connection in transaction metadata, so it can be accessed
                 // for other operations on the same transaction.
@@ -302,19 +302,35 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
         }
         // Transaction can be null in case of simple load operation.
         else
-            return openConnection();
+            return openConnection(true);
+    }
+
+    /**
+     * Closes allocated resources depending on transaction status.
+     *
+     * @param tx Active transaction, if any.
+     * @param conn Allocated connection.
+     * @param st Created statement,
+     */
+    private void end(@Nullable GridCacheTx tx, Connection conn, Statement st) {
+        U.closeQuiet(st);
+
+        if (tx == null)
+            // Close connection right away if there is no transaction.
+            U.closeQuiet(conn);
     }
 
     /**
      * Gets connection from a pool.
      *
+     * @param autocommit {@code true} If connection should use autocommit mode.
      * @return Pooled connection.
      * @throws SQLException In case of error.
      */
-    private Connection openConnection() throws SQLException {
+    private Connection openConnection(boolean autocommit) throws SQLException {
         Connection conn = DriverManager.getConnection(connUrl, user, passwd);
 
-        conn.setAutoCommit(false);
+        conn.setAutoCommit(autocommit);
 
         return conn;
     }
@@ -340,7 +356,7 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
             Statement stmt = null;
 
             try {
-                conn = openConnection();
+                conn = openConnection(false);
 
                 stmt = conn.createStatement();
 

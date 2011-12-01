@@ -31,7 +31,7 @@ import java.util.*;
  * specific arguments.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 public abstract class GridCacheStoreAdapter<K, V> implements GridCacheStore<K, V> {
     /**
@@ -51,11 +51,11 @@ public abstract class GridCacheStoreAdapter<K, V> implements GridCacheStore<K, V
 
     /** {@inheritDoc} */
     @Override public void loadAll(@Nullable String cacheName, @Nullable GridCacheTx tx, Collection<? extends K> keys,
-        GridInClosure2<K, V> closure) throws GridException {
+        GridInClosure2<K, V> c) throws GridException {
         assert keys != null;
 
         for (K key : keys)
-            closure.apply(key, load(cacheName, tx, key));
+            c.apply(key, load(cacheName, tx, key));
     }
 
     /** {@inheritDoc} */

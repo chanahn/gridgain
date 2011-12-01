@@ -34,7 +34,7 @@ import java.util.*;
  * default configuration.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 public interface GridCacheConfiguration {
     /** Default query log name. */
@@ -126,7 +126,7 @@ public interface GridCacheConfiguration {
      * Default value for 'idxMemoryOnly' flag indicating if query index
      * database should be in-memory.
      */
-    public static final boolean DFLT_IDX_MEM_ONLY = false;
+    public static final boolean DFLT_IDX_MEM_ONLY = true;
 
     /**
      * Default value for maximum memory used per single operation with query index
@@ -175,6 +175,21 @@ public interface GridCacheConfiguration {
 
     /** Default value for 'storeEnabled' flag. */
     public static final boolean DFLT_STORE_ENABLED = true;
+
+    /** Default value for 'writeFromBehindEnabled' flag. */
+    public static final boolean DFLT_WRITE_FROM_BEHIND_ENABLED = false;
+
+    /** Default flush size for write-from-behind cache store. */
+    public static final int DFLT_WRITE_FROM_BEHIND_FLUSH_SIZE = 10240;
+
+    /** Default flush frequency for write-from-behind cache store in milliseconds. */
+    public static final int DFLT_WRITE_FROM_BEHIND_FLUSH_FREQUENCY = 5000;
+
+    /** Default count of flush threads for write-from-behind cache store. */
+    public static final int DFLT_WRITE_FROM_BEHIND_FLUSH_THREAD_CNT = 1;
+
+    /** Default batch size for write-from-behind cache store. */
+    public static final int DFLT_WRITE_FROM_BEHIND_BATCH_SIZE = 512;
 
     /**
      * Cache name. If not provided or {@code null}, then this will be considered a default
@@ -514,6 +529,13 @@ public interface GridCacheConfiguration {
      * <p>
      * Note that cache queries with {@link GridCacheQueryType#LUCENE LUCENE} type cannot
      * be used in case of in-memory index database, i.e. if this property is {@code true}.
+     * <p>
+     * It is reasonable to configure this property with opposite value of {@link #isSwapEnabled()}
+     * property. If swap is enabled, then most likely indexes will not fit in memory and
+     * it is reasonable to overflow them to disk. Otherwise, if swap id disabled,
+     * then indexes should fit in memory.
+     * <p>
+     * Default is {@code true} and is defined by {@link #DFLT_IDX_MEM_ONLY} constant.
      *
      * @return {@code True} if index should be stored only in memory (not on disk).
      */
@@ -647,6 +669,57 @@ public interface GridCacheConfiguration {
      * @return {@code true} if configured persistent store is used by default.
      */
     public boolean isStoreEnabled();
+
+    /**
+     * Flag indicating whether GridGain should use write-from-behind behaviour for the cache store.
+     * By default write-from-behind is disabled which is defined via {@link #DFLT_WRITE_FROM_BEHIND_ENABLED}
+     * constant.
+     *
+     * @return {@code True} if write-from-behind is enabled.
+     */
+    public boolean isWriteFromBehindEnabled();
+
+    /**
+     * Maximum size of the write-from-behind cache. If cache size exceeds this value,
+     * all cached items are flushed to the cache store and write cache is cleared.
+     * <p/>
+     * If not provided, default value is {@link #DFLT_WRITE_FROM_BEHIND_FLUSH_SIZE}.
+     *
+     * @return Maximum object count in write-from-behind cache.
+     */
+    public int getWriteFromBehindFlushSize();
+
+    /**
+     * Frequency with which write-from-behind cache is flushed to the cache store in milliseconds.
+     * This value defines the maximum time interval between object insertion/deletion from the cache
+     * ant the moment when corresponding operation is applied to the cache store.
+     * </p>
+     * If not provided, default value is {@link #DFLT_WRITE_FROM_BEHIND_FLUSH_FREQUENCY}.
+     *
+     * @return Write-from-behind flush frequency in milliseconds.
+     */
+    public int getWriteFromBehindFlushFrequency();
+
+    /**
+     * Count of threads that will perform cache flushing if either cache size exceeded flush size or
+     * flush interval is elapsed.
+     * <p/>
+     * If not provided, default value is {@link #DFLT_WRITE_FROM_BEHIND_FLUSH_THREAD_CNT}.
+     *
+     * @return Count of flush threads.
+     */
+    public int getWriteFromBehindFlushThreadCount();
+
+    /**
+     * Maximum batch size for cache store operations. When ongoing operations are flushed to
+     * the cache store, similar operations (get or remove) are combined in a group with at most
+     * this size.
+     * <p/>
+     * If not provided, default value is {@link #DFLT_WRITE_FROM_BEHIND_BATCH_SIZE}.
+     *
+     * @return Maximum batch size for one operation type.
+     */
+    public int getWriteFromBehindBatchSize();
 
     /**
      * Cloner to be used for cloning values that are returned to user only if {@link GridCacheFlag#CLONE}

@@ -32,7 +32,7 @@ import java.util.*;
  * should only change what they need.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** Cache name. */
@@ -176,6 +176,21 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** */
     private boolean storeEnabled = DFLT_STORE_ENABLED;
 
+    /** Write from behind feature. */
+    private boolean writeFromBehindEnabled = DFLT_WRITE_FROM_BEHIND_ENABLED;
+
+    /** Maximum size of write from behind cache. */
+    private int writeFromBehindFlushSize = DFLT_WRITE_FROM_BEHIND_FLUSH_SIZE;
+
+    /** Write from behind flush frequency in milliseconds. */
+    private int writeFromBehindFlushFrequency = DFLT_WRITE_FROM_BEHIND_FLUSH_FREQUENCY;
+
+    /** Flush thread count for write from behind cache store. */
+    private int writeFromBehindFlushThreadCnt = DFLT_WRITE_FROM_BEHIND_FLUSH_THREAD_CNT;
+
+    /** Maximum batch size for write from behind cache store. */
+    private int writeFromBehindBatchSize = DFLT_WRITE_FROM_BEHIND_BATCH_SIZE;
+
     /** */
     private String idxH2Opt;
 
@@ -260,6 +275,11 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
         syncRollback = cc.isSynchronousRollback();
         tmLookup = cc.getTransactionManagerLookup();
         ttl = cc.getDefaultTimeToLive();
+        writeFromBehindBatchSize = cc.getWriteFromBehindBatchSize();
+        writeFromBehindEnabled = cc.isWriteFromBehindEnabled();
+        writeFromBehindFlushFrequency = cc.getWriteFromBehindFlushFrequency();
+        writeFromBehindFlushSize = cc.getWriteFromBehindFlushSize();
+        writeFromBehindFlushThreadCnt = cc.getWriteFromBehindFlushThreadCount();
     }
 
     /** {@inheritDoc} */
@@ -974,6 +994,80 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      */
     public void setStoreEnabled(boolean storeEnabled) {
         this.storeEnabled = storeEnabled;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isWriteFromBehindEnabled() {
+        return writeFromBehindEnabled;
+    }
+
+    /**
+     * Sets flag indicating whether write-from-behind is enabled.
+     *
+     * @param writeFromBehindEnabled {@code true} if write-from-behind is enabled.
+     */
+    public void setWriteFromBehindEnabled(boolean writeFromBehindEnabled) {
+        this.writeFromBehindEnabled = writeFromBehindEnabled;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindFlushSize() {
+        return writeFromBehindFlushSize;
+    }
+
+    /**
+     * Sets write-from-behind flush size.
+     *
+     * @param writeFromBehindFlushSize Write-from-behind cache flush size.
+     * @see #getWriteFromBehindFlushSize()
+     */
+    public void setWriteFromBehindFlushSize(int writeFromBehindFlushSize) {
+        this.writeFromBehindFlushSize = writeFromBehindFlushSize;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindFlushFrequency() {
+        return writeFromBehindFlushFrequency;
+    }
+
+    /**
+     * Sets write-from-behind flush frequency.
+     *
+     * @param writeFromBehindFlushFrequency Write-from-behind flush frequency in milliseconds.
+     * @see #getWriteFromBehindFlushFrequency()
+     */
+    public void setWriteFromBehindFlushFrequency(int writeFromBehindFlushFrequency) {
+        this.writeFromBehindFlushFrequency = writeFromBehindFlushFrequency;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindFlushThreadCount() {
+        return writeFromBehindFlushThreadCnt;
+    }
+
+    /**
+     * Sets flush thread count for write-from-behind cache.
+     *
+     * @param writeFromBehindFlushThreadCnt Count of flush threads.
+     * @see #getWriteFromBehindFlushThreadCount()
+     */
+    public void setWriteFromBehindFlushThreadCount(int writeFromBehindFlushThreadCnt) {
+        this.writeFromBehindFlushThreadCnt = writeFromBehindFlushThreadCnt;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindBatchSize() {
+        return writeFromBehindBatchSize;
+    }
+
+    /**
+     * Sets maximum batch size for write-from-behind cache.
+     *
+     * @param writeFromBehindBatchSize Maximum batch size.
+     * @see #getWriteFromBehindBatchSize()
+     */
+    public void setWriteFromBehindBatchSize(int writeFromBehindBatchSize) {
+        this.writeFromBehindBatchSize = writeFromBehindBatchSize;
     }
 
     /** {@inheritDoc} */

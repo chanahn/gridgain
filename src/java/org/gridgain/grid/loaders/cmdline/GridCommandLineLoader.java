@@ -33,16 +33,16 @@ import static org.gridgain.grid.GridSystemProperties.*;
  * this loader and you can use them as an example.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 @SuppressWarnings({"CallToSystemExit"})
 @GridLoader(description = "Command line loader")
 public final class GridCommandLineLoader {
     /** Ant-augmented version number. */
-    private static final String VER = "3.5.1c";
+    private static final String VER = "3.6.0c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "18112011";
+    private static final String BUILD = "30112011";
 
     /** Ant-augmented copyright blurb. */
     private static final String COPYRIGHT = "2005-2011 Copyright (C) GridGain Systems, Inc.";

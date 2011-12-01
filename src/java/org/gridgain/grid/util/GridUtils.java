@@ -54,6 +54,7 @@ import java.util.*;
 import java.util.Date;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
 import java.util.jar.*;
 import java.util.regex.*;
 import java.util.zip.*;
@@ -68,7 +69,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Collection of utility methods used throughout the system.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -1495,7 +1496,7 @@ public abstract class GridUtils {
      * Verifier always returns successful result for any host.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @version 3.6.0c.30112011
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.
@@ -5226,6 +5227,39 @@ public abstract class GridUtils {
     }
 
     /**
+     * Awaits for condition.
+     *
+     * @param condition Condition to await for.
+     * @throws GridInterruptedException Wrapped {@link InterruptedException}
+     */
+    public static void await(Condition condition) throws GridInterruptedException {
+       try {
+           condition.await();
+       }
+       catch (InterruptedException e) {
+           throw new GridInterruptedException(e);
+       }
+    }
+
+    /**
+     * Awaits for condition.
+     *
+     * @param condition Condition to await for.
+     * @param time The maximum time to wait,
+     * @param unit The unit of the {@code time} argument.
+     * @return {@code false} if the waiting time detectably elapsed before return from the method, else {@code true}
+     * @throws GridInterruptedException Wrapped {@link InterruptedException}
+     */
+    public static boolean await(Condition condition, long time, TimeUnit unit) throws GridInterruptedException {
+       try {
+           return condition.await(time, unit);
+       }
+       catch (InterruptedException e) {
+           throw new GridInterruptedException(e);
+       }
+    }
+
+    /**
      * Awaits for the latch.
      *
      * @param latch Latch to wait for.
@@ -5634,10 +5668,8 @@ public abstract class GridUtils {
             // Group buckets by entries count.
             Map<Integer, Integer> bucketsStats = new TreeMap<Integer, Integer>();
 
-            for (int j = 0; j < tab.length; j++) {
+            for (Object entry : tab) {
                 int cnt = 0;
-
-                Object entry = tab[j];
 
                 while (entry != null) {
                     cnt++;
@@ -5687,7 +5719,7 @@ public abstract class GridUtils {
                 }
         }
         catch (Exception e) {
-            throw new RuntimeException("Failed to get field value [fieldName=" + fieldName + ", obj=" + obj + ']');
+            throw new RuntimeException("Failed to get field value [fieldName=" + fieldName + ", obj=" + obj + ']', e);
         }
 
         throw new RuntimeException("Failed to get field value [fieldName=" + fieldName + ", obj=" + obj + ']');

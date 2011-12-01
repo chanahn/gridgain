@@ -13,6 +13,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.cache.cloner.*;
+import org.gridgain.grid.cache.store.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.managers.communication.*;
 import org.gridgain.grid.kernal.managers.deployment.*;
@@ -51,7 +52,7 @@ import static org.gridgain.grid.cache.GridCachePreloadMode.*;
  * Cache context.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 @GridToStringExclude
 public class GridCacheContext<K, V> implements Externalizable {
@@ -73,6 +74,9 @@ public class GridCacheContext<K, V> implements Externalizable {
 
     /** Cache configuration. */
     private GridCacheConfigurationAdapter cacheCfg;
+
+    /** Cache store. TODO assign and initialize WFB */
+    private GridCacheStore<K, V> cacheStore;
 
     /** Cache transaction manager. */
     private GridCacheTxManager<K, V> txMgr;
@@ -162,6 +166,7 @@ public class GridCacheContext<K, V> implements Externalizable {
     /**
      * @param ctx Kernal context.
      * @param cacheCfg Cache configuration.
+     * @param cacheStore Cache store.
      * @param mvccMgr Cache locking manager.
      * @param verMgr Cache version manager.
      * @param evtMgr Cache event manager.
@@ -178,6 +183,7 @@ public class GridCacheContext<K, V> implements Externalizable {
     public GridCacheContext(
         GridKernalContext ctx,
         GridCacheConfigurationAdapter cacheCfg,
+        GridCacheStore<K, V> cacheStore,
 
         /*
          * Managers in starting order!
@@ -211,6 +217,7 @@ public class GridCacheContext<K, V> implements Externalizable {
 
         this.ctx = ctx;
         this.cacheCfg = cacheCfg;
+        this.cacheStore = cacheStore;
 
         /*
          * Managers in starting order!
@@ -668,6 +675,17 @@ public class GridCacheContext<K, V> implements Externalizable {
      */
     public GridCacheConfigurationAdapter config() {
         return cacheCfg;
+    }
+
+    /**
+     * This method returns either write-from-behind cache store, if write-from-behind is configured,
+     * user-specified cache store if it is configured or {@code null} if no cache store specified.
+     *
+     * @return Cache store.
+     */
+    @SuppressWarnings({"RedundantCast"})
+    public <K, V> GridCacheStore<K, V> getStore() {
+        return (GridCacheStore<K, V>)cacheStore;
     }
 
     /**

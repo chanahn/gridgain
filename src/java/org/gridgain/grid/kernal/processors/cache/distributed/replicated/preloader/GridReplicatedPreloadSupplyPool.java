@@ -27,7 +27,7 @@ import java.util.concurrent.locks.*;
  * Thread pool for supplying entries to demanding nodes.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 class GridReplicatedPreloadSupplyPool<K, V> {
     /** Cache context. */
@@ -83,7 +83,7 @@ class GridReplicatedPreloadSupplyPool<K, V> {
      */
     void start() {
         for (SupplyWorker w : workers)
-            new GridThread(cctx.gridName(), "preloader-supply-wrk", w).start();
+            new GridThread(cctx.gridName(), "preloader-supply-worker", w).start();
 
         if (log.isDebugEnabled())
             log.debug("Started supply pool: " + workers.size());
@@ -193,7 +193,7 @@ class GridReplicatedPreloadSupplyPool<K, V> {
          * Default constructor.
          */
         private SupplyWorker() {
-            super(cctx.gridName(), "preloader-supply-wrk", log);
+            super(cctx.gridName(), "preloader-supply-worker", log);
         }
 
         /** {@inheritDoc} */

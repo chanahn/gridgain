@@ -37,7 +37,7 @@ import org.gridgain.grover.categories.GroverProjectionCategory
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @version 3.6.0c.30112011
  */
 @Typed
 @Use(GroverProjectionCategory)
@@ -131,7 +131,7 @@ class GroverCountGraphTrianglesExample {
      * Main algorithm closure.
      *
      * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @version 3.6.0c.30112011
      */
     @Typed
     private static class AlgorithmClosure extends COX<Integer> {

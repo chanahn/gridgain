@@ -20,6 +20,7 @@ org.gridgain.grid.cache.query
 org.gridgain.grid.cache.store
 org.gridgain.grid.cache.store.hibernate
 org.gridgain.grid.cache.store.jdbc
+org.gridgain.grid.cache.store.writefrombehind
 org.gridgain.grid.editions
 org.gridgain.grid.events
 org.gridgain.grid.gridify
