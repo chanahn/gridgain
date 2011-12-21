@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -9,6 +9,7 @@
 
 package org.gridgain.grid.cache.eviction.lru;
 
+import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.lang.utils.*;
@@ -17,14 +18,16 @@ import org.gridgain.grid.lang.utils.GridQueue.Node;
 
 import java.util.*;
 
+import static org.gridgain.grid.cache.GridCachePeekMode.*;
+
 /**
  * Eviction policy based on {@code Least Recently Used (LRU)} algorithm. This
  * implementation is very efficient since it is lock-free and does not
  * create any additional table-like data structures. The {@code LRU} ordering
  * information is maintained by attaching ordering metadata to cache entries.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,
     GridCacheLruEvictionPolicyMBean {
@@ -33,6 +36,9 @@ public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy
 
     /** Maximum size. */
     private volatile int max = -1;
+
+    /** Allow empty entries flag. */
+    private volatile boolean allowEmptyEntries = true;
 
     /** Doubly-linked queue which supports GC-robust removals. */
     private final GridQueue<GridCacheEntry<K, V>> queue = new GridQueue<GridCacheEntry<K, V>>();
@@ -56,6 +62,19 @@ public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy
     }
 
     /**
+     * Constructs LRU eviction policy with maximum size and specified flag whether to allow
+     * empty entries.
+     *
+     * @param max Maximum allowed size of cache before entry will start getting evicted.
+     * @param allowEmptyEntries If {@code true}, entries with null values will be evicted immediately.
+     */
+    public GridCacheLruEvictionPolicy(int max, boolean allowEmptyEntries) {
+        this(max);
+
+        this.allowEmptyEntries = allowEmptyEntries;
+    }
+
+    /**
      * Gets maximum allowed size of cache before entry will start getting evicted.
      *
      * @return Maximum allowed size of cache before entry will start getting evicted.
@@ -73,6 +92,16 @@ public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy
         A.ensure(max > 0, "max > 0");
 
         this.max = max;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isAllowEmptyEntries() {
+        return allowEmptyEntries;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setAllowEmptyEntries(boolean allowEmptyEntries) {
+        this.allowEmptyEntries = allowEmptyEntries;
     }
 
     /** {@inheritDoc} */
@@ -96,8 +125,19 @@ public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy
 
     /** {@inheritDoc} */
     @Override public void onEntryAccessed(boolean rmv, GridCacheEntry<K, V> entry) {
-        if (!rmv)
-            touch(entry);
+        if (!rmv) {
+            if (!allowEmptyEntries && empty(entry)) {
+                Node<GridCacheEntry<K, V>> node = entry.removeMeta(meta);
+
+                if (node != null)
+                    queue.unlink(node);
+
+                if (!entry.evict())
+                    touch(entry);
+            }
+            else
+                touch(entry);
+        }
         else {
             Node<GridCacheEntry<K, V>> node = entry.removeMeta(meta);
 
@@ -106,6 +146,25 @@ public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy
         }
 
         shrink();
+    }
+
+    /**
+     * Checks entry for empty value.
+     *
+     * @param entry Entry to check.
+     * @return {@code True} if entry is empty.
+     */
+    private boolean empty(GridCacheEntry<K, V> entry) {
+        try {
+            return !entry.hasValue(GLOBAL);
+        }
+        catch (GridException e) {
+            U.error(null, e.getMessage(), e);
+
+            assert false : "Should never happen: " + e;
+
+            return false;
+        }
     }
 
     /**

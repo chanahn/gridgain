@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -9,9 +9,12 @@
 
 package org.gridgain.grid.cache.eviction.random;
 
+import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.typedef.internal.*;
+
+import static org.gridgain.grid.cache.GridCachePeekMode.*;
 
 /**
  * Cache eviction policy which will select random cache entry for eviction if cache
@@ -22,13 +25,15 @@ import org.gridgain.grid.typedef.internal.*;
  * Random eviction will provide the best performance over any key set in which every
  * key has the same probability of being accessed.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 public class GridCacheRandomEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,
     GridCacheRandomEvictionPolicyMBean {
     /** Maximum size. */
     private volatile int max = -1;
+
+    private volatile boolean allowEmptyEntries = true;
 
     /**
      * Constructs random eviction policy with all defaults.
@@ -46,6 +51,19 @@ public class GridCacheRandomEvictionPolicy<K, V> implements GridCacheEvictionPol
         A.ensure(max > 0, "max > 0");
 
         this.max = max;
+    }
+
+    /**
+     * Constructs random eviction policy with maximum size and specifie allow empty entries flag.
+     *
+     * @param max Maximum allowed size of cache before entry will start getting evicted.
+     * @param allowEmptyEntries If {@code false},empty entries will be evicted immediately.
+     */
+    public GridCacheRandomEvictionPolicy(int max, boolean allowEmptyEntries) {
+        A.ensure(max > 0, "max > 0");
+
+        this.max = max;
+        this.allowEmptyEntries = allowEmptyEntries;
     }
 
     /**
@@ -69,8 +87,21 @@ public class GridCacheRandomEvictionPolicy<K, V> implements GridCacheEvictionPol
     }
 
     /** {@inheritDoc} */
+    @Override public boolean isAllowEmptyEntries() {
+        return allowEmptyEntries;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setAllowEmptyEntries(boolean allowEmptyEntries) {
+        this.allowEmptyEntries = allowEmptyEntries;
+    }
+
+    /** {@inheritDoc} */
     @Override public void onEntryAccessed(boolean rmv, GridCacheEntry<K, V> entry) {
         GridCache<K, V> cache = entry.parent().cache();
+
+        if (!allowEmptyEntries && empty(entry))
+            entry.evict();
 
         int size = cache.keySize();
 
@@ -79,6 +110,25 @@ public class GridCacheRandomEvictionPolicy<K, V> implements GridCacheEvictionPol
 
             if (e != null)
                 e.evict();
+        }
+    }
+
+    /**
+     * Checks entry for empty value.
+     *
+     * @param entry Entry to check.
+     * @return {@code True} if entry is empty.
+     */
+    private boolean empty(GridCacheEntry<K, V> entry) {
+        try {
+            return !entry.hasValue(GLOBAL);
+        }
+        catch (GridException e) {
+            U.error(null, e.getMessage(), e);
+
+            assert false : "Should never happen: " + e;
+
+            return false;
         }
     }
 

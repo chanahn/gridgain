@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -9,19 +9,22 @@
 
 package org.gridgain.grid.kernal.processors.cache;
 
-import org.gridgain.grid.cache.*;
-import org.gridgain.grid.cache.affinity.*;
-import org.gridgain.grid.lang.*;
-import org.gridgain.grid.logger.*;
-import org.gridgain.grid.resources.*;
-import org.gridgain.grid.typedef.*;
-import org.gridgain.grid.typedef.internal.*;
-import org.gridgain.grid.util.*;
-import org.jetbrains.annotations.*;
+import org.gridgain.grid.GridException;
+import org.gridgain.grid.cache.GridCacheConfiguration;
+import org.gridgain.grid.cache.affinity.GridCacheAffinityKey;
+import org.gridgain.grid.cache.affinity.GridCacheAffinityMapped;
+import org.gridgain.grid.cache.affinity.GridCacheAffinityMapper;
+import org.gridgain.grid.logger.GridLogger;
+import org.gridgain.grid.resources.GridLoggerResource;
+import org.gridgain.grid.typedef.F;
+import org.gridgain.grid.typedef.P1;
+import org.gridgain.grid.typedef.internal.U;
+import org.gridgain.grid.util.GridArgumentCheck;
+import org.gridgain.grid.util.GridReflectionCache;
 
-import java.lang.annotation.*;
-import java.lang.reflect.*;
-import java.util.concurrent.*;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 /**
  * Default key affinity mapper. If key class has annotation {@link GridCacheAffinityMapped},
@@ -34,17 +37,35 @@ import java.util.concurrent.*;
  * If non-default affinity mapper is used, is should be provided via
  * {@link GridCacheConfiguration#getAffinityMapper()} configuration property.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMapper<K> {
-    /** Weak fields cache. If class is GC'ed, then it will be removed from this cache. */
-    private transient ConcurrentMap<String, GridTuple2<Field, Class<?>>> fields =
-        new ConcurrentHashMap<String, GridTuple2<Field, Class<?>>>();
+    /** Reflection cache. */
+    private GridReflectionCache reflectCache = new GridReflectionCache(
+        new P1<Field>() {
+            @Override public boolean apply(Field f) {
+                // Account for anonymous inner classes.
+                return f.getAnnotation(GridCacheAffinityMapped.class) != null;
+            }
+        },
+        new P1<Method>() {
+            @Override public boolean apply(Method m) {
+                // Account for anonymous inner classes.
+                Annotation ann = m.getAnnotation(GridCacheAffinityMapped.class);
 
-    /** Weak methods cache. If class is GC'ed, then it will be removed from this cache. */
-    private transient ConcurrentMap<String, GridTuple2<Method, Class<?>>> mtds =
-        new ConcurrentHashMap<String, GridTuple2<Method, Class<?>>>();
+                if (ann != null) {
+                    if (!F.isEmpty(m.getParameterTypes()))
+                        throw new IllegalStateException("Method annotated with @GridCacheAffinityKey annotation " +
+                                "cannot have parameters: " + m);
+
+                    return true;
+                }
+
+                return false;
+            }
+        }
+    );
 
     /** Logger. */
     @GridLoggerResource
@@ -61,112 +82,33 @@ public class GridCacheDefaultAffinityMapper<K> implements GridCacheAffinityMappe
     @Override public Object affinityKey(K key) {
         GridArgumentCheck.notNull(key, "key");
 
-        Class<?> cls = key.getClass();
+        try {
+            Object o = reflectCache.firstFieldValue(key);
 
-        Field f = field(cls);
-
-        if (f != null) {
-            try {
-                return f.get(key);
-            }
-            catch (IllegalAccessException e) {
-                U.error(log, "Failed to access affinity field for key [field=" + f + ", key=" + key + ']', e);
-            }
+            if (o != null)
+                return o;
         }
-        else {
-            Method m = method(cls);
+        catch (GridException e) {
+            U.error(log, "Failed to access affinity field for key [field=" + reflectCache.firstField(key.getClass()) +
+                ", key=" + key + ']', e);
+        }
 
-            if (m != null) {
-                try {
-                    return m.invoke(key);
-                }
-                catch (IllegalAccessException e) {
-                    U.error(log, "Failed to invoke affinity method for key [mtd=" + m + ", key=" + key + ']', e);
-                }
-                catch (InvocationTargetException e) {
-                    U.error(log, "Failed to invoke affinity method for key [mtd=" + m + ", key=" + key + ']', e);
-                }
-            }
+        try {
+            Object o = reflectCache.firstMethodValue(key);
+
+            if (o != null)
+                return o;
+        }
+        catch (GridException e) {
+            U.error(log, "Failed to invoke affinity method for key [mtd=" + reflectCache.firstMethod(key.getClass()) +
+                ", key=" + key + ']', e);
         }
 
         return key;
     }
 
-    /**
-     * Creates empty maps for field and method accessors and brings mapper to it's initial state.
-     *
-     * @see GridCacheAffinityMapper#reset()
-     */
+    /** {@inheritDoc} */
     @Override public void reset() {
-        fields = new ConcurrentHashMap<String, GridTuple2<Field, Class<?>>>();
-        mtds = new ConcurrentHashMap<String, GridTuple2<Method, Class<?>>>();
-    }
-
-    /**
-     * Gets fields annotated with {@link GridCacheAffinityMapped} annotation.
-     *
-     * @param cls Class.
-     * @return Annotated field.
-     */
-    @Nullable private Field field(Class<?> cls) {
-        GridTuple2<Field, Class<?>> tuple = fields.get(cls.getName());
-
-        if (tuple == null || !cls.equals(tuple.get2())) {
-            for (Class<?> c = cls; !c.equals(Object.class); c = c.getSuperclass()) {
-                for (Field f : c.getDeclaredFields()) {
-                    // Account for anonymous inner classes.
-                    Annotation ann = f.getAnnotation(GridCacheAffinityMapped.class);
-
-                    if (ann != null) {
-                        f.setAccessible(true);
-
-                        fields.putIfAbsent(cls.getName(), new GridTuple2<Field, Class<?>>(f, cls));
-
-                        return f;
-                    }
-                }
-            }
-
-            fields.putIfAbsent(cls.getName(), tuple = new GridTuple2<Field, Class<?>>(null, cls));
-        }
-
-        return tuple.get1();
-    }
-
-
-    /**
-     * Gets method annotated with {@link GridCacheAffinityMapped} annotation.
-     *
-     * @param cls Class.
-     * @return Annotated method.
-     */
-    @Nullable private Method method(Class<?> cls) {
-        GridTuple2<Method, Class<?>> mtd = mtds.get(cls.getName());
-
-        if (mtd == null || !cls.equals(mtd.get2())) {
-            for (Class<?> c = cls; !c.equals(Object.class); c = c.getSuperclass()) {
-                for (Method m : c.getDeclaredMethods()) {
-                    // Account for anonymous inner classes.
-                    Annotation ann = m.getAnnotation(GridCacheAffinityMapped.class);
-
-                    if (ann != null) {
-                        if (!F.isEmpty(m.getParameterTypes())) {
-                            throw new IllegalStateException("Method annotated with @GridCacheAffinityKey annotation " +
-                                "cannot have parameters: " + mtd);
-                        }
-
-                        m.setAccessible(true);
-
-                        mtds.putIfAbsent(cls.getName(), new GridTuple2<Method, Class<?>>(m, cls));
-
-                        return m;
-                    }
-                }
-            }
-
-            mtds.putIfAbsent(cls.getName(), mtd = new GridTuple2<Method, Class<?>>(null, cls));
-        }
-
-        return mtd.get1();
+        // No-op.
     }
 }

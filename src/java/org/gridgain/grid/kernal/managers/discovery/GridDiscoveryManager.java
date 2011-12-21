@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -24,6 +24,7 @@ import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.worker.*;
 import org.jetbrains.annotations.*;
+
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -36,8 +37,8 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
 /**
  * Discovery SPI manager.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     /** System line separator. */
@@ -61,16 +62,22 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     };
 
     /** Discovery event worker. */
-    private DiscoveryWorker discoWrk = new DiscoveryWorker();
+    private final DiscoveryWorker discoWrk = new DiscoveryWorker();
 
     /** Discovery event worker thread. */
     private GridThread discoWrkThread;
 
     /** Network segment check worker. */
-    private GridWorker segChkWrk = new SegmentCheckWorker();
+    private GridWorker segChkWrk;
 
     /** Network segment check thread. */
     private GridThread segChkThread;
+
+    /** Reconnect worker. */
+    private ReconnectWorker reconWrk;
+
+    /** Reconnect thread. */
+    private GridThread reconThread;
 
     /** Last logged topology. */
     private final AtomicLong lastLoggedTop = new AtomicLong(0);
@@ -83,15 +90,6 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
 
     /** Network segment check enabled flag. */
     private boolean segChkEnabled;
-
-    /** Segmentation guard to sync node stop/restart/reconnect. */
-    private final AtomicBoolean segGuard = new AtomicBoolean();
-
-    /** Thread to reconnect SPI from within. */
-    private volatile Thread reconThread;
-
-    /** Interrupt reconnect thread flag. */
-    private final AtomicBoolean intReconThread = new AtomicBoolean();
 
     /** Last segment check result. */
     private final AtomicBoolean lastSegChkRes = new AtomicBoolean(true);
@@ -196,10 +194,28 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
             }
         });
 
+        // Start reconnect worker first.
+        if (segChkEnabled && ctx.config().getSegmentationPolicy() == RECONNECT) {
+            reconWrk = new ReconnectWorker();
+
+            reconThread = new GridThread(reconWrk);
+
+            reconThread.start();
+        }
+
         // Start discovery worker.
         discoWrkThread = new GridThread(ctx.gridName(), "disco-event-worker", discoWrk);
 
         discoWrkThread.start();
+
+        // Start segment check worker.
+        if (segChkEnabled && ctx.config().getSegmentCheckFrequency() > 0) {
+            segChkWrk = new SegmentCheckWorker();
+
+            segChkThread = new GridThread(segChkWrk);
+
+            segChkThread.start();
+        }
 
         getSpi().setListener(new GridDiscoverySpiListener() {
             @Override public void onDiscovery(int type, GridNode node) {
@@ -215,13 +231,6 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         checkAttributes();
 
         locNode = getSpi().getLocalNode();
-
-        if (segChkEnabled && ctx.config().getSegmentCheckFrequency() > 0) {
-            // Start network segmentation check worker.
-            segChkThread = new GridThread(ctx.gridName(), "disco-net-seg-chk-worker", segChkWrk);
-
-            segChkThread.start();
-        }
 
         if (!isLocDaemon)
             ackTopology();
@@ -359,11 +368,11 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         int totalCpus = ctx.grid().cpus();
 
         if (log.isQuiet())
-            U.quiet(U.bright(PREFIX + " [" +
+            U.quiet(PREFIX + " [" +
                 "nodes=" + (rmtNodes.size() + 1) +
                 ", CPUs=" + totalCpus +
                 ", hash=0x" + Long.toHexString(hash).toUpperCase() +
-                ']'));
+                ']');
         else if (log.isDebugEnabled()) {
             String dbg = "";
 
@@ -413,26 +422,24 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         // Stop receiving notifications.
         getSpi().setListener(null);
 
+        // Stop segment check worker.
+        if (segChkWrk != null) {
+            segChkWrk.cancel();
+
+            U.join(segChkThread, log);
+        }
+
         // Stop discovery worker.
         discoWrk.cancel();
 
         U.join(discoWrkThread, log);
 
-        discoWrkThread = null;
+        // Stop reconnect worker.
+        if (reconWrk != null) {
+            reconWrk.cancel();
 
-        // Stop segment check worker.
-        segChkWrk.cancel();
-
-        U.join(segChkThread, log);
-
-        // Decrease possibility of undesired restart, since we cannot fully guarantee that.
-        segGuard.set(true);
-
-        // First set this flag, then interrupt thread.
-        intReconThread.set(true);
-
-        U.interrupt(reconThread);
-        U.join(reconThread, log);
+            U.join(reconThread, log);
+        }
     }
 
     /** {@inheritDoc} */
@@ -674,6 +681,37 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     }
 
     /**
+     * Stops local node.
+     *
+     */
+    private void stopNode() {
+        new Thread(
+            new Runnable() {
+                @Override public void run() {
+                    ctx.markSegmented();
+
+                    G.stop(ctx.gridName(), true, false);
+                }
+            }
+        ).start();
+    }
+
+    /**
+     * Restarts JVM.
+     */
+    private void restartJvm() {
+        new Thread(
+            new Runnable() {
+                @Override public void run() {
+                    ctx.markSegmented();
+
+                    G.restart(true, false);
+                }
+            }
+        ).start();
+    }
+
+    /**
      * Worker for network segment checks.
      */
     private class SegmentCheckWorker extends GridWorker {
@@ -681,14 +719,14 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
          *
          */
         private SegmentCheckWorker() {
-            super(ctx.gridName(), "net-seg-chk-worker", log);
+            super(ctx.gridName(), "disco-net-seg-chk-worker", log);
+
+            assert segChkEnabled;
         }
 
         /** {@inheritDoc} */
         @SuppressWarnings({"BusyWait"})
         @Override protected void body() throws InterruptedException {
-            assert segChkEnabled;
-
             int timeout = ctx.config().getSegmentCheckFrequency();
 
             assert timeout > 0;
@@ -711,6 +749,67 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         /** {@inheritDoc} */
         @Override public String toString() {
             return S.toString(SegmentCheckWorker.class, this);
+        }
+    }
+
+    /**
+     * Worker for network segment checks.
+     */
+    private class ReconnectWorker extends GridWorker {
+        /** */
+        private final BlockingQueue<Object> queue = new LinkedBlockingQueue<Object>();
+
+        /**
+         *
+         */
+        private ReconnectWorker() {
+            super(ctx.gridName(), "disco-recon-worker", log);
+
+            assert segChkEnabled;
+            assert ctx.config().getSegmentationPolicy() == RECONNECT;
+        }
+
+        /**
+         *
+         */
+        public void scheduleReconnect() {
+            queue.add(new Object());
+        }
+
+        /** {@inheritDoc} */
+        @SuppressWarnings({"BusyWait"})
+        @Override protected void body() throws InterruptedException {
+            assert segChkEnabled;
+
+            int timeout = ctx.config().getSegmentCheckFrequency();
+
+            assert timeout > 0;
+
+            while (!isCancelled()) {
+                queue.take();
+
+                try {
+                    checkSegmentOnStart();
+
+                    getSpi().reconnect();
+
+                    // Refresh local node.
+                    locNode = getSpi().getLocalNode();
+                }
+                catch (GridException e) {
+                    U.error(log, "Failed to reconnect discovery SPI to topology (will stop node).", e);
+
+                    stopNode();
+
+                    G.stop(ctx.gridName(), true, false);
+                }
+
+            }
+        }
+
+        /** {@inheritDoc} */
+        @Override public String toString() {
+            return S.toString(ReconnectWorker.class, this);
         }
     }
 
@@ -979,107 +1078,52 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
          *
          */
         private void onSegmentation() {
-            if (segGuard.compareAndSet(false, true)) {
-                GridSegmentationPolicy segPlc = ctx.config().getSegmentationPolicy();
+            GridSegmentationPolicy segPlc = ctx.config().getSegmentationPolicy();
 
-                switch (segPlc) {
-                    case RECONNECT:
-                        // Disconnect SPI synchronously to maintain consistent
-                        // local topology.
-                        try {
-                            getSpi().disconnect();
-
-                            reconnectSpi();
-                        }
-                        catch (GridSpiException e) {
-                            U.error(log, "Failed to disconnect discovery SPI.", e);
-                        }
-
-                        break;
-
-                    case RESTART_JVM:
-                        restartJvm();
-
-                        break;
-
-                    case STOP:
-                        stopNode();
-
-                        break;
-
-                    default:
-                        assert segPlc == NOOP : "Unsupported segmentation policy value: " + segPlc;
-                }
-            }
-        }
-
-        /**
-         * Creates and starts SPI reconnect thread.
-         */
-        private void reconnectSpi() {
-            reconThread = new Thread(
-                new Runnable() {
-                    @Override public void run() {
-                        if (intReconThread.get())
-                            return;
-
+            switch (segPlc) {
+                case RECONNECT:
+                    // Disconnect SPI synchronously to maintain consistent
+                    // local topology.
+                    try {
                         U.warn(log, "Will try to reconnect discovery SPI to topology " +
                             "(according to configured segmentation policy).");
 
-                        try {
-                            checkSegmentOnStart();
+                        getSpi().disconnect();
 
-                            getSpi().reconnect();
-
-                            // Refresh local node.
-                            locNode = getSpi().getLocalNode();
-
-                            // Set to 'false' here since if exception is thrown, no further reconnects
-                            // are possible.
-                            segGuard.set(false);
-                        }
-                        catch (GridException e) {
-                            throw new GridRuntimeException("Failed to reconnect discovery SPI to topology.", e);
-                        }
+                        reconWrk.scheduleReconnect();
                     }
-                }
-            );
+                    catch (GridSpiException e) {
+                        U.error(log, "Failed to disconnect discovery SPI (will stop node).", e);
 
-            reconThread.start();
-        }
-
-        /**
-         * Restarts JVM.
-         */
-        private void restartJvm() {
-            new Thread(
-                new Runnable() {
-                    @Override public void run() {
-                        U.warn(log, "Restarting JVM according to configured segmentation policy.");
-
-                        ctx.markSegmented();
-
-                        G.restart(true, false);
+                        // Stop from separate thread only.
+                        stopNode();
                     }
-                }
-            ).start();
-        }
+                    catch (GridException e) {
+                        U.error(log, "Failed to reconnect discovery SPI (will stop node).", e);
 
-        /**
-         * Stops local node.
-         */
-        private void stopNode() {
-            new Thread(
-                new Runnable() {
-                    @Override public void run() {
-                        U.warn(log, "Stopping local node according to configured segmentation policy.");
-
-                        ctx.markSegmented();
-
-                        G.stop(ctx.gridName(), true, false);
+                        // Stop from separate thread only.
+                        stopNode();
                     }
-                }
-            ).start();
+
+                    break;
+
+                case RESTART_JVM:
+                    U.warn(log, "Restarting JVM according to configured segmentation policy.");
+
+                    restartJvm();
+
+                    break;
+
+                case STOP:
+                    U.warn(log, "Stopping local node according to configured segmentation policy.");
+
+                    stopNode();
+
+                    break;
+
+                default:
+                    assert segPlc == NOOP : "Unsupported segmentation policy value: " + segPlc;
+            }
         }
 
         /** {@inheritDoc} */

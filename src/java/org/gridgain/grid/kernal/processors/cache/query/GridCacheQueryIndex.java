@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
 *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -40,8 +40,8 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
 /**
  * Cache query index. Manages full life-cycle of query index database (h2).
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 @SuppressWarnings({"UnnecessaryFullyQualifiedName"})
 public class GridCacheQueryIndex<K, V> {
@@ -345,18 +345,20 @@ public class GridCacheQueryIndex<K, V> {
             try {
                 Connection conn = connectionForThread(false);
 
-                try {
-                    FullText.dropAll(conn);
-                }
-                catch (SQLException e) {
-                    U.warn(log, "Failed to drop H2 fulltext indexes: " + e.getMessage());
-                }
+                if (!cctx.config().isIndexMemoryOnly()) {
+                    try {
+                        FullText.dropAll(conn);
+                    }
+                    catch (SQLException e) {
+                        U.warn(log, "Failed to drop H2 fulltext indexes: " + e.getMessage());
+                    }
 
-                try {
-                    FullTextLucene.dropAll(conn);
-                }
-                catch (SQLException e) {
-                    U.warn(log, "Failed to drop H2 lucene indexes: " + e.getMessage());
+                    try {
+                        FullTextLucene.dropAll(conn);
+                    }
+                    catch (SQLException e) {
+                        U.warn(log, "Failed to drop H2 lucene indexes: " + e.getMessage());
+                    }
                 }
 
                 if (conn != null) {
@@ -833,7 +835,7 @@ public class GridCacheQueryIndex<K, V> {
 
         if (cctx.config().isIndexFixedTyping()) {
             if (!queryType.keyClass().equals(key.getClass())) {
-                U.error(log, "Query index was not updated since configuration property 'indexFixedTyping'" +
+                LT.error(log, null, "Query index was not updated since configuration property 'indexFixedTyping'" +
                     " is 'true' but passed in value type was already associated with different key type" +
                     " [registeredKeyType=" + queryType.keyClass().getName() + ", keyType=" + key.getClass().getName() +
                     ", valType=" + queryType.valueClass().getName() + ']');
@@ -845,7 +847,7 @@ public class GridCacheQueryIndex<K, V> {
                 Class<?> tableValClass = table.type().valueClass();
 
                 if (!tableValClass.equals(val.getClass())) {
-                    U.error(log, "Query index was not updated since configuration property 'indexFixedTyping'" +
+                    LT.error(log, null, "Query index was not updated since configuration property 'indexFixedTyping'" +
                         " is 'true' but passed in key type was already associated with different value type" +
                         " [keyType=" + key.getClass().getName() + ", registeredValType=" + tableValClass.getName() +
                         ", valType=" + queryType.valueClass().getName() + ']');
@@ -1552,10 +1554,10 @@ public class GridCacheQueryIndex<K, V> {
             }
         }
 
-        if (h2TxtCols.length() != 0)
+        if (!cctx.config().isIndexMemoryOnly() && h2TxtCols.length() != 0)
             FullText.createIndex(conn, schema, table.tableName().toUpperCase(), h2TxtCols.toString());
 
-        if (lucTxtCols.length() != 0)
+        if (!cctx.config().isIndexMemoryOnly() && lucTxtCols.length() != 0)
             FullTextLucene.createIndex(conn, schema, table.tableName().toUpperCase(), lucTxtCols.toString());
     }
 
@@ -1659,7 +1661,7 @@ public class GridCacheQueryIndex<K, V> {
             if (!embeddable && isComplexType(type))
                 processAnnotationsInClass(type, cls, current);
 
-            if (sqlAnn.name().length() > 0)
+            if (!sqlAnn.name().isEmpty())
                 prop.name(sqlAnn.name());
 
             if (sqlAnn.index()) {
@@ -2364,7 +2366,7 @@ public class GridCacheQueryIndex<K, V> {
     /**
      * Class to store information about group index.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
+     * @author 2011 Copyright (C) GridGain Systems
      */
     private static class IndexGroup {
         /** */
@@ -2405,7 +2407,7 @@ public class GridCacheQueryIndex<K, V> {
     /**
      * Information about table in database.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
+     * @author 2011 Copyright (C) GridGain Systems
      */
     private class TableDescriptor {
         /** */

@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*
  * ________               ______                    ______   _______
@@ -21,8 +21,8 @@ import org.gridgain.grid.GridClosureCallMode._
 /**
  * Scalar-based Monte-Carlo example.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 object ScalarCreditRiskExample {
     def main(args: Array[String]) {
@@ -103,8 +103,8 @@ object ScalarCreditRiskExample {
  * of this example, it is close enough to emulate the real-life credit
  * risk assessment application.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 private case class Credit(
     remAmnt: Double, // Remaining crediting amount.
@@ -129,8 +129,8 @@ private case class Credit(
 /**
  * This class abstracts out the calculation of risk for a credit portfolio.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 private class CreditRiskManager {
     /**

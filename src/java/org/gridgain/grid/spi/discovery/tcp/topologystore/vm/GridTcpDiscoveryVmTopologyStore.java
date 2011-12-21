@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -26,8 +26,8 @@ import static org.gridgain.grid.spi.discovery.tcp.topologystore.GridTcpDiscovery
  * <h1 class="header">Configuration</h1>
  * There are no configuration parameters.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 public class GridTcpDiscoveryVmTopologyStore implements GridTcpDiscoveryTopologyStore {
     /** Map to store nodes. */
@@ -76,8 +76,13 @@ public class GridTcpDiscoveryVmTopologyStore implements GridTcpDiscoveryTopology
         lock.readLock().lock();
 
         try {
-            return new LinkedList<GridTcpDiscoveryTopologyStoreNode>(X.cloneObject(store.tailMap(minTopVer, false).
-                headMap(maxTopVer, true).values(), true, true));
+            Collection<GridTcpDiscoveryTopologyStoreNode> res = new LinkedList<GridTcpDiscoveryTopologyStoreNode>();
+
+            for (GridTcpDiscoveryTopologyStoreNode n : store.tailMap(minTopVer, false).
+                headMap(maxTopVer, true).values())
+                res.add(X.cloneObject(n, true, true));
+
+            return res;
         }
         finally {
             lock.readLock().unlock();

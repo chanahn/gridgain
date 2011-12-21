@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -19,8 +19,8 @@ import java.util.*;
  * Management bean that provides general administrative and configuration information
  * on file-based swapspace SPI.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 @GridMBeanDescription("MBean that provides administrative and configuration information on file-based swapspace SPI.")
 public interface GridFileSwapSpaceSpiMBean extends GridSpiManagementMBean {
@@ -154,6 +154,32 @@ public interface GridFileSwapSpaceSpiMBean extends GridSpiManagementMBean {
      */
     @GridMBeanDescription("Task queue capacity.")
     public int getTaskQueueCapacity();
+
+    /**
+     * Gets task queue flush ratio.
+     * <p/>
+     * This parameter is used to calculate flush
+     * size of the queue. When the size of the queue exceeds 
+     * {@link #getTaskQueueCapacity()} * {@code getTaskQueueFlushRatio()} then
+     * worker threads are waken up and start to perform asynchronous task processing.
+     *
+     * @return Task queue flush ratio.
+     */
+    @GridMBeanDescription("Task queue flush ratio.")
+    public float getTaskQueueFlushRatio();
+
+    /**
+     * Gets task queue flush frequency.
+     * <p/>
+     * Each worker thread will wait at most this amount of milliseconds before
+     * it starts to process tasks. Note, however, that if queue size exceeds
+     * {@link #getTaskQueueCapacity()} * {@link #getTaskQueueFlushRatio()}, then
+     * worker threads will wake up immediately.
+     *
+     * @return Task queue flush frequency in milliseconds.
+     */
+    @GridMBeanDescription("Task queue flush frequency.")
+    public int getTaskQueueFlushFrequency();
 
     /**
      * Gets maximum size for individual spaces.

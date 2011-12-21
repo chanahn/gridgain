@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -9,6 +9,7 @@
 
 package org.gridgain.grid.cache.eviction.fifo;
 
+import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.lang.utils.*;
@@ -17,14 +18,16 @@ import org.gridgain.grid.lang.utils.GridQueue.*;
 
 import java.util.*;
 
+import static org.gridgain.grid.cache.GridCachePeekMode.*;
+
 /**
  * Eviction policy based on {@code First In First Out (FIFO)} algorithm. This
  * implementation is very efficient since it is lock-free and does not
  * create any additional table-like data structures. The {@code FIFO} ordering
  * information is maintained by attaching ordering metadata to cache entries.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,
     GridCacheFifoEvictionPolicyMBean {
@@ -33,6 +36,9 @@ public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolic
 
     /** Maximum size. */
     private volatile int max = -1;
+
+    /** Flag indicating whether empty entries are allowed. */
+    private volatile boolean allowEmptyEntries = true;
 
     /** FIFO queue. */
     private final GridQueue<GridCacheEntry<K, V>> queue = new GridQueue<GridCacheEntry<K, V>>();
@@ -45,7 +51,7 @@ public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolic
     }
 
     /**
-     * Constructs LRU eviction policy with maximum size.
+     * Constructs FIFO eviction policy with maximum size. Empty entries are allowed.
      *
      * @param max Maximum allowed size of cache before entry will start getting evicted.
      */
@@ -53,6 +59,18 @@ public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolic
         A.ensure(max > 0, "max > 0");
 
         this.max = max;
+    }
+
+    /**
+     * Constructs FIFO eviction policy with maximum size and allow empty entries flag specified.
+     *
+     * @param max Maximum allowed size of cache before entry will start getting evicted.
+     * @param allowEmptyEntries If false, {@code false} empty entries will be evicted immediately.
+     */
+    public GridCacheFifoEvictionPolicy(int max, boolean allowEmptyEntries) {
+        this(max);
+
+        this.allowEmptyEntries = allowEmptyEntries;
     }
 
     /**
@@ -73,6 +91,16 @@ public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolic
         A.ensure(max > 0, "max > 0");
 
         this.max = max;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isAllowEmptyEntries() {
+        return allowEmptyEntries;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setAllowEmptyEntries(boolean allowEmptyEntries) {
+        this.allowEmptyEntries = allowEmptyEntries;
     }
 
     /** {@inheritDoc} */
@@ -97,7 +125,17 @@ public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolic
     /** {@inheritDoc} */
     @Override public void onEntryAccessed(boolean rmv, GridCacheEntry<K, V> entry) {
         if (!rmv) {
-            touch(entry);
+            if (!allowEmptyEntries && empty(entry)) {
+                Node<GridCacheEntry<K, V>> node = entry.removeMeta(meta);
+
+                if (node != null)
+                    queue.unlink(node);
+
+                if (!entry.evict())
+                    touch(entry);
+            }
+            else
+                touch(entry);
         }
         else {
             Node<GridCacheEntry<K, V>> node = entry.removeMeta(meta);
@@ -120,6 +158,25 @@ public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolic
             Node<GridCacheEntry<K, V>> old = entry.addMeta(meta, queue.offerx(entry));
 
             assert old == null : "Node was enqueued by another thread: " + old;
+        }
+    }
+
+    /**
+     * Checks entry for empty value.
+     *
+     * @param entry Entry to check.
+     * @return {@code True} if entry is empty.
+     */
+    private boolean empty(GridCacheEntry<K, V> entry) {
+        try {
+            return !entry.hasValue(GLOBAL);
+        }
+        catch (GridException e) {
+            U.error(null, e.getMessage(), e);
+
+            assert false : "Should never happen: " + e;
+
+            return false;
         }
     }
 

@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -40,8 +40,8 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * Thread pool for requesting partitions from other nodes
  * and populating local cache.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 @SuppressWarnings( {"NonConstantFieldWithUpperCaseName"})
 public class GridDhtPartitionDemandPool<K, V> {
@@ -509,17 +509,18 @@ public class GridDhtPartitionDemandPool<K, V> {
                     if (log.isDebugEnabled())
                         log.debug("Preloading key [key=" + entry.key() + ", part=" + p + ", node=" + pick.id() + ']');
 
-                    if (!cached.initialValue(
+                    if (cached.initialValue(
                         entry.value(),
                         entry.valueBytes(),
                         entry.version(),
                         entry.ttl(),
                         entry.expireTime(),
                         entry.metrics())) {
-                        if (log.isDebugEnabled())
-                            log.debug("Preloading entry is already in cache (will ignore) [key=" + cached.key() +
-                                ", part=" + p + ']');
+                        cctx.evicts().touch(cached); // Start tracking.
                     }
+                    else if (log.isDebugEnabled())
+                        log.debug("Preloading entry is already in cache (will ignore) [key=" + cached.key() +
+                            ", part=" + p + ']');
                 }
                 catch (GridCacheEntryRemovedException ignored) {
                     if (log.isDebugEnabled())

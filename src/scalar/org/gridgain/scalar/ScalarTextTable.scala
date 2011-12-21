@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*
  * ________               ______                    ______   _______
@@ -18,15 +18,15 @@ import org.gridgain.grid.typedef.internal._
  * ==Overview==
  * Provides `ASCII`-based table with minimal styling support.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 class ScalarTextTable {
     /**
      * Cell style.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.21122011
      */
     private sealed case class Style(
         var leftPad: Int = 1, // >= 0
@@ -47,8 +47,8 @@ class ScalarTextTable {
     /**
      * Cell style.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.21122011
      */
     private object Style {
         /**
@@ -82,8 +82,8 @@ class ScalarTextTable {
     /**
      * Cell holder.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.21122011
      */
     private sealed case class Cell(style: Style, lines: Seq[String]) {
         assert(style != null)
@@ -108,8 +108,8 @@ class ScalarTextTable {
     /**
      * Margin holder.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.21122011
      */
     private sealed case class Margin(
         top: Int = 0,
@@ -514,8 +514,8 @@ class ScalarTextTable {
 /**
  * Static context.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 object ScalarTextTable {
     /**

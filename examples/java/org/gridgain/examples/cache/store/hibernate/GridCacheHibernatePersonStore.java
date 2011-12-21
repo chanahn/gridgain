@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -24,8 +24,8 @@ import java.util.*;
  * Example of {@link GridCacheStore} implementation that uses Hibernate
  * and deals with maps {@link UUID} to {@link Person}.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 public class GridCacheHibernatePersonStore extends GridCacheStoreAdapter<UUID, Person> {
     /** Default hibernate configuration resource path. */
@@ -64,7 +64,7 @@ public class GridCacheHibernatePersonStore extends GridCacheStoreAdapter<UUID, P
     }
 
     /** {@inheritDoc} */
-    @Override public void put(@Nullable String cacheName, GridCacheTx tx, UUID key, @Nullable Person val)
+    @Override public void put(@Nullable String cacheName, @Nullable GridCacheTx tx, UUID key, @Nullable Person val)
         throws GridException {
         X.println("Store put [key=" + key + ", val=" + val + ", tx=" + tx + ']');
 
@@ -91,7 +91,7 @@ public class GridCacheHibernatePersonStore extends GridCacheStoreAdapter<UUID, P
 
     /** {@inheritDoc} */
     @SuppressWarnings({"JpaQueryApiInspection"})
-    @Override public void remove(@Nullable String cacheName, GridCacheTx tx, UUID key) throws GridException {
+    @Override public void remove(@Nullable String cacheName, @Nullable GridCacheTx tx, UUID key) throws GridException {
         X.println("Store remove [key=" + key + ", tx=" + tx + ']');
 
         Session ses = session(tx);

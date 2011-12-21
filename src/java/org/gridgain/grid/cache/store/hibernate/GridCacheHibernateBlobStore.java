@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -138,8 +138,8 @@ import java.util.concurrent.atomic.*;
  * <br>
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.21122011
  */
 public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
     /** Default connection URL (value is <tt>jdbc:h2:mem:hibernateCacheStore;DB_CLOSE_DELAY=-1</tt>). */
@@ -212,7 +212,7 @@ public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, 
     }
 
     /** {@inheritDoc} */
-    @Override public void put(@Nullable String cacheName, GridCacheTx tx, K key, @Nullable V val)
+    @Override public void put(@Nullable String cacheName, @Nullable GridCacheTx tx, K key, @Nullable V val)
         throws GridException {
         init();
 
@@ -245,7 +245,7 @@ public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, 
 
     /** {@inheritDoc} */
     @SuppressWarnings({"JpaQueryApiInspection", "JpaQlInspection"})
-    @Override public void remove(@Nullable String cacheName, GridCacheTx tx, K key) throws GridException {
+    @Override public void remove(@Nullable String cacheName, @Nullable GridCacheTx tx, K key) throws GridException {
         init();
 
         if (log.isDebugEnabled())
