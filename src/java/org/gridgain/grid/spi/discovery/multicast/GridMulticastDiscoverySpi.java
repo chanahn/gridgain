@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -13,6 +13,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.port.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.marshaller.*;
 import org.gridgain.grid.resources.*;
@@ -54,6 +55,7 @@ import static org.gridgain.grid.spi.discovery.multicast.GridMulticastDiscoveryNo
  * <li>Number of retries to send leaving notification(see {@link #setLeaveAttempts(int)})</li>
  * <li>Local IP address (see {@link #setLocalAddress(String)})</li>
  * <li>Port number (see {@link #setTcpPort(int)})</li>
+ * <li>Socket timeout (see {@link #setSocketTimeout(int)})</li>
  * <li>Messages TTL(see {@link #setTimeToLive(int)})</li>
  * <li>Number of heartbeats that could be missed (see {@link #setMaxMissedHeartbeats(int)})</li>
  * <li>Multicast IP address (see {@link #setMulticastGroup(String)})</li>
@@ -97,20 +99,23 @@ import static org.gridgain.grid.spi.discovery.multicast.GridMulticastDiscoveryNo
  * <br>
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  * @see GridDiscoverySpi
  */
 @GridSpiInfo(
-    author = "GridGain Systems, Inc.",
+    author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.5.1c.18112011")
+    version = "3.6.0c.22122011")
 @GridSpiMultipleInstancesSupport(true)
 public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDiscoverySpi,
     GridMulticastDiscoverySpiMBean {
     /** Default heartbeat delay (value is {@code 3000}). */
     public static final long DFLT_HEARTBEAT_FREQ = 3000;
+
+    /** Default socket operations timeout in milliseconds (value is {@code 1000}). */
+    public static final int DFLT_SOCK_TIMEOUT = 1000;
 
     /** Default heartbeat thread priority. */
     public static final int DFLT_HEARTBEAT_THREAD_PRIORITY = 6;
@@ -150,7 +155,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
     /** */
     @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
     @GridMarshallerResource
-    private GridMarshaller marshaller;
+    private GridMarshaller marsh;
 
     /** */
     @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
@@ -177,6 +182,9 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
     /** Delay between heartbeat requests. */
     @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
     private long beatFreq = DFLT_HEARTBEAT_FREQ;
+
+    /** Socket operations timeout. */
+    private int sockTimeout = DFLT_SOCK_TIMEOUT;
 
     /** Heartbeat thread priority. */
     private int beatThreadPri = DFLT_HEARTBEAT_THREAD_PRIORITY;
@@ -230,6 +238,9 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
     /** */
     private NodeSweeper nodeSweeper;
 
+    /** */
+    private SocketTimeoutWorker sockTimeoutWorker;
+
     /** Set of threads that requests attributes from remote nodes. */
     @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
     private Set<GridSpiThread> workers;
@@ -259,6 +270,9 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
 
     /** */
     private final Object mux = new Object();
+
+    /** */
+    private ClassLoader dfltClsLdr = GridMulticastDiscoverySpi.class.getClassLoader();
 
     /**
      * Sets IP address of multicast group.
@@ -328,6 +342,25 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
     /** {@inheritDoc} */
     @Override public long getHeartbeatFrequency() {
         return beatFreq;
+    }
+
+    /**
+     * Sets socket operations timeout.
+     * <p>
+     * This timeout is used to limit connection time and read/write to socket time.
+     * <p>
+     * If not specified, default is {@link #DFLT_SOCK_TIMEOUT}.
+     *
+     * @param sockTimeout Socket connection timeout.
+     */
+    @GridSpiConfiguration(optional = true)
+    public void setSocketTimeout(int sockTimeout) {
+        this.sockTimeout = sockTimeout;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getSocketTimeout() {
+        return sockTimeout;
     }
 
     /** {@inheritDoc} */
@@ -492,9 +525,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                 for (GridMulticastDiscoveryNode node : allNodes.values()) {
                     assert !node.equals(locNode);
 
-                    if (node.getState() == READY) {
+                    if (node.getState() == READY)
                         rmtNodes.add(node);
-                    }
                 }
 
                 // Seal it.
@@ -510,9 +542,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
     public GridNode getNode(UUID nodeId) {
         assert nodeId != null;
 
-        if (locNode.id().equals(nodeId)) {
+        if (locNode.id().equals(nodeId))
             return locNode;
-        }
 
         synchronized (mux) {
             GridMulticastDiscoveryNode node = allNodes.get(nodeId);
@@ -525,9 +556,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
     @Override public Collection<UUID> getRemoteNodeIds() {
         Collection<UUID> ids = new HashSet<UUID>();
 
-        for (GridNode node : getRemoteNodes()) {
+        for (GridNode node : getRemoteNodes())
             ids.add(node.id());
-        }
 
         return ids;
     }
@@ -569,7 +599,9 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
         assertParameter(mcastPort <= 65535, "mcastPort <= 65535");
         assertParameter(tcpPort >= 0, "tcpPort >= 0");
         assertParameter(tcpPort <= 65535, "tcpPort <= 65535");
+        assertParameter(sockTimeout >= 0, "sockTimeout >= 0");
         assertParameter(beatFreq > 0, "beatFreq > 0");
+        assertParameter(beatThreadPri > 0, "beatThreadPri > 0");
         assertParameter(maxMissedBeats > 0, "maxMissedBeats > 0");
         assertParameter(leaveAttempts > 0, "leaveAttempts > 0");
         assertParameter(ttl > 0, "ttl > 0");
@@ -596,17 +628,18 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
             throw new GridSpiException("Unknown multicast group: " + mcastGroup, e);
         }
 
-        if (!mcastAddr.isMulticastAddress()) {
+        if (!mcastAddr.isMulticastAddress())
             throw new GridSpiException("Invalid multicast group address : " + mcastAddr);
-        }
 
         // Ack parameters.
         if (log.isDebugEnabled()) {
             log.debug(configInfo("mcastGroup", mcastGroup));
             log.debug(configInfo("mcastPort", mcastPort));
             log.debug(configInfo("tcpPort", tcpPort));
+            log.debug(configInfo("sockTimeout ", sockTimeout));
             log.debug(configInfo("localPortRange", localPortRange));
             log.debug(configInfo("beatFreq", beatFreq));
+            log.debug(configInfo("beatThreadPri", beatThreadPri));
             log.debug(configInfo("maxMissedBeats", maxMissedBeats));
             log.debug(configInfo("leaveAttempts", leaveAttempts));
             log.debug(configInfo("localHost", locHost.getHostAddress()));
@@ -614,16 +647,17 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
         }
 
         // Warn on odd beat frequency.
-        if (beatFreq < 2000) {
+        if (beatFreq < 2000)
             U.warn(log, "Heartbeat frequency is too low (at least 2000 ms): " + beatFreq);
-        }
 
         // Warn on odd maximum missed heartbeats.
-        if (maxMissedBeats < 3) {
+        if (maxMissedBeats < 3)
             U.warn(log, "Maximum missed heartbeats value is too low (at least 3): " + maxMissedBeats);
-        }
 
         this.gridName = gridName;
+
+        sockTimeoutWorker = new SocketTimeoutWorker();
+        sockTimeoutWorker.start();
 
         // Create TCP listener first, as it initializes boundTcpPort used
         // by MulticastHeartbeatSender to send heartbeats.
@@ -646,15 +680,13 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
         nodeSweeper.start();
 
         // Ack local node.
-        if (log.isInfoEnabled()) {
+        if (log.isInfoEnabled())
             log.info("Local node: " + locNode);
-        }
 
         try {
             // Wait to discover other nodes.
-            if (log.isInfoEnabled()) {
+            if (log.isInfoEnabled())
                 log.info("Waiting for initial heartbeat timeout (" + beatFreq + " ms)");
-            }
 
             // Wait for others to add this node to topology.
             Thread.sleep(beatFreq);
@@ -670,10 +702,9 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                         delta = end - System.currentTimeMillis();
                     }
 
-                    if (!isMcastEnabled) {
+                    if (!isMcastEnabled)
                         throw new GridSpiException("Multicast is not enabled on this node. Check you firewall " +
                             "settings or contact network administrator if Windows group policy is used.");
-                    }
                 }
             }
         }
@@ -682,9 +713,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
         }
 
         // Ack ok start.
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug(startInfo());
-        }
     }
 
     /** {@inheritDoc} */
@@ -701,13 +731,16 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
         U.join(mcastRcvr, log);
         U.join(tcpLsnr, log);
 
+        // Socket timeout worker should be stopped last.
+        U.interrupt(sockTimeoutWorker);
+        U.join(sockTimeoutWorker, log);
+
         Set<GridSpiThread> ws = null;
 
         synchronized (mux) {
             // Copy to local set to avoid deadlock.
-            if (workers != null) {
+            if (workers != null)
                 ws = new HashSet<GridSpiThread>(workers);
-            }
         }
 
         if (ws != null) {
@@ -732,9 +765,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
         unregisterMBean();
 
         // Ack ok stop.
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug(stopInfo());
-        }
     }
 
     /** {@inheritDoc} */
@@ -775,9 +807,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
         if (node.getState() != NEW) {
             GridDiscoverySpiListener lsnr = this.lsnr;
 
-            if (lsnr != null) {
+            if (lsnr != null)
                 lsnr.onDiscovery(type, node);
-            }
         }
     }
 
@@ -788,9 +819,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
 
         GridMulticastDiscoveryNode node;
 
-        if (locNode.id().equals(nodeId)) {
+        if (locNode.id().equals(nodeId))
             node = locNode;
-        }
         else {
             synchronized (mux) {
                 node = allNodes.get(nodeId);
@@ -798,31 +828,24 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
         }
 
         if (node == null || node.getInetAddress() == null || node.getTcpPort() <= 0) {
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled())
                 log.debug("Ping failed (invalid node): " + nodeId);
-            }
 
             return false;
         }
 
         Socket sock = null;
-        InputStream in = null;
-        OutputStream out = null;
 
         try {
-            sock = new Socket(node.getInetAddress(), node.getTcpPort());
+            sock = openSocket(node.getInetAddress(), node.getTcpPort());
 
-            in = sock.getInputStream();
-            out = sock.getOutputStream();
+            writeToSocket(sock, new GridMulticastDiscoveryMessage(PING_REQUEST));
 
-            U.marshal(marshaller, new GridMulticastDiscoveryMessage(PING_REQUEST), out);
-
-            GridMulticastDiscoveryMessage res = U.unmarshal(marshaller, in, getClass().getClassLoader());
+            GridMulticastDiscoveryMessage res = readMessage(sock);
 
             if (res == null) {
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled())
                     log.debug("Ping failed (invalid response): " + nodeId);
-                }
 
                 return false;
             }
@@ -830,33 +853,27 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
             assert res.getType() == PING_RESPONSE;
         }
         catch (IOException e) {
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled())
                 log.debug("Ping failed (" + e.getMessage() + "): " + nodeId);
-            }
 
             return false;
         }
         catch (GridException e) {
-            if (e.getCause() instanceof ClassNotFoundException) {
+            if (e.hasCause(ClassNotFoundException.class))
                 U.error(log, "Ping failed (Invalid class for ping response).", e);
-            }
             else if (log.isDebugEnabled()) {
                 log.debug("Ping failed ("
-                    + (e.getCause() instanceof IOException ? e.getCause().getMessage() : e.getMessage()) + "): "
-                    + nodeId);
+                    + (e.hasCause(IOException.class) ? e.getCause().getMessage() : e.getMessage()) + "): " + nodeId);
             }
 
             return false;
         }
         finally {
-            U.close(out, log);
-            U.close(in, log);
-            U.close(sock, log);
+            U.closeQuiet(sock);
         }
 
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug("Ping ok: " + nodeId);
-        }
 
         return true;
     }
@@ -865,8 +882,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * @param e IO error.
      */
     private void handleNetworkChecks(IOException e) {
-        if (e instanceof SocketException && U.isWindowsVista()) {
-            U.warn(log, "Note that Windows Vista has a known problem with recovering network " +
+        if (X.hasCause(e, SocketException.class) && U.isWindowsVista()) {
+            LT.warn(log, null, "Note that Windows Vista has a known problem with recovering network " +
                 "connectivity after waking up from deep sleep or hibernate mode. " +
                 "Due to this error GridGain cannot recover from this error " +
                 "automatically and you will need to restart this grid node manually.");
@@ -887,13 +904,112 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
         }
     }
 
+
+    /**
+     * @param addr Remote address.
+     * @param port Remote port.
+     * @return Opened socket.
+     * @throws IOException If failed.
+     */
+    private Socket openSocket(InetAddress addr, int port) throws IOException {
+        Socket sock = new Socket();
+
+        sock.bind(new InetSocketAddress(locHost, 0));
+
+        try {
+            sock.connect(new InetSocketAddress(addr, port), sockTimeout);
+        }
+        catch (SocketTimeoutException e) {
+            LT.warn(log, null, "Connect timed out. Consider changing 'sockTimeout' configuration property.");
+
+            throw e;
+        }
+
+        return sock;
+    }
+
+    /**
+     * Writes message to the socket limiting write time to {@link #getSocketTimeout()}.
+     *
+     * @param sock Socket.
+     * @param msg Message.
+     * @throws IOException If IO failed or write timed out.
+     * @throws GridException If marshalling failed.
+     */
+    private void writeToSocket(Socket sock, Serializable msg) throws IOException, GridException {
+        assert sock != null;
+        assert msg != null;
+
+        // Marshall message first to perform only write after.
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+
+        marsh.marshal(msg, bout);
+
+        SocketTimeoutObject obj = new SocketTimeoutObject(sock, System.currentTimeMillis() + sockTimeout);
+
+        sockTimeoutWorker.addTimeoutObject(obj);
+
+        bout.writeTo(sock.getOutputStream());
+
+        sock.getOutputStream().flush();
+
+        if (!obj.cancel())
+            throw new SocketTimeoutException("Write timed out (socket was concurrently closed).");
+    }
+
+    /**
+     * Reads message from the socket limiting read time to
+     *
+     * @param sock Socket.
+     * @return Message.
+     * @throws IOException If IO failed or read timed out.
+     * @throws GridException If unmarshalling failed.
+     */
+    @SuppressWarnings({"RedundantTypeArguments"})
+    private <T> T readMessage(Socket sock) throws IOException, GridException {
+        assert sock != null;
+
+        int timeout = sock.getSoTimeout();
+
+        try {
+            sock.setSoTimeout(sockTimeout);
+
+            return marsh.<T>unmarshal(sock.getInputStream(), dfltClsLdr);
+        }
+        finally {
+            // Quietly restore timeout.
+            try {
+                sock.setSoTimeout(timeout);
+            }
+            catch (SocketException ignored) {
+                // No-op.
+            }
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override protected List<String> getConsistentAttributeNames() {
+        List<String> attrs = new ArrayList<String>(3);
+
+        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_CLASS));
+        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_VER));
+        attrs.add(createSpiAttributeName(HEARTBEAT_ATTRIBUTE_KEY));
+
+        return attrs;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return S.toString(GridMulticastDiscoverySpi.class, this);
+    }
+
     /**
      * Heartbeat sending thread. It sends heartbeat messages every
      * {@link GridMulticastDiscoverySpi#beatFreq} milliseconds. If node is going
      * to leave grid it sends corresponded message with leaving state.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.22122011
      */
     private class MulticastHeartbeatSender extends GridSpiThread {
         /** Heartbeat message helper. */
@@ -905,9 +1021,6 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
 
         /** */
         private final Object beatMux = new Object();
-
-        /** */
-        private boolean errMsgThrottle;
 
         /**
          * Creates new instance of sender.
@@ -945,7 +1058,9 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
             sock.setTimeToLive(ttl);
         }
 
-        /** */
+        /**
+         *
+         */
         @SuppressWarnings({"NakedNotify"})
         void wakeUp() {
             // Wake up waiting sender, so the heartbeat
@@ -969,9 +1084,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                 beat.setLeaving(isInterrupted());
 
                 try {
-                    if (sock == null) {
+                    if (sock == null)
                         createSocket();
-                    }
 
                     // Update node metrics.
                     beat.setMetrics(metricsProvider.getMetrics());
@@ -980,34 +1094,32 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                     packet.setData(beat.getData());
 
                     sock.send(packet);
-
-                    // Reset error message throttle flag.
-                    errMsgThrottle = false;
                 }
                 catch (IOException e) {
-                    if (!errMsgThrottle) {
-                        handleNetworkChecks(e);
+                    LT.error(log, e, "Failed to send heart beat (will try again in " + beatFreq + "ms) [locAddr=" +
+                        localAddr + ", mcastAddr=" + mcastAddr + ']');
 
-                        U.error(log, "Failed to send heart beat (will try again in " + beatFreq + "ms) [locAddr=" +
-                            localAddr + ", mcastAddr=" + mcastAddr + "]. Note that " +
-                            "this error message will appear only once for this network problem to avoid log flooding " +
-                            "but attempts to reconnect will continue.", e);
-
-                        errMsgThrottle = true;
-                    }
+                    handleNetworkChecks(e);
 
                     U.close(sock);
 
                     sock = null;
                 }
 
-                if (isInterrupted()) {
+                if (isInterrupted())
                     n--;
-                }
                 else {
                     try {
                         synchronized (beatMux) {
-                            beatMux.wait(beatFreq);
+                            long threshold = System.currentTimeMillis() + beatFreq;
+
+                            long timeout = beatFreq;
+
+                            while (timeout > 0) {
+                                beatMux.wait(timeout);
+
+                                timeout = threshold - System.currentTimeMillis();
+                            }
                         }
                     }
                     catch (InterruptedException ignored) {
@@ -1022,8 +1134,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * Multicast messages receiving thread. This class process all heartbeat messages
      * that comes from the others.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.22122011
      */
     private class MulticastHeartbeatReceiver extends GridSpiThread {
         /** Multicast socket message is read from. */
@@ -1082,9 +1194,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                 // Join multicast group.
                 sock.joinGroup(mcastAddr);
 
-                if (log.isInfoEnabled()) {
+                if (log.isInfoEnabled())
                     log.info("Successfully bound to Multicast port: " + mcastPort);
-                }
 
                 return sock;
             }
@@ -1125,15 +1236,13 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
 
                     synchronized (mux) {
                         // Avoid recreating socket after cancel.
-                        if (isInterrupted()) {
+                        if (isInterrupted())
                             return;
-                        }
 
                         sock = this.sock;
 
-                        if (sock == null) {
+                        if (sock == null)
                             sock = createSocket();
-                        }
                     }
 
                     // Wait for node attributes.
@@ -1175,18 +1284,16 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                                     // Listener notification.
                                     notifyDiscovery(EVT_NODE_LEFT, node);
 
-                                    if (log.isDebugEnabled()) {
+                                    if (log.isDebugEnabled())
                                         log.debug("Node left grid: " + node);
-                                    }
 
                                     // Notify threads waiting for node to change state.
                                     mux.notifyAll();
                                 }
-                                else {
+                                else
                                     // Either receiving heartbeats after node was removed
                                     // by topology cleaner or node left before joined.
                                     continue;
-                                }
                             }
                             else {
                                 node = allNodes.get(beatNodeId);
@@ -1210,24 +1317,21 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                                     // No listener notification since node is not READY yet.
                                     assert node.getState() == NEW : "Invalid node state: " + node.getState();
 
-                                    if (log.isDebugEnabled()) {
+                                    if (log.isDebugEnabled())
                                         log.debug("Added NEW node to grid: " + node);
-                                    }
                                 }
                                 else if (node.getState() == NEW) {
                                     node.onHeartbeat(beat.getMetrics());
 
-                                    if (log.isDebugEnabled()) {
+                                    if (log.isDebugEnabled())
                                         log.debug("Received heartbeat for new node (will ignore): " + node);
-                                    }
 
                                     continue;
                                 }
                                 // If zombie.
                                 else if (node.getState() == LEFT) {
-                                    if (log.isDebugEnabled()) {
+                                    if (log.isDebugEnabled())
                                         log.debug("Received zombie heartbeat for left node (will ignore): " + node);
-                                    }
 
                                     continue;
                                 }
@@ -1249,9 +1353,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                     }
 
                     // Metrics update callback.
-                    if (beatNode != null) {
+                    if (beatNode != null)
                         notifyDiscovery(EVT_NODE_METRICS_UPDATED, beatNode);
-                    }
 
                     assert node != null;
 
@@ -1300,8 +1403,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
     /**
      * Tcp handshake sender.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.22122011
      */
     private class TcpHandshakeSender extends GridSpiThread {
         /** Heartbeat. */
@@ -1343,9 +1446,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                         return;
                     }
                     synchronized (mux) {
-                        if (newNode.getState() != NEW || isStopping.get()) {
+                        if (newNode.getState() != NEW || isStopping.get())
                             return; // Handshake already come.
-                        }
                     }
                 }
 
@@ -1354,72 +1456,65 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                         ", port=" + beat.getTcpPort() + ']');
                 }
 
-                attrSock = new Socket(beat.getInetAddress(), beat.getTcpPort(), locHost, 0);
+                attrSock = openSocket(beat.getInetAddress(), beat.getTcpPort());
 
-                InputStream in = null;
-                OutputStream out = null;
+                // Check if thread was interrupted prior to attrSock initialization.
+                if (isInterrupted()) {
+                    if (log.isDebugEnabled())
+                        log.debug("Sender has been interrupted.");
 
-                try {
-                    out = attrSock.getOutputStream();
-                    in = attrSock.getInputStream();
+                    return;
+                }
 
-                    U.marshal(marshaller, new GridMulticastDiscoveryMessage(ATTRS_REQUEST, nodeId,
-                        locHost, boundTcpPort, nodeAttrs, startTime, metricsProvider.getMetrics()), out);
+                writeToSocket(attrSock, new GridMulticastDiscoveryMessage(ATTRS_REQUEST, nodeId,
+                    locHost, boundTcpPort, nodeAttrs, startTime, metricsProvider.getMetrics()));
 
-                    GridMulticastDiscoveryMessage msg =
-                        U.unmarshal(marshaller, in, getClass().getClassLoader());
+                GridMulticastDiscoveryMessage msg = readMessage(attrSock);
 
-                    // Safety check.
-                    if (msg.getType() != ATTRS_RESPONSE) {
-                        U.warn(log, "Received message of wrong type [expected=ATTRS_RESPONSE"
-                            + ", actual=" + msg.getType() + ']');
+                // Safety check.
+                if (msg.getType() != ATTRS_RESPONSE) {
+                    U.warn(log, "Received message of wrong type [expected=ATTRS_RESPONSE"
+                        + ", actual=" + msg.getType() + ']');
+
+                    return;
+                }
+
+                // Safety check.
+                if (!msg.getNodeId().equals(beat.getNodeId())) {
+                    U.warn(log, "Received attributes from unexpected node [expected=" +
+                        beat.getNodeId() + ", actual=" + msg.getNodeId() + ']');
+
+                    return;
+                }
+
+                synchronized (mux) {
+                    if (newNode.getState() == NEW) {
+                        assert msg.getNodeId().equals(newNode.id());
+
+                        newNode.setAttributes(msg.getAttributes());
+
+                        rmtNodes = null;
+
+                        if (log.isDebugEnabled())
+                            log.debug("Node moved from NEW to READY: " + newNode);
+
+                        // Listener notification.
+                        notifyDiscovery(EVT_NODE_JOINED, newNode);
+                    }
+                    else {
+                        // Node might be in state LEFT if it was swept.
+                        if (log.isDebugEnabled())
+                            log.debug("Node is not in NEW state: " + newNode);
 
                         return;
                     }
 
-                    // Safety check.
-                    if (!msg.getNodeId().equals(beat.getNodeId())) {
-                        U.warn(log, "Received attributes from unexpected node [expected=" +
-                            beat.getNodeId() + ", actual=" + msg.getNodeId() + ']');
-
-                        return;
-                    }
-
-                    synchronized (mux) {
-                        if (newNode.getState() == NEW) {
-                            assert msg.getNodeId().equals(newNode.id());
-
-                            newNode.setAttributes(msg.getAttributes());
-
-                            rmtNodes = null;
-
-                            if (log.isDebugEnabled()) {
-                                log.debug("Node moved from NEW to READY: " + newNode);
-                            }
-
-                            // Listener notification.
-                            notifyDiscovery(EVT_NODE_JOINED, newNode);
-                        }
-                        else {
-                            // Node might be in state LEFT if it was swept.
-                            if (log.isDebugEnabled()) {
-                                log.debug("Node is not in NEW state: " + newNode);
-                            }
-
-                            return;
-                        }
-
-                        // Notify threads waiting for node to change state.
-                        mux.notifyAll();
-                    }
-
-                    // Confirm received attributes.
-                    U.marshal(marshaller, new GridMulticastDiscoveryMessage(ATTRS_CONFIRMED), out);
+                    // Notify threads waiting for node to change state.
+                    mux.notifyAll();
                 }
-                finally {
-                    U.close(out, log);
-                    U.close(in, log);
-                }
+
+                // Confirm received attributes.
+                writeToSocket(attrSock, new GridMulticastDiscoveryMessage(ATTRS_CONFIRMED));
             }
             catch (ConnectException e) {
                 if (!isStopping.get() && !isInterrupted()) {
@@ -1431,22 +1526,18 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                 }
             }
             catch (IOException e) {
-                if (!isStopping.get() && !isInterrupted()) {
-                    if (remoteNodeExists()) {
-                        // Output error only if remote node exists.
-                        U.error(log, "Failed to request node attributes from node (did the node stop?) [addr=" +
-                            beat.getInetAddress() + ", port=" + beat.getTcpPort() + ']', e);
+                if (!isStopping.get() && !isInterrupted() && remoteNodeExists()) {
+                    // Output error only if remote node exists.
+                    U.error(log, "Failed to request node attributes from node (did the node stop?) [addr=" +
+                        beat.getInetAddress() + ", port=" + beat.getTcpPort() + ']', e);
 
-                        handleNetworkChecks(e);
-                    }
+                    handleNetworkChecks(e);
                 }
             }
             catch (GridException e) {
-                if (!isStopping.get() && !isInterrupted()) {
-                    if (remoteNodeExists())
-                        // Output error only if remote node exists.
-                        U.error(log, "Failed to request node attributes from node.", e);
-                }
+                if (!isStopping.get() && !isInterrupted() && remoteNodeExists())
+                    // Output error only if remote node exists.
+                    U.error(log, "Failed to request node attributes from node.", e);
             }
             finally {
                 U.closeQuiet(attrSock);
@@ -1457,11 +1548,11 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
          * @return {@code True} if remote node exists.
          */
         private boolean remoteNodeExists() {
-            Socket testSock = null;
+            Socket sock = null;
 
             try {
                 // Is node still alive and accepting connections?
-                testSock = new Socket(beat.getInetAddress(), beat.getTcpPort(), locHost, 0);
+                sock = openSocket(beat.getInetAddress(), beat.getTcpPort());
 
                 return true;
             }
@@ -1469,7 +1560,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                 // No-op.
             }
             finally {
-                U.closeQuiet(testSock);
+                U.closeQuiet(sock);
             }
 
             return false;
@@ -1493,8 +1584,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
     /**
      * Listener that processes TCP messages.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.22122011
      */
     private class TcpHandshakeListener extends GridSpiThread {
         /** Socket TCP listener is set to. */
@@ -1532,22 +1623,19 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
 
                         boundTcpPort = port;
 
-                        if (log.isInfoEnabled()) {
+                        if (log.isInfoEnabled())
                             log.info("Successfully bound to TCP port: " + boundTcpPort);
-                        }
 
                         break;
                     }
                     catch (IOException e) {
                         if (port + 1 < maxPort) {
-                            if (log.isInfoEnabled()) {
-                                log.info("Failed to bind to local TCP port (will try next port within range): " +
-                                    port);
-                            }
+                            if (log.isDebugEnabled())
+                                log.debug("Failed to bind to local TCP port (will try next port " +
+                                    "within range): " + port);
                         }
-                        else {
+                        else
                             throw e;
-                        }
                     }
                 }
 
@@ -1582,115 +1670,98 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
                     synchronized (mux) {
                         server = tcpSock;
 
-                        if (server == null) {
+                        if (server == null)
                             server = createTcpSocket();
-                        }
                     }
 
                     Socket sock = server.accept();
 
                     try {
-                        InputStream in = sock.getInputStream();
-                        OutputStream out = sock.getOutputStream();
+                        GridMulticastDiscoveryMessage msg = readMessage(sock);
 
-                        try {
-                            GridMulticastDiscoveryMessage msg =
-                                U.unmarshal(marshaller, in, getClass().getClassLoader());
+                        if (msg.getType() == PING_REQUEST)
+                            writeToSocket(sock, new GridMulticastDiscoveryMessage(PING_RESPONSE));
+                        else if (msg.getType() == ATTRS_REQUEST) {
+                            UUID id = msg.getNodeId();
 
-                            if (msg.getType() == PING_REQUEST) {
-                                U.marshal(marshaller, new GridMulticastDiscoveryMessage(PING_RESPONSE),
-                                    out);
-                            }
-                            else if (msg.getType() == ATTRS_REQUEST) {
-                                UUID id = msg.getNodeId();
+                            // Local node cannot communicate with itself.
+                            assert !nodeId.equals(id);
 
-                                // Local node cannot communicate with itself.
-                                assert !nodeId.equals(id);
+                            // Get metrics outside the synchronization to avoid
+                            // possible deadlocks.
+                            GridNodeMetrics locMetrics = metricsProvider.getMetrics();
 
-                                // Get metrics outside the synchronization to avoid
-                                // possible deadlocks.
-                                GridNodeMetrics locMetrics = metricsProvider.getMetrics();
+                            GridMulticastDiscoveryNode node;
 
-                                GridMulticastDiscoveryNode node;
+                            synchronized (mux) {
+                                node = allNodes.get(id);
 
-                                synchronized (mux) {
-                                    node = allNodes.get(id);
+                                if (node == null)
+                                    node = new GridMulticastDiscoveryNode(id, msg.getAddress(),
+                                        msg.getPort(), msg.getStartTime(), msg.getMetrics());
 
-                                    if (node == null) {
-                                        node = new GridMulticastDiscoveryNode(id, msg.getAddress(),
-                                            msg.getPort(), msg.getStartTime(), msg.getMetrics());
-                                    }
+                                assert id.equals(node.id());
 
-                                    assert id.equals(node.id());
+                                Map<String, Object> attrs = msg.getAttributes();
 
-                                    Map<String, Object> attrs = msg.getAttributes();
+                                // Send back own attributes. This requires confirmation (ATTRS_CONFIRMED).
+                                GridMulticastDiscoveryMessage confirmMsg =
+                                    new GridMulticastDiscoveryMessage(ATTRS_RESPONSE, nodeId, locHost,
+                                        boundTcpPort, nodeAttrs, startTime, locMetrics);
 
-                                    // Send back own attributes. This requires confirmation (ATTRS_CONFIRMED).
-                                    GridMulticastDiscoveryMessage confirmMsg =
-                                        new GridMulticastDiscoveryMessage(ATTRS_RESPONSE, nodeId, locHost,
-                                            boundTcpPort, nodeAttrs, startTime, locMetrics);
+                                writeToSocket(sock, confirmMsg);
 
-                                    U.marshal(marshaller, confirmMsg, out);
+                                msg = readMessage(sock);
 
-                                    msg = U.unmarshal(marshaller, in, getClass().getClassLoader());
-
-                                    if (msg.getType() == ATTRS_CONFIRMED) {
-                                        if (node.getState() != NEW) {
-                                            if (log.isDebugEnabled()) {
-                                                log.debug("Received handshake request from stopping node (will ignore): " +
-                                                    node);
-                                            }
-                                        }
-                                        else {
-                                            node.setAttributes(attrs);
-
-                                            allNodes.put(id, node);
-
-                                            if (log.isDebugEnabled()) {
-                                                log.debug("Node moved to READY: " + node);
-                                            }
-
-                                            rmtNodes = null;
-
-                                            // Listener notification.
-                                            notifyDiscovery(EVT_NODE_JOINED, node);
-                                        }
+                                if (msg.getType() == ATTRS_CONFIRMED) {
+                                    if (node.getState() != NEW) {
+                                        if (log.isDebugEnabled())
+                                            log.debug("Received handshake request from stopping node " +
+                                                "(will ignore): " + node);
                                     }
                                     else {
-                                        U.warn(log, "Received message of wrong type [expected=ATTRS_CONFIRMED"
-                                            + ", actual=" + msg.getType() + ']');
+                                        node.setAttributes(attrs);
 
-                                        continue;
+                                        allNodes.put(id, node);
+
+                                        if (log.isDebugEnabled())
+                                            log.debug("Node moved to READY: " + node);
+
+                                        rmtNodes = null;
+
+                                        // Listener notification.
+                                        notifyDiscovery(EVT_NODE_JOINED, node);
                                     }
+                                }
+                                else {
+                                    U.warn(log, "Received message of wrong type [expected=ATTRS_CONFIRMED"
+                                        + ", actual=" + msg.getType() + ']');
 
-                                    // Notify threads waiting for node to change state.
-                                    mux.notifyAll();
+                                    continue;
                                 }
 
-                                if (log.isDebugEnabled()) {
-                                    log.debug("Added new node to the topology: " + node);
-                                }
+                                // Notify threads waiting for node to change state.
+                                mux.notifyAll();
                             }
-                            else {
-                                U.error(log, "Received unknown message: " + msg);
-                            }
+
+                            if (log.isDebugEnabled())
+                                log.debug("Added new node to the topology: " + node);
                         }
-                        finally {
-                            U.close(out, log);
-                            U.close(in, log);
-                        }
+                        else
+                            U.error(log, "Received unknown message: " + msg);
                     }
                     catch (IOException e) {
-                        if (!isStopping.get() && !isInterrupted()) {
+                        if (!isStopping.get() && !isInterrupted())
                             U.error(log, "Failed to send local node attributes to remote node (did the node stop?): " +
                                 sock, e);
-                        }
                     }
                     catch (GridException e) {
-                        U.error(log, "Failed to send local node attributes to remote node.", e);
+                        if (!isStopping.get() && !isInterrupted())
+                            U.error(log, "Failed to send local node attributes to remote node (did the node stop?): " +
+                                sock, e);
                     }
                     finally {
-                        U.close(sock, log);
+                        U.closeQuiet(sock);
                     }
                 }
                 catch (IOException e) {
@@ -1717,8 +1788,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * last {@link GridMulticastDiscoverySpi#maxMissedBeats} * {@link GridMulticastDiscoverySpi#beatFreq}
      * milliseconds.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.22122011
      */
     private class NodeSweeper extends GridSpiThread {
         /**
@@ -1735,16 +1806,14 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
 
             while (!isInterrupted()) {
                 synchronized (mux) {
-                    for (Iterator<GridMulticastDiscoveryNode> iter = allNodes.values().iterator();
-                         iter.hasNext();) {
+                    for (Iterator<GridMulticastDiscoveryNode> iter = allNodes.values().iterator(); iter.hasNext();) {
                         GridMulticastDiscoveryNode node = iter.next();
 
                         // Check if node needs to be removed from topology.
                         if (System.currentTimeMillis() - node.getLastHeartbeat() > maxSilenceTime) {
                             if (node.getState() != LEFT) {
-                                if (log.isDebugEnabled()) {
+                                if (log.isDebugEnabled())
                                     log.debug("Removed failed node from topology: " + node);
-                                }
 
                                 boolean notify = node.getState() == READY;
 
@@ -1754,10 +1823,9 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
 
                                 rmtNodes = null;
 
-                                if (notify) {
+                                if (notify)
                                     // Notify listener of failure only for ready nodes.
                                     notifyDiscovery(EVT_NODE_FAILED, node);
-                                }
 
                                 mux.notifyAll();
                             }
@@ -1772,19 +1840,163 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
         }
     }
 
-    /** {@inheritDoc} */
-    @Override protected List<String> getConsistentAttributeNames() {
-        List<String> attrs = new ArrayList<String>(3);
+    /**
+     * Handles sockets timeouts.
+     */
+    private class SocketTimeoutWorker extends GridSpiThread {
+        /** Time-based sorted set for timeout objects. */
+        private final GridConcurrentSkipListSet<SocketTimeoutObject> timeoutObjs =
+            new GridConcurrentSkipListSet<SocketTimeoutObject>(new Comparator<SocketTimeoutObject>() {
+                @Override public int compare(SocketTimeoutObject o1, SocketTimeoutObject o2) {
+                    long time1 = o1.endTime();
+                    long time2 = o2.endTime();
 
-        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_CLASS));
-        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_VER));
-        attrs.add(createSpiAttributeName(HEARTBEAT_ATTRIBUTE_KEY));
+                    long id1 = o1.id();
+                    long id2 = o2.id();
 
-        return attrs;
+                    return time1 < time2 ? -1 : time1 > time2 ? 1 :
+                        id1 < id2 ? -1 : id1 > id2 ? 1 : 0;
+                }
+            });
+
+        /** Mutex. */
+        private final Object mux0 = new Object();
+
+        /**
+         *
+         */
+        SocketTimeoutWorker() {
+            super(gridName, "grid-mcast-disco-sock-timeout-worker", log);
+
+            setPriority(getHeartbeatThreadPriority());
+        }
+
+        /**
+         * @param timeoutObj Timeout object.
+         */
+        @SuppressWarnings({"NakedNotify"})
+        public void addTimeoutObject(SocketTimeoutObject timeoutObj) {
+            assert timeoutObj != null && timeoutObj.endTime() > 0 && timeoutObj.endTime() != Long.MAX_VALUE;
+
+            timeoutObjs.add(timeoutObj);
+
+            if (timeoutObjs.firstx() == timeoutObj) {
+                synchronized (mux0) {
+                    mux0.notifyAll();
+                }
+            }
+        }
+
+        /** {@inheritDoc} */
+        @Override protected void body() throws InterruptedException {
+            if (log.isDebugEnabled())
+                log.debug("Socket timeout worker has been started.");
+
+            while (!isInterrupted()) {
+                long now = System.currentTimeMillis();
+
+                for (Iterator<SocketTimeoutObject> iter = timeoutObjs.iterator(); iter.hasNext();) {
+                    SocketTimeoutObject timeoutObj = iter.next();
+
+                    if (timeoutObj.endTime() <= now) {
+                        iter.remove();
+
+                        if (timeoutObj.onTimeout())
+                            LT.warn(log, null, "Socket was closed on timeout. Consider changing " +
+                                "'sockTimeout' configuration property.");
+                    }
+                    else
+                        break;
+                }
+
+                synchronized (mux0) {
+                    while (true) {
+                        // Access of the first element must be inside of
+                        // synchronization block, so we don't miss out
+                        // on thread notification events sent from
+                        // 'addTimeoutObject(..)' method.
+                        SocketTimeoutObject first = timeoutObjs.firstx();
+
+                        if (first != null) {
+                            long waitTime = first.endTime() - System.currentTimeMillis();
+
+                            if (waitTime > 0)
+                                mux0.wait(waitTime);
+                            else
+                                break;
+                        }
+                        else
+                            mux0.wait(5000);
+                    }
+                }
+            }
+        }
     }
 
-    /** {@inheritDoc} */
-    @Override public String toString() {
-        return S.toString(GridMulticastDiscoverySpi.class, this);
+    /**
+     *
+     */
+    private static class SocketTimeoutObject {
+        /** */
+        private static final AtomicLong idGen = new AtomicLong();
+
+        /** */
+        private final long id = idGen.incrementAndGet();
+
+        /** */
+        private final Socket sock;
+
+        /** */
+        private final long endTime;
+
+        /** */
+        private final AtomicBoolean done = new AtomicBoolean();
+
+        /**
+         * @param sock Socket.
+         * @param endTime End time.
+         */
+        private SocketTimeoutObject(Socket sock, long endTime) {
+            assert sock != null;
+            assert endTime > 0;
+
+            this.sock = sock;
+            this.endTime = endTime;
+        }
+
+        /**
+         * @return {@code True} if object has not yet been processed.
+         */
+        boolean cancel() {
+            return done.compareAndSet(false, true);
+        }
+
+        /**
+         * @return {@code True} if object has not yet been canceled.
+         */
+        boolean onTimeout() {
+            if (done.compareAndSet(false, true)) {
+                // Close socket - timeout occurred.
+                U.closeQuiet(sock);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        /**
+         * @return End time.
+         */
+        long endTime() {
+            return endTime;
+        }
+
+        /**
+         * @return ID.
+         */
+        long id() {
+            return id;
+        }
     }
 }

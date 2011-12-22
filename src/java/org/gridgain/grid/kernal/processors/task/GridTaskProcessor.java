@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -31,8 +31,8 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
 /**
  * This class defines task processor.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 public class GridTaskProcessor extends GridProcessorAdapter {
     /** Wait for 5 seconds to allow discovery to take effect (best effort). */
@@ -964,7 +964,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
     /**
      * Handles job execution responses.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
+     * @author 2011 Copyright (C) GridGain Systems
      */
     @SuppressWarnings({"deprecation"})
     private class JobMessageListener implements GridMessageListener {
@@ -1058,8 +1058,8 @@ public class GridTaskProcessor extends GridProcessorAdapter {
     /**
      * Listener to node discovery events.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.22122011
      */
     private class TaskDiscoveryListener implements GridLocalEventListener {
         /** {@inheritDoc} */

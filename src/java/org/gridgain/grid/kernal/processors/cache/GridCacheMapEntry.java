@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -26,15 +26,15 @@ import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.cache.GridCacheFlag.*;
+import static org.gridgain.grid.cache.GridCachePeekMode.*;
 import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
 import static org.gridgain.grid.cache.GridCacheTxState.*;
-import static org.gridgain.grid.cache.GridCachePeekMode.*;
 
 /**
  * Adapter for cache entry.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapter implements GridCacheEntryEx<K, V> {
@@ -135,6 +135,26 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
         metrics = new GridCacheMetricsAdapter(cctx.cache().metrics0());
 
         mvcc = new GridCacheMvcc<K>(cctx);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isDht() {
+        return false;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isLocal() {
+        return false;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isNear() {
+        return false;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isReplicated() {
+        return false;
     }
 
     /** {@inheritDoc} */
@@ -554,11 +574,11 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
                         // Don't change version for read-through.
                         update(ret, null, toExpireTime(ttl), ttl, nextVer, metrics);
-                    }
 
-                    if (loadedFromStore)
-                        // Update indexes.
-                        updateIndex(ret);
+                        if (loadedFromStore)
+                            // Update indexes.
+                            updateIndex(ret);
+                    }
                 }
             }
             finally {
@@ -581,7 +601,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
             // Touch entry right away for read-committed mode.
             if (tx == null || tx.isolation() == READ_COMMITTED)
-                cctx.evicts().touch(this, false);
+                cctx.evicts().touch(this);
         }
     }
 
@@ -853,66 +873,86 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
         @Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
         cctx.denyOnFlag(READ);
 
-        // For optimistic check.
-        GridCacheVersion startVer;
+        boolean ret;
+        boolean rmv;
 
-        lock();
+        while (true) {
+            ret = false;
+            rmv = false;
 
-        try {
-            startVer = ver;
-        }
-        finally {
-            unlock();
-        }
+            // For optimistic check.
+            GridCacheVersion startVer = null;
 
-        if (!cctx.isAll(this, filter))
-            return false;
+            if (!F.isEmpty(filter)) {
+                lock();
 
-        lock();
+                try {
+                    startVer = this.ver;
+                }
+                finally {
+                    unlock();
+                }
 
-        try {
-            if (!startVer.equals(ver))
-                // Version has changed since filter checking.
-                return clear(ver, swap, readers, filter);
+                if (!cctx.isAll(this, filter))
+                    return false;
+            }
+
+            lock();
 
             try {
-                if (readers)
-                    clearReaders();
+                if (startVer != null && !startVer.equals(this.ver))
+                    // Version has changed since filter checking.
+                    continue;
 
-                if (hasReaders() || !markObsolete(ver)) {
-                    if (log.isDebugEnabled())
-                        log.debug("Entry could not be marked obsolete (it is still used or has readers): " + this);
+                try {
+                    if (readers)
+                        clearReaders();
 
-                    return false;
+                    if (hasReaders() || !markObsolete(ver)) {
+                        if (log.isDebugEnabled())
+                            log.debug("Entry could not be marked obsolete (it is still used or has readers): " + this);
+
+                        break;
+                    }
                 }
-            }
-            catch (GridCacheEntryRemovedException ignore) {
-                if (log.isDebugEnabled())
-                    log.debug("Got removed entry when clearing (will simply return): " + this);
+                catch (GridCacheEntryRemovedException ignore) {
+                    if (log.isDebugEnabled())
+                        log.debug("Got removed entry when clearing (will simply return): " + this);
 
-                return true;
-            }
+                    ret = true;
 
-            if (log.isDebugEnabled())
-                log.debug("Entry has been marked obsolete: " + this);
-
-            // Give to GC.
-            update(null, null, toExpireTime(ttl), ttl, ver, metrics);
-
-            clearIndex();
-
-            if (swap) {
-                releaseSwap();
+                    break;
+                }
 
                 if (log.isDebugEnabled())
-                    log.debug("Entry has been cleared from swap storage: " + this);
-            }
+                    log.debug("Entry has been marked obsolete: " + this);
 
-            return true;
+                // Give to GC.
+                update(null, null, toExpireTime(ttl), ttl, ver, metrics);
+
+                clearIndex();
+
+                if (swap) {
+                    releaseSwap();
+
+                    if (log.isDebugEnabled())
+                        log.debug("Entry has been cleared from swap storage: " + this);
+                }
+
+                ret = true;
+                rmv = true;
+
+                break;
+            }
+            finally {
+                unlock();
+            }
         }
-        finally {
-            unlock();
-        }
+
+        if (rmv)
+            cctx.cache().removeIfObsolete(key); // Clear cache.
+
+        return ret;
     }
 
     /** {@inheritDoc} */
@@ -2158,49 +2198,54 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
             }
             else {
                 // For optimistic check.
-                GridCacheVersion v;
+                while (true) {
+                    GridCacheVersion v;
 
-                lock();
+                    lock();
 
-                try {
-                    v = ver;
-                }
-                finally {
-                    unlock();
-                }
+                    try {
+                        v = ver;
+                    }
+                    finally {
+                        unlock();
+                    }
 
-                if (!cctx.isAll(this, filter))
-                    return false;
+                    if (!cctx.isAll(this, filter))
+                        return false;
 
-                lock();
+                    lock();
 
-                try {
-                    if (!v.equals(ver))
-                        // Version has changed since entry passed the filter. Do it again.
-                        return evictInternal(swap, obsoleteVer, filter);
+                    try {
+                        if (!v.equals(ver))
+                            // Version has changed since entry passed the filter. Do it again.
+                            continue;
 
-                    if (!hasReaders() && markObsolete(obsoleteVer)) {
-                        if (swap) {
-                            if (startVer != ver)
-                                try {
-                                    // Write to swap.
-                                    swap();
+                        if (!hasReaders() && markObsolete(obsoleteVer)) {
+                            if (swap) {
+                                if (startVer != ver) {
+                                    try {
+                                        // Write to swap.
+                                        swap();
+                                    }
+                                    catch (GridException e) {
+                                        U.error(log, "Failed to write entry to swap storage: " + this, e);
+                                    }
                                 }
-                                catch (GridException e) {
-                                    U.error(log, "Failed to write entry to swap storage: " + this, e);
-                                }
+                            }
+                            else
+                                clearIndex();
+
+                            // Nullify value after swap.
+                            val = null;
+
+                            return true;
                         }
                         else
-                            clearIndex();
-
-                        // Nullify value after swap.
-                        val = null;
-
-                        return true;
+                            return false;
                     }
-                }
-                finally {
-                    unlock();
+                    finally {
+                        unlock();
+                    }
                 }
             }
         }
@@ -2308,6 +2353,13 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(GridCacheMapEntry.class, this);
+        lock();
+
+        try {
+            return S.toString(GridCacheMapEntry.class, this);
+        }
+        finally {
+            unlock();
+        }
     }
 }

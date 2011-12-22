@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -28,8 +28,8 @@ import java.util.concurrent.*;
  * gracefully ignore any errors occurred during notification and verification process.
  * See {@link #HTTP_URL} for specific access URL used.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 class GridUpdateNotifier {
     /*
@@ -41,13 +41,13 @@ class GridUpdateNotifier {
      */
     /** Access URL to be used to access latest version data. */
     private static final String HTTP_URL =
-        "http://www.gridgain.org/update_status_cmn.php?v=3.5.1c.18112011";
+        "http://www.gridgain.org/update_status_cmn.php?v=3.6.0c.22122011";
 
     /** Ant-enhanced system version. */
-    private static final String VER = "3.5.1c";
+    private static final String VER = "3.6.0c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "18112011";
+    private static final String BUILD = "22122011";
 
     /** Throttling for logging out. */
     private static final long THROTTLE_PERIOD = 24 * 60 * 60 * 1000; // 1 day.
@@ -164,7 +164,7 @@ class GridUpdateNotifier {
     /**
      * Asynchronous checker of the latest version available.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
+     * @author 2011 Copyright (C) GridGain Systems
      */
     private class UpdateChecker extends GridWorker {
         /** Logger. */

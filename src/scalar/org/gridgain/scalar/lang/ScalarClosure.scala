@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*
  * ________               ______                    ______   _______
@@ -17,8 +17,8 @@ import org.gridgain.grid.util.{GridUtils => U}
 /**
  * Peer deploy aware adapter for Java's `GridClosure`.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 class ScalarClosure[E, R](private val f: E => R) extends GridClosure[E, R] {
     assert(f != null)

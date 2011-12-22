@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -22,14 +22,13 @@ import static java.lang.Boolean.*;
  * and {@link #last()} methods return {@code null} for empty sets instead of
  * throwing {@link NoSuchElementException}.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 public class GridConcurrentSkipListSet<E> extends GridSerializableSet<E> implements NavigableSet<E>, Cloneable {
     /**
      * The underlying map. Uses Boolean.TRUE as value for each
-     * element.  This field is declared final for the sake of thread
-     * safety, which entails some ugliness in clone()
+     * element.
      */
     private ConcurrentNavigableMap<E, Object> m;
 

@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -29,12 +29,13 @@ import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.cache.GridCacheConfiguration.*;
 import static org.gridgain.grid.cache.GridCacheFlag.*;
+import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
 
 /**
  * Query adapter.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareAdapter implements
     GridCacheQueryBase<K, V> {
@@ -147,6 +148,10 @@ public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareA
         @Nullable String clause, @Nullable String clsName, GridPredicate<GridCacheEntry<K, V>> prjFilter,
         Collection<GridCacheFlag> prjFlags) {
         assert cctx != null;
+
+        if (cctx.config().isIndexMemoryOnly() && (type == H2TEXT || type == LUCENE))
+            throw new GridRuntimeException("Text queries are not supported for in-memory index " +
+                "(change GridCacheConfiguration.isIndexMemoryOnly() property to false)");
 
         this.cctx = cctx;
         this.type = type;

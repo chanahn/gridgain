@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -9,6 +9,7 @@
 
 package org.gridgain.grid.cache.eviction.lirs;
 
+import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.lang.*;
@@ -20,6 +21,7 @@ import org.jetbrains.annotations.*;
 
 import java.util.*;
 
+import static org.gridgain.grid.cache.GridCachePeekMode.*;
 import static org.gridgain.grid.cache.eviction.lirs.GridCacheLirsEvictionPolicy.State.*;
 import static org.gridgain.grid.lang.utils.GridQueue.*;
 
@@ -38,8 +40,8 @@ import static org.gridgain.grid.lang.utils.GridQueue.*;
  * <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.116.2184&rep=rep1&type=pdf">Low Inter-Reference Recency Set (LIRS)</a>
  * algorithm by Sone Jiang and Xiaodong Zhang.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 @SuppressWarnings({"MismatchedQueryAndUpdateOfCollection"})
 public class GridCacheLirsEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,
@@ -62,6 +64,9 @@ public class GridCacheLirsEvictionPolicy<K, V> implements GridCacheEvictionPolic
     @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
     private volatile int max = -1;
 
+    /** Flag indicating whether to allow empty entries. */
+    private volatile boolean allowEmptyEntries = true;
+
     /** Ratio of {@code HIRS} (High Inter-reference Recency Set). */
     private double queueRatio = DFLT_QUEUE_SIZE_RATIO;
 
@@ -77,7 +82,7 @@ public class GridCacheLirsEvictionPolicy<K, V> implements GridCacheEvictionPolic
     }
 
     /**
-     * Constructs LRU eviction policy with maximum size.
+     * Constructs LIRS eviction policy with maximum size.
      *
      * @param max Maximum allowed size of entries in cache.
      */
@@ -88,7 +93,20 @@ public class GridCacheLirsEvictionPolicy<K, V> implements GridCacheEvictionPolic
     }
 
     /**
-     * Constructs LRU eviction policy with maximum size and secondary queue ratio to compute
+     * Constructs LIRS eviction policy with maximum size and specified allow empty entries flag.
+     *
+     * @param max Maximum allowed size of entries in cache.
+     * @param allowEmptyEntries If {@code false}, empty entries will be evicted immediately.
+     */
+    public GridCacheLirsEvictionPolicy(int max, boolean  allowEmptyEntries) {
+        A.ensure(max > 0, "max > 0");
+
+        this.max = max;
+        this.allowEmptyEntries = allowEmptyEntries;
+    }
+
+    /**
+     * Constructs LIRS eviction policy with maximum size and secondary queue ratio to compute
      * size of secondary queue.
      *
      * @param max Maximum allowed size of entries in cache.
@@ -100,6 +118,23 @@ public class GridCacheLirsEvictionPolicy<K, V> implements GridCacheEvictionPolic
 
         this.max = max;
         this.queueRatio = queueRatio;
+    }
+
+    /**
+     * Constructs LIRS eviction policy with maximum size and secondary queue ratio to compute
+     * size of secondary queue.
+     *
+     * @param max Maximum allowed size of entries in cache.
+     * @param queueRatio Ratio of {@code HIRS} queue size compared to maximum allowed size.
+     * @param allowEmptyEntries If {@code false}, empty entries will be evicted immediately.
+     */
+    public GridCacheLirsEvictionPolicy(int max, float queueRatio, boolean allowEmptyEntries) {
+        A.ensure(max > 0, "max > 0");
+        A.ensure(queueRatio > 0 && queueRatio <= 1, "queueRatio > 0 && queueRatio <= 1");
+
+        this.max = max;
+        this.queueRatio = queueRatio;
+        this.allowEmptyEntries = allowEmptyEntries;
     }
 
     /** {@inheritDoc} */
@@ -116,6 +151,16 @@ public class GridCacheLirsEvictionPolicy<K, V> implements GridCacheEvictionPolic
         A.ensure(max > 0, "max > 0");
 
         this.max = max;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isAllowEmptyEntries() {
+        return allowEmptyEntries;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setAllowEmptyEntries(boolean allowEmptyEntries) {
+        this.allowEmptyEntries = allowEmptyEntries;
     }
 
     /** {@inheritDoc} */
@@ -186,13 +231,43 @@ public class GridCacheLirsEvictionPolicy<K, V> implements GridCacheEvictionPolic
 
     /** {@inheritDoc} */
     @Override public void onEntryAccessed(boolean rmv, GridCacheEntry<K, V> entry) {
-        if (!rmv)
-            touch(entry);
+        if (!rmv) {
+            if (!allowEmptyEntries && empty(entry)) {
+                Capsule c = entry.meta(meta);
+
+                if (c != null)
+                    c.clear();
+
+                if (!entry.evict())
+                    touch(entry);
+            }
+            else
+                touch(entry);
+        }
         else {
             Capsule c = entry.meta(meta);
 
             if (c != null)
                 c.clear();
+        }
+    }
+
+    /**
+     * Checks entry for empty value.
+     *
+     * @param entry Entry to check.
+     * @return {@code True} if entry is empty.
+     */
+    private boolean empty(GridCacheEntry<K, V> entry) {
+        try {
+            return !entry.hasValue(GLOBAL);
+        }
+        catch (GridException e) {
+            U.error(null, e.getMessage(), e);
+
+            assert false : "Should never happen: " + e;
+
+            return false;
         }
     }
 

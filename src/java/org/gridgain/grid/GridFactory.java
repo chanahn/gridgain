@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -130,8 +130,8 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * You can also instantiate grid directly from Spring without using {@code GridFactory}.
  * For more information refer to {@link GridSpringBean} documentation.
 
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 public class GridFactory {
     /**
@@ -1299,8 +1299,8 @@ public class GridFactory {
     /**
      * Grid data container.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.22122011
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
@@ -2198,8 +2198,8 @@ public class GridFactory {
          * Grid factory MBean data container.
          * Contains necessary data for selected MBeanServer.
          *
-         * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-         * @version 3.5.1c.18112011
+         * @author 2011 Copyright (C) GridGain Systems
+         * @version 3.6.0c.22122011
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

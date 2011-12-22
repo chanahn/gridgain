@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -17,6 +17,7 @@ import org.gridgain.grid.cache.affinity.replicated.*;
 import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.cache.eviction.always.*;
 import org.gridgain.grid.cache.eviction.lru.*;
+import org.gridgain.grid.cache.store.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.*;
 import org.gridgain.grid.kernal.processors.cache.datastructures.*;
@@ -42,8 +43,8 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
 /**
  * Cache processor.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 public class GridCacheProcessor extends GridProcessorAdapter {
     /** Null cache name. */
@@ -174,6 +175,21 @@ public class GridCacheProcessor extends GridProcessorAdapter {
                     "(most likely misconfiguration - either update 'isTxSerializableEnabled' or " +
                     "'defaultTxIsolationLevel' properties)",
                 "Serializable transactions are disabled while default transaction isolation is SERIALIZABLE.");
+
+        if (cfg.isWriteFromBehindEnabled()) {
+            if (cfg.getStore() == null)
+                throw new GridException("Cannot enable write-from-behind cache (cache store is not provided): " +
+                    "cacheName=" + cfg.getName());
+
+            assertParameter(cfg.getWriteFromBehindBatchSize() > 0, "writeFromBehindBatchSize > 0");
+            assertParameter(cfg.getWriteFromBehindFlushSize() >= 0, "writeFromBehindFlushSize >= 0");
+            assertParameter(cfg.getWriteFromBehindFlushFrequency() >= 0, "writeFromBehindFlushFrequency >= 0");
+            assertParameter(cfg.getWriteFromBehindFlushThreadCount() > 0, "writeFromBehindFlushThreadCount > 0");
+
+            if (cfg.getWriteFromBehindFlushSize() == 0 && cfg.getWriteFromBehindFlushFrequency() == 0)
+                throw new GridException("Cannot set both 'writeFromBehindFlushFrequency' and " +
+                    "'writeFromBehindFlushSize' parameters to 0: cacheName=" + cfg.getName());
+        }
     }
 
     /**
@@ -293,9 +309,12 @@ public class GridCacheProcessor extends GridProcessorAdapter {
             GridCacheIoManager ioMgr = new GridCacheIoManager();
             GridCacheDataStructuresManager dataStructuresMgr = dataStructuresManager();
 
+            GridCacheStore store = cacheStore(ctx.gridName(), cfg);
+
             GridCacheContext<?, ?> cacheCtx = new GridCacheContext(
                 ctx,
                 cfg,
+                store,
 
                 /*
                  * Managers in starting order!
@@ -380,6 +399,7 @@ public class GridCacheProcessor extends GridProcessorAdapter {
                 cacheCtx = new GridCacheContext(
                     ctx,
                     cfg,
+                    cfg.getStore(),
 
                     /*
                      * Managers in starting order!
@@ -416,6 +436,9 @@ public class GridCacheProcessor extends GridProcessorAdapter {
                 if (log.isDebugEnabled())
                     log.debug("Started DHT cache: " + dht.name());
             }
+
+            if (store instanceof GridCacheWriteFromBehindStore)
+                ((GridCacheWriteFromBehindStore)store).start();
 
             cache.start();
 
@@ -589,11 +612,17 @@ public class GridCacheProcessor extends GridProcessorAdapter {
 
             GridCacheContext ctx = cache.context();
 
+            // Check whether write-from-behind is configured.
+            GridCacheStore store = ctx.cacheStore();
+
+            if (store instanceof GridCacheWriteFromBehindStore)
+                ((GridCacheWriteFromBehindStore)store).stop();
+
             if (ctx.config().getCacheMode() == PARTITIONED) {
                 GridDhtCache dht = ctx.near().dht();
 
+                // Check whether dht cache has been started.
                 if (dht != null) {
-                    // Check whether dht cache has been started.
                     dht.stop();
 
                     GridCacheContext<?, ?> dhtCtx = dht.context();
@@ -850,6 +879,30 @@ public class GridCacheProcessor extends GridProcessorAdapter {
                 break;
             }
         }
+    }
+
+    /**
+     * Creates a wrapped cache store if write from behind cache is configured.
+     *
+     * @param gridName Name of grid.
+     * @param cfg Cache configuration.
+     * @return Instance if {@link GridCacheWriteFromBehindStore} if write from behind store is configured,
+     *         or user-defined cache store.
+     */
+    @SuppressWarnings({"unchecked"})
+    private GridCacheStore cacheStore(String gridName, GridCacheConfiguration cfg) {
+        if (cfg.getStore() == null || !cfg.isWriteFromBehindEnabled())
+            return cfg.getStore();
+
+        GridCacheWriteFromBehindStore store = new GridCacheWriteFromBehindStore(gridName, log, cfg.getStore(),
+            cfg.getName());
+
+        store.setFlushSize(cfg.getWriteFromBehindFlushSize());
+        store.setFlushThreadCount(cfg.getWriteFromBehindFlushThreadCount());
+        store.setFlushFrequency(cfg.getWriteFromBehindFlushFrequency());
+        store.setBatchSize(cfg.getWriteFromBehindBatchSize());
+
+        return store;
     }
 
     /**

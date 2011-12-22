@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -25,8 +25,8 @@ import java.util.*;
  * and it is responsibility of the user of this class to provide outside
  * synchronization, if needed.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  * @see GridFunc#t2()
  * @see GridFunc#t(Object, Object)
  */
@@ -53,7 +53,7 @@ public class GridTuple2<V1, V2> extends GridMetadataAwareAdapter implements Map<
      * @param val1 First value.
      * @param val2 Second value.
      */
-    public GridTuple2(V1 val1, V2 val2) {
+    public GridTuple2(@Nullable V1 val1, @Nullable V2 val2) {
         this.val1 = val1;
         this.val2 = val2;
     }
@@ -88,7 +88,7 @@ public class GridTuple2<V1, V2> extends GridMetadataAwareAdapter implements Map<
      *
      * @return First value.
      */
-    public V1 get1() {
+    @Nullable public V1 get1() {
         return val1;
     }
 
@@ -97,7 +97,7 @@ public class GridTuple2<V1, V2> extends GridMetadataAwareAdapter implements Map<
      *
      * @return Second value.
      */
-    public V2 get2() {
+    @Nullable public V2 get2() {
         return val2;
     }
 
@@ -106,7 +106,7 @@ public class GridTuple2<V1, V2> extends GridMetadataAwareAdapter implements Map<
      *
      * @param val1 First value.
      */
-    public void set1(V1 val1) {
+    public void set1(@Nullable V1 val1) {
         this.val1 = val1;
     }
 
@@ -115,7 +115,7 @@ public class GridTuple2<V1, V2> extends GridMetadataAwareAdapter implements Map<
      *
      * @param val2 Second value.
      */
-    public void set2(V2 val2) {
+    public void set2(@Nullable V2 val2) {
         this.val2 = val2;
     }
 
@@ -125,23 +125,23 @@ public class GridTuple2<V1, V2> extends GridMetadataAwareAdapter implements Map<
      * @param val1 First value.
      * @param val2 Second value.
      */
-    public void set(V1 val1, V2 val2) {
+    public void set(@Nullable V1 val1, @Nullable V2 val2) {
         set1(val1);
         set2(val2);
     }
 
     /** {@inheritDoc} */
-    @Override public V1 getKey() {
+    @Nullable @Override public V1 getKey() {
         return val1;
     }
 
     /** {@inheritDoc} */
-    @Override public V2 getValue() {
+    @Nullable @Override public V2 getValue() {
         return val2;
     }
 
     /** {@inheritDoc} */
-    @Override public V2 setValue(V2 val) {
+    @Override public V2 setValue(@Nullable V2 val) {
         V2 old = val2;
 
         set2(val);

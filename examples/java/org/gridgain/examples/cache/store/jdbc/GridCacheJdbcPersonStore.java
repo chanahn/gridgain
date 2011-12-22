@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -14,6 +14,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.store.*;
 import org.gridgain.grid.typedef.*;
+import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
 import java.sql.*;
@@ -24,8 +25,8 @@ import java.util.*;
  * transaction with cache transactions and maps {@link UUID} to {@link Person}.
  *
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 public class GridCacheJdbcPersonStore extends GridCacheStoreAdapter<UUID, Person> {
     /** Transaction metadata attribute name. */
@@ -52,7 +53,7 @@ public class GridCacheJdbcPersonStore extends GridCacheStoreAdapter<UUID, Person
         Statement st = null;
 
         try {
-            conn = openConnection();
+            conn = openConnection(false);
 
             st = conn.createStatement();
 
@@ -65,8 +66,7 @@ public class GridCacheJdbcPersonStore extends GridCacheStoreAdapter<UUID, Person
             throw new GridException("Failed to create database table.", e);
         }
         finally {
-            close(st);
-            close(conn);
+            end(null, conn, st);
         }
     }
 
@@ -81,14 +81,14 @@ public class GridCacheJdbcPersonStore extends GridCacheStoreAdapter<UUID, Person
                 else
                     conn.rollback();
 
-                    X.println("Transaction ended [xid=" + tx.xid() + ", commit=" + commit + ']');
+                X.println("Transaction ended [xid=" + tx.xid() + ", commit=" + commit + ']');
             }
             catch (SQLException e) {
                 throw new GridException("Failed to end transaction [xid=" + tx.xid() + ", commit=" + commit + ']', e);
             }
             finally {
                 // Return connection back to the pool.
-                close(conn);
+                U.closeQuiet(conn);
             }
         }
     }
@@ -118,24 +118,23 @@ public class GridCacheJdbcPersonStore extends GridCacheStoreAdapter<UUID, Person
             throw new GridException("Failed to load object: " + key, e);
         }
         finally {
-            close(st);
-
-            if (tx == null)
-                // Close connection right away if there is no transaction.
-                close(conn);
+            end(tx, conn, st);
         }
 
         return null;
     }
 
     /** {@inheritDoc} */
-    @Override public void put(@Nullable String cacheName, GridCacheTx tx, UUID key, Person val) throws GridException {
+    @Override public void put(@Nullable String cacheName, @Nullable GridCacheTx tx, UUID key, Person val)
+        throws GridException {
         X.println("Store put [key=" + key + ", val=" + val + ", tx=" + tx + ']');
 
         PreparedStatement st = null;
 
+        Connection conn = null;
+
         try {
-            Connection conn = connection(tx);
+            conn = connection(tx);
 
             st = conn.prepareStatement("update PERSONS set firstName=?, lastName=?, resume=? where id=?");
 
@@ -162,18 +161,20 @@ public class GridCacheJdbcPersonStore extends GridCacheStoreAdapter<UUID, Person
             throw new GridException("Failed to put object [key=" + key + ", val=" + val + ']', e);
         }
         finally {
-            close(st);
+            end(tx, conn, st);
         }
     }
 
     /** {@inheritDoc} */
-    @Override public void remove(@Nullable String cacheName, GridCacheTx tx, UUID key) throws GridException {
+    @Override public void remove(@Nullable String cacheName, @Nullable GridCacheTx tx, UUID key) throws GridException {
         X.println("Store remove [key=" + key + ", tx=" + tx + ']');
 
         PreparedStatement st = null;
 
+        Connection conn = null;
+
         try {
-            Connection conn = connection(tx);
+            conn = connection(tx);
 
             st = conn.prepareStatement("delete from PERSONS where id=?");
 
@@ -185,7 +186,7 @@ public class GridCacheJdbcPersonStore extends GridCacheStoreAdapter<UUID, Person
             throw new GridException("Failed to remove object: " + key, e);
         }
         finally {
-            close(st);
+            end(tx, conn, st);
         }
     }
 
@@ -199,7 +200,7 @@ public class GridCacheJdbcPersonStore extends GridCacheStoreAdapter<UUID, Person
             Connection conn = tx.meta(ATTR_NAME);
 
             if (conn == null) {
-                conn = openConnection();
+                conn = openConnection(false);
 
                 // Store connection in transaction metadata, so it can be accessed
                 // for other operations on the same transaction.
@@ -208,21 +209,37 @@ public class GridCacheJdbcPersonStore extends GridCacheStoreAdapter<UUID, Person
 
             return conn;
         }
-        // Transaction can be null in case of simple load operation.
+        // Transaction can be null in case of simple load or put operation.
         else
-            return openConnection();
+            return openConnection(true);
+    }
+
+    /**
+     * Closes allocated resources depending on transaction status.
+     *
+     * @param tx Active transaction, if any.
+     * @param conn Allocated connection.
+     * @param st Created statement,
+     */
+    private void end(@Nullable GridCacheTx tx, Connection conn, Statement st) {
+        U.closeQuiet(st);
+
+        if (tx == null)
+            // Close connection right away if there is no transaction.
+            U.closeQuiet(conn);
     }
 
     /**
      * Gets connection from a pool.
      *
+     * @param autocommit {@code true} If connection should use autocommit mode.
      * @return Pooled connection.
      * @throws SQLException In case of error.
      */
-    private Connection openConnection() throws SQLException {
+    private Connection openConnection(boolean autocommit) throws SQLException {
         Connection conn = DriverManager.getConnection("jdbc:h2:mem:example;DB_CLOSE_DELAY=-1");
 
-        conn.setAutoCommit(false);
+        conn.setAutoCommit(autocommit);
 
         return conn;
     }
@@ -244,39 +261,5 @@ public class GridCacheJdbcPersonStore extends GridCacheStoreAdapter<UUID, Person
         person.setResume(resume);
 
         return person;
-    }
-
-    /**
-     * Closes statement.
-     *
-     * @param st Statement to close.
-     */
-    private void close(Statement st) {
-        if (st != null)
-            try {
-                st.close();
-            }
-            catch (SQLException e) {
-                System.err.println("Failed to close statement.");
-
-                e.printStackTrace();
-            }
-    }
-
-    /**
-     * Closes connection.
-     *
-     * @param conn Connection to close.
-     */
-    private void close(Connection conn) {
-        if (conn != null)
-            try {
-                conn.close();
-            }
-            catch (SQLException e) {
-                System.err.println("Failed to close connection.");
-
-                e.printStackTrace();
-            }
     }
 }

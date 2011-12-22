@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -16,8 +16,8 @@ import java.util.*;
 /**
  * Management bean for {@link GridMulticastDiscoverySpi}.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 @GridMBeanDescription("MBean that provides access to IP-multicast based discovery SPI configuration.")
 public interface GridMulticastDiscoverySpiMBean extends GridSpiManagementMBean {
@@ -107,11 +107,11 @@ public interface GridMulticastDiscoverySpiMBean extends GridSpiManagementMBean {
     public int getRemoteNodeCount();
 
     /**
-     * Gets TCP messages time-to-live.
+     * Gets messages time-to-live.
      *
-     * @return TCP messages time-to-live.
+     * @return Messages time-to-live.
      */
-    @GridMBeanDescription("TCP messages time-to-live.")
+    @GridMBeanDescription("Messages time-to-live.")
     public int getTimeToLive();
 
     /**
@@ -123,4 +123,12 @@ public interface GridMulticastDiscoverySpiMBean extends GridSpiManagementMBean {
      *      {@code false} otherwise.
      */
     public boolean isCheckMulticastEnabled();
+
+    /**
+     * Gets socket timeout.
+     *
+     * @return Socket timeout.
+     */
+    @GridMBeanDescription("Socket timeout.")
+    public int getSocketTimeout();
 }

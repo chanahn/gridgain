@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -26,8 +26,8 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
 /**
  * Key partition.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalPartition> {
     /** Static logger to avoid re-creation. */
@@ -317,6 +317,13 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
      */
     void onUnlock() {
         tryEvict();
+    }
+
+    /**
+     * @return {@code True} if local node is primary for this partition.
+     */
+    public boolean primary() {
+        return cctx.primary(cctx.localNode(), id);
     }
 
     /**

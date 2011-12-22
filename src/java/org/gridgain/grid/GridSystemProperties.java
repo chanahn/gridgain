@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -19,8 +19,8 @@ import org.gridgain.grid.thread.*;
  * Contains constants for all system properties and environmental variables in GridGain. These
  * properties and variables can be used to affect the behavior of GridGain.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  * @see GridTestVmParameters
  */
 public final class GridSystemProperties {
@@ -51,6 +51,9 @@ public final class GridSystemProperties {
 
     /** Defines GridGain installation folder. */
     public static final String GG_HOME = "GRIDGAIN_HOME";
+
+    /** Defines GridGain property indicating support for ANSI escape sequences. */
+    public static final String GG_SCRIPT = "GRIDGAIN_SCRIPT";
 
     /** If this system property is set to {@code false} - no shutdown hook will be set. */
     public static final String GG_NO_SHUTDOWN_HOOK = "GRIDGAIN_NO_SHUTDOWN_HOOK";
@@ -326,9 +329,15 @@ public final class GridSystemProperties {
     public static final String GG_MAX_COMPLETED_TX_COUNT = "GRIDGAIN_MAX_COMPLETED_TX_COUNT";
 
     /**
-     * Level of concurrency for all concurrent hash maps created by GridGain.
+     * Concurrency level for all concurrent hash maps created by GridGain.
      */
     public static final String GG_MAP_CONCURRENCY_LEVEL = "GRIDGAIN_MAP_CONCURRENCY_LEVEL";
+
+    /**
+     * Transactions that take more time, than value of this property, will be output to log
+     * with warning level. {@code 0} (default value) disables warning on slow transactions.
+     */
+    public static final String GG_SLOW_TX_WARN_TIMEOUT = "GRIDGAIN_SLOW_TX_WARN_TIMEOUT";
 
     /**
      * Enforces singleton.

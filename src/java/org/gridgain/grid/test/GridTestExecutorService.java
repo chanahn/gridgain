@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -25,8 +25,8 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * used for logging to be able to group log statements from different threads for individual
  * tests.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 public class GridTestExecutorService extends ThreadPoolExecutor {
     /** Default core pool size (value is {@code 100}). */
@@ -110,8 +110,8 @@ public class GridTestExecutorService extends ThreadPoolExecutor {
      * sort out output from every thread, we create a new thread group for
      * every thread.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2011 Copyright (C) GridGain Systems
+     * @version 3.6.0c.22122011
      */
     private static class GridJunitThreadFactory implements ThreadFactory {
         /** Grid name. */

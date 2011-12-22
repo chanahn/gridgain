@@ -1,5 +1,5 @@
-GridGain - High Performance Cloud Computing
-===========================================
+GridGain - Real Time Big Data
+=============================
 Nikita Ivanov <nivanov@gridgain.com>
 :Author Initials: NI
 :toc:
@@ -7,11 +7,10 @@ Nikita Ivanov <nivanov@gridgain.com>
 :numbered:
 :website: http://www.gridgain.com
 
-image::http://www.gridgain.com/images/faces.gif[]
+image::http://www.gridgain.com/images/logo2_bw_no_ver.png[]
 
-GridGain is a JVM-based based software middleware that enables development
-of high performance distributed application that scale up on any managed infrastructure: 
-from a single laptop, to cluster and grids, to public and private clouds. 
+GridGain is Java based open source middleware for real time big data processing and 
+analytics that scales up from one server to thousands of machines. 
 
 GridGain - Community Edition
 ----------------------------
@@ -82,7 +81,7 @@ Support & Documentation
 GridGain comes with several support and documentation resources:
 
 . Community http://jive.gridgain.org[Support Forum]
-. Working draft of http://www.gridgain.com/book/book.html["High Performance Cloud Computing with GridGain"] book
+. Working draft of http://www.gridgain.com/book/book.html["Real Time Big Data Processing with GridGain"] book
 . GridGain http://wiki.gridgain.org[Wiki]
 . Video http://gridgain.com/screencasts.html[screencast]
 . Online newspaper http://paper.li/gridgain/1299724823[GridGain Daily]

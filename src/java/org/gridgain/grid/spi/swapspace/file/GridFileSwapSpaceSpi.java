@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -107,15 +107,15 @@ import static org.gridgain.grid.GridEventType.*;
  * <br>
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  * @see GridSwapSpaceSpi
  */
 @GridSpiInfo(
-    author = "GridGain Systems, Inc.",
+    author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.5.1c.18112011")
+    version = "3.6.0c.22122011")
 @GridSpiMultipleInstancesSupport(true)
 public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpaceSpi, GridFileSwapSpaceSpiMBean {
     /*
@@ -189,6 +189,12 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
     /** Default task queue capacity. */
     public static final int DFLT_TASK_QUEUE_CAP = 10000;
+    
+    /** Default task queue flush frequency. */
+    public static final int DFLT_TASK_QUEUE_FLUSH_FREQ = 60 * 1000;
+
+    /** Default task queue flush ratio. */
+    public static final float DFLT_TASK_QUEUE_FLUSH_RATIO = 0.5f;
 
     /** Default session timeout. */
     public static final int DFLT_SES_TIMEOUT = 5000;
@@ -208,7 +214,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
      */
 
     /** Position is written the following format: {@code %020d%n}. */
-    private static final int IDX_DATA_POS = (20 + U.newLine().length()) * 3;
+    private static final int IDX_DATA_POS = (20 + U.nl().length()) * 3;
 
     /** Number of file read-write locks to synchronize IO operations. */
     private static final int LOCKS_CNT = 1024;
@@ -256,6 +262,15 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
     /** Task queue capacity. */
     private int taskQueueCap = DFLT_TASK_QUEUE_CAP;
+
+    /** Queue size that triggers worker threads wake up. */
+    private int taskQueueFlushThreshold;
+
+    /** Ratio that defines the queue flush threshold. */
+    private float taskQueueFlushRatio = DFLT_TASK_QUEUE_FLUSH_RATIO;
+
+    /** Task queue flush frequency in milliseconds. */
+    private int taskQueueFlushFreq = DFLT_TASK_QUEUE_FLUSH_FREQ;
 
     /** Maximum index file size for all spaces. */
     private long maxIdxSize = DFLT_MAX_IDX_SIZE;
@@ -359,6 +374,15 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
     /** Listener. */
     private volatile GridSwapSpaceSpiListener lsnr;
+
+    /** Count waiting worker threads. */
+    private volatile int sleepingCnt;
+
+    /** Lock used in wakeup mechanism. */
+    private final Lock wakeUpLock = new ReentrantLock();
+
+    /** Condition used in wakeup mechanism. */
+    private final Condition wakeUpCond = wakeUpLock.newCondition();
 
     /** Grid name. */
     @GridNameResource
@@ -619,6 +643,46 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
     @GridSpiConfiguration(optional = true)
     public void setTaskQueueCapacity(int taskQueueCap) {
         this.taskQueueCap = taskQueueCap;
+    }
+
+    /** {@inheritDoc} */
+    @Override public float getTaskQueueFlushRatio() {
+        return taskQueueFlushRatio;
+    }
+
+    /**
+     * Sets task queue flush ratio.
+     * <p/>
+     * If queue size exceeds {@link #getTaskQueueCapacity()} * {@link #getTaskQueueFlushRatio()}
+     * then worker threads will wake up immediately.
+     * <p/>
+     * If not provided, default value is {@link #DFLT_TASK_QUEUE_FLUSH_RATIO}.
+     *
+     * @param taskQueueFlushRatio Flush ratio. Following condition must be satisfied: 0 < flushRatio <= 1.
+     */
+    @GridSpiConfiguration(optional = true)
+    public void setTaskQueueFlushRatio(float taskQueueFlushRatio) {
+        this.taskQueueFlushRatio = taskQueueFlushRatio;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getTaskQueueFlushFrequency() {
+        return taskQueueFlushFreq;
+    }
+
+    /**
+     * Sets task queue flush frequency.
+     * <p/>
+     * Each worker thread will wait at most this amount of milliseconds before it starts to
+     * process tasks.
+     * <p/>
+     * If not provided, default value is {@link #DFLT_TASK_QUEUE_FLUSH_FREQ}.
+     *
+     * @param taskQueueFlushFreq Flush frequency in milliseconds.
+     */
+    @GridSpiConfiguration(optional = true)
+    public void setTaskQueueFlushFrequency(int taskQueueFlushFreq) {
+        this.taskQueueFlushFreq = taskQueueFlushFreq;
     }
 
     /** {@inheritDoc} */
@@ -888,6 +952,9 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
         assertParameter(cntOverflowRatio > 1.0, "cntOverflowRatio > 1.0");
         assertParameter(poolSize > 0, "poolSize > 0");
         assertParameter(taskQueueCap >= 0, "taskQueueCap >= 0");
+        assertParameter(taskQueueFlushFreq > 0, "taskQueueFlushFreq > 0");
+        assertParameter(taskQueueFlushRatio > 0, "taskQueueFlushRatio > 0");
+        assertParameter(taskQueueFlushRatio <= 1, "taskQueueFlushRatio <= 1");
         assertParameter(maxIdxSize > 0, "maxIdxSize > 0");
         assertParameter(maxIdxBufSize >= 0, "maxIdxBufSize >= 0");
         assertParameter(idxOverflowRatio > 1.0, "idxOverflowRatio > 1.0");
@@ -915,6 +982,8 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
             wrk.start();
         }
 
+        taskQueueFlushThreshold = (int)(taskQueueCap * taskQueueFlushRatio);
+
         registerMBean(gridName, this, GridFileSwapSpaceSpiMBean.class);
 
         if (log.isDebugEnabled()) {
@@ -925,6 +994,8 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
             log.debug(configInfo("cntOverflowRatio", cntOverflowRatio));
             log.debug(configInfo("poolSize", poolSize));
             log.debug(configInfo("taskQueueCap", taskQueueCap));
+            log.debug(configInfo("taskQueueFlushFreq", taskQueueFlushFreq));
+            log.debug(configInfo("taskQueueFlushRatio", taskQueueFlushRatio));
             log.debug(configInfo("maxIdxSize", maxIdxSize));
             log.debug(configInfo("maxIdxBufSize", maxIdxBufSize));
             log.debug(configInfo("idxOverflowRatio", idxOverflowRatio));
@@ -941,6 +1012,16 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
     /** {@inheritDoc} */
     @Override public void spiStop() throws GridSpiException {
         spiStopping.set(true);
+
+        // Now wake up all worker threads for faster shutdown.
+        wakeUpLock.lock();
+        
+        try {
+            wakeUpCond.signalAll();
+        }
+        finally {
+            wakeUpLock.unlock();
+        }
 
         // Join without interruption.
         for (GridSpiThread wrk : wrks)
@@ -1202,7 +1283,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
         if (name == null)
             return DFLT_SPACE_NAME;
 
-        else if (name.length() == 0)
+        else if (name.isEmpty())
             throw new GridSpiException("Space name cannot be empty: " + name);
 
         else if (DFLT_SPACE_NAME.equalsIgnoreCase(name))
@@ -1233,7 +1314,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
      * @param keyBytes Key bytes (for eviction notification only).
      */
     private void notifySwapManager(int evtType, @Nullable String spaceName, @Nullable byte[] keyBytes) {
-        GridSwapSpaceSpiListener evictLsnr = this.lsnr;
+        GridSwapSpaceSpiListener evictLsnr = lsnr;
 
         if (evictLsnr != null)
             evictLsnr.onSwapEvent(evtType, spaceName, keyBytes);
@@ -1554,6 +1635,29 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
             log.debug("Deleting file or directory: " + f);
 
         f.delete();
+    }
+
+    /**
+     * This method is called whenever task count in task queue is changed.
+     *
+     * @param taskCnt Updated task count
+     */
+    private void taskCountChanged(int taskCnt) {
+        assert taskCnt >= 0;
+
+        if (sleepingCnt > 0) {
+            if (taskCnt >= taskQueueFlushThreshold) {
+                wakeUpLock.lock();
+                
+                try {
+                    if (sleepingCnt > 0)
+                        wakeUpCond.signalAll();
+                }
+                finally {
+                    wakeUpLock.unlock();
+                }
+            }
+        }
     }
 
     /** {@inheritDoc} */
@@ -3139,8 +3243,6 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
             int collisionIdx = 0;
 
-            byte[] keyBytes;
-
             EntryFile entryFile;
 
             while (true) {
@@ -3151,7 +3253,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
                     tmp = new EntryFile(k, filePath, randAccessFile);
 
-                    keyBytes = tmp.keyBytes();
+                    byte[] keyBytes = tmp.keyBytes();
 
                     if (keyBytes == null) {
                         if (write) {
@@ -3415,12 +3517,14 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
             assert key != null;
 
+            int tasks = availableTasks.get();
+
             // Prohibit remove if any
             Task task0 = rmvTasks.remove(key);
 
             if (task0 != null && task0.reserve())
                 // Prohibit async processing and update counter.
-                availableTasks.decrementAndGet();
+                tasks = availableTasks.decrementAndGet();
 
             // Add to store task.
             task0 = storeTasks.replace(key, task);
@@ -3440,11 +3544,13 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
                     return false;
             }
 
-            availableTasks.incrementAndGet();
-
-            if (task0 != null && task0.reserve())
+            // If we put new task or old task was reserved.
+            if (task0 == null || !task0.reserve())
                 // Prohibit async processing and update counter.
-                availableTasks.decrementAndGet();
+                tasks = availableTasks.incrementAndGet();
+
+            // Check if workers should be waked up.
+            taskCountChanged(tasks);
 
             return true;
         }
@@ -3470,7 +3576,8 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
                     rmvTasksCnt.incrementAndGet();
 
-                    availableTasks.incrementAndGet();
+                    // Increment task count check if workers should be waked up.
+                    taskCountChanged(availableTasks.incrementAndGet());
                 }
             }
             else
@@ -3491,7 +3598,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
             qSize.incrementAndGet();
 
-            availableTasks.incrementAndGet();
+            int tasks = availableTasks.incrementAndGet();
 
             keylessTasks.add(task);
 
@@ -3499,6 +3606,8 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
                 rmvTasksCnt.incrementAndGet();
             else
                 evictTasksCnt.incrementAndGet();
+
+            taskCountChanged(tasks);
         }
 
         /**
@@ -3531,7 +3640,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
             if (task != null) {
                 if (task.reserve())
                     // Prohibit async execution and update counter.
-                    availableTasks.decrementAndGet();
+                    onTaskReserved();
 
                 bufHitCnt.incrementAndGet();
 
@@ -3654,7 +3763,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
          *
          */
         void onTaskReserved() {
-            availableTasks.decrementAndGet();
+            taskCountChanged(availableTasks.decrementAndGet());
         }
     }
 
@@ -3984,10 +4093,6 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
          */
         private void flush(boolean force) throws GridSpiException {
             if (flushGuard.compareAndSet(false, true)) {
-                byte[] data;
-
-                String fileName;
-
                 // File index and position for current flush.
                 int idx0 = idx;
 
@@ -3999,6 +4104,10 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
                     idx = 1;
                 }
+
+                byte[] data;
+
+                String fileName;
 
                 try {
                     int cnt = survivedEntries.sizex();
@@ -4849,7 +4958,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
             assert spaceName != null;
             assert path != null;
 
-            this.spaceKey = null;
+            spaceKey = null;
             this.spaceName = spaceName;
             this.path = path;
             this.hash = hash;
@@ -4868,9 +4977,9 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
             assert ctx != null;
 
             this.spaceKey = spaceKey;
-            this.spaceName = spaceKey.space();
-            this.path = null;
-            this.hash = spaceKey.hash();
+            spaceName = spaceKey.space();
+            path = null;
+            hash = spaceKey.hash();
             this.ctx = ctx;
             this.fireEvt = fireEvt;
         }
@@ -4932,21 +5041,24 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
         /**
          * @return Space key.
          */
-        @Nullable SpaceKey spaceKey() {
+        @Nullable
+        @Override SpaceKey spaceKey() {
             return spaceKey;
         }
 
         /**
          * @return Context.
          */
-        @Nullable GridSwapContext context() {
+        @Nullable
+        GridSwapContext context() {
             return ctx;
         }
 
         /**
          * @return Path.
          */
-        @Nullable String path() {
+        @Nullable
+        String path() {
             return path;
         }
 
@@ -4985,7 +5097,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
          *
          */
         private Worker() {
-            super(gridName, "file-swap-space-wrk", log);
+            super(gridName, "file-swap-space-worker", log);
         }
 
         /** {@inheritDoc} */
@@ -4993,7 +5105,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
         @Override protected void body() throws InterruptedException {
             while (!spiStopping.get() || taskQueue.availableTasks() > 0) {
                 while (!spiStopping.get() && taskQueue.availableTasks() <= 0)
-                    Thread.sleep(1000);
+                    waitForTasks();
 
                 processTasks(taskQueue.storeTasksIterator());
 
@@ -5019,6 +5131,26 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
                     task.body(true);
                 }
+            }
+        }
+
+        /**
+         * Waits until queue size reaches the wakeup capacity or a timeout expires.
+         *
+         * @throws InterruptedException If waiting thread was interrupted.
+         */
+        private void waitForTasks() throws InterruptedException {
+            wakeUpLock.lock();
+
+            try {
+                sleepingCnt++;
+
+                wakeUpCond.await(taskQueueFlushFreq, TimeUnit.MILLISECONDS);
+
+                sleepingCnt--;
+            }
+            finally {
+                wakeUpLock.unlock();
             }
         }
 

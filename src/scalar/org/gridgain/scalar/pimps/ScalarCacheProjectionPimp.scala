@@ -1,6 +1,6 @@
 package org.gridgain.scalar.pimps
 
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*
  * ________               ______                    ______   _______
@@ -25,8 +25,8 @@ import scalaz._
 /**
  * Companion object.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 object ScalarCacheProjectionPimp {
     /**
@@ -65,8 +65,8 @@ object ScalarCacheProjectionPimp {
  * Instead of giving two different names to the same function we've decided to simply mark
  * Scala's side method with `$` suffix.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 class ScalarCacheProjectionPimp[@specialized K, @specialized V] extends PimpedType[GridCacheProjection[K, V]]
     with Iterable[GridCacheEntry[K, V]] {

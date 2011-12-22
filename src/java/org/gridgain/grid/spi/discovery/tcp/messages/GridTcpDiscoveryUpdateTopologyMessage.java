@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -9,8 +9,8 @@
 
 package org.gridgain.grid.spi.discovery.tcp.messages;
 
-import org.gridgain.grid.spi.discovery.tcp.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.tostring.*;
 
 import java.io.*;
 import java.util.*;
@@ -24,13 +24,17 @@ import java.util.*;
  * updated. Each node should synchronize local topologies with the store as
  * soon as it receives this message.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 @GridTcpDiscoveryEnsureDelivery
 public class GridTcpDiscoveryUpdateTopologyMessage extends GridTcpDiscoveryAbstractMessage {
     /** Local (transient) process flag. */
     private boolean processed;
+
+    /** Local (transient) list of nodes added during this update. */
+    @GridToStringInclude
+    private final Collection<UUID> addedNodeIds = new LinkedList<UUID>();
 
     /**
      * Public default no-arg constructor for {@link Externalizable} interface.
@@ -60,7 +64,7 @@ public class GridTcpDiscoveryUpdateTopologyMessage extends GridTcpDiscoveryAbstr
     }
 
     /**
-     * Sets least topology version to update to.
+     * Sets topology version to update to.
      * <p>
      * This method and the underlying field is used only if topology store is used.
      *
@@ -86,6 +90,26 @@ public class GridTcpDiscoveryUpdateTopologyMessage extends GridTcpDiscoveryAbstr
      */
     public void processed(boolean processed) {
         this.processed = processed;
+    }
+
+    /**
+     * Gets all node IDs added to topology during this topology update.
+     *
+     * @return Node IDs collection.
+     */
+    public Collection<UUID> addedNodeIds() {
+        return addedNodeIds;
+    }
+
+    /**
+     * Adds node ID to save it for future reference.
+     *
+     * @param id Node ID.
+     */
+    public void addNodeId(UUID id) {
+        assert id != null;
+
+        addedNodeIds.add(id);
     }
 
     /** {@inheritDoc} */

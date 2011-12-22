@@ -1,18 +1,23 @@
 package org.gridgain.grid.marshaller.optimized;
 
-import sun.reflect.*;
+import org.gridgain.grid.typedef.F;
+import org.gridgain.grid.typedef.P1;
+import org.gridgain.grid.util.GridReflectionCache;
+import sun.reflect.ReflectionFactory;
 
 import java.io.*;
 import java.lang.reflect.*;
-import java.nio.charset.*;
-import java.security.*;
-import java.util.*;
+import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Miscellaneous utility methods to facilitate {@link GridOptimizedMarshaller}.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2011 Copyright (C) GridGain Systems
+ * @version 3.6.0c.22122011
  */
 class GridOptimizedUtils {
     /** UTF-8 character name. */
@@ -20,6 +25,18 @@ class GridOptimizedUtils {
 
     /** Whether constructor for serialization is available. */
     static final boolean SERIALIZATION_CONSTRUCTOR_AVAILABLE;
+
+    /** Class reflection cache. */
+    private static final GridReflectionCache clsCache = new GridReflectionCache(
+            new P1<Field>() {
+                @Override public boolean apply(Field f) {
+                    int modifiers = f.getModifiers();
+
+                    return !Modifier.isStatic(modifiers) && !Modifier.isTransient(modifiers);
+                }
+            },
+            F.<Method>alwaysFalse() // We don't care about methods.
+    );
 
     /**
      * Compares fields by name.
@@ -115,31 +132,8 @@ class GridOptimizedUtils {
      * @param cls A class to examine.
      * @return All fields in a deterministic order that are not static and not transient.
      */
-    static List<Field> getFieldsForSerialization(Class cls) {
-        List<Field> allFields = new LinkedList<Field>();
-
-        while (cls != null && !cls.equals(Object.class)) {
-            List<Field> fields = new LinkedList<Field>();
-
-            for (Field f : cls.getDeclaredFields()) {
-                int modifiers = f.getModifiers();
-
-                if (!Modifier.isStatic(modifiers) && !Modifier.isTransient(modifiers)) {
-                    f.setAccessible(true);
-
-                    fields.add(f);
-                }
-            }
-
-            Collections.sort(fields, FIELD_NAME_COMPARATOR);
-
-            allFields.addAll(fields);
-
-            // If cls an interface, a primitive type, or void, then getSuperclass returns null.
-            cls = cls.getSuperclass();
-        }
-
-        return allFields;
+    static List<Field> getFieldsForSerialization(Class<?> cls) {
+        return clsCache.fields(cls);
     }
 
     /**
@@ -268,12 +262,12 @@ class GridOptimizedUtils {
      *
      * @param f A field.
      * @param obj An object.
-     * @param value A value.
+     * @param val A value.
      * @throws IOException If failed.
      */
-    static void set(Field f, Object obj, Object value) throws IOException {
+    static void set(Field f, Object obj, Object val) throws IOException {
         try {
-            f.set(obj, value);
+            f.set(obj, val);
         }
         catch (IllegalAccessException e) {
             throw new IOException("Failed to set field value: " + f, e);
