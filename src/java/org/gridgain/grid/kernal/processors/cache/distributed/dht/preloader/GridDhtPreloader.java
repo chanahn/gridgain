@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -31,8 +31,8 @@ import static org.gridgain.grid.util.GridConcurrentFactory.*;
 /**
  * DHT cache preloader.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
     /** Exchange history size. */
@@ -44,8 +44,8 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
     /** Partition map futures. */
     private final ExchangeFutureSet exchFuts = new ExchangeFutureSet();
 
-    /** Last join order. */
-    private final GridAtomicLong lastJoinOrder = new GridAtomicLong();
+    /** Topology version. */
+    private final GridAtomicLong topVer = new GridAtomicLong();
 
     /** Force key futures. */
     private final ConcurrentMap<GridUuid, GridDhtForceKeysFuture<K, V>> forceKeyFuts = newMap();
@@ -99,12 +99,11 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
                 assert e.type() != EVT_NODE_JOINED || n.order() > loc.order() : "Node joined with smaller order " +
                     "[newOrder=" + n.order() + ", locOrder=" + loc.order() + ']';
 
-                boolean set = lastJoinOrder.setIfGreater(n.order());
+                boolean set = topVer.setIfGreater(e.topologyVersion());
 
-                assert e.type() != EVT_NODE_JOINED || set;
+                assert set;
 
-                GridDhtPartitionExchangeId exchId = exchangeId(n.id(), n.order(), lastJoinOrder.get(), e.type(),
-                    e.timestamp());
+                GridDhtPartitionExchangeId exchId = exchangeId(n.id(), e.topologyVersion(), e.type());
 
                 GridDhtPartitionsExchangeFuture<K, V> exchFut = exchangeFuture(exchId, e);
 
@@ -210,10 +209,9 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
 
         assert startTime > 0;
 
-        lastJoinOrder.setIfGreater(loc.order());
+        topVer.setIfGreater(loc.order());
 
-        GridDhtPartitionExchangeId exchId = exchangeId(loc.id(), loc.order(), loc.order(), EVT_NODE_JOINED,
-            loc.metrics().getStartTime());
+        GridDhtPartitionExchangeId exchId = exchangeId(loc.id(), loc.order(), EVT_NODE_JOINED);
 
         // Generate dummy discovery event for local node joining.
         GridDiscoveryEvent discoEvt = new GridDiscoveryEvent(loc.id(), "Local node joined.", EVT_NODE_JOINED, loc.id());
@@ -250,11 +248,12 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
         if (cctx.config().getPreloadMode() == SYNC) {
             long start = System.currentTimeMillis();
 
-            U.log(log, "Starting preloading in SYNC mode...");
+            U.log(log, "Starting preloading in SYNC mode: " + cctx.name());
 
             demandPool.syncFuture().get();
 
-            U.log(log, "Completed preloading in SYNC mode in " + (System.currentTimeMillis() - start) + " ms.");
+            U.log(log, "Completed preloading in SYNC mode [cache=" + cctx.name() +
+                ", time=" + (System.currentTimeMillis() - start) + " ms]");
         }
     }
 
@@ -556,15 +555,12 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
 
     /**
      * @param nodeId Cause node ID.
-     * @param order Cause node order.
-     * @param lastJoinOrder Last join order.
+     * @param topVer Topology version.
      * @param evt Event type.
-     * @param timestamp Event timestamp.
      * @return ActivityFuture id.
      */
-    private GridDhtPartitionExchangeId exchangeId(UUID nodeId, long order, long lastJoinOrder, int evt,
-        long timestamp) {
-        return new GridDhtPartitionExchangeId(nodeId, evt, order, lastJoinOrder, timestamp);
+    private GridDhtPartitionExchangeId exchangeId(UUID nodeId, long topVer, int evt) {
+        return new GridDhtPartitionExchangeId(nodeId, evt, topVer);
     }
 
     /**
@@ -656,8 +652,8 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
                 @Override public int compare(
                     GridDhtPartitionsExchangeFuture<K, V> f1,
                     GridDhtPartitionsExchangeFuture<K, V> f2) {
-                    long t1 = f1.exchangeId().timestamp();
-                    long t2 = f2.exchangeId().timestamp();
+                    long t1 = f1.exchangeId().topologyVersion();
+                    long t2 = f2.exchangeId().topologyVersion();
 
                     assert t1 > 0;
                     assert t2 > 0;

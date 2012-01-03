@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -9,6 +9,7 @@
 
 package org.gridgain.grid.util;
 
+import org.fusesource.jansi.*;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.editions.*;
@@ -54,12 +55,14 @@ import java.util.*;
 import java.util.Date;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
 import java.util.jar.*;
 import java.util.regex.*;
 import java.util.zip.*;
 
 import static org.fusesource.jansi.Ansi.Attribute.*;
 import static org.fusesource.jansi.Ansi.*;
+import static org.fusesource.jansi.Ansi.Color.*;
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.GridSystemProperties.*;
 import static org.gridgain.grid.kernal.GridNodeAttributes.*;
@@ -67,8 +70,8 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
 /**
  * Collection of utility methods used throughout the system.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -235,6 +238,18 @@ public abstract class GridUtils {
     private static boolean ent;
 
     /**
+     * ANSI rainbow colors.
+     */
+    private static final Ansi.Color[] RAINBOW = {
+        BLUE,
+        MAGENTA,
+        CYAN,
+        GREEN,
+        YELLOW,
+        RED
+    };
+
+    /**
      * Initializes enterprise check.
      */
     static {
@@ -376,7 +391,7 @@ public abstract class GridUtils {
 
                     int type = field.getInt(null);
 
-                    String prev = GRID_EVT_NAMES.put(type, field.getName());
+                    String prev = GRID_EVT_NAMES.put(type, field.getName().substring(4));
 
                     // Check for duplicate event types.
                     assert prev == null : "Duplicate event [type=" + type + ", name1=" + prev +
@@ -432,6 +447,9 @@ public abstract class GridUtils {
                 throw new GridRuntimeException(e);
             }
         }
+
+        // Initialize JANSI.
+        AnsiConsole.systemInstall();
     }
 
     /**
@@ -551,6 +569,18 @@ public abstract class GridUtils {
     }
 
     /**
+     * Prints heap usage using {@link #debug(String)}.
+     */
+    public static void printHeapUsage() {
+        System.gc();
+
+        Runtime runtime = Runtime.getRuntime();
+
+        debug("Heap stats [free=" + runtime.freeMemory() / (1024 * 1024) +
+            "M, total=" + runtime.totalMemory() / (1024 * 1024) + "M]");
+    }
+
+    /**
      *
      * @param smtpHost SMTP host.
      * @param smtpPort SMTP port.
@@ -591,7 +621,7 @@ public abstract class GridUtils {
         Authenticator auth = null;
 
         // Add property for authentication by username.
-        if (username != null && username.length() > 0) {
+        if (username != null && !username.isEmpty()) {
             props.setProperty("mail.smtp.auth", "true");
 
             auth = new Authenticator() {
@@ -1494,8 +1524,8 @@ public abstract class GridUtils {
     /**
      * Verifier always returns successful result for any host.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2012 Copyright (C) GridGain Systems
+     * @version 3.6.0c.03012012
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.
@@ -2903,7 +2933,7 @@ public abstract class GridUtils {
 
         System.err.println(
             "[" + SHORT_DATE_FMT.format(new java.util.Date()) + "] " +
-            bright("(!) ") +
+            ansiYellow("(!) ") +
             compact(shortMsg.toString()));
     }
 
@@ -2977,7 +3007,7 @@ public abstract class GridUtils {
 
         assert log == null || log.isQuiet();
 
-        System.err.println("[" + SHORT_DATE_FMT.format(new java.util.Date()) + "] " + bright("(!!) ") +
+        System.err.println("[" + SHORT_DATE_FMT.format(new java.util.Date()) + "] " + ansiRed("(!!) ") +
             compact(shortMsg.toString()));
 
         if (e != null)
@@ -3045,7 +3075,7 @@ public abstract class GridUtils {
         throws MalformedObjectNameException {
         SB sb = new SB(JMX_DOMAIN + ':');
 
-        if (gridName != null && gridName.length() > 0)
+        if (gridName != null && !gridName.isEmpty())
             sb.a("grid=").a(gridName).a(',');
 
         if (grp != null)
@@ -3080,7 +3110,7 @@ public abstract class GridUtils {
         throws MalformedObjectNameException {
         SB sb = new SB(JMX_DOMAIN + ':');
 
-        if (gridName != null && gridName.length() > 0)
+        if (gridName != null && !gridName.isEmpty())
             sb.a("grid=").a(gridName).a(',');
 
         cacheName = maskCacheName(cacheName);
@@ -3788,7 +3818,7 @@ public abstract class GridUtils {
      * @return Simple class name.
      */
     public static String getSimpleName(Class<?> cls) {
-        return cls.getSimpleName().length() == 0 ? cls.getName() : cls.getSimpleName();
+        return cls.getSimpleName().isEmpty() ? cls.getName() : cls.getSimpleName();
     }
 
     /**
@@ -5226,6 +5256,39 @@ public abstract class GridUtils {
     }
 
     /**
+     * Awaits for condition.
+     *
+     * @param condition Condition to await for.
+     * @throws GridInterruptedException Wrapped {@link InterruptedException}
+     */
+    public static void await(Condition condition) throws GridInterruptedException {
+       try {
+           condition.await();
+       }
+       catch (InterruptedException e) {
+           throw new GridInterruptedException(e);
+       }
+    }
+
+    /**
+     * Awaits for condition.
+     *
+     * @param condition Condition to await for.
+     * @param time The maximum time to wait,
+     * @param unit The unit of the {@code time} argument.
+     * @return {@code false} if the waiting time detectably elapsed before return from the method, else {@code true}
+     * @throws GridInterruptedException Wrapped {@link InterruptedException}
+     */
+    public static boolean await(Condition condition, long time, TimeUnit unit) throws GridInterruptedException {
+       try {
+           return condition.await(time, unit);
+       }
+       catch (InterruptedException e) {
+           throw new GridInterruptedException(e);
+       }
+    }
+
+    /**
      * Awaits for the latch.
      *
      * @param latch Latch to wait for.
@@ -5490,17 +5553,132 @@ public abstract class GridUtils {
      * @param str Original string.
      * @return Escaped string (if supported).
      */
-    @Nullable public static String bright(@Nullable String str) {
+    @Nullable public static String ansiBright(@Nullable String str) {
         if (F.isEmpty(str))
             return str;
 
-        return isAnsiEscape() ?
-            ansi().a(INTENSITY_BOLD).a(str).reset().toString() : str;
+        return isAnsiEscape() ? ansi().a(INTENSITY_BOLD).a(str).reset().toString() : str;
     }
 
     /**
      * Returns string with appended ANSI escape sequences
-     * that makes it bright when printed out to console.
+     * that makes its foreground color red when printed out to console.
+     * <p>
+     * Works only on *NIX systems and MAC OS. On others
+     * original string will be returned.
+     *
+     * @param str Original string.
+     * @return Escaped string (if supported).
+     */
+    @Nullable public static String ansiRed(@Nullable String str) {
+        return ansiColor(str, RED);
+    }
+
+    /**
+     * Returns string with appended ANSI escape sequences
+     * that makes its foreground color cyan when printed out to console.
+     * <p>
+     * Works only on *NIX systems and MAC OS. On others
+     * original string will be returned.
+     *
+     * @param str Original string.
+     * @return Escaped string (if supported).
+     */
+    @Nullable public static String ansiCyan(@Nullable String str) {
+        return ansiColor(str, CYAN);
+    }
+
+    /**
+     * Returns string with appended ANSI escape sequences
+     * that makes its foreground color magenta when printed out to console.
+     * <p>
+     * Works only on *NIX systems and MAC OS. On others
+     * original string will be returned.
+     *
+     * @param str Original string.
+     * @return Escaped string (if supported).
+     */
+    @Nullable public static String ansiMagenta(@Nullable String str) {
+        return ansiColor(str, MAGENTA);
+    }
+
+    /**
+     * Returns string with appended ANSI escape sequences
+     * that makes its foreground color white when printed out to console.
+     * <p>
+     * Works only on *NIX systems and MAC OS. On others
+     * original string will be returned.
+     *
+     * @param str Original string.
+     * @return Escaped string (if supported).
+     */
+    @Nullable public static String ansiWhite(@Nullable String str) {
+        return ansiColor(str, WHITE);
+    }
+
+    /**
+     * Returns string with appended ANSI escape sequences
+     * that makes its foreground color green when printed out to console.
+     * <p>
+     * Works only on *NIX systems and MAC OS. On others
+     * original string will be returned.
+     *
+     * @param str Original string.
+     * @return Escaped string (if supported).
+     */
+    @Nullable public static String ansiGreen(@Nullable String str) {
+        return ansiColor(str, GREEN);
+    }
+
+    /**
+     * Returns string with appended ANSI escape sequences
+     * that makes its foreground color yellow when printed out to console.
+     * <p>
+     * Works only on *NIX systems and MAC OS. On others
+     * original string will be returned.
+     *
+     * @param str Original string.
+     * @return Escaped string (if supported).
+     */
+    @Nullable public static String ansiYellow(@Nullable String str) {
+        return ansiColor(str, YELLOW);
+    }
+
+    /**
+     * Returns string with appended ANSI escape sequences
+     * that makes its foreground color blue when printed out to console.
+     * <p>
+     * Works only on *NIX systems and MAC OS. On others
+     * original string will be returned.
+     *
+     * @param str Original string.
+     * @return Escaped string (if supported).
+     */
+    @Nullable public static String ansiBlue(@Nullable String str) {
+        return ansiColor(str, BLUE);
+    }
+
+    /**
+     * Returns string with appended ANSI escape sequences
+     * that makes its foreground color {@code fg} when printed out to console.
+     * <p>
+     * Works only on *NIX systems and MAC OS. On others
+     * original string will be returned.
+     *
+     * @param str Original string.
+     * @param fg Foreground ANSI color.
+     * @return Escaped string (if supported).
+     */
+    @Nullable public static String ansiColor(@Nullable String str, Ansi.Color fg) {
+        if (F.isEmpty(str))
+            return str;
+
+        return isAnsiEscape() ? ansi().fg(fg).a(str).reset().toString() : str;
+    }
+
+    /**
+     * Returns string with appended ANSI escape sequences
+     * that makes it dim when printed out to console.
      * <p>
      * Works only on *NIX systems and MAC OS. On others
      * original string will be returned.
@@ -5510,12 +5688,11 @@ public abstract class GridUtils {
      * @param str Original string.
      * @return Escaped string (if supported).
      */
-    @Nullable public static String dim(@Nullable String str) {
+    @Nullable public static String ansiDim(@Nullable String str) {
         if (F.isEmpty(str))
             return str;
 
-        return isAnsiEscape() ?
-            ansi().a(INTENSITY_FAINT).a(str).reset().toString() : str;
+        return isAnsiEscape() ? ansi().a(INTENSITY_FAINT).a(str).reset().toString() : str;
     }
 
     /**
@@ -5523,14 +5700,38 @@ public abstract class GridUtils {
      *
      * @return <code>True</code> if ANSI escape characters are supported.
      */
-    private static boolean isAnsiEscape() {
-        return System.getProperty("GRIDGAIN_SCRIPT") != null && (isUnix() || isLinux() || isMacOs());
+    public static boolean isAnsiEscape() {
+        return
+            Ansi.isEnabled() &&
+            System.getProperty(GridSystemProperties.GG_SCRIPT) != null &&
+            (isUnix() || isLinux() || isMacOs());
+    }
+
+    /**
+     * Rainbow colors the input string (if any).
+     *
+     * @param str String to rainbow color.
+     * @return Rainbow colored string.
+     */
+    @Nullable public static String rainbow(@Nullable String str) {
+        SB sb = new SB();
+
+        int i = 0;
+
+        for (char ch : str.toCharArray()) {
+            if (i == RAINBOW.length)
+                i = 0;
+
+            sb.a(ansiColor(String.valueOf(ch), RAINBOW[i++]));
+        }
+
+        return sb.toString();
     }
 
     /**
      * @return {@code line.separator} system property.
      */
-    public static String newLine() {
+    public static String nl() {
         return NL;
     }
 
@@ -5586,16 +5787,16 @@ public abstract class GridUtils {
         hash ^= (hash >>>  6);
         hash += (hash <<   2) + (hash << 14);
 
-        int sshift = 0;
-        int ssize = 1;
+        int shift = 0;
+        int size = 1;
 
-        while (ssize < concurLvl) {
-            ++sshift;
-            ssize <<= 1;
+        while (size < concurLvl) {
+            ++shift;
+            size <<= 1;
         }
 
-        int segmentShift = 32 - sshift;
-        int segmentMask = ssize - 1;
+        int segmentShift = 32 - shift;
+        int segmentMask = size - 1;
 
 
         return (hash >>> segmentShift) & segmentMask;
@@ -5634,10 +5835,8 @@ public abstract class GridUtils {
             // Group buckets by entries count.
             Map<Integer, Integer> bucketsStats = new TreeMap<Integer, Integer>();
 
-            for (int j = 0; j < tab.length; j++) {
+            for (Object entry : tab) {
                 int cnt = 0;
-
-                Object entry = tab[j];
 
                 while (entry != null) {
                     cnt++;
@@ -5687,7 +5886,7 @@ public abstract class GridUtils {
                 }
         }
         catch (Exception e) {
-            throw new RuntimeException("Failed to get field value [fieldName=" + fieldName + ", obj=" + obj + ']');
+            throw new RuntimeException("Failed to get field value [fieldName=" + fieldName + ", obj=" + obj + ']', e);
         }
 
         throw new RuntimeException("Failed to get field value [fieldName=" + fieldName + ", obj=" + obj + ']');

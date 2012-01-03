@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -40,8 +40,8 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * Thread pool for requesting partitions from other nodes
  * and populating local cache.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 @SuppressWarnings( {"NonConstantFieldWithUpperCaseName"})
 public class GridDhtPartitionDemandPool<K, V> {
@@ -126,7 +126,7 @@ public class GridDhtPartitionDemandPool<K, V> {
      * @param exchFut Exchange future for this node.
      */
     void start(GridDhtPartitionsExchangeFuture<K, V> exchFut) {
-        assert exchFut.causeNodeId().equals(cctx.nodeId());
+        assert exchFut.exchangeId().nodeId().equals(cctx.nodeId());
 
         for (DemandWorker w : dmdWorkers)
             new GridThread(cctx.gridName(), "preloader-demand-worker", w).start();
@@ -497,29 +497,21 @@ public class GridDhtPartitionDemandPool<K, V> {
                 try {
                     cached = cctx.dht().entryEx(entry.key());
 
-                    if (!cctx.evicts().preloadingPermitted(entry.key(), entry.version())) {
-                        if (log.isDebugEnabled())
-                            log.debug("Preloading is not permitted for entry due to evictions [key= " + entry.key() +
-                                ", ver=" + entry.version() + ']');
-
-                        // Partition is valid, but preloading of the entry should be cancelled.
-                        return true;
-                    }
-
                     if (log.isDebugEnabled())
                         log.debug("Preloading key [key=" + entry.key() + ", part=" + p + ", node=" + pick.id() + ']');
 
-                    if (!cached.initialValue(
+                    if (cached.initialValue(
                         entry.value(),
                         entry.valueBytes(),
                         entry.version(),
                         entry.ttl(),
                         entry.expireTime(),
                         entry.metrics())) {
-                        if (log.isDebugEnabled())
-                            log.debug("Preloading entry is already in cache (will ignore) [key=" + cached.key() +
-                                ", part=" + p + ']');
+                        cctx.evicts().touch(cached); // Start tracking.
                     }
+                    else if (log.isDebugEnabled())
+                        log.debug("Preloading entry is already in cache (will ignore) [key=" + cached.key() +
+                            ", part=" + p + ']');
                 }
                 catch (GridCacheEntryRemovedException ignored) {
                     if (log.isDebugEnabled())
@@ -554,7 +546,7 @@ public class GridDhtPartitionDemandPool<K, V> {
 
         /**
          * @param node Node to demand from.
-         * @param lastJoinOrder Last join order.
+         * @param topVer Topology version.
          * @param d Demand message.
          * @param exchFut Exchange future.
          * @return Missed partitions.
@@ -562,7 +554,7 @@ public class GridDhtPartitionDemandPool<K, V> {
          * @throws GridTopologyException If node left.
          * @throws GridException If failed to send message.
          */
-        private Set<Integer> demandFromNode(GridNode node, long lastJoinOrder,  GridDhtPartitionDemandMessage<K, V> d,
+        private Set<Integer> demandFromNode(GridNode node, long topVer,  GridDhtPartitionDemandMessage<K, V> d,
             GridDhtPartitionsExchangeFuture<K, V> exchFut) throws InterruptedException, GridException {
             GridRichNode loc = cctx.localNode();
 
@@ -689,8 +681,8 @@ public class GridDhtPartitionDemandPool<K, V> {
                         for (Map.Entry<Integer, Collection<GridCacheEntryInfo<K, V>>> e : supply.infos().entrySet()) {
                             int p = e.getKey();
 
-                            if (cctx.belongs(p, lastJoinOrder, loc)) {
-                                GridDhtLocalPartition<K, V> part = top.localPartition(p, lastJoinOrder, true);
+                            if (cctx.belongs(p, topVer, loc)) {
+                                GridDhtLocalPartition<K, V> part = top.localPartition(p, topVer, true);
 
                                 assert part != null;
 
@@ -708,6 +700,15 @@ public class GridDhtPartitionDemandPool<K, V> {
                                         // Loop through all received entries and try to preload them.
                                         for (GridCacheEntryInfo<K, V> entry : e.getValue()) {
                                             if (!invalidParts.contains(p)) {
+                                                if (!part.preloadingPermitted(entry.key(), entry.version())) {
+                                                    if (log.isDebugEnabled())
+                                                        log.debug("Preloading is not permitted for entry due to " +
+                                                            "evictions [key=" + entry.key() +
+                                                            ", ver=" + entry.version() + ']');
+
+                                                    continue;
+                                                }
+
                                                 if (!preloadEntry(node, p, entry)) {
                                                     invalidParts.add(p);
 
@@ -866,7 +867,7 @@ public class GridDhtPartitionDemandPool<K, V> {
                                     continue; // For.
 
                                 try {
-                                    Set<Integer> set = demandFromNode(node, assigns.lastJoinOrder(), d, exchFut);
+                                    Set<Integer> set = demandFromNode(node, assigns.topologyVersion(), d, exchFut);
 
                                     if (!set.isEmpty()) {
                                         if (log.isDebugEnabled())
@@ -933,18 +934,18 @@ public class GridDhtPartitionDemandPool<K, V> {
         private final GridDhtPartitionsExchangeFuture<K, V> exchFut;
 
         /** Last join order. */
-        private final long lastJoinOrder;
+        private final long topVer;
 
         /**
          * @param exchFut Exchange future.
-         * @param lastJoinOrder Last join order.
+         * @param topVer Last join order.
          */
-        Assignments(GridDhtPartitionsExchangeFuture<K, V> exchFut, long lastJoinOrder) {
+        Assignments(GridDhtPartitionsExchangeFuture<K, V> exchFut, long topVer) {
             assert exchFut != null;
-            assert lastJoinOrder > 0;
+            assert topVer > 0;
 
             this.exchFut = exchFut;
-            this.lastJoinOrder = lastJoinOrder;
+            this.topVer = topVer;
         }
 
         /**
@@ -954,8 +955,11 @@ public class GridDhtPartitionDemandPool<K, V> {
             return exchFut;
         }
 
-        long lastJoinOrder() {
-            return lastJoinOrder;
+        /**
+         * @return Topology version.
+         */
+        long topologyVersion() {
+            return topVer;
         }
 
         /** {@inheritDoc} */
@@ -1094,20 +1098,20 @@ public class GridDhtPartitionDemandPool<K, V> {
         private Assignments assign(GridDhtPartitionsExchangeFuture<K, V> exchFut) {
             // No assignments for disabled preloader.
             if (!cctx.preloadEnabled())
-                return new Assignments(exchFut, top.lastJoinOrder());
+                return new Assignments(exchFut, top.topologyVersion());
 
             int partCnt = cctx.partitions();
 
             GridRichNode loc = cctx.localNode();
 
-            Assignments assigns = new Assignments(exchFut, top.lastJoinOrder());
+            Assignments assigns = new Assignments(exchFut, top.topologyVersion());
 
-            Collection<GridRichNode> allNodes = CU.allNodes(cctx, assigns.lastJoinOrder());
+            Collection<GridRichNode> allNodes = CU.allNodes(cctx, assigns.topologyVersion());
 
             for (int p = 0; p < partCnt && !isCancelled() && futQ.isEmpty(); p++) {
                 // If partition belongs to local node.
                 if (cctx.belongs(p, loc, allNodes)) {
-                    GridDhtLocalPartition<K, V> part = top.localPartition(p, assigns.lastJoinOrder(), true);
+                    GridDhtLocalPartition<K, V> part = top.localPartition(p, assigns.topologyVersion(), true);
 
                     assert part != null;
                     assert part.id() == p;

@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*
  * ________               ______                    ______   _______
@@ -18,6 +18,7 @@ import java.util.UUID
 import org.gridgain.grid._
 import org.gridgain.grid.cache._
 import org.gridgain.grid.{GridFactory => G}
+import org.gridgain.grid.util.{GridUtils => U}
 import query._
 import annotation.target.field
 
@@ -117,18 +118,18 @@ import annotation.target.field
  * }
  * </pre>
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 object scalar extends ScalarConversions {
     /** Visor copyright blurb. */
-    private val COPYRIGHT = "2005-2011 Copyright (C) GridGain Systems, Inc."
+    private val COPYRIGHT = "2012 Copyright (C) GridGain Systems"
 
     /** Visor version number. */
-    private val VER = "3.5.1c"
+    private val VER = "3.6.0c"
 
     /** Visor build number. */
-    private val BUILD = "18112011"
+    private val BUILD = "03012012"
 
     /** Type alias for `GridCacheQuerySqlField`. */
     type ScalarCacheQuerySqlField = GridCacheQuerySqlField @field
@@ -151,9 +152,9 @@ object scalar extends ScalarConversions {
             " _____ \\ _  ___/_  __ `/__  / _  __ `/__  ___/ " + NL +
             " ____/ / / /__  / /_/ / _  /  / /_/ / _  /     " + NL +
             " /____/  \\___/  \\__,_/  /_/   \\__,_/  /_/      " + NL + NL +
-            "      ---==++ GRIDGAIN SCALAR ++==---" + NL +
+            U.rainbow("      ---==++ GRIDGAIN SCALAR ++==---") + NL +
             "           ver. " + VER + '-' + BUILD + NL +
-            COPYRIGHT + NL
+            "   " + COPYRIGHT + NL
 
         println(s)
     }

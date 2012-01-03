@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -12,6 +12,7 @@ package org.gridgain.grid.lang;
 import org.gridgain.grid.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
+import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.util.*;
@@ -23,8 +24,8 @@ import java.util.*;
  * and it is responsibility of the user of this class to provide outside
  * synchronization, if needed.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  * @see GridFunc#t1()
  * @see GridFunc#t(Object)
  */
@@ -46,7 +47,7 @@ public class GridTuple<V> extends GridMetadataAwareAdapter implements GridTypedP
      *
      * @param val Wrapped value.
      */
-    public GridTuple(V val) {
+    public GridTuple(@Nullable V val) {
         this.val = val;
     }
 
@@ -71,7 +72,7 @@ public class GridTuple<V> extends GridMetadataAwareAdapter implements GridTypedP
      *
      * @return Wrapped value.
      */
-    public V get() {
+    @Nullable public V get() {
         return val;
     }
 
@@ -80,7 +81,7 @@ public class GridTuple<V> extends GridMetadataAwareAdapter implements GridTypedP
      *
      * @param val Value to set.
      */
-    public void set(V val) {
+    public void set(@Nullable V val) {
         this.val = val;
     }
 

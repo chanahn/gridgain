@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -15,8 +15,8 @@ import org.gridgain.grid.cache.*;
 /**
  * Management bean that provides access to {@link GridCache}.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 class GridCacheMBeanAdapter implements GridCacheMBean {
     /** Cache context. */
@@ -24,6 +24,9 @@ class GridCacheMBeanAdapter implements GridCacheMBean {
 
     /** DHT context. */
     private GridCacheContext<?, ?> dhtCtx;
+
+    /** Write from behind store, if configured. */
+    private GridCacheWriteFromBehindStore store;
 
     /**
      * Creates MBean;
@@ -37,6 +40,9 @@ class GridCacheMBeanAdapter implements GridCacheMBean {
 
         if (cctx.isNear())
             dhtCtx = cctx.near().dht().context();
+
+        if (cctx.config().isWriteFromBehindEnabled())
+            store = (GridCacheWriteFromBehindStore)cctx.cacheStore();
     }
 
     /** {@inheritDoc} */
@@ -147,5 +153,50 @@ class GridCacheMBeanAdapter implements GridCacheMBean {
     /** {@inheritDoc} */
     @Override public int getTxDhtRolledbackVersionsSize() {
         return cctx.isNear() ? dhtCtx.tm().rolledbackVersionsSize() : -1;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isWriteFromBehindEnabled() {
+        return store != null;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindFlushSize() {
+        return store != null ? store.getWriteFromBehindFlushSize() : -1;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindFlushThreadCount() {
+        return store != null ? store.getWriteFromBehindFlushThreadCount() : -1;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindFlushFrequency() {
+        return store != null ? store.getWriteFromBehindFlushFrequency() : -1;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindStoreBatchSize() {
+        return store != null ? store.getWriteFromBehindStoreBatchSize() : -1;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindTotalCriticalOverflowCount() {
+        return store != null ? store.getWriteFromBehindTotalCriticalOverflowCount() : -1;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindCriticalOverflowCount() {
+        return store != null ? store.getWriteFromBehindCriticalOverflowCount() : -1;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindErrorRetryCount() {
+        return store != null ? store.getWriteFromBehindErrorRetryCount() : -1;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindBufferSize() {
+        return store != null ? store.getWriteFromBehindBufferSize() : -1;
     }
 }

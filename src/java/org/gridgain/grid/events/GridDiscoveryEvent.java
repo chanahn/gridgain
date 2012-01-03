@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -12,6 +12,8 @@ package org.gridgain.grid.events;
 import org.gridgain.grid.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.jetbrains.annotations.*;
+
 import java.util.*;
 
 /**
@@ -55,8 +57,8 @@ import java.util.*;
  * events are required for GridGain's internal operations and such events will still be generated but not stored by
  * event storage SPI if they are disabled in GridGain configuration.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  * @see GridEventType#EVT_NODE_METRICS_UPDATED
  * @see GridEventType#EVT_NODE_FAILED
  * @see GridEventType#EVT_NODE_JOINED
@@ -71,9 +73,13 @@ public class GridDiscoveryEvent extends GridEventAdapter {
     /** */
     private GridNodeShadow shadow;
 
+    /** */
+    private long topVer;
+
     /** {@inheritDoc} */
     @Override public String shortDisplay() {
-        return name() + ": id8=" + U.id8(evtNodeId) + ", ip=" + F.first(shadow().internalAddresses());
+        return name() + ": id8=" + U.id8(evtNodeId) +
+            (shadow != null ? ", ip=" + F.first(shadow.internalAddresses()) : "");
     }
 
     /**
@@ -119,6 +125,18 @@ public class GridDiscoveryEvent extends GridEventAdapter {
     }
 
     /**
+     * Gets ID of the node that caused this event to be generated. It is potentially different from the node
+     * on which this event was recorded. For example, node {@code A} locally recorded the event that a remote node
+     * {@code B} joined the topology. In this case this method will return ID of {@code B} and
+     * method {@link #nodeId()} will return ID of {@code A}
+     *
+     * @return Event node ID.
+     */
+    public UUID eventNodeId() {
+        return evtNodeId;
+    }
+
+    /**
      * Sets node shadow.
      *
      * @param shadow Node shadow to set.
@@ -132,20 +150,29 @@ public class GridDiscoveryEvent extends GridEventAdapter {
      *
      * @return Node shadow or {@code null} if one wasn't set.
      */
-    public GridNodeShadow shadow() {
+    @Nullable public GridNodeShadow shadow() {
         return shadow;
     }
 
     /**
-     * Gets ID of the node that caused this event to be generated. It is potentially different from the node
-     * on which this event was recorded. For example, node {@code A} locally recorded the event that a remote node
-     * {@code B} joined the topology. In this case this method will return ID of {@code B} and
-     * method {@link #nodeId()} will return ID of {@code A}
+     * Sets topology version.
      *
-     * @return Event node ID.
+     * @param topVer Topology version.
      */
-    public UUID eventNodeId() {
-        return evtNodeId;
+    public void topologyVersion(long topVer) {
+        this.topVer = topVer;
+    }
+
+    /**
+     * Gets topology version if this event is raised on
+     * topology change and configured discovery SPI implementation
+     * supports topology versioning.
+     *
+     * @return Topology version or {@code 0} if configured discovery SPI implementation
+     *      does not support versioning.
+     */
+    public long topologyVersion() {
+        return topVer;
     }
 
     /** {@inheritDoc} */

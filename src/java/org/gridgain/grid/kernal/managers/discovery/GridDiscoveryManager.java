@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -15,6 +15,7 @@ import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.managers.*;
 import org.gridgain.grid.kernal.processors.jobmetrics.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.segmentation.*;
 import org.gridgain.grid.spi.*;
 import org.gridgain.grid.spi.discovery.*;
@@ -24,6 +25,7 @@ import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.worker.*;
 import org.jetbrains.annotations.*;
+
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -36,8 +38,8 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
 /**
  * Discovery SPI manager.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     /** System line separator. */
@@ -61,16 +63,22 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     };
 
     /** Discovery event worker. */
-    private DiscoveryWorker discoWrk = new DiscoveryWorker();
+    private final DiscoveryWorker discoWrk = new DiscoveryWorker();
 
     /** Discovery event worker thread. */
     private GridThread discoWrkThread;
 
     /** Network segment check worker. */
-    private GridWorker segChkWrk = new SegmentCheckWorker();
+    private GridWorker segChkWrk;
 
     /** Network segment check thread. */
     private GridThread segChkThread;
+
+    /** Reconnect worker. */
+    private ReconnectWorker reconWrk;
+
+    /** Reconnect thread. */
+    private GridThread reconThread;
 
     /** Last logged topology. */
     private final AtomicLong lastLoggedTop = new AtomicLong(0);
@@ -84,20 +92,14 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     /** Network segment check enabled flag. */
     private boolean segChkEnabled;
 
-    /** Segmentation guard to sync node stop/restart/reconnect. */
-    private final AtomicBoolean segGuard = new AtomicBoolean();
-
-    /** Thread to reconnect SPI from within. */
-    private volatile Thread reconThread;
-
-    /** Interrupt reconnect thread flag. */
-    private final AtomicBoolean intReconThread = new AtomicBoolean();
-
     /** Last segment check result. */
     private final AtomicBoolean lastSegChkRes = new AtomicBoolean(true);
 
-    /** */
+    /** Discovery cache. */
     private final AtomicReference<DiscoCache> discoCache = new AtomicReference<DiscoCache>();
+
+    /** Topology version. */
+    private final GridAtomicLong topVer = new GridAtomicLong();
 
     /**
      * @param ctx Context.
@@ -196,17 +198,43 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
             }
         });
 
+        // Start reconnect worker first.
+        if (segChkEnabled && ctx.config().getSegmentationPolicy() == RECONNECT) {
+            reconWrk = new ReconnectWorker();
+
+            reconThread = new GridThread(reconWrk);
+
+            reconThread.start();
+        }
+
         // Start discovery worker.
         discoWrkThread = new GridThread(ctx.gridName(), "disco-event-worker", discoWrk);
 
         discoWrkThread.start();
 
+        // Start segment check worker.
+        if (segChkEnabled && ctx.config().getSegmentCheckFrequency() > 0) {
+            segChkWrk = new SegmentCheckWorker();
+
+            segChkThread = new GridThread(segChkWrk);
+
+            segChkThread.start();
+        }
+
         getSpi().setListener(new GridDiscoverySpiListener() {
-            @Override public void onDiscovery(int type, GridNode node) {
+            @Override public void onDiscovery(int type, long topVer, GridNode node) {
                 if (type != EVT_NODE_METRICS_UPDATED)
                     discoCache.set(new DiscoCache(localNode(), getSpi().getRemoteNodes()));
 
-                discoWrk.addEvent(type, node);
+                if (topVer > 0 && (type == EVT_NODE_JOINED || type == EVT_NODE_FAILED || type == EVT_NODE_LEFT)) {
+                    boolean set = GridDiscoveryManager.this.topVer.setIfGreater(topVer);
+
+                    assert set : "Topology version has not been updated [this.topVer=" +
+                        GridDiscoveryManager.this.topVer + ", topVer=" + topVer + ", node=" + node +
+                        ", evt=" + U.gridEventName(type) + ']';
+                }
+
+                discoWrk.addEvent(type, topVer, node);
             }
         });
 
@@ -216,12 +244,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
 
         locNode = getSpi().getLocalNode();
 
-        if (segChkEnabled && ctx.config().getSegmentCheckFrequency() > 0) {
-            // Start network segmentation check worker.
-            segChkThread = new GridThread(ctx.gridName(), "disco-net-seg-chk-worker", segChkWrk);
-
-            segChkThread.start();
-        }
+        topVer.setIfGreater(locNode.order());
 
         if (!isLocDaemon)
             ackTopology();
@@ -359,11 +382,11 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         int totalCpus = ctx.grid().cpus();
 
         if (log.isQuiet())
-            U.quiet(U.bright(PREFIX + " [" +
+            U.quiet(PREFIX + " [" +
                 "nodes=" + (rmtNodes.size() + 1) +
                 ", CPUs=" + totalCpus +
                 ", hash=0x" + Long.toHexString(hash).toUpperCase() +
-                ']'));
+                ']');
         else if (log.isDebugEnabled()) {
             String dbg = "";
 
@@ -413,26 +436,24 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         // Stop receiving notifications.
         getSpi().setListener(null);
 
+        // Stop segment check worker.
+        if (segChkWrk != null) {
+            segChkWrk.cancel();
+
+            U.join(segChkThread, log);
+        }
+
         // Stop discovery worker.
         discoWrk.cancel();
 
         U.join(discoWrkThread, log);
 
-        discoWrkThread = null;
+        // Stop reconnect worker.
+        if (reconWrk != null) {
+            reconWrk.cancel();
 
-        // Stop segment check worker.
-        segChkWrk.cancel();
-
-        U.join(segChkThread, log);
-
-        // Decrease possibility of undesired restart, since we cannot fully guarantee that.
-        segGuard.set(true);
-
-        // First set this flag, then interrupt thread.
-        intReconThread.set(true);
-
-        U.interrupt(reconThread);
-        U.join(reconThread, log);
+            U.join(reconThread, log);
+        }
     }
 
     /** {@inheritDoc} */
@@ -521,7 +542,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     @Nullable public GridNode node(UUID nodeId) {
         assert nodeId != null;
 
-        return getSpi().getNode(nodeId);
+        return discoCache().node(nodeId);
     }
 
     /**
@@ -538,7 +559,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
      */
     @SuppressWarnings( {"unchecked"})
     public Collection<GridNode> aliveNodes(Collection<? extends GridNode> nodes) {
-        return F.view((Collection<GridNode>)nodes, aliveFilter);
+        return F.view((Collection<GridNode>) nodes, aliveFilter);
     }
 
     /**
@@ -660,6 +681,13 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     }
 
     /**
+     * @return Topology version.
+     */
+    public long topologyVersion() {
+        return topVer.get();
+    }
+
+    /**
      *
      * @param node Grid node to get addresses for.
      * @return String containing distinct internal and external addresses.
@@ -674,6 +702,37 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     }
 
     /**
+     * Stops local node.
+     *
+     */
+    private void stopNode() {
+        new Thread(
+            new Runnable() {
+                @Override public void run() {
+                    ctx.markSegmented();
+
+                    G.stop(ctx.gridName(), true, false);
+                }
+            }
+        ).start();
+    }
+
+    /**
+     * Restarts JVM.
+     */
+    private void restartJvm() {
+        new Thread(
+            new Runnable() {
+                @Override public void run() {
+                    ctx.markSegmented();
+
+                    G.restart(true, false);
+                }
+            }
+        ).start();
+    }
+
+    /**
      * Worker for network segment checks.
      */
     private class SegmentCheckWorker extends GridWorker {
@@ -681,14 +740,14 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
          *
          */
         private SegmentCheckWorker() {
-            super(ctx.gridName(), "net-seg-chk-worker", log);
+            super(ctx.gridName(), "disco-net-seg-chk-worker", log);
+
+            assert segChkEnabled;
         }
 
         /** {@inheritDoc} */
         @SuppressWarnings({"BusyWait"})
         @Override protected void body() throws InterruptedException {
-            assert segChkEnabled;
-
             int timeout = ctx.config().getSegmentCheckFrequency();
 
             assert timeout > 0;
@@ -698,7 +757,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                     boolean segValid = ctx.segmentation().isValidSegment();
 
                     if (!segValid) {
-                        discoWrk.addEvent(EVT_NODE_SEGMENTED, getSpi().getLocalNode());
+                        discoWrk.addEvent(EVT_NODE_SEGMENTED, 0, getSpi().getLocalNode());
 
                         lastSegChkRes.set(false);
                     }
@@ -715,12 +774,77 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     }
 
     /**
+     * Worker for network segment checks.
+     */
+    private class ReconnectWorker extends GridWorker {
+        /** */
+        private final BlockingQueue<Object> queue = new LinkedBlockingQueue<Object>();
+
+        /**
+         *
+         */
+        private ReconnectWorker() {
+            super(ctx.gridName(), "disco-recon-worker", log);
+
+            assert segChkEnabled;
+            assert ctx.config().getSegmentationPolicy() == RECONNECT;
+        }
+
+        /**
+         *
+         */
+        public void scheduleReconnect() {
+            queue.add(new Object());
+        }
+
+        /** {@inheritDoc} */
+        @SuppressWarnings({"BusyWait"})
+        @Override protected void body() throws InterruptedException {
+            assert segChkEnabled;
+
+            int timeout = ctx.config().getSegmentCheckFrequency();
+
+            assert timeout > 0;
+
+            while (!isCancelled()) {
+                queue.take();
+
+                try {
+                    checkSegmentOnStart();
+
+                    topVer.set(0);
+
+                    getSpi().reconnect();
+
+                    // Refresh local node.
+                    locNode = getSpi().getLocalNode();
+
+                    topVer.setIfGreater(locNode.order());
+                }
+                catch (GridException e) {
+                    U.error(log, "Failed to reconnect discovery SPI to topology (will stop node).", e);
+
+                    stopNode();
+
+                    G.stop(ctx.gridName(), true, false);
+                }
+
+            }
+        }
+
+        /** {@inheritDoc} */
+        @Override public String toString() {
+            return S.toString(ReconnectWorker.class, this);
+        }
+    }
+
+    /**
      * Worker for discovery events.
      */
     private class DiscoveryWorker extends GridWorker {
         /** Event queue. */
-        private final BlockingQueue<GridTuple2<Integer, GridNode>> evts =
-            new LinkedBlockingQueue<GridTuple2<Integer, GridNode>>();
+        private final BlockingQueue<GridTuple3<Integer, Long, GridNode>> evts =
+            new LinkedBlockingQueue<GridTuple3<Integer, Long, GridNode>>();
 
         /** Node segmented event fired flag. */
         private boolean nodeSegFired;
@@ -755,9 +879,10 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
          * Method is called when any discovery event occurs.
          *
          * @param type Discovery event type. See {@link GridDiscoveryEvent} for more details.
+         * @param topVer Topology version.
          * @param node Remote node this event is connected with.
          */
-        private void recordEvent(int type, GridNode node) {
+        private void recordEvent(int type, long topVer, GridNode node) {
             assert node != null;
 
             if (ctx.event().isRecordable(type)) {
@@ -767,6 +892,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                 evt.eventNodeId(node.id());
                 evt.type(type);
                 evt.shadow(new GridDiscoveryNodeShadowAdapter(node));
+                evt.topologyVersion(topVer);
 
                 if (type == EVT_NODE_METRICS_UPDATED)
                     evt.message("Metrics were updated: " + node);
@@ -795,12 +921,13 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
 
         /**
          * @param type Event type.
+         * @param topVer Topology version.
          * @param node Node.
          */
-        void addEvent(int type, GridNode node) {
+        void addEvent(int type, long topVer, GridNode node) {
             assert node != null;
 
-            evts.add(F.t(type, node));
+            evts.add(F.t(type, topVer, node));
         }
 
         /**
@@ -829,7 +956,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                 boolean segValid = ctx.segmentation().isValidSegment();
 
                 if (!segValid) {
-                    addEvent(EVT_NODE_SEGMENTED, localNode());
+                    addEvent(EVT_NODE_SEGMENTED, 0, localNode());
 
                     lastSegChkRes.set(false);
                 }
@@ -840,11 +967,13 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         @SuppressWarnings({"DuplicateCondition"})
         @Override protected void body() throws InterruptedException {
             while (!isCancelled()) {
-                GridTuple2<Integer, GridNode> evt = evts.take();
+                GridTuple3<Integer, Long, GridNode> evt = evts.take();
 
                 int type = evt.get1();
 
-                GridNode node = evt.get2();
+                long topVer = evt.get2();
+
+                GridNode node = evt.get3();
 
                 boolean isDaemon = isDaemon(node);
 
@@ -971,7 +1100,7 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
                         assert false : "Invalid discovery event: " + type;
                 }
 
-                recordEvent(type, node);
+                recordEvent(type, topVer, node);
             }
         }
 
@@ -979,107 +1108,52 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
          *
          */
         private void onSegmentation() {
-            if (segGuard.compareAndSet(false, true)) {
-                GridSegmentationPolicy segPlc = ctx.config().getSegmentationPolicy();
+            GridSegmentationPolicy segPlc = ctx.config().getSegmentationPolicy();
 
-                switch (segPlc) {
-                    case RECONNECT:
-                        // Disconnect SPI synchronously to maintain consistent
-                        // local topology.
-                        try {
-                            getSpi().disconnect();
-
-                            reconnectSpi();
-                        }
-                        catch (GridSpiException e) {
-                            U.error(log, "Failed to disconnect discovery SPI.", e);
-                        }
-
-                        break;
-
-                    case RESTART_JVM:
-                        restartJvm();
-
-                        break;
-
-                    case STOP:
-                        stopNode();
-
-                        break;
-
-                    default:
-                        assert segPlc == NOOP : "Unsupported segmentation policy value: " + segPlc;
-                }
-            }
-        }
-
-        /**
-         * Creates and starts SPI reconnect thread.
-         */
-        private void reconnectSpi() {
-            reconThread = new Thread(
-                new Runnable() {
-                    @Override public void run() {
-                        if (intReconThread.get())
-                            return;
-
+            switch (segPlc) {
+                case RECONNECT:
+                    // Disconnect SPI synchronously to maintain consistent
+                    // local topology.
+                    try {
                         U.warn(log, "Will try to reconnect discovery SPI to topology " +
                             "(according to configured segmentation policy).");
 
-                        try {
-                            checkSegmentOnStart();
+                        getSpi().disconnect();
 
-                            getSpi().reconnect();
-
-                            // Refresh local node.
-                            locNode = getSpi().getLocalNode();
-
-                            // Set to 'false' here since if exception is thrown, no further reconnects
-                            // are possible.
-                            segGuard.set(false);
-                        }
-                        catch (GridException e) {
-                            throw new GridRuntimeException("Failed to reconnect discovery SPI to topology.", e);
-                        }
+                        reconWrk.scheduleReconnect();
                     }
-                }
-            );
+                    catch (GridSpiException e) {
+                        U.error(log, "Failed to disconnect discovery SPI (will stop node).", e);
 
-            reconThread.start();
-        }
-
-        /**
-         * Restarts JVM.
-         */
-        private void restartJvm() {
-            new Thread(
-                new Runnable() {
-                    @Override public void run() {
-                        U.warn(log, "Restarting JVM according to configured segmentation policy.");
-
-                        ctx.markSegmented();
-
-                        G.restart(true, false);
+                        // Stop from separate thread only.
+                        stopNode();
                     }
-                }
-            ).start();
-        }
+                    catch (GridException e) {
+                        U.error(log, "Failed to reconnect discovery SPI (will stop node).", e);
 
-        /**
-         * Stops local node.
-         */
-        private void stopNode() {
-            new Thread(
-                new Runnable() {
-                    @Override public void run() {
-                        U.warn(log, "Stopping local node according to configured segmentation policy.");
-
-                        ctx.markSegmented();
-
-                        G.stop(ctx.gridName(), true, false);
+                        // Stop from separate thread only.
+                        stopNode();
                     }
-                }
-            ).start();
+
+                    break;
+
+                case RESTART_JVM:
+                    U.warn(log, "Restarting JVM according to configured segmentation policy.");
+
+                    restartJvm();
+
+                    break;
+
+                case STOP:
+                    U.warn(log, "Stopping local node according to configured segmentation policy.");
+
+                    stopNode();
+
+                    break;
+
+                default:
+                    assert segPlc == NOOP : "Unsupported segmentation policy value: " + segPlc;
+            }
         }
 
         /** {@inheritDoc} */
@@ -1104,11 +1178,16 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
         /** Node map. */
         private final Map<UUID, GridNode> nodeMap;
 
+        /** Local node. */
+        private final GridNode loc;
+
         /**
          * @param loc Local node.
          * @param rmts Remote nodes.
          */
         private DiscoCache(GridNode loc, Collection<GridNode> rmts) {
+            this.loc = loc;
+
             rmtNodes = Collections.unmodifiableList(new ArrayList<GridNode>(F.view(rmts, daemonFilter)));
 
             List<GridNode> all = new ArrayList<GridNode>(rmtNodes.size() + 1);
@@ -1125,10 +1204,17 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
 
             Map<UUID, GridNode> nodeMap = new HashMap<UUID, GridNode>(allNodes().size());
 
-            for (GridNode n : allNodes())
+            for (GridNode n : F.concat(false, allNodes(), daemonNodes()))
                 nodeMap.put(n.id(), n);
 
             this.nodeMap = nodeMap;
+        }
+
+        /**
+         * @return Local node.
+         */
+        GridNode localNode() {
+            return loc;
         }
 
         /**

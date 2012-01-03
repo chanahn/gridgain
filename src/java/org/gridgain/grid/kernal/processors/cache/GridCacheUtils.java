@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,8 +32,8 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
 /**
  * Cache utility methods.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public class GridCacheUtils {
     /** Flag to turn off DHT cache for debugging purposes. */
@@ -389,7 +389,7 @@ public class GridCacheUtils {
      * @throws GridException If cache store is not present.
      */
     public static void checkStore(GridCacheContext<?, ?> ctx) throws GridException {
-        if (ctx.config().getStore() == null)
+        if (ctx.cacheStore() == null)
             throw new GridException("Failed to find cache store for method 'reload(..)' " +
                 "(is GridCacheStore configured?)");
     }
@@ -408,16 +408,14 @@ public class GridCacheUtils {
     @SuppressWarnings({"unchecked"})
     @Nullable public static <K, V> V loadFromStore(GridCacheContext ctx, GridLogger log, GridCacheTx tx, K key)
         throws GridException {
-        GridCacheConfigurationAdapter cfg = ctx.config();
-
-        if (cfg.getStore() != null) {
+        if (ctx.cacheStore() != null) {
             if (log.isDebugEnabled())
                 log.debug("Loading value from store for key: " + key);
 
             // Try to load value only by GridCacheInternalStorableKey.
             if (key instanceof GridCacheInternal) {
                 if (key instanceof GridCacheInternalStorableKey) {
-                    GridCacheStore store = cfg.getStore();
+                    GridCacheStore store = ctx.cacheStore();
 
                     GridCacheInternalStorableKey locKey = (GridCacheInternalStorableKey)key;
 
@@ -429,7 +427,7 @@ public class GridCacheUtils {
                     return null;
             }
 
-            GridCacheStore<K, V> store = cfg.getStore();
+            GridCacheStore<K, V> store = ctx.cacheStore();
 
             V val = store.load(ctx.cache().name(), tx, key);
 
@@ -454,9 +452,10 @@ public class GridCacheUtils {
      * @return {@code True} if there is a persistent storage.
      * @throws GridException If data loading failed.
      */
+    @SuppressWarnings({"unchecked"})
     public static <K, V> boolean loadAllFromStore(GridCacheContext ctx, GridLogger log, @Nullable GridCacheTx tx,
         Collection<? extends K> keys, GridInClosure2<K, V> vis) throws GridException {
-        GridCacheStore<K, V> store = ctx.config().getStore();
+        GridCacheStore<K, V> store = ctx.cacheStore();
 
         if (store != null) {
             if (log.isDebugEnabled())
@@ -498,10 +497,10 @@ public class GridCacheUtils {
      * @return {@code True} if there is a persistent storage.
      * @throws GridException If data loading failed.
      */
-    @SuppressWarnings({"ErrorNotRethrown"})
+    @SuppressWarnings({"ErrorNotRethrown", "unchecked"})
     public static <K, V> boolean loadCache(GridCacheContext ctx, GridLogger log, GridInClosure2<K, V> vis,
         Object[] args) throws GridException {
-        GridCacheStore<K, V> store = ctx.config().getStore();
+        GridCacheStore<K, V> store = ctx.cacheStore();
 
         if (store != null) {
             if (log.isDebugEnabled())
@@ -539,9 +538,7 @@ public class GridCacheUtils {
      */
     public static <K, V> boolean putToStore(GridCacheContext<K, V> ctx, GridLogger log, GridCacheTx tx,
         K key, V val) throws GridException {
-        GridCacheConfigurationAdapter cfg = ctx.config();
-
-        if (cfg.getStore() != null) {
+        if (ctx.cacheStore() != null) {
             if (log.isDebugEnabled())
                 log.debug("Storing value in cache store [key=" + key + ", val=" + val + ']');
 
@@ -553,13 +550,13 @@ public class GridCacheUtils {
 
                     Object locVal = ((GridCacheInternalStorable)val).cached2Store();
 
-                    cfg.getStore().put(ctx.cache().name(), tx, locKey, locVal);
+                    ctx.cacheStore().put(ctx.cache().name(), tx, locKey, locVal);
                 }
 
                 return true;
             }
             else
-                cfg.getStore().put(ctx.cache().name(), tx, key, val);
+                ctx.cacheStore().put(ctx.cache().name(), tx, key, val);
 
             if (log.isDebugEnabled())
                 log.debug("Stored value in cache store [key=" + key + ", val=" + val + ']');
@@ -591,13 +588,11 @@ public class GridCacheUtils {
             return putToStore(ctx, log, tx, e.getKey(), e.getValue());
         }
         else {
-            GridCacheConfigurationAdapter cfg = ctx.config();
-
-            if (cfg.getStore() != null) {
+            if (ctx.cacheStore() != null) {
                 if (log.isDebugEnabled())
                     log.debug("Storing values in cache store [map=" + map + ']');
 
-                cfg.getStore().putAll(ctx.cache().name(), tx, map);
+                ctx.cacheStore().putAll(ctx.cache().name(), tx, map);
 
                 if (log.isDebugEnabled())
                     log.debug("Stored value in cache store [map=" + map + ']');
@@ -619,9 +614,7 @@ public class GridCacheUtils {
      */
     public static <K, V> boolean removeFromStore(GridCacheContext<K, V> ctx, GridLogger log, GridCacheTx tx, K key)
         throws GridException {
-        GridCacheConfigurationAdapter cfg = ctx.config();
-
-        if (cfg.getStore() != null) {
+        if (ctx.cacheStore() != null) {
             if (log.isDebugEnabled())
                 log.debug("Removing value from cache store [key=" + key + ']');
 
@@ -630,13 +623,13 @@ public class GridCacheUtils {
                     // Set locKey as name of named cache structure.
                     String locKey = ((GridCacheInternalStorableKey)key).name();
 
-                    cfg.getStore().remove(ctx.cache().name(), tx, locKey);
+                    ctx.cacheStore().remove(ctx.cache().name(), tx, locKey);
                 }
                 else
                     return false;
             }
             else
-                cfg.getStore().remove(ctx.cache().name(), tx, key);
+                ctx.cacheStore().remove(ctx.cache().name(), tx, key);
 
             if (log.isDebugEnabled())
                 log.debug("Removed value from cache store [key=" + key + ']');
@@ -667,13 +660,11 @@ public class GridCacheUtils {
             return removeFromStore(ctx, log, tx, key);
         }
 
-        GridCacheConfigurationAdapter cfg = ctx.config();
-
-        if (cfg.getStore() != null) {
+        if (ctx.cacheStore() != null) {
             if (log.isDebugEnabled())
                 log.debug("Removing values from cache store [keys=" + keys + ']');
 
-            cfg.getStore().removeAll(ctx.cache().name(), tx, keys);
+            ctx.cacheStore().removeAll(ctx.cache().name(), tx, keys);
 
             if (log.isDebugEnabled())
                 log.debug("Removed values from cache store [keys=" + keys + ']');
@@ -1291,6 +1282,9 @@ public class GridCacheUtils {
             try {
                 return cmd.call();
             }
+            catch (GridException e) {
+                throw e;
+            }
             catch (Exception e) {
                 throw new GridException(e);
             }
@@ -1306,6 +1300,9 @@ public class GridCacheUtils {
      */
     public static GridCacheTx txStartInternal(GridCacheContext ctx, GridCacheProjection prj,
         GridCacheTxConcurrency concurrency, GridCacheTxIsolation isolation) {
+        assert ctx != null;
+        assert prj != null;
+
         ctx.tm().txContextReset();
 
         return prj.txStart(concurrency, isolation);
@@ -1321,7 +1318,8 @@ public class GridCacheUtils {
 
         return tx.getClass().getSimpleName() + "[id=" + tx.xid() + ", concurrency=" + tx.concurrency() +
             ", isolation=" + tx.isolation() + ", state=" + tx.state() + ", invalidate=" + tx.isInvalidate() +
-            ", rollbackOnly=" + tx.isRollbackOnly() + ", nodeId=" + tx.nodeId() + "]";
+            ", rollbackOnly=" + tx.isRollbackOnly() + ", nodeId=" + tx.nodeId() +
+            ", duration=" + (System.currentTimeMillis() - tx.startTime()) + ']';
     }
 
     /**

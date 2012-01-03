@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -29,8 +29,8 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
 /**
  * Partition topology.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 @GridToStringExclude
 class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, V> {
@@ -60,7 +60,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
     private GridDhtPartitionExchangeId lastExchangeId;
 
     /** */
-    private long lastJoinVer = -1;
+    private long topVer = -1;
 
     /** */
     private final GridAtomicLong updateSeq = new GridAtomicLong(1);
@@ -132,15 +132,14 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
     }
 
     /** {@inheritDoc} */
-    @Override public void updateJoinOrder(GridDhtPartitionExchangeId exchId) {
+    @Override public void updateTopologyVersion(GridDhtPartitionExchangeId exchId) {
         lock.writeLock().lock();
 
         try {
-            assert exchId.order() > 0;
-            assert !exchId.isJoined() || exchId.order() > lastJoinVer;
+            assert exchId.topologyVersion() > topVer : "Invalid topology version [topVer=" + topVer +
+                ", exchId=" + exchId + ']';
 
-            if (exchId.isJoined())
-                lastJoinVer = exchId.order();
+            topVer = exchId.topologyVersion();
         }
         finally {
             lock.writeLock().unlock();
@@ -148,13 +147,13 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
     }
 
     /** {@inheritDoc} */
-    @Override public long lastJoinOrder() {
+    @Override public long topologyVersion() {
         lock.readLock().lock();
 
         try {
-            assert lastJoinVer > 0;
+            assert topVer > 0;
 
-            return lastJoinVer;
+            return topVer;
         }
         finally {
             lock.readLock().unlock();
@@ -172,14 +171,14 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
         lock.writeLock().lock();
 
         try {
-            assert !exchId.isJoined() || lastJoinVer == exchId.order() : "Invalid last join version [lastJoinVer=" +
-                lastJoinVer + ", exchId=" + exchId + ']';
+            assert topVer == exchId.topologyVersion() : "Invalid topology version [topVer=" +
+                topVer + ", exchId=" + exchId + ']';
 
             if (!exchId.isJoined())
                 removeNode(exchId.nodeId());
 
             // In case if node joins, get topology at the time of joining node.
-            Collection<GridRichNode> allNodes = CU.allNodes(cctx, lastJoinVer);
+            Collection<GridRichNode> allNodes = CU.allNodes(cctx, topVer);
 
             GridNode oldest = CU.oldest(allNodes);
 
@@ -220,7 +219,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
                         assert exchId.isJoined();
 
                         try {
-                            GridDhtLocalPartition<K, V> locPart = localPartition(p, lastJoinVer, true);
+                            GridDhtLocalPartition<K, V> locPart = localPartition(p, topVer, true);
 
                             assert locPart != null;
 
@@ -247,7 +246,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
                                 try {
                                     // This will make sure that all non-existing partitions
                                     // will be created in MOVING state.
-                                    GridDhtLocalPartition<K, V> locPart = localPartition(p, lastJoinVer, true);
+                                    GridDhtLocalPartition<K, V> locPart = localPartition(p, topVer, true);
 
                                     updateLocal(p, loc.id(), locPart.state(), updateSeq);
                                 }
@@ -279,7 +278,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
                         // so local map will be sent correctly during exchange.
                         else if (cctx.belongs(p, loc, allNodes)) {
                             try {
-                                localPartition(p, lastJoinVer, true);
+                                localPartition(p, topVer, true);
                             }
                             catch (GridDhtInvalidPartitionException e) {
                                 if (log.isDebugEnabled())
@@ -316,7 +315,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
                     else if (belongs) {
                         try {
                             // Pre-create partitions.
-                            localPartition(p, lastJoinVer, true);
+                            localPartition(p, topVer, true);
                         }
                         catch (GridDhtInvalidPartitionException e) {
                             if (log.isDebugEnabled())
@@ -354,10 +353,10 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
         lock.writeLock().lock();
 
         try {
-            assert !exchId.isJoined() || lastJoinVer == exchId.order() : "Invalid last join version [lastJoinVer=" +
-                lastJoinVer + ", exchId=" + exchId + ']';
+            assert topVer == exchId.topologyVersion() : "Invalid topology version [topVer=" +
+                topVer + ", exchId=" + exchId + ']';
 
-            Collection<GridRichNode> allNodes = CU.allNodes(cctx, lastJoinVer);
+            Collection<GridRichNode> allNodes = CU.allNodes(cctx, topVer);
 
             if (log.isDebugEnabled())
                 log.debug("Partition map before afterExchange [exchId=" + exchId + ", fullMap=" +
@@ -430,7 +429,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
 
                 if (!belongs && topVer < 0)
                     throw new GridDhtInvalidPartitionException(p, "Adding entry to evicted partition [part=" + p +
-                        ", topVer=" + topVer + ", lastJoinVer=" + lastJoinVer + ']');
+                        ", topVer=" + topVer + ", this,topVer=" + this.topVer + ']');
 
                 continue;
             }
@@ -438,7 +437,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
             if (loc == null && create) {
                 if (!belongs && topVer < 0)
                     throw new GridDhtInvalidPartitionException(p, "Creating partition which does not belong [part=" +
-                        p + ", topVer=" + topVer + ", lastJoinVer=" + lastJoinVer + ']');
+                        p + ", topVer=" + topVer + ", this.topVer=" + this.topVer + ']');
 
                 GridDhtLocalPartition<K, V> old = locParts.putIfAbsent(p,
                     loc = new GridDhtLocalPartition<K, V>(cctx, p));
@@ -798,7 +797,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
 
         boolean changed = false;
 
-        Collection<GridRichNode> allNodes = CU.allNodes(cctx, lastJoinVer);
+        Collection<GridRichNode> allNodes = CU.allNodes(cctx, topVer);
 
         UUID locId = cctx.nodeId();
 
@@ -898,7 +897,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
         assert nodeId != null;
         assert lock.writeLock().isHeldByCurrentThread();
 
-        GridNode oldest = CU.oldest(CU.allNodes(cctx, lastJoinVer));
+        GridNode oldest = CU.oldest(CU.allNodes(cctx, topVer));
 
         GridNode loc = cctx.localNode();
 

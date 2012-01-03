@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -21,8 +21,8 @@ import java.util.concurrent.locks.*;
 /**
  * Convenient way to represent topology for {@link GridTcpDiscoverySpi}
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public class GridTcpDiscoveryNodesRing {
     /** Local node. */
@@ -128,8 +128,10 @@ public class GridTcpDiscoveryNodesRing {
         rwLock.writeLock().lock();
 
         try {
-            if (nodesMap.put(node.id(), node) != null)
+            if (nodesMap.containsKey(node.id()))
                 return false;
+
+            nodesMap.put(node.id(), node);
 
             nodes = new TreeSet<GridTcpDiscoveryNode>(nodes);
 
@@ -137,7 +139,7 @@ public class GridTcpDiscoveryNodesRing {
 
             nodes.add(node);
 
-            currentVersion(node.order());
+            topologyVersion(node.order());
         }
         finally {
             rwLock.writeLock().unlock();
@@ -171,8 +173,10 @@ public class GridTcpDiscoveryNodesRing {
             boolean firstAdd = true;
 
             for (GridTcpDiscoveryNode node : nodes) {
-                if (nodesMap.put(node.id(), node) != null)
+                if (nodesMap.containsKey(node.id()))
                     continue;
+
+                nodesMap.put(node.id(), node);
 
                 if (firstAdd) {
                     this.nodes = new TreeSet<GridTcpDiscoveryNode>(this.nodes);
@@ -262,7 +266,6 @@ public class GridTcpDiscoveryNodesRing {
                     if (firstRemove) {
                         nodes = new TreeSet<GridTcpDiscoveryNode>(nodes);
 
-
                         res = new ArrayList<GridTcpDiscoveryNode>(nodeIds.size());
 
                         firstRemove = false;
@@ -282,7 +285,7 @@ public class GridTcpDiscoveryNodesRing {
     }
 
     /**
-     * Removes all remote nodes, leave only local node.
+     * Removes all remote nodes, leaves only local node.
      * <p>
      * This should be called when SPI should be disconnected from topology and
      * reconnected back after.
@@ -469,7 +472,7 @@ public class GridTcpDiscoveryNodesRing {
      *
      * @return Current topology version.
      */
-    public long currentVersion() {
+    public long topologyVersion() {
         rwLock.readLock().lock();
 
         try {
@@ -484,13 +487,19 @@ public class GridTcpDiscoveryNodesRing {
      * Sets new topology version.
      *
      * @param topVer New topology version (should be greater than current, otherwise no-op).
+     * @return {@code True} if topology has been changed.
      */
-    public void currentVersion(long topVer) {
+    public boolean topologyVersion(long topVer) {
         rwLock.writeLock().lock();
 
         try {
-            if (this.topVer < topVer)
+            if (this.topVer < topVer) {
                 this.topVer = topVer;
+
+                return true;
+            }
+
+            return false;
         }
         finally {
             rwLock.writeLock().unlock();
@@ -502,7 +511,7 @@ public class GridTcpDiscoveryNodesRing {
      *
      * @return Topology version (incremented).
      */
-    public long incrementCurrentVersion() {
+    public long incrementTopologyVersion() {
         rwLock.writeLock().lock();
 
         try {

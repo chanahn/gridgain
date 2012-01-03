@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -18,11 +18,11 @@ import java.util.*;
 /**
  * Base class to implement discovery messages.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable {
-    /** Sender of the message. */
+    /** Sender of the message (transient). */
     private UUID senderNodeId;
 
     /** Message ID. */
@@ -34,7 +34,7 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
     /** Verifier node ID. */
     private UUID verifierNodeId;
 
-    /** Topology version of the SPI must be set to after processing of the message (if topology store is used). */
+    /** Topology version. */
     private long topVer;
 
     /**
@@ -120,10 +120,6 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
 
     /**
      * Gets topology version.
-     * <p>
-     * Topology version of the SPI must be set to after processing of the message.
-     * <p>
-     * This method and the underlying field is used only if topology store is used.
      *
      * @return Topology version.
      */
@@ -133,10 +129,6 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
 
     /**
      * Sets topology version.
-     * <p>
-     * Topology version of the SPI must be set to after processing of the message.
-     * <p>
-     * This method and the underlying field is used only if topology store is used.
      *
      * @param topVer Topology version.
      */
@@ -146,7 +138,6 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
-        U.writeUuid(out, senderNodeId);
         U.writeGridUuid(out, id);
         U.writeUuid(out, verifierNodeId);
         out.writeBoolean(verified);
@@ -155,7 +146,6 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        senderNodeId = U.readUuid(in);
         id = U.readGridUuid(in);
         verifierNodeId = U.readUuid(in);
         verified = in.readBoolean();
@@ -167,7 +157,7 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
         if (this == obj)
             return true;
         else if (obj instanceof GridTcpDiscoveryAbstractMessage)
-            return id.equals(((GridTcpDiscoveryAbstractMessage) obj).id);
+            return id.equals(((GridTcpDiscoveryAbstractMessage)obj).id);
 
         return false;
     }

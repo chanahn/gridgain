@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -102,6 +102,10 @@ import java.util.*;
  * boundaries, whenever the next page is not available yet. Whenever the full result set is
  * needed as a collection, then {@link #keepAll(boolean)} flag should be set to {@code true}
  * and any of the future's {@code get(..)} methods should be called.
+ * <h1 class="header">Query Performance</h1>
+ * Note that in case of very frequent cache updates, query index has to be frequently updates which
+ * may have negative effect on performance. Generally, it's best to use cache indexes and queries
+ * when updates are not too frequent.
  * <h1 class="header">Query usage</h1>
  * As an example, suppose we have data model consisting of {@code 'Employee'} and {@code 'Organization'}
  * classes defined as follows:
@@ -167,8 +171,8 @@ import java.util.*;
  * mastersQry.execute(grid.localNode()));
  * </pre>
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public interface GridCacheQuery<K, V> extends GridCacheQueryBase<K, V> {
     /**

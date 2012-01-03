@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -13,6 +13,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.*;
 import org.gridgain.grid.util.future.*;
 import org.gridgain.grid.util.tostring.*;
 
@@ -26,8 +27,8 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
 /**
  * Key partition.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalPartition> {
     /** Static logger to avoid re-creation. */
@@ -57,6 +58,9 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
     /** Create time. */
     @GridToStringExclude
     private final long createTime = System.currentTimeMillis();
+
+    /** Eviction history. */
+    private final ConcurrentMap<K, GridCacheVersion> evictHist = GridConcurrentFactory.newMap(16, 4);
 
     /** Lock. */
     private final Lock lock = new ReentrantLock();
@@ -176,6 +180,42 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
     }
 
     /**
+     * @param key Key.
+     * @param ver Version.
+     */
+    public void onEntryEvicted(K key, GridCacheVersion ver) {
+        assert key != null;
+        assert ver != null;
+
+        // Only one thread can enter this method at a time.
+        GridCacheVersion ver0 = evictHist.putIfAbsent(key, ver);
+
+        if (ver0 != null && ver0.isLess(ver)) {
+            boolean r = evictHist.replace(key, ver0, ver);
+
+            assert r;
+        }
+    }
+
+    /**
+     * Cache preloader should call this method within partition lock.
+     *
+     * @param key Key.
+     * @param ver Version.
+     * @return {@code True} if preloading is permitted.
+     */
+    public boolean preloadingPermitted(K key, GridCacheVersion ver) {
+        assert key != null;
+        assert ver != null;
+
+        GridCacheVersion ver0 = evictHist.get(key);
+
+        // Permit preloading if version in history
+        // is missing or less than passed in.
+        return ver0 == null || ver0.isLess(ver);
+    }
+
+    /**
      * Reserves a partition so it won't be cleared.
      *
      * @return {@code True} if reserved.
@@ -237,6 +277,9 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
             if (state.compareAndSet(MOVING, OWNING, reservations, reservations)) {
                 if (log.isDebugEnabled())
                     log.debug("Owned partition: " + this);
+
+                // No need to keep history any more.
+                evictHist.clear();
 
                 return true;
             }
@@ -317,6 +360,13 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
      */
     void onUnlock() {
         tryEvict();
+    }
+
+    /**
+     * @return {@code True} if local node is primary for this partition.
+     */
+    public boolean primary() {
+        return cctx.primary(cctx.localNode(), id);
     }
 
     /**

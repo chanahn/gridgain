@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,8 +32,8 @@ import java.util.concurrent.atomic.*;
 /**
  * Cache lock future.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
     implements GridCacheMvccFuture<K, V, Boolean>, GridDhtFuture<Boolean>, GridCacheMappedVersion {
@@ -101,15 +101,8 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
     /** Transaction. */
     private GridDhtTxLocal<K, V> tx;
 
-    /** Replied flag. */
-    private AtomicBoolean replied = new AtomicBoolean(false);
-
     /** All replies flag. */
     private AtomicBoolean allReplies = new AtomicBoolean(false);
-
-    /** Latch to wait for reply to be sent. */
-    @GridToStringExclude
-    private CountDownLatch replyLatch = new CountDownLatch(1);
 
     /** */
     private Collection<Integer> invalidParts = new GridLeanSet<Integer>();
@@ -528,7 +521,8 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
 
                         if (!locked(entry, owner))
                             if (log.isDebugEnabled())
-                                log.debug("Entry is not locked (will keep waiting) [entry=" + entry + ", fut=" + this + ']');
+                                log.debug("Entry is not locked (will keep waiting) [entry=" + entry +
+                                    ", fut=" + this + ']');
 
                         break; // Inner while loop.
                     }
@@ -549,11 +543,8 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
      * @param e Error.
      */
     public void onError(GridDistributedLockCancelledException e) {
-        // Don't send reply for cancelled lock.
-        replied.set(true);
-        replyLatch.countDown();
-
-        onComplete(false);
+        if (err.compareAndSet(null, e))
+            onComplete(false);
     }
 
     /**
@@ -594,6 +585,9 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
      * @param entry Entry whose lock ownership changed.
      */
     @Override public boolean onOwnerChanged(GridCacheEntryEx<K, V> entry, GridCacheMvccCandidate<K> owner) {
+        if (isDone())
+            return false; // Check other futures.
+
         if (log.isDebugEnabled())
             log.debug("Received onOwnerChanged() call back [entry=" + entry + ", owner=" + owner + "]");
 

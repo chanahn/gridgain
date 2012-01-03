@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,8 +32,8 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
 /**
  * DHT cache.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Near cache. */
@@ -1197,7 +1197,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      * @param req Request.
      */
     @SuppressWarnings({"unchecked"})
-    private void processDhtTxFinishRequest(UUID nodeId, GridDhtTxFinishRequest<K, V> req) {
+    private void processDhtTxFinishRequest(final UUID nodeId, final GridDhtTxFinishRequest<K, V> req) {
         assert nodeId != null;
         assert req != null;
 
@@ -1262,10 +1262,12 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                 // Double-check.
                 if (ctx.discovery().node(nodeId) == null) {
                     if (log.isDebugEnabled())
-                        log.debug("Node left while sending finish response [nodeId=" + nodeId + ", res=" + res + ']');
+                        log.debug("Node left while sending finish response [nodeId=" + nodeId + ", res=" + res
+                            + ']');
                 }
                 else
-                    U.error(log, "Failed to send finish response to node [nodeId=" + nodeId + ", res=" + res + ']', e);
+                    U.error(log, "Failed to send finish response to node [nodeId=" + nodeId + ", res=" + res +
+                        ']', e);
             }
         }
     }
@@ -1902,11 +1904,11 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                 }
             }
 
-            // Don't send reply message to this node.
-            if (!nearNode.id().equals(ctx.nodeId())) {
+            // Don't send reply message to this node or if lock was cancelled.
+            if (!nearNode.id().equals(ctx.nodeId()) && !X.hasCause(err, GridDistributedLockCancelledException.class)) {
                 ctx.io().send(nearNode, res);
 
-                // Throw error after sending reply.
+                // Log error after sending reply.
                 if (err != null && !(err instanceof GridCacheLockTimeoutException))
                     log.error("Failed to acquire lock for request: " + req, err);
             }
@@ -2027,14 +2029,14 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      * @param nodeId Sender node ID.
      * @param topVer Topology version.
      * @param cached Entry.
+     * @param readers Readers for this entry.
      * @param dhtMap DHT map.
      * @param nearMap Near map.
      * @throws GridException If failed.
-     * @throws GridCacheEntryRemovedException If entry is removed.
      */
-    private void map(UUID nodeId, long topVer, GridDhtCacheEntry<K, V> cached,
+    private void map(UUID nodeId, long topVer, GridCacheEntryEx<K,V> cached, Collection<UUID> readers,
         Map<GridNode, List<T2<K, byte[]>>> dhtMap, Map<GridNode, List<T2<K, byte[]>>> nearMap)
-        throws GridException, GridCacheEntryRemovedException {
+        throws GridException {
         Collection<GridNode> dhtNodes = ctx.dht().topology().nodes(cached.partition(), topVer);
 
         GridNode primary = CU.primary(dhtNodes);
@@ -2050,15 +2052,14 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
         if (log.isDebugEnabled())
             log.debug("Mapping entry to DHT nodes [nodes=" + U.toShortString(dhtNodes) + ", entry=" + cached + ']');
 
-        Collection<UUID> readers = cached.readers();
-
         Collection<GridNode> nearNodes = null;
 
         if (!F.isEmpty(readers)) {
             nearNodes = ctx.discovery().nodes(readers, F.<UUID>not(F.idForNodeId(nodeId)));
 
             if (log.isDebugEnabled())
-                log.debug("Mapping entry to near nodes [nodes=" + U.toShortString(nearNodes) + ", entry=" + cached + ']');
+                log.debug("Mapping entry to near nodes [nodes=" + U.toShortString(nearNodes) + ", entry=" + cached +
+                    ']');
         }
         else {
             if (log.isDebugEnabled())
@@ -2146,12 +2147,17 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
                     long topVer = cand == null ? -1 : cand.topologyVersion();
 
+                    // Note that we obtain readers before lock is removed.
+                    // Even in case if entry would be removed just after lock is removed,
+                    // we must send release messages to backups and readers.
+                    Collection<UUID> readers = entry.readers();
+
                     // Note that we don't reorder completed versions here,
                     // as there is no point to reorder relative to the version
                     // we are about to remove.
                     if (entry.removeLock(dhtVer)) {
                         // Map to backups and near readers.
-                        map(nodeId, topVer, entry, dhtMap, nearMap);
+                        map(nodeId, topVer, entry, readers, dhtMap, nearMap);
 
                         if (log.isDebugEnabled())
                             log.debug("Removed lock [lockId=" + ver + ", key=" + key + ']');

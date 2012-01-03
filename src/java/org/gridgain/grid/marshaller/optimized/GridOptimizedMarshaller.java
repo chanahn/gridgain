@@ -3,8 +3,8 @@ package org.gridgain.grid.marshaller.optimized;
 import org.gridgain.grid.*;
 import org.gridgain.grid.marshaller.*;
 import org.gridgain.grid.marshaller.jdk.*;
-import org.gridgain.grid.util.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
@@ -20,9 +20,68 @@ import java.util.*;
  * <p>
  * {@code GridOptimizedMarshaller} is the default marshaler and will be used if no other
  * marshaller was explicitly configured.
+ * <p>
+ * <h1 class="header">Configuration</h1>
+ * <h2 class="header">Mandatory</h2>
+ * This marshaller has no mandatory configuration parameters.
+ * <h2 class="header">Java Example</h2>
+ * <pre name="code" class="java">
+ * GridOptimizedMarshaller marshaller = new GridOptimizedMarshaller();
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * // Enforce Serializable interface.
+ * marshaller.setRequireSerializable(true);
+ *
+ * GridConfigurationAdapter cfg = new GridConfigurationAdapter();
+ *
+ * // Override marshaller.
+ * cfg.setMarshaller(marshaller);
+ *
+ * // Starts grid.
+ * G.start(cfg);
+ * </pre>
+ * <h2 class="header">Spring Example</h2>
+ * GridOptimizedMarshaller can be configured from Spring XML configuration file:
+ * <pre name="code" class="xml">
+ * &lt;bean id="grid.custom.cfg" class="org.gridgain.grid.GridConfigurationAdapter" singleton="true"&gt;
+ *     ...
+ *     &lt;property name="marshaller"&gt;
+ *         &lt;bean class="org.gridgain.grid.marshaller.optimized.GridOptimizedMarshaller"&gt;
+ *             &lt;property name="requireSerializable"&gt;true&lt;/property&gt;
+ *         &lt;/bean&gt;
+ *     &lt;/property&gt;
+ *     ...
+ * &lt;/bean&gt;
+ * </pre>
+ * <p>
+ * <img src="http://www.gridgain.com/images/spring-small.png">
+ * <br>
+ * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
+ * <h2 class="header">Injection Example</h2>
+ * GridOptimizedMarshaller can be injected in users task, job or SPI as following:
+ * <pre name="code" class="java">
+ * public class MyGridJob implements GridJob {
+ *     ...
+ *     &#64;GridMarshallerResource
+ *     private GridMarshaller marshaller;
+ *     ...
+ * }
+ * </pre>
+ * or
+ * <pre name="code" class="java">
+ * public class MyGridJob implements GridJob {
+ *     ...
+ *     private GridMarshaller marshaller;
+ *     ...
+ *     &#64;GridMarshallerResource
+ *     public void setMarshaller(GridMarshaller marshaller) {
+ *         this.marshaller = marshaller;
+ *     }
+ *     ...
+ * }
+ * </pre>
+ *
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public class GridOptimizedMarshaller implements GridMarshaller {
     /** Whether or not to require an object to be serializable in order to be marshalled. */
@@ -33,6 +92,9 @@ public class GridOptimizedMarshaller implements GridMarshaller {
 
     /** */
     private final Map<Integer, String> id2name = new HashMap<Integer, String>();
+
+    /** */
+    private final ClassLoader dfltClsLdr = getClass().getClassLoader();
 
     /**
      * Initializes marshaller not to enforce {@link Serializable} interface.
@@ -182,7 +244,7 @@ public class GridOptimizedMarshaller implements GridMarshaller {
         assert in != null;
 
         if (clsLdr == null)
-            clsLdr = getClass().getClassLoader();
+            clsLdr = dfltClsLdr;
 
         try {
             GridOptimizedObjectInput objIn = new GridOptimizedObjectInput(in, clsLdr, id2name);

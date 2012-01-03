@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -41,8 +41,8 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
 /**
  * Adapter for different cache implementations.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter implements GridCache<K, V>,
     Externalizable {
@@ -1329,10 +1329,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
                 obsoleteVer = ctx.versions().next();
 
             try {
-                if (e.clear(obsoleteVer, swap, false, filter))
-                    removeIfObsolete(e.key());
-                else if (log.isDebugEnabled())
-                    log.debug("Failed to remove entry: " + e);
+                e.clear(obsoleteVer, swap, false, filter);
             }
             catch (GridException ex) {
                 U.error(log, "Failed to clear entry from swap storage (will continue to clear other entries): " + e,
@@ -1352,9 +1349,8 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
         GridCacheVersion obsoleteVer = ctx.versions().next();
 
-        for (K k : keys) {
+        for (K k : keys)
             clear(obsoleteVer, k, filter);
-        }
     }
 
     /**
@@ -1372,8 +1368,8 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
             GridCacheEntryEx<K, V> e = peekEx(key);
 
             try {
-                if (e != null && e.clear(obsoleteVer, ctx.isSwapEnabled(), readers, null))
-                    removeIfObsolete(key);
+                if (e != null)
+                    e.clear(obsoleteVer, ctx.isSwapEnabled(), readers, null);
             }
             catch (GridException ex) {
                 U.error(log, "Failed to clear entry from swap storage (will continue to clear other entries): " + e,
@@ -1402,11 +1398,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         GridCacheEntryEx<K, V> e = peekEx(key);
 
         try {
-            if (e != null && e.clear(obsoleteVer, ctx.isSwapEnabled(), false, filter)) {
-                removeIfObsolete(key);
-
-                return true;
-            }
+            return e != null && e.clear(obsoleteVer, ctx.isSwapEnabled(), false, filter);
         }
         catch (GridException ex) {
             U.error(log, "Failed to clear entry from swap storage (will continue to clear other entries): " + e, ex);
@@ -1562,7 +1554,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
             return true;
 
         try {
-            return ctx.evicts().evict(entry, ver, filter);
+            return ctx.evicts().evict(entry, ver, true, filter);
         }
         catch (GridException ex) {
             U.error(log, "Failed to evict entry from cache: " + entry, ex);

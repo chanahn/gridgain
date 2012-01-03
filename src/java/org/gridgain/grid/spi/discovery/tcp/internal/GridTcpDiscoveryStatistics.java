@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -18,12 +18,13 @@ import org.gridgain.grid.util.tostring.*;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * Statistics for {@link GridTcpDiscoverySpi}.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public class GridTcpDiscoveryStatistics {
     /** Join started timestamp. */
@@ -33,7 +34,7 @@ public class GridTcpDiscoveryStatistics {
     private long joinFinishedTs;
 
     /** Coordinator since timestamp. */
-    private long crdSinceTs;
+    private final AtomicLong crdSinceTs = new AtomicLong();
 
     /** Joined nodes count. */
     private int joinedNodesCnt;
@@ -187,9 +188,8 @@ public class GridTcpDiscoveryStatistics {
     /**
      * Initializes coordinator since date (if needed).
      */
-    public synchronized void onBecomingCoordinator() {
-        if (crdSinceTs == 0)
-            crdSinceTs = System.currentTimeMillis();
+    public void onBecomingCoordinator() {
+        crdSinceTs.compareAndSet(0, System.currentTimeMillis());
     }
 
     /**
@@ -308,7 +308,7 @@ public class GridTcpDiscoveryStatistics {
         assert msg != null;
         assert time >= 0;
 
-        if (crdSinceTs > 0 &&
+        if (crdSinceTs.get() > 0 &&
             (msg instanceof GridTcpDiscoveryNodeAddedMessage) ||
             (msg instanceof GridTcpDiscoveryNodeLeftMessage) ||
             (msg instanceof GridTcpDiscoveryNodeFailedMessage)) {
@@ -654,8 +654,8 @@ public class GridTcpDiscoveryStatistics {
      *
      * @return Coordinator since timestamp.
      */
-    public synchronized long coordinatorSinceTimestamp() {
-        return crdSinceTs;
+    public long coordinatorSinceTimestamp() {
+        return crdSinceTs.get();
     }
 
     /** {@inheritDoc} */

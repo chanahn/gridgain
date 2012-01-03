@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -29,8 +29,8 @@ import static org.gridgain.grid.GridEventType.*;
 /**
  * This class provides convenient adapter for SPI implementations.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean, GridSpiJsonConfigurable {
     /** System line separator. */
@@ -171,12 +171,12 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
                 GridNode node = spiCtx.node(((GridDiscoveryEvent)evt).eventNodeId());
 
                 if (node != null)
-                    checkConfigurationConsistency(node);
+                    checkConfigurationConsistency(node, false);
             }
         }, EVT_NODE_JOINED);
 
         for (GridNode node : getSpiContext().remoteNodes())
-            checkConfigurationConsistency(node);
+            checkConfigurationConsistency(node, true);
     }
 
     /** {@inheritDoc} */
@@ -338,8 +338,11 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
      * Checks remote node SPI configuration and prints warnings if necessary.
      *
      * @param node Remote node.
+     * @param starting Flag indicating whether this method is called during SPI start or
+     *      during node joined event.
      */
-    private void checkConfigurationConsistency(GridNode node) {
+    @SuppressWarnings("IfMayBeConditional")
+    protected void checkConfigurationConsistency(GridNode node, boolean starting) {
         assert node != null;
 
         /*** Don't compare SPIs from different virtual grids. ***/
@@ -423,13 +426,26 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
                 }
         }
 
-        if (sb.length() > 0)
-            U.warn(log, NL + NL +
-                ">>> +-------------------------------------------------------------------+" + NL +
-                ">>> + Courtesy notice that joining node has inconsistent configuration. +" + NL +
-                ">>> + Ignore this message if you are sure that this is done on purpose. +" + NL +
-                ">>> + ------------------------------------------------------------------+" + NL +
-                ">>> Remote Node ID: " + node.id().toString().toUpperCase() + NL + sb);
+        if (sb.length() > 0) {
+            String msg;
+
+            if (starting)
+                msg = NL + NL +
+                    ">>> +--------------------------------------------------------------------+" + NL +
+                    ">>> + Courtesy notice that starting node has inconsistent configuration. +" + NL +
+                    ">>> + Ignore this message if you are sure that this is done on purpose.  +" + NL +
+                    ">>> +--------------------------------------------------------------------+" + NL +
+                    ">>> Remote Node ID: " + node.id().toString().toUpperCase() + NL + sb;
+            else
+                msg = NL + NL +
+                    ">>> +-------------------------------------------------------------------+" + NL +
+                    ">>> + Courtesy notice that joining node has inconsistent configuration. +" + NL +
+                    ">>> + Ignore this message if you are sure that this is done on purpose. +" + NL +
+                    ">>> +-------------------------------------------------------------------+" + NL +
+                    ">>> Remote Node ID: " + node.id().toString().toUpperCase() + NL + sb;
+
+            U.warn(log, msg);
+        }
     }
 
     /**
@@ -470,8 +486,8 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
     /**
      * Temporarily SPI context.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2012 Copyright (C) GridGain Systems
+     * @version 3.6.0c.03012012
      */
     private static class GridDummySpiContext implements GridSpiContext {
         /** */

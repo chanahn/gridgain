@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -29,34 +29,22 @@ public class GridDhtPartitionExchangeId implements Comparable<GridDhtPartitionEx
     @GridToStringExclude
     private int evt;
 
-    /** Node order. */
-    private long order;
-
-    /** Last join order. */
-    private long lastJoinOrder;
-
-    /** */
-    private long timestamp;
+    /** Topology version. */
+    private long topVer;
 
     /**
      * @param nodeId Node ID.
      * @param evt Event.
-     * @param order Order.
-     * @param lastJoinOrder Last join order.
-     * @param timestamp Event timestamp.
+     * @param topVer Topology version.
      */
-    GridDhtPartitionExchangeId(UUID nodeId, int evt, long order, long lastJoinOrder, long timestamp) {
+    GridDhtPartitionExchangeId(UUID nodeId, int evt, long topVer) {
         assert nodeId != null;
-        assert order > 0;
-        assert timestamp > 0;
         assert evt == EVT_NODE_LEFT || evt == EVT_NODE_FAILED || evt == EVT_NODE_JOINED;
-        assert evt != EVT_NODE_JOINED || lastJoinOrder == order;
+        assert topVer > 0;
 
         this.nodeId = nodeId;
         this.evt = evt;
-        this.order = order;
-        this.lastJoinOrder = lastJoinOrder;
-        this.timestamp = timestamp;
+        this.topVer = topVer;
     }
 
     /**
@@ -74,13 +62,6 @@ public class GridDhtPartitionExchangeId implements Comparable<GridDhtPartitionEx
     }
 
     /**
-     * @return Last join order.
-     */
-    public long lastJoinOrder() {
-        return lastJoinOrder;
-    }
-
-    /**
      * @return Event.
      */
     public int event() {
@@ -90,15 +71,8 @@ public class GridDhtPartitionExchangeId implements Comparable<GridDhtPartitionEx
     /**
      * @return Order.
      */
-    public long order() {
-        return order;
-    }
-
-    /**
-     * @return Timestamp.
-     */
-    public long timestamp() {
-        return timestamp;
+    public long topologyVersion() {
+        return topVer;
     }
 
     /**
@@ -118,19 +92,15 @@ public class GridDhtPartitionExchangeId implements Comparable<GridDhtPartitionEx
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         U.writeUuid(out, nodeId);
-        out.writeLong(order);
-        out.writeLong(lastJoinOrder);
+        out.writeLong(topVer);
         out.writeInt(evt);
-        out.writeLong(timestamp);
     }
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         nodeId = U.readUuid(in);
-        order = in.readLong();
-        lastJoinOrder = in.readLong();
+        topVer = in.readLong();
         evt = in.readInt();
-        timestamp = in.readLong();
     }
 
     /** {@inheritDoc} */
@@ -138,17 +108,7 @@ public class GridDhtPartitionExchangeId implements Comparable<GridDhtPartitionEx
         if (o == this)
             return 0;
 
-        if (order != o.order)
-            return isJoined() && o.isJoined() ? order < o.order ? -1 : 1 : timestamp < o.timestamp ? -1 : 1;
-
-        if (!nodeId.equals(o.nodeId))
-            return nodeId.compareTo(o.nodeId);
-
-        // Same node, different events.
-        if (evt != o.evt)
-            return evt == EVT_NODE_JOINED ? -1 : 1;
-
-        return 0;
+        return topVer < o.topVer ? -1 : topVer == o.topVer ? 0 : 1;
     }
 
     /** {@inheritDoc} */
@@ -156,7 +116,7 @@ public class GridDhtPartitionExchangeId implements Comparable<GridDhtPartitionEx
         int res = nodeId.hashCode();
 
         res = 31 * res + evt;
-        res = 31 * res + (int)(order ^ (order >>> 32));
+        res = 31 * res + (int)(topVer ^ (topVer >>> 32));
 
         return res;
     }
@@ -168,7 +128,7 @@ public class GridDhtPartitionExchangeId implements Comparable<GridDhtPartitionEx
 
         GridDhtPartitionExchangeId id = (GridDhtPartitionExchangeId)o;
 
-        return evt == id.evt && order == id.order && nodeId.equals(id.nodeId);
+        return evt == id.evt && topVer == id.topVer && nodeId.equals(id.nodeId);
     }
 
     /** {@inheritDoc} */

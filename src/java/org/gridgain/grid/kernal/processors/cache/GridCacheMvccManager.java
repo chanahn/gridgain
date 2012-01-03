@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,8 +32,8 @@ import static org.gridgain.grid.util.GridConcurrentFactory.*;
 /**
  * Manages lock order within a thread.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
     /** Maxim number of removed locks. */
@@ -88,7 +88,7 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
 
                 if (futCol != null) {
                     for (GridCacheFuture fut : futCol) {
-                        if (fut instanceof GridCacheMvccFuture) {
+                        if (fut instanceof GridCacheMvccFuture && !fut.isDone()) {
                             GridCacheMvccFuture<K, V, Boolean> mvccFut =
                                 (GridCacheMvccFuture<K, V, Boolean>)fut;
 
@@ -108,7 +108,12 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
                     owner + ", prev=" + prev + ", entry=" + entry + ']');
 
             // If no future was found, delegate to transaction manager.
-            cctx.tm().onOwnerChanged(entry, owner);
+            if (cctx.tm().onOwnerChanged(entry, owner)) {
+                if (log.isDebugEnabled())
+                    log.debug("Found transaction for changed owner: " + owner);
+            }
+            else if (log.isDebugEnabled())
+                log.debug("Failed to find transaction for changed owner: " + owner);
 
             for (FinishLockFuture f : finishFuts)
                 f.recheck(entry);
@@ -308,9 +313,10 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
 
                 // Future is being removed, so we force-remove here and try again.
                 if (empty) {
-                    if (futs.remove(fut.version().id(), old))
+                    if (futs.remove(fut.version().id(), old)) {
                         if (log.isDebugEnabled())
                             log.debug("Removed future list from futures map for lock version: " + fut.version());
+                    }
 
                     continue;
                 }
@@ -376,10 +382,8 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
             if (log.isDebugEnabled())
                 log.debug("Removed future from future map: " + fut);
         }
-        else {
-            if (log.isDebugEnabled())
-                log.debug("Attempted to remove a non-registered future (has it been already removed?): " + fut);
-        }
+        else if (log.isDebugEnabled())
+            log.debug("Attempted to remove a non-registered future (has it been already removed?): " + fut);
 
         if (empty && futs.remove(fut.version().id(), cur))
             if (log.isDebugEnabled())
@@ -415,12 +419,23 @@ public class GridCacheMvccManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
+     * Gets all futures for given lock version, possibly empty collection.
+     *
+     * @param ver Version.
+     * @return All futures for given lock version.
+     */
+    public <T> Collection<? extends GridFuture<T>> futures(GridUuid ver) {
+        Collection c = futs.get(ver);
+
+        return c == null ? Collections.<GridFuture<T>>emptyList() : (Collection<GridFuture<T>>)c;
+    }
+
+    /**
      * @param ver Lock version to check.
      * @return {@code True} if lock had been removed.
      */
     public boolean isRemoved(GridCacheVersion ver) {
         return !cctx.isNear() && !cctx.isLocal() && ver != null && rmvLocks.contains(ver);
-
     }
 
     /**

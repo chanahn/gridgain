@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-# Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+# Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 #  _________        _____ __________________        _____
 #  __  ____/___________(_)______  /__  ____/______ ____(_)_______
 #  _  / __  __  ___/__  / _  __  / _  / __  _  __ `/__  / __  __ \
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 3.5.1c.18112011
+# Version: 3.6.0c.03012012
 #
 
 #
@@ -51,7 +51,7 @@ fi
 #
 # Set property JAR name during the Ant build.
 #
-ANT_AUGMENTED_GGJAR=gridgain-3.5.1c.jar
+ANT_AUGMENTED_GGJAR=gridgain-3.6.0c.jar
 
 osname=`uname`
 
@@ -117,7 +117,7 @@ done
 #
 # Find available port for JMX
 #
-JMX_PORT=`java -cp ${GRIDGAIN_HOME}/${ANT_AUGMENTED_GGJAR} org.gridgain.grid.tools.portscanner.GridPortScanner`
+JMX_PORT=`$JAVA -cp ${GRIDGAIN_HOME}/${ANT_AUGMENTED_GGJAR} org.gridgain.grid.tools.portscanner.GridPortScanner`
 
 # This variable defines necessary parameters for JMX
 # monitoring and management.
@@ -129,7 +129,8 @@ JMX_MON=-Dcom.sun.management.jmxremote
 # This enables remote unsecure access to JConsole or VisualVM.
 # ADD YOUR ADDITIONAL PARAMETERS/OPTIONS HERE
 #
-JMX_MON="${JMX_MON} -Dcom.sun.management.jmxremote.port=${JMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
+JMX_MON="${JMX_MON} -Dcom.sun.management.jmxremote.port=${JMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false \
+-Dcom.sun.management.jmxremote.ssl=false"
 
 #
 # JVM options. See http://java.sun.com/javase/technologies/hotspot/vmoptions.jsp
@@ -137,12 +138,13 @@ JMX_MON="${JMX_MON} -Dcom.sun.management.jmxremote.port=${JMX_PORT} -Dcom.sun.ma
 #
 # NOTE
 # ====
-# ASSERTIONS ARE DISABLE BY DEFAULT SINCE VERSION 3.5.
+# ASSERTIONS ARE DISABLED BY DEFAULT SINCE VERSION 3.5.
 # IF YOU WANT TO ENABLE THEM - ADD '-ea' TO JVM_OPTS VARIABLE
 #
 # ADD YOUR ADDITIONAL PARAMETERS/OPTIONS HERE
 #
-JVM_OPTS="-Xms512m -Xmx512m -XX:MaxPermSize=384m -XX:+UseParNewGC -XX:MaxNewSize=32m -XX:NewSize=32m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled"
+JVM_OPTS="-Xms512m -Xmx512m -XX:MaxPermSize=384m -XX:+UseParNewGC -XX:MaxNewSize=32m -XX:NewSize=32m \
+-XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled"
 
 # Uncomment to set preference for IPv4 stack.
 # JVM_OPTS="${JVM_OPTS} -Djava.net.preferIPv4Stack=true"
@@ -156,9 +158,13 @@ ERRORCODE="-1"
 while [ "${ERRORCODE}" -ne "130" ]
 do
     if [ -z "${INTERACTIVE}" ] ; then
-        "$JAVA" ${JVM_OPTS} ${QUIET} ${RESTART_SUCCESS_OPT} ${JMX_MON}  -DGRIDGAIN_SCRIPT -DGRIDGAIN_HOME="${GRIDGAIN_HOME}" -DGRIDGAIN_PROG_NAME="$0" -cp "${CP}" org.gridgain.grid.loaders.cmdline.GridCommandLineLoader "${CONFIG}"
+        "$JAVA" ${JVM_OPTS} ${QUIET} ${RESTART_SUCCESS_OPT} ${JMX_MON}  \
+        -DGRIDGAIN_SCRIPT -DGRIDGAIN_HOME="${GRIDGAIN_HOME}" -DGRIDGAIN_PROG_NAME="$0" -cp "${CP}" \
+        org.gridgain.grid.loaders.cmdline.GridCommandLineLoader "${CONFIG}"
     else
-        "$JAVA" ${JVM_OPTS} ${QUIET} ${RESTART_SUCCESS_OPT} ${JMX_MON}  -DGRIDGAIN_SCRIPT -DGRIDGAIN_HOME="${GRIDGAIN_HOME}" -DGRIDGAIN_PROG_NAME="$0" -cp "${CP}" org.gridgain.grid.loaders.cmdline.GridCommandLineLoader
+        "$JAVA" ${JVM_OPTS} ${QUIET} ${RESTART_SUCCESS_OPT} ${JMX_MON}  \
+        -DGRIDGAIN_SCRIPT -DGRIDGAIN_HOME="${GRIDGAIN_HOME}" -DGRIDGAIN_PROG_NAME="$0" -cp "${CP}" \
+        org.gridgain.grid.loaders.cmdline.GridCommandLineLoader
     fi
 
     ERRORCODE="$?"

@@ -7,8 +7,8 @@ import org.gridgain.grid.util.mbean.*;
  * Management bean that provides general administrative and configuration information
  * about cache checkpoint SPI.
  * 
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 @GridMBeanDescription("MBean provides information about cache checkpoint SPI.")
 public interface GridCacheCheckpointSpiMBean extends GridSpiManagementMBean {

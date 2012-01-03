@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -33,8 +33,8 @@ import java.util.*;
  * and pass it to {@link GridConfiguration#getCacheConfiguration()} to start grid cache with
  * default configuration.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public interface GridCacheConfiguration {
     /** Default query log name. */
@@ -111,13 +111,13 @@ public interface GridCacheConfiguration {
     public static final GridCachePreloadMode DFLT_PRELOAD_MODE = GridCachePreloadMode.ASYNC;
 
     /** Default preload batch size in bytes. */
-    public static final int DFLT_PRELOAD_BATCH_SIZE = 524288;
+    public static final int DFLT_PRELOAD_BATCH_SIZE = 512 * 1024; // 512K
 
     /** Default value for 'idxFixedTyping' flag. */
     public static final boolean DFLT_IDX_FIXED_TYPING = true;
 
     /**
-     * Default value for 'idxFixedTyping' flag indicating if query index files
+     * Default value for 'idxCleanup' flag indicating if query index files
      * should be removed on node stop.
      */
     public static final boolean DFLT_IDX_CLEANUP = true;
@@ -126,13 +126,13 @@ public interface GridCacheConfiguration {
      * Default value for 'idxMemoryOnly' flag indicating if query index
      * database should be in-memory.
      */
-    public static final boolean DFLT_IDX_MEM_ONLY = false;
+    public static final boolean DFLT_IDX_MEM_ONLY = true;
 
     /**
      * Default value for maximum memory used per single operation with query index
      * (store and remove), in bytes.
      */
-    public static final int DFLT_IDX_MAX_OPERATIONAL_MEM = 100000;
+    public static final int DFLT_IDX_MAX_OPERATIONAL_MEM = 0;
 
     /** Default frequency of running H2 "ANALYZE" command. */
     public static final int DFLT_IDX_ANALYZE_FREQ = 10 * 60 * 1000;
@@ -161,8 +161,14 @@ public interface GridCacheConfiguration {
     /** Default near nodes eviction synchronized flag. */
     public static final boolean DFLT_EVICT_NEAR_SYNCHRONIZED = true;
 
-    /** Default eviction key buffer size. */
-    public static final int DFLT_EVICT_KEY_BUFFER_SIZE = 10240;
+    /** Default eviction key buffer size for batching synchronized evicts. */
+    public static final int DFLT_EVICT_KEY_BUFFER_SIZE = 1024;
+
+    /** Default synchronous eviction timeout in milliseconds. */
+    public static final int DFLT_EVICT_SYNCHRONOUS_TIMEOUT = 10000;
+
+    /** Default synchronous eviction concurrency level. */
+    public static final int DFLT_EVICT_SYNCHRONOUS_CONCURRENCY_LEVEL = 4;
 
     /** Default value for 'synchronousCommit' flag. */
     public static final boolean DFLT_SYNC_COMMIT = false;
@@ -175,6 +181,24 @@ public interface GridCacheConfiguration {
 
     /** Default value for 'storeEnabled' flag. */
     public static final boolean DFLT_STORE_ENABLED = true;
+
+    /** Default value for 'writeFromBehindEnabled' flag. */
+    public static final boolean DFLT_WRITE_FROM_BEHIND_ENABLED = false;
+
+    /** Default flush size for write-from-behind cache store. */
+    public static final int DFLT_WRITE_FROM_BEHIND_FLUSH_SIZE = 10240; // 10K
+
+    /** Default critical size used when flush size is not specified. */
+    public static final int DFLT_WRITE_FROM_BEHIND_CRITICAL_SIZE = 16384; // 16K
+
+    /** Default flush frequency for write-from-behind cache store in milliseconds. */
+    public static final int DFLT_WRITE_FROM_BEHIND_FLUSH_FREQUENCY = 5000;
+
+    /** Default count of flush threads for write-from-behind cache store. */
+    public static final int DFLT_WRITE_FROM_BEHIND_FLUSH_THREAD_CNT = 1;
+
+    /** Default batch size for write-from-behind cache store. */
+    public static final int DFLT_WRITE_FROM_BEHIND_BATCH_SIZE = 512;
 
     /**
      * Cache name. If not provided or {@code null}, then this will be considered a default
@@ -254,13 +278,45 @@ public interface GridCacheConfiguration {
     public boolean isEvictNearSynchronized();
 
     /**
-     * Gets size of the key buffer for evictions.
+     * Gets size of the key buffer for synchronous evictions.
      * <p>
      * Default value is defined by {@link #DFLT_EVICT_KEY_BUFFER_SIZE}.
      *
      * @return Eviction key buffer size.
      */
-    public int getEvictionKeyBufferSize();
+    public int getEvictSynchronisedKeyBufferSize();
+
+    /**
+     * Gets synchronous eviction timeout.
+     * <p>
+     * Node that initiates eviction waits for responses
+     * from remote nodes within this timeout.
+     * <p>
+     * Default value is defined by {@link #DFLT_EVICT_SYNCHRONOUS_TIMEOUT}.
+     *
+     * @return Synchronous eviction timeout.
+     */
+    public int getEvictSynchronizedTimeout();
+
+    /**
+     * Gets synchronous eviction concurrency level. This flag only makes sense
+     * with {@link #isEvictNearSynchronized()} or {@link #isEvictSynchronized()} set
+     * to {@code true}. When synchronous evictions are enabled, it is possible that
+     * eviction policy will try to evict entries faster than they can be synchronized
+     * with backup or near nodes. This value specifies how many concurrent synchronous
+     * eviction sessions should be allowed before the system is forced to wait and let
+     * synchronous evictions catch up with the eviction policy.
+     * <p>
+     * Note that if synchronous evictions start lagging, it is possible that you have either
+     * too big or too small eviction key buffer size or small eviction timeout. In that case
+     * you will need to adjust {@link #getEvictSynchronisedKeyBufferSize()} or {@link #getEvictSynchronizedTimeout()}
+     * values as well.
+     * <p>
+     * Default value is defined by {@link #DFLT_EVICT_SYNCHRONOUS_CONCURRENCY_LEVEL}.
+     *
+     * @return Synchronous eviction concurrency level.
+     */
+    public int getEvictSynchronizedConcurrencyLevel();
 
     /**
      * This value denotes the maximum size of eviction queue in percents of cache
@@ -278,7 +334,7 @@ public interface GridCacheConfiguration {
      *
      * @return Maximum size of eviction queue in percents of cache size.
      */
-    public float getMaxEvictionOverflowRatio();
+    public float getEvictMaxOverflowRatio();
 
     /**
      * Default cache transaction isolation to use when one is not explicitly
@@ -514,6 +570,13 @@ public interface GridCacheConfiguration {
      * <p>
      * Note that cache queries with {@link GridCacheQueryType#LUCENE LUCENE} type cannot
      * be used in case of in-memory index database, i.e. if this property is {@code true}.
+     * <p>
+     * It is reasonable to configure this property with opposite value of {@link #isSwapEnabled()}
+     * property. If swap is enabled, then most likely indexes will not fit in memory and
+     * it is reasonable to overflow them to disk. Otherwise, if swap id disabled,
+     * then indexes should fit in memory.
+     * <p>
+     * Default is {@code true} and is defined by {@link #DFLT_IDX_MEM_ONLY} constant.
      *
      * @return {@code True} if index should be stored only in memory (not on disk).
      */
@@ -647,6 +710,65 @@ public interface GridCacheConfiguration {
      * @return {@code true} if configured persistent store is used by default.
      */
     public boolean isStoreEnabled();
+
+    /**
+     * Flag indicating whether GridGain should use write-from-behind behaviour for the cache store.
+     * By default write-from-behind is disabled which is defined via {@link #DFLT_WRITE_FROM_BEHIND_ENABLED}
+     * constant.
+     *
+     * @return {@code True} if write-from-behind is enabled.
+     */
+    public boolean isWriteFromBehindEnabled();
+
+    /**
+     * Maximum size of the write-from-behind cache. If cache size exceeds this value,
+     * all cached items are flushed to the cache store and write cache is cleared.
+     * <p/>
+     * If not provided, default value is {@link #DFLT_WRITE_FROM_BEHIND_FLUSH_SIZE}.
+     * If this value is {@code 0}, then flush is performed according to the flush frequency interval.
+     * <p/>
+     * Note that you cannot set both, {@code flush} size and {@code flush frequency}, to {@code 0}.
+     *
+     * @return Maximum object count in write-from-behind cache.
+     */
+    public int getWriteFromBehindFlushSize();
+
+    /**
+     * Frequency with which write-from-behind cache is flushed to the cache store in milliseconds.
+     * This value defines the maximum time interval between object insertion/deletion from the cache
+     * ant the moment when corresponding operation is applied to the cache store.
+     * </p>
+     * If not provided, default value is {@link #DFLT_WRITE_FROM_BEHIND_FLUSH_FREQUENCY}.
+     * If this value is {@code 0}, then flush is performed according to the flush size.
+     * <p/>
+     * Note that you cannot set both, {@code flush} size and {@code flush frequency}, to {@code 0}.
+     *
+     * @return Write-from-behind flush frequency in milliseconds.
+     */
+    public int getWriteFromBehindFlushFrequency();
+
+    /**
+     * Number of threads that will perform cache flushing if either cache size exceeded value defined by
+     * {@link #getWriteFromBehindFlushSize()}, or flush interval defined by
+     * {@link #getWriteFromBehindFlushFrequency()} is elapsed.
+     * <p/>
+     * If not provided, default value is {@link #DFLT_WRITE_FROM_BEHIND_FLUSH_THREAD_CNT}.
+     *
+     * @return Count of flush threads.
+     */
+    public int getWriteFromBehindFlushThreadCount();
+
+    /**
+     * Maximum batch size for write-from-behind cache store operations. Store operations (get or remove)
+     * are combined in a batch of this size to be passed to
+     * {@link GridCacheStore#putAll(String, GridCacheTx, Map)} or
+     * {@link GridCacheStore#removeAll(String, GridCacheTx, Collection)} methods.
+     * <p/>
+     * If not provided, default value is {@link #DFLT_WRITE_FROM_BEHIND_BATCH_SIZE}.
+     *
+     * @return Maximum batch size for store operations.
+     */
+    public int getWriteFromBehindBatchSize();
 
     /**
      * Cloner to be used for cloning values that are returned to user only if {@link GridCacheFlag#CLONE}

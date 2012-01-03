@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,8 +32,8 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
 /**
  * Managed transaction adapter.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.03012012
  */
 public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     implements GridCacheTxEx<K, V>, Externalizable {
@@ -670,8 +670,12 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     @Override public GridFuture<GridCacheTx> finishFuture() {
         GridFutureAdapter<GridCacheTx> fut = finFut.get();
 
-        if (fut == null)
-            finFut.compareAndSet(null, fut = new GridFutureAdapter<GridCacheTx>());
+        if (fut == null) {
+            if (!finFut.compareAndSet(null, fut = new GridFutureAdapter<GridCacheTx>()))
+                fut = finFut.get();
+        }
+
+        assert fut != null;
 
         if (isDone.get())
             fut.onDone(this);
@@ -690,8 +694,6 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         boolean valid = false;
 
         GridCacheTxState prev;
-
-        List<GridInClosure<GridCacheTxEx<K, V>>> lsnrs = null;
 
         boolean notify = false;
 
@@ -786,12 +788,6 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
             if (fut != null)
                 fut.onDone(this);
         }
-
-
-        // Notify finish listeners.
-        if (lsnrs != null)
-            for (GridInClosure<GridCacheTxEx<K, V>> lsnr : lsnrs)
-                lsnr.apply(this);
 
         if (valid) {
             // Seal transactions maps.
