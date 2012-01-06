@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -12,18 +12,73 @@ package org.gridgain.grid.marshaller.xstream;
 import com.thoughtworks.xstream.*;
 import org.gridgain.grid.*;
 import org.gridgain.grid.marshaller.*;
+import org.gridgain.grid.marshaller.optimized.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
 import org.jetbrains.annotations.*;
 import java.io.*;
 
 /**
- * Marshaller that uses <a href="http://xstream.codehaus.org/">XStream</a>
- * to marshal objects. This marshaller does not require objects to implement
- * {@link Serializable}.
+ * Implementation of {@link GridMarshaller} based on <a href="http://xstream.codehaus.org/">XStream</a>.
+ * This marshaller does not require objects to implement {@link Serializable}.
+ * <p>
+ * <h1 class="header">Configuration</h1>
+ * <h2 class="header">Mandatory</h2>
+ * This marshaller has no mandatory configuration parameters.
+ * <h2 class="header">Java Example</h2>
+ * {@code GridXstreamMarshaller} has to be explicitly configured to override default {@link GridOptimizedMarshaller}.
+ * <pre name="code" class="java">
+ * GridXstreamMarshaller marshaller = new GridXstreamMarshaller();
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * GridConfigurationAdapter cfg = new GridConfigurationAdapter();
+ *
+ * // Override marshaller.
+ * cfg.setMarshaller(marshaller);
+ *
+ * // Starts grid.
+ * G.start(cfg);
+ * </pre>
+ * <h2 class="header">Spring Example</h2>
+ * GridXstreamMarshaller can be configured from Spring XML configuration file:
+ * <pre name="code" class="xml">
+ * &lt;bean id="grid.custom.cfg" class="org.gridgain.grid.GridConfigurationAdapter" singleton="true"&gt;
+ *     ...
+ *     &lt;property name="marshaller"&gt;
+ *         &lt;bean class="org.gridgain.grid.marshaller.xstream.GridXstreamMarshaller"/&gt;
+ *     &lt;/property&gt;
+ *     ...
+ * &lt;/bean&gt;
+ * </pre>
+ * <p>
+ * <img src="http://www.gridgain.com/images/spring-small.png">
+ * <br>
+ * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
+ * <h2 class="header">Injection Example</h2>
+ * GridXstreamMarshaller can be injected in users task, job or SPI as following:
+ * <pre name="code" class="java">
+ * public class MyGridJob implements GridJob {
+ *     ...
+ *     &#64;GridMarshallerResource
+ *     private GridMarshaller marshaller;
+ *     ...
+ * }
+ * </pre>
+ * or
+ * <pre name="code" class="java">
+ * public class MyGridJob implements GridJob {
+ *     ...
+ *     private GridMarshaller marshaller;
+ *     ...
+ *     &#64;GridMarshallerResource
+ *     public void setMarshaller(GridMarshaller marshaller) {
+ *         this.marshaller = marshaller;
+ *     }
+ *     ...
+ * }
+ * </pre>
+ *
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridXstreamMarshaller implements GridMarshaller {
     /** XStream instance to use with system class loader. */

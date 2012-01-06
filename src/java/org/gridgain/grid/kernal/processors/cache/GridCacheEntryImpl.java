@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -10,6 +10,7 @@
 package org.gridgain.grid.kernal.processors.cache;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.kernal.processors.cache.distributed.near.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.lang.*;
@@ -27,8 +28,8 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
 /**
  * Entry wrapper that never obscures obsolete entries from user.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externalizable {
     /** Cache context. */
@@ -603,7 +604,16 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
     @Override public boolean isLockedByThread() {
         while (true) {
             try {
-                return unwrap().lockedByThread();
+                GridCacheEntryEx<K, V> e = unwrap();
+
+                // Delegate to near if dht.
+                if (e.isDht()) {
+                    GridNearCache<K, V> near = ctx.isDht() ? ctx.dht().near() : ctx.near();
+
+                    return near.isLockedByThread(key) || e.lockedByThread();
+                }
+
+                return e.lockedByThread();
             }
             catch (GridCacheEntryRemovedException ignore) {
                 reset();

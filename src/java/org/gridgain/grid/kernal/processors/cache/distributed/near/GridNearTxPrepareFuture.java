@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,8 +32,8 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
 /**
  *
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public final class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTxEx<K, V>>
     implements GridCacheMvccFuture<K, V, GridCacheTxEx<K, V>> {
@@ -313,25 +313,17 @@ public final class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFut
     @SuppressWarnings({"unchecked"})
     private void prepare(Iterable<GridCacheTxEntry<K, V>> reads, Iterable<GridCacheTxEntry<K, V>> writes,
         Map<UUID, GridDistributedTxMapping<K, V>> mapped) {
-        Collection<GridRichNode> nodes = CU.allNodes(cctx);
+        Collection<GridRichNode> nodes = CU.allNodes(cctx, tx.topologyVersion());
 
         ConcurrentMap<UUID, GridDistributedTxMapping<K, V>> mappings =
             new ConcurrentHashMap<UUID, GridDistributedTxMapping<K, V>>(nodes.size());
 
-        // Read lock partition topology.
-        cctx.topology().readLock();
+        // Assign keys to primary nodes.
+        for (GridCacheTxEntry<K, V> read : reads)
+            map(read, mappings, nodes, mapped);
 
-        try {
-            // Assign keys to primary nodes.
-            for (GridCacheTxEntry<K, V> read : reads)
-                map(read, mappings, nodes, mapped);
-
-            for (GridCacheTxEntry<K, V> write : writes)
-                map(write, mappings, nodes, mapped);
-        }
-        finally {
-            cctx.topology().readUnlock();
-        }
+        for (GridCacheTxEntry<K, V> write : writes)
+            map(write, mappings, nodes, mapped);
 
         if (isDone()) {
             if (log.isDebugEnabled())
@@ -353,7 +345,7 @@ public final class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFut
 
             GridRichNode n = m.node();
 
-            GridNearTxPrepareRequest<K, V> req = new GridNearTxPrepareRequest<K, V>(futId, tx,
+            GridNearTxPrepareRequest<K, V> req = new GridNearTxPrepareRequest<K, V>(futId, tx.topologyVersion(), tx,
                 tx.optimistic() && tx.serializable() ? m.reads() : null, m.writes(), tx.syncCommit(),
                 tx.syncRollback());
 

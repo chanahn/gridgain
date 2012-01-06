@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,8 +32,8 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
 /**
  *
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTxEx<K, V>>
     implements GridCacheMvccFuture<K, V, GridCacheTxEx<K, V>> {
@@ -490,8 +490,8 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
 
             add(fut); // Append new future.
 
-            GridDistributedBaseMessage<K, V> req = new GridDhtTxPrepareRequest<K, V>(futId, fut.futureId(), tx,
-                dhtMapping.writes(), nearMapping == null ? null : nearMapping.writes());
+            GridDistributedBaseMessage<K, V> req = new GridDhtTxPrepareRequest<K, V>(futId, fut.futureId(),
+                tx.topologyVersion(), tx, dhtMapping.writes(), nearMapping == null ? null : nearMapping.writes());
 
             req.completedVersions(committed, rolledback);
 
@@ -523,8 +523,8 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
 
                 add(fut); // Append new future.
 
-                GridDistributedBaseMessage<K, V> req =
-                    new GridDhtTxPrepareRequest<K, V>(futId, fut.futureId(), tx, null, nearMapping.writes());
+                GridDistributedBaseMessage<K, V> req = new GridDhtTxPrepareRequest<K, V>(futId, fut.futureId(),
+                    tx.topologyVersion(), tx, null, nearMapping.writes());
 
                 req.completedVersions(committed, rolledback);
 
@@ -551,7 +551,7 @@ public final class GridDhtTxPrepareFuture<K, V> extends GridCompoundIdentityFutu
     private boolean map(GridCacheTxEntry<K, V> entry) {
         GridDhtCacheEntry<K, V> cached = (GridDhtCacheEntry<K, V>)entry.cached();
 
-        boolean ret = false;
+        boolean ret;
 
         while (true) {
             try {

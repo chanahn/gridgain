@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -31,8 +31,8 @@ import java.util.*;
  * Note that absolutely all configuration properties are optional, so users
  * should only change what they need.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** Cache name. */
@@ -62,8 +62,17 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** Eviction key buffer size. */
     private int evictKeyBufferSize = DFLT_EVICT_KEY_BUFFER_SIZE;
 
+    /** Synchronous eviction timeout. */
+    private int evictSyncConcurrencyLvl = DFLT_EVICT_SYNCHRONOUS_CONCURRENCY_LEVEL;
+
+    /** Synchronous eviction timeout. */
+    private long evictSyncTimeout = DFLT_EVICT_SYNCHRONOUS_TIMEOUT;
+
+    /** Eviction filter. */
+    private GridCacheEvictionFilter<?, ?> evictFilter;
+
     /** Maximum eviction overflow ratio. */
-    private float maxEvictionOverflowRatio = DFLT_MAX_EVICTION_OVERFLOW_RATIO;
+    private float evictMaxOverflowRatio = DFLT_MAX_EVICTION_OVERFLOW_RATIO;
 
     /** Transaction isolation. */
     private GridCacheTxIsolation dfltIsolation = DFLT_TX_ISOLATION;
@@ -156,10 +165,10 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     private String idxPswd;
 
     /** Distributed garbage collection frequency. */
-    private int dgcFreq = DFLT_DGC_FREQUENCY;
+    private long dgcFreq = DFLT_DGC_FREQUENCY;
 
     /** */
-    private int dgcSuspectLockTimeout = DFLT_DGC_SUSPECT_LOCK_TIMEOUT;
+    private long dgcSuspectLockTimeout = DFLT_DGC_SUSPECT_LOCK_TIMEOUT;
 
     /** */
     private boolean dgcRmvLocks = DFLT_DGC_REMOVE_LOCKS;
@@ -175,6 +184,21 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
 
     /** */
     private boolean storeEnabled = DFLT_STORE_ENABLED;
+
+    /** Write from behind feature. */
+    private boolean writeFromBehindEnabled = DFLT_WRITE_FROM_BEHIND_ENABLED;
+
+    /** Maximum size of write from behind cache. */
+    private int writeFromBehindFlushSize = DFLT_WRITE_FROM_BEHIND_FLUSH_SIZE;
+
+    /** Write from behind flush frequency in milliseconds. */
+    private long writeFromBehindFlushFrequency = DFLT_WRITE_FROM_BEHIND_FLUSH_FREQUENCY;
+
+    /** Flush thread count for write from behind cache store. */
+    private int writeFromBehindFlushThreadCnt = DFLT_WRITE_FROM_BEHIND_FLUSH_THREAD_CNT;
+
+    /** Maximum batch size for write from behind cache store. */
+    private int writeFromBehindBatchSize = DFLT_WRITE_FROM_BEHIND_BATCH_SIZE;
 
     /** */
     private String idxH2Opt;
@@ -222,10 +246,13 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
         dgcRmvLocks = cc.isDgcRemoveLocks();
         dgcSuspectLockTimeout = cc.getDgcSuspectLockTimeout();
         evictEnabled = cc.isEvictionEnabled();
-        evictSync = cc.isEvictSynchronized();
-        evictPolicy = cc.getEvictionPolicy();
+        evictFilter = cc.getEvictionFilter();
+        evictKeyBufferSize = cc.getEvictSynchronisedKeyBufferSize();
         evictNearSync = cc.isEvictNearSynchronized();
-        evictKeyBufferSize = cc.getEvictionKeyBufferSize();
+        evictPolicy = cc.getEvictionPolicy();
+        evictSync = cc.isEvictSynchronized();
+        evictSyncConcurrencyLvl = cc.getEvictSynchronizedConcurrencyLevel();
+        evictSyncTimeout = cc.getEvictSynchronizedTimeout();
         idxH2Opt = cc.getIndexH2Options();
         idxAnalyzeFreq = cc.getIndexAnalyzeFrequency();
         idxAnalyzeSampleSize = cc.getIndexAnalyzeSampleSize();
@@ -246,7 +273,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
         nearEnabled = cc.isNearEnabled();
         nearEvictEnabled = cc.isNearEvictionEnabled();
         nearEvictPolicy = cc.getNearEvictionPolicy();
-        maxEvictionOverflowRatio = cc.getMaxEvictionOverflowRatio();
+        evictMaxOverflowRatio = cc.getEvictMaxOverflowRatio();
         preloadMode = cc.getPreloadMode();
         preloadBatchSize = cc.getPreloadBatchSize();
         preloadPoolSize = cc.getPreloadThreadPoolSize();
@@ -260,6 +287,11 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
         syncRollback = cc.isSynchronousRollback();
         tmLookup = cc.getTransactionManagerLookup();
         ttl = cc.getDefaultTimeToLive();
+        writeFromBehindBatchSize = cc.getWriteFromBehindBatchSize();
+        writeFromBehindEnabled = cc.isWriteFromBehindEnabled();
+        writeFromBehindFlushFrequency = cc.getWriteFromBehindFlushFrequency();
+        writeFromBehindFlushSize = cc.getWriteFromBehindFlushSize();
+        writeFromBehindFlushThreadCnt = cc.getWriteFromBehindFlushThreadCount();
     }
 
     /** {@inheritDoc} */
@@ -382,7 +414,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     }
 
     /** {@inheritDoc} */
-    @Override public int getEvictionKeyBufferSize() {
+    @Override public int getEvictSynchronisedKeyBufferSize() {
         return evictKeyBufferSize;
     }
 
@@ -391,22 +423,64 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      *
      * @param evictKeyBufferSize Eviction key buffer size.
      */
-    public void setEvictionKeyBufferSize(int evictKeyBufferSize) {
+    public void setEvictSynchronizedKeyBufferSize(int evictKeyBufferSize) {
         this.evictKeyBufferSize = evictKeyBufferSize;
     }
 
     /** {@inheritDoc} */
-    @Override public float getMaxEvictionOverflowRatio() {
-        return maxEvictionOverflowRatio;
+    @Override public int getEvictSynchronizedConcurrencyLevel() {
+        return evictSyncConcurrencyLvl;
+    }
+
+    /**
+     * Sets concurrency level for synchronous evictions
+     *
+     * @param evictSyncConcurrencyLvl Synchronous eviction concurrency level.
+     */
+    public void setEvictSynchronizedConcurrencyLevel(int evictSyncConcurrencyLvl) {
+        this.evictSyncConcurrencyLvl = evictSyncConcurrencyLvl;
+    }
+
+    /** {@inheritDoc} */
+    @Override public long getEvictSynchronizedTimeout() {
+        return evictSyncTimeout;
+    }
+
+    /**
+     * Sets synchronous eviction timeout.
+     *
+     * @param evictSyncTimeout Synchronous eviction timeout.
+     */
+    public void setEvictSynchronizedTimeout(long evictSyncTimeout) {
+        this.evictSyncTimeout = evictSyncTimeout;
+    }
+
+    /** {@inheritDoc} */
+    @Override public float getEvictMaxOverflowRatio() {
+        return evictMaxOverflowRatio;
     }
 
     /**
      * Sets maximum eviction overflow ratio.
      *
-     * @param maxEvictionOverflowRatio Maximum eviction overflow ratio.
+     * @param evictMaxOverflowRatio Maximum eviction overflow ratio.
      */
-    public void setMaxEvictionOverflowRatio(float maxEvictionOverflowRatio) {
-        this.maxEvictionOverflowRatio = maxEvictionOverflowRatio;
+    public void setEvictMaxOverflowRatio(float evictMaxOverflowRatio) {
+        this.evictMaxOverflowRatio = evictMaxOverflowRatio;
+    }
+
+    /** {@inheritDoc} */
+    @Override public <K, V> GridCacheEvictionFilter<K, V> getEvictionFilter() {
+        return (GridCacheEvictionFilter<K, V>) evictFilter;
+    }
+
+    /**
+     * Sets eviction filter.
+     *
+     * @param evictFilter Eviction filter.
+     */
+    public <K, V> void setEvictionFilter(GridCacheEvictionFilter<K, V> evictFilter) {
+        this.evictFilter = evictFilter;
     }
 
     /** {@inheritDoc} */
@@ -820,7 +894,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     }
 
     /**
-     * Sets frequency of running H2 "ANALYZE" command.
+     * Sets frequency of running H2 "ANALYZE" command ({@code 0} to disable).
      *
      * @param idxAnalyzeFreq Frequency in milliseconds.
      */
@@ -871,7 +945,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     }
 
     /** {@inheritDoc} */
-    @Override public int getDgcFrequency() {
+    @Override public long getDgcFrequency() {
         return dgcFreq;
     }
 
@@ -883,12 +957,12 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      *
      * @param dgcFreq Frequency of distributed GC in milliseconds ({@code 0} to disable GC).
      */
-    public void setDgcFrequency(int dgcFreq) {
+    public void setDgcFrequency(long dgcFreq) {
         this.dgcFreq = dgcFreq;
     }
 
     /** {@inheritDoc} */
-    @Override public int getDgcSuspectLockTimeout() {
+    @Override public long getDgcSuspectLockTimeout() {
         return dgcSuspectLockTimeout;
     }
 
@@ -900,7 +974,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      *
      * @param dgcSuspectLockTimeout Timeout in milliseconds.
      */
-    public void setDgcSuspectLockTimeout(int dgcSuspectLockTimeout) {
+    public void setDgcSuspectLockTimeout(long dgcSuspectLockTimeout) {
         this.dgcSuspectLockTimeout = dgcSuspectLockTimeout;
     }
 
@@ -974,6 +1048,80 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      */
     public void setStoreEnabled(boolean storeEnabled) {
         this.storeEnabled = storeEnabled;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isWriteFromBehindEnabled() {
+        return writeFromBehindEnabled;
+    }
+
+    /**
+     * Sets flag indicating whether write-from-behind is enabled.
+     *
+     * @param writeFromBehindEnabled {@code true} if write-from-behind is enabled.
+     */
+    public void setWriteFromBehindEnabled(boolean writeFromBehindEnabled) {
+        this.writeFromBehindEnabled = writeFromBehindEnabled;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindFlushSize() {
+        return writeFromBehindFlushSize;
+    }
+
+    /**
+     * Sets write-from-behind flush size.
+     *
+     * @param writeFromBehindFlushSize Write-from-behind cache flush size.
+     * @see #getWriteFromBehindFlushSize()
+     */
+    public void setWriteFromBehindFlushSize(int writeFromBehindFlushSize) {
+        this.writeFromBehindFlushSize = writeFromBehindFlushSize;
+    }
+
+    /** {@inheritDoc} */
+    @Override public long getWriteFromBehindFlushFrequency() {
+        return writeFromBehindFlushFrequency;
+    }
+
+    /**
+     * Sets write-from-behind flush frequency.
+     *
+     * @param writeFromBehindFlushFrequency Write-from-behind flush frequency in milliseconds.
+     * @see #getWriteFromBehindFlushFrequency()
+     */
+    public void setWriteFromBehindFlushFrequency(long writeFromBehindFlushFrequency) {
+        this.writeFromBehindFlushFrequency = writeFromBehindFlushFrequency;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindFlushThreadCount() {
+        return writeFromBehindFlushThreadCnt;
+    }
+
+    /**
+     * Sets flush thread count for write-from-behind cache.
+     *
+     * @param writeFromBehindFlushThreadCnt Count of flush threads.
+     * @see #getWriteFromBehindFlushThreadCount()
+     */
+    public void setWriteFromBehindFlushThreadCount(int writeFromBehindFlushThreadCnt) {
+        this.writeFromBehindFlushThreadCnt = writeFromBehindFlushThreadCnt;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getWriteFromBehindBatchSize() {
+        return writeFromBehindBatchSize;
+    }
+
+    /**
+     * Sets maximum batch size for write-from-behind cache.
+     *
+     * @param writeFromBehindBatchSize Maximum batch size.
+     * @see #getWriteFromBehindBatchSize()
+     */
+    public void setWriteFromBehindBatchSize(int writeFromBehindBatchSize) {
+        this.writeFromBehindBatchSize = writeFromBehindBatchSize;
     }
 
     /** {@inheritDoc} */

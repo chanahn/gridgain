@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -15,8 +15,8 @@ import org.gridgain.grid.*;
  * Common interface for closures, predicates and related entities. It defines any
  * first-class function or monad as P2P deployment and meta-programming aware.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
+ * @author 2012 Copyright (C) GridGain Systems
+ * @author 2012 Copyright (C) GridGain Systems
  */
 public interface GridLambda extends GridPeerDeployAware, GridMetadataAware {
     // Marker interface.

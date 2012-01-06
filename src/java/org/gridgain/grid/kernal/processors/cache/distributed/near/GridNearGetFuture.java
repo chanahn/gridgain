@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -30,8 +30,8 @@ import java.util.concurrent.atomic.*;
 /**
  *
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Map<K, V>>
     implements GridCacheFuture<Map<K, V>> {
@@ -206,7 +206,9 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
      * @param mapped Mappings to check for duplicates.
      */
     private void map(Collection<? extends K> keys, Map<GridRichNode, Collection<K>> mapped) {
-        Collection<GridRichNode> nodes = CU.allNodes(cctx);
+        long topVer = tx == null ? -1 : tx.topologyVersion();
+
+        Collection<GridRichNode> nodes = CU.allNodes(cctx, topVer);
 
         ConcurrentMap<GridRichNode, Collection<K>> mappings =
             new ConcurrentHashMap<GridRichNode, Collection<K>>(nodes.size());
@@ -229,17 +231,18 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
             // If this is the primary or backup node for the keys.
             if (n.isLocal()) {
                 final GridDhtFuture<Collection<GridCacheEntryInfo<K, V>>> fut =
-                    dht().getDhtAsync(n.id(), -1, mappedKeys, reload, filters);
+                    dht().getDhtAsync(n.id(), -1, mappedKeys, reload, topVer, filters);
 
                 final Collection<Integer> invalidParts = fut.invalidPartitions();
 
-                if (!F.isEmpty(invalidParts))
+                if (!F.isEmpty(invalidParts)) {
                     // Remap.
                     map(F.view(keys, new P1<K>() {
                         @Override public boolean apply(K key) {
                             return invalidParts.contains(cctx.partition(key));
                         }
                     }), mappings);
+                }
 
                 // Add new future.
                 add(new GridEmbeddedFuture<Map<K, V>, Collection<GridCacheEntryInfo<K, V>>>(
@@ -264,7 +267,7 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
                 MiniFuture fut = new MiniFuture(n, mappedKeys);
 
                 GridCacheMessage<K, V> req = new GridNearGetRequest<K, V>(futId, fut.futureId(), ver, mappedKeys,
-                    reload, filters);
+                    reload, topVer, filters);
 
                 add(fut); // Append new future.
 
@@ -308,19 +311,19 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
                         GridDhtCache<K, V> dht = cache().dht();
 
                         entry = dht.context().isSwapEnabled() ? dht.entryEx(key) : dht.peekEx(key);
+
+                        // If near cache does not have value, then we peek DHT cache.
+                        if (entry != null) {
+                            v = entry.innerGet(tx, /*swap*/true, /*read-through*/false, /*fail-fast*/true, true, !near,
+                                filters);
+
+                            // Entry was not in memory or in swap, so we remove it from cache.
+                            if (v == null && entry.markObsolete(ver))
+                                cache().dht().removeIfObsolete(key);
+                        }
                     }
                     catch (GridDhtInvalidPartitionException ignored) {
                         // No-op.
-                    }
-
-                    // If near cache does not have value, then we peek DHT cache.
-                    if (entry != null) {
-                        v = entry.innerGet(tx, /*swap*/true, /*read-through*/false, /*fail-fast*/true, true, !near,
-                            filters);
-
-                        // Entry was not in memory or in swap, so we remove it from cache.
-                        if (v == null && entry.markObsolete(ver))
-                            cache().dht().removeIfObsolete(key);
                     }
                 }
 

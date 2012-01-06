@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -27,8 +27,8 @@ import static org.gridgain.grid.GridEventType.*;
 /**
  * Replicated cache entry.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
@@ -49,6 +49,11 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     public GridNearCacheEntry(GridCacheContext<K, V> ctx, K key, int hash, V val, GridCacheMapEntry<K, V> next,
         long ttl) {
         super(ctx, key, hash, val, next, ttl);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isNear() {
+        return true;
     }
 
     /** {@inheritDoc} */
@@ -95,9 +100,10 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
                         if (isNew()) {
                             // Version does not change for load ops.
-                            update(e.value(), e.valueBytes(), e.expireTime(), e.ttl(), e.version(), e.metrics());
+                            update(e.value(), e.valueBytes(), e.expireTime(), e.ttl(),
+                                e.isNew() ? ver : e.version(), e.metrics());
 
-                            dhtVer = e.version();
+                            dhtVer = e.isNew() ? null : e.version();
 
                             return true;
                         }
@@ -242,6 +248,15 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
 
     /** {@inheritDoc} */
     @Override public boolean isNew() throws GridCacheEntryRemovedException {
+        assert isHeldByCurrentThread();
+
+        checkObsolete();
+
+        return startVer == ver || !valid();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isNewLocked() throws GridCacheEntryRemovedException {
         lock();
 
         try {
@@ -437,7 +452,7 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     }
 
     /** {@inheritDoc} */
-    @Override public Collection<GridCacheMvccCandidate<K>> localCandidates(GridCacheVersion[] exclude)
+    @Override public Collection<GridCacheMvccCandidate<K>> localCandidates(GridCacheVersion... exclude)
         throws GridCacheEntryRemovedException {
         lock();
 

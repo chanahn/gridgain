@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,14 +32,14 @@ import java.util.*;
  *      <li>{@link #setAttributes(Map)} - Map of attributes and their values that nodes should have.</li>
  * </ul>
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 @GridSpiInfo(
-    author = "GridGain Systems, Inc.",
+    author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.5.1c.18112011")
+    version = "3.6.0c.06012012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridAttributesTopologySpi extends GridSpiAdapter implements GridTopologySpi,
     GridAttributesTopologySpiMBean {

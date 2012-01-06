@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -26,8 +26,8 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
 /**
  * Transaction created by system implicitly on remote nodes.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> {
     /** Near node ID. */
@@ -35,6 +35,9 @@ public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> 
 
     /** Remote future ID. */
     private GridUuid rmtFutId;
+
+    /** Topology version. */
+    private long topVer;
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -49,6 +52,7 @@ public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> 
      * @param ldr Class loader.
      * @param nodeId Node ID.
      * @param rmtThreadId Remote thread ID.
+     * @param topVer Topology version.
      * @param xidVer XID version.
      * @param commitVer Commit version.
      * @param concurrency Concurrency level (should be pessimistic).
@@ -65,6 +69,7 @@ public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> 
         ClassLoader ldr,
         UUID nodeId,
         long rmtThreadId,
+        long topVer,
         GridCacheVersion xidVer,
         GridCacheVersion commitVer,
         GridCacheTxConcurrency concurrency,
@@ -78,12 +83,13 @@ public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> 
         assert nearNodeId != null;
         assert rmtFutId != null;
 
+        this.topVer = topVer;
         this.nearNodeId = nearNodeId;
         this.rmtFutId = rmtFutId;
 
         readMap = Collections.emptyMap();
 
-        writeMap = new LinkedHashMap<K, GridCacheTxEntry<K, V>>(
+        writeMap = new GridConcurrentLinkedHashMap<K, GridCacheTxEntry<K, V>>(
             writes != null ? writes.size() : 0, 1.0f);
 
         addWrites(writes, ldr);
@@ -96,6 +102,7 @@ public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> 
      * @param rmtFutId Remote future ID.
      * @param nodeId Node ID.
      * @param rmtThreadId Remote thread ID.
+     * @param topVer Topology version.
      * @param xidVer XID version.
      * @param commitVer Commit version.
      * @param concurrency Concurrency level (should be pessimistic).
@@ -113,6 +120,7 @@ public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> 
         GridUuid rmtFutId,
         UUID nodeId,
         long rmtThreadId,
+        long topVer,
         GridCacheVersion xidVer,
         GridCacheVersion commitVer,
         GridCacheTxConcurrency concurrency,
@@ -129,11 +137,12 @@ public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> 
         assert nearNodeId != null;
         assert rmtFutId != null;
 
+        this.topVer = topVer;
         this.nearNodeId = nearNodeId;
         this.rmtFutId = rmtFutId;
 
         readMap = Collections.emptyMap();
-        writeMap = new LinkedHashMap<K, GridCacheTxEntry<K, V>>(1, 1.0f);
+        writeMap = new GridConcurrentLinkedHashMap<K, GridCacheTxEntry<K, V>>(1, 1.0f);
 
         addWrite(key, keyBytes, val, valBytes);
     }
@@ -214,7 +223,7 @@ public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> 
                 entry.unmarshal(cctx, ldr);
 
                 try {
-                    GridDhtCacheEntry<K, V> cached = cctx.dht().entryExx(entry.key());
+                    GridDhtCacheEntry<K, V> cached = cctx.dht().entryExx(entry.key(), topVer);
 
                     checkInternal(entry.key());
 
@@ -244,7 +253,7 @@ public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> 
         if (isSystemInvalidate())
             return;
 
-        GridDhtCacheEntry<K, V> cached = cctx.dht().entryExx(key);
+        GridDhtCacheEntry<K, V> cached = cctx.dht().entryExx(key, topVer);
 
         GridCacheTxEntry<K, V> txEntry = new GridCacheTxEntry<K, V>(cctx, this, NOOP, val, 0, cached);
 

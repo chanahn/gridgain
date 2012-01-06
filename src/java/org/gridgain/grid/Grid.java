@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -23,7 +23,7 @@ import java.util.concurrent.*;
 
 /**
  * <img id="callout_img" src="{@docRoot}/img/callout_blue.gif"><span id="callout_blue">Start Here</span>&nbsp;
- * Main <b>Computational Grid</b> APIs.
+ * Main <b>Compute Grid</b> APIs.
  * <p>
  * You can obtain an instance of {@code Grid} through {@link GridFactory#grid()},
  * or for named grids you can use {@link GridFactory#grid(String)}. Note that you
@@ -42,8 +42,8 @@ import java.util.concurrent.*;
  * <a target=wiki href="http://www.gridgainsystems.com:8080/wiki/display/GG15UG/Grid+Interface">Grid Interface</a>
  * on Wiki.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public interface Grid extends GridProjection {
     /**

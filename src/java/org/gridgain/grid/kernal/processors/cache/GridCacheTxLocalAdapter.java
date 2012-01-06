@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -33,8 +33,8 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
 /**
  * Transaction adapter for cache transactions.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K, V>
     implements GridCacheTxLocalEx<K, V> {
@@ -351,7 +351,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      */
     @SuppressWarnings({"CatchGenericClass"})
     protected void batchStoreCommit(Iterable<GridCacheTxEntry<K, V>> writeEntries) throws GridException {
-        GridCacheStore store = cctx.config().getStore();
+        GridCacheStore store = cctx.cacheStore();
 
         if (store != null && storeEnabled) {
             try {
@@ -803,7 +803,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      */
     @SuppressWarnings({"CatchGenericClass"})
     private void batchStoreCommitEC(Iterable<GridCacheTxEntry<K, V>> commitList) {
-        GridCacheStore store = cctx.config().getStore();
+        GridCacheStore store = cctx.cacheStore();
 
         if (commitList != null && store != null && storeEnabled) {
             assert isBatchUpdate();
@@ -875,7 +875,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
                 cctx.tm().rollbackTx(this);
 
-                GridCacheStore store = cctx.config().getStore();
+                GridCacheStore store = cctx.cacheStore();
 
                 if (store != null && (isSingleUpdate() || isBatchUpdate()))
                     store.txEnd(cctx.namex(), this, false);
@@ -979,7 +979,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                                 log.debug("Got removed entry while enlisting missed tx entry (will retry): " + cached);
 
                             // Reset.
-                            txEntry.cached(cctx.cache().entryEx(txEntry.key()), txEntry.keyBytes());
+                            txEntry.cached(cctx.cache().entryEx(txEntry.key(), topologyVersion()), txEntry.keyBytes());
                         }
                     }
                 }
@@ -987,14 +987,14 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
             // First time access within transaction.
             else {
                 while (true) {
-                    GridCacheEntryEx<K, V> cached = cctx.cache().entryEx(key);
+                    GridCacheEntryEx<K, V> cached = cctx.cache().entryEx(key, topologyVersion());
 
                     try {
                         GridCacheVersion ver = cached.version();
 
                         V val = null;
 
-                        if (!pessimistic()) {
+                        if (!pessimistic() || readCommitted()) {
                             // This call will check for filter.
                             val = cached.innerGet(this, true, /*no read-through*/false, true, true, true, filter);
 
@@ -1276,13 +1276,10 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
                                             txEntry.setAndMark(val);
                                         }
-                                        else if (cctx.isNear()) {
-                                            // Value was fetched during lock acquisition.
-                                            // If it's null, then it is not in cache or store.
-                                            missed.remove(key);
 
-                                            txEntry.setAndMark(val);
-                                        }
+                                        // Even though we bring the value back from lock acquisition,
+                                        // we still need to recheck primary node for consistent values
+                                        // in case of concurrent transactional locks.
 
                                         break; // While.
                                     }
@@ -1485,7 +1482,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                 // First time access.
                 if (txEntry == null) {
                     while (true) {
-                        cached = cctx.cache().entryEx(key);
+                        cached = cctx.cache().entryEx(key, topologyVersion());
 
                         cached.unswap();
 
@@ -2007,8 +2004,16 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
         while (true) {
             try {
-                GridCacheTxEntry<K, V> txEntry = new GridCacheTxEntry<K, V>(cctx, this, op, val, entry.ttl(),
-                    entry, filter);
+                long ttl = entry.ttl();
+
+                if (ttl == 0 && cctx.isNear()) {
+                    GridCacheEntryEx<K, V> dhtEntry = cctx.near().dht().peekEx(entry.key());
+
+                    if (dhtEntry != null)
+                        ttl = dhtEntry.ttl();
+                }
+
+                GridCacheTxEntry<K, V> txEntry = new GridCacheTxEntry<K, V>(cctx, this, op, val, ttl, entry, filter);
 
                 // DHT local transactions don't have explicit locks.
                 if (!cctx.isDht()) {
@@ -2039,7 +2044,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                 if (log.isDebugEnabled())
                     log.debug("Got removed entry in transaction newEntry method (will retry): " + entry);
 
-                entry = cctx.cache().entryEx(entry.key());
+                entry = cctx.cache().entryEx(entry.key(), topologyVersion());
             }
         }
     }
@@ -2048,14 +2053,14 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      * @return {@code True} if updates should be batched up.
      */
     protected boolean isBatchUpdate() {
-        return storeEnabled && (implicit() || cctx.config().getStore() != null && cctx.config().isBatchUpdateOnCommit());
+        return storeEnabled && (implicit() || cctx.cacheStore() != null && cctx.config().isBatchUpdateOnCommit());
     }
 
     /**
      * @return {@code True} if updates should be done individually.
      */
     protected boolean isSingleUpdate() {
-        return storeEnabled && !implicit() && cctx.config().getStore() != null && !cctx.config().isBatchUpdateOnCommit();
+        return storeEnabled && !implicit() && cctx.cacheStore() != null && !cctx.config().isBatchUpdateOnCommit();
     }
 
     /** {@inheritDoc} */

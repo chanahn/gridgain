@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -78,18 +78,18 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * See <a href="http://en.wikipedia.org/wiki/Kernal">http://en.wikipedia.org/wiki/Kernal</a> for information on the
  * misspelling.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridKernal extends GridProjectionAdapter implements Grid, GridKernalMBean, Externalizable {
     /** Ant-augmented version number. */
-    private static final String VER = "3.5.1c";
+    private static final String VER = "3.6.0c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "18112011";
+    private static final String BUILD = "06012012";
 
     /** Ant-augmented copyright blurb. */
-    private static final String COPYRIGHT = "2005-2011 Copyright (C) GridGain Systems, Inc.";
+    private static final String COPYRIGHT = "2012 Copyright (C) GridGain Systems";
 
     /** System line separator. */
     private static final String NL = System.getProperty("line.separator");
@@ -1403,7 +1403,11 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
 
             sb.a("port: ").a(System.getProperty("com.sun.management.jmxremote.port", "<n/a>")).a(", ");
             sb.a("auth: ").a(onOff(Boolean.getBoolean("com.sun.management.jmxremote.authenticate"))).a(", ");
-            sb.a("ssl: ").a(onOff(Boolean.getBoolean("com.sun.management.jmxremote.ssl")));
+
+            // By default SSL is enabled, that's why additional check for null is needed.
+            // See http://docs.oracle.com/javase/6/docs/technotes/guides/management/agent.html
+            sb.a("ssl: ").a(onOff(Boolean.getBoolean("com.sun.management.jmxremote.ssl") ||
+                System.getProperty("com.sun.management.jmxremote.ssl") == null));
         }
 
         sb.a(")");
@@ -1429,35 +1433,35 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         assert log != null;
 
         if (System.getProperty(GG_NO_ASCII) == null) {
-            String tag = "---==++ HIGH PERFORMANCE CLOUD COMPUTING ++==---";
+            String tag = "---==++ REAL TIME BIG DATA ++==---";
             String ver = "ver. " + VER + '-' + BUILD;
 
             // Big thanks to: http://patorjk.com/software/taag
             // Font name "Small Slant"
             if (log.isQuiet())
                 U.quiet(
-                    "  _____     _     _______      _         ____   ____",
-                    " / ___/____(_)___/ / ___/___ _(_)___    |_  /  / __/",
-                    "/ (_ // __/ // _  / (_ // _ `/ // _ \\  _/_ <_ /__ \\ ",
-                    "\\___//_/ /_/ \\_,_/\\___/ \\_,_/_//_//_/ /____(_)____/ ",
-                    "",
-                    " " + U.bright(tag),
+                    "  _____     _     _______      _         ",
+                    " / ___/____(_)___/ / ___/___ _(_)___     ",
+                    "/ (_ // __/ // _  / (_ // _ `/ // _ \\   ",
+                    "\\___//_/ /_/ \\_,_/\\___/ \\_,_/_//_//_/",
+                    " ",
+                    " " + U.rainbow(tag),
                     " " + U.pad((tag.length() - ver.length()) / 2) + ver,
-                    " " + COPYRIGHT,
+                    COPYRIGHT,
                     "",
                     "Quiet mode.",
                     "  ^-- To disable add -DGRIDGAIN_QUIET=false or \"-v\" to ggstart.{sh|bat}"
                 );
             else if (log.isInfoEnabled())
                 log.info(NL + NL +
-                    ">>>   _____     _     _______      _         ____   ____" + NL +
-                    ">>>  / ___/____(_)___/ / ___/___ _(_)___    |_  /  / __/" + NL +
-                    ">>> / (_ // __/ // _  / (_ // _ `/ // _ \\  _/_ <_ /__ \\ " + NL +
-                    ">>> \\___//_/ /_/ \\_,_/\\___/ \\_,_/_//_//_/ /____(_)____/ " + NL +
+                    ">>>   _____     _     _______      _         " + NL +
+                    ">>>  / ___/____(_)___/ / ___/___ _(_)___     " + NL +
+                    ">>> / (_ // __/ // _  / (_ // _ `/ // _ \\   " + NL +
+                    ">>> \\___//_/ /_/ \\_,_/\\___/ \\_,_/_//_//_/" + NL +
                     ">>> " + NL +
-                    ">>> " + tag + NL +
+                    ">>>  " + U.rainbow(tag) + NL +
                     ">>> " + U.pad((tag.length() - ver.length()) / 2) + ver + NL +
-                    ">>>  " + COPYRIGHT + NL
+                    ">>> " + COPYRIGHT + NL
                 );
         }
     }

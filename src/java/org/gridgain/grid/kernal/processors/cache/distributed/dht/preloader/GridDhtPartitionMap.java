@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -18,8 +18,8 @@ import java.util.*;
 /**
  * Partition map.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridDhtPartitionMap extends HashMap<Integer, GridDhtPartitionState>
     implements Comparable<GridDhtPartitionMap>, Externalizable {
@@ -81,6 +81,20 @@ public class GridDhtPartitionMap extends HashMap<Integer, GridDhtPartitionState>
      */
     public long updateSequence() {
         return updateSeq;
+    }
+
+    /**
+     * @param updateSeq New update sequence value.
+     * @return Old update sequence value.
+     */
+    public long updateSequence(long updateSeq) {
+        long old = this.updateSeq;
+
+        assert updateSeq >= old : "Invalid update sequence [cur=" + old + ", new=" + updateSeq + ']';
+
+        this.updateSeq = updateSeq;
+
+        return old;
     }
 
     /** {@inheritDoc} */

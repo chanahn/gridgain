@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -19,8 +19,8 @@ import java.util.*;
 /**
  * DHT partition topology.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 @GridToStringExclude
 public interface GridDhtPartitionTopology<K, V> {
@@ -35,18 +35,18 @@ public interface GridDhtPartitionTopology<K, V> {
     public void readUnlock();
 
     /**
-     * Updates join version.
+     * Updates topology version.
      *
      * @param exchId Exchange ID.
      */
-    public void updateJoinOrder(GridDhtPartitionExchangeId exchId);
+    public void updateTopologyVersion(GridDhtPartitionExchangeId exchId);
 
     /**
-     * Order of the node that joined last.
+     * Topology version.
      *
-     * @return Last joined order.
+     * @return Topology version.
      */
-    public long lastJoinOrder();
+    public long topologyVersion();
 
     /**
      * Pre-initializes this topology.
@@ -60,9 +60,10 @@ public interface GridDhtPartitionTopology<K, V> {
      * Post-initializes this topology.
      *
      * @param exchId Exchange ID for this post-initialization.
+     * @return {@code True} if mapping was changed.
      * @throws GridException If failed.
      */
-    public void afterExchange(GridDhtPartitionExchangeId exchId) throws GridException;
+    public boolean afterExchange(GridDhtPartitionExchangeId exchId) throws GridException;
 
     /**
      * @param topVer Topology version at the time of creation.
@@ -112,6 +113,13 @@ public interface GridDhtPartitionTopology<K, V> {
      * @return Collection of all nodes who {@code own} this partition.
      */
     public List<GridNode> owners(int p);
+
+    /**
+     * @param p Partition ID.
+     * @param topVer Topology version.
+     * @return Collection of all nodes who {@code own} this partition.
+     */
+    public List<GridNode> owners(int p, long topVer);
 
     /**
      * @param p Partition ID.

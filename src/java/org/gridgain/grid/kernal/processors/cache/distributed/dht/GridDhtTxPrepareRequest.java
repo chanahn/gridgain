@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -21,8 +21,8 @@ import java.util.*;
 /**
  * DHT prepare request.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridDhtTxPrepareRequest<K, V> extends GridDistributedTxPrepareRequest<K, V> {
     /** Max order. */
@@ -33,6 +33,9 @@ public class GridDhtTxPrepareRequest<K, V> extends GridDistributedTxPrepareReque
 
     /** Mini future ID. */
     private GridUuid miniId;
+
+    /** Topology version. */
+    private long topVer;
 
     /** Near writes. */
     private Collection<GridCacheTxEntry<K, V>> nearWrites;
@@ -47,6 +50,7 @@ public class GridDhtTxPrepareRequest<K, V> extends GridDistributedTxPrepareReque
     /**
      * @param futId Future ID.
      * @param miniId Mini future ID.
+     * @param topVer Topology version.
      * @param tx Transaction.
      * @param dhtWrites DHT writes.
      * @param nearWrites Near writes.
@@ -54,6 +58,7 @@ public class GridDhtTxPrepareRequest<K, V> extends GridDistributedTxPrepareReque
     public GridDhtTxPrepareRequest(
         GridUuid futId,
         GridUuid miniId,
+        long topVer,
         GridDhtTxLocal<K, V> tx,
         Collection<GridCacheTxEntry<K, V>> dhtWrites,
         Collection<GridCacheTxEntry<K, V>> nearWrites
@@ -63,6 +68,7 @@ public class GridDhtTxPrepareRequest<K, V> extends GridDistributedTxPrepareReque
         assert futId != null;
         assert miniId != null;
 
+        this.topVer = topVer;
         this.futId = futId;
         this.nearWrites = nearWrites;
         this.miniId = miniId;
@@ -103,6 +109,13 @@ public class GridDhtTxPrepareRequest<K, V> extends GridDistributedTxPrepareReque
         return miniId;
     }
 
+    /**
+     * @return Topology version.
+     */
+    public long topologyVersion() {
+        return topVer;
+    }
+
     /** {@inheritDoc} */
     @Override public void p2pMarshal(GridCacheContext<K, V> ctx) throws GridException {
         super.p2pMarshal(ctx);
@@ -125,6 +138,7 @@ public class GridDhtTxPrepareRequest<K, V> extends GridDistributedTxPrepareReque
         assert miniId != null;
         assert nearNodeId != null;
 
+        out.writeLong(topVer);
         U.writeUuid(out, nearNodeId);
         U.writeGridUuid(out, futId);
         U.writeGridUuid(out, miniId);
@@ -135,6 +149,7 @@ public class GridDhtTxPrepareRequest<K, V> extends GridDistributedTxPrepareReque
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
 
+        topVer = in.readLong();
         nearNodeId = U.readUuid(in);
         futId = U.readGridUuid(in);
         miniId = U.readGridUuid(in);

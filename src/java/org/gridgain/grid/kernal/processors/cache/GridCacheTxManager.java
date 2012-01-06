@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -35,12 +35,15 @@ import static org.gridgain.grid.util.GridConcurrentFactory.*;
 /**
  * Cache transaction manager.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     /** Maximum number of transactions that have completed (initialized to 100K). */
     private static final int MAX_COMPLETED_TX_CNT = Integer.getInteger(GG_MAX_COMPLETED_TX_COUNT, 102400);
+
+    /** Slow tx warn timeout (initialized to 0). */
+    private static final int SLOW_TX_WARN_TIMEOUT = Integer.getInteger(GG_SLOW_TX_WARN_TIMEOUT, 0);
 
     /** Committing transactions. */
     private final ThreadLocal<GridCacheTxEx> threadCtx = new GridThreadLocalEx<GridCacheTxEx>();
@@ -72,6 +75,9 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     /** Transaction synchronizations. */
     private final Collection<GridCacheTxSynchronization> syncs =
         new GridConcurrentHashSet<GridCacheTxSynchronization>();
+
+    /** Slow tx warn timeout. */
+    private int slowTxWarnTimeout = SLOW_TX_WARN_TIMEOUT;
 
     /**
      * Near version to DHT version map. Note that we initialize to 5K size from get go,
@@ -117,9 +123,10 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
      * Invalidates transaction.
      *
      * @param tx Transaction.
+     * @return {@code True} if transaction was salvaged by this call.
      */
-    public void salvageTx(GridCacheTxEx<K, V> tx) {
-        salvageTx(tx, false);
+    public boolean salvageTx(GridCacheTxEx<K, V> tx) {
+        return salvageTx(tx, false);
     }
 
     /**
@@ -127,8 +134,9 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
      *
      * @param tx Transaction.
      * @param warn {@code True} if warning should be logged.
+     * @return {@code True} if transaction was salvaged by this call.
      */
-    private void salvageTx(GridCacheTxEx<K, V> tx, boolean warn) {
+    private boolean salvageTx(GridCacheTxEx<K, V> tx, boolean warn) {
         assert tx != null;
 
         GridCacheTxState state = tx.state();
@@ -139,7 +147,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
                     if (log.isDebugEnabled())
                         log.debug("Will not try to commit invalidate transaction (could not mark finalized): " + tx);
 
-                    return;
+                    return false;
                 }
 
                 tx.systemInvalidate(true);
@@ -151,7 +159,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
                         log.debug("Ignoring transaction in PREPARING state as it is currently handled " +
                             "by another thread: " + tx);
 
-                    return;
+                    return false;
                 }
 
                 if (tx instanceof GridCacheTxRemoteEx) {
@@ -194,6 +202,8 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
                 U.error(log, "Failed to rollback transaction: " + tx.xidVersion(), e);
             }
         }
+
+        return true;
     }
 
     /**
@@ -931,7 +941,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
             processCompletedEntries(tx);
 
             // 3. Add to eviction policy queue prior to unlocking for proper ordering.
-            cctx.evicts().touch(tx, false);
+            cctx.evicts().touch(tx);
 
             // 3.1 Call dataStructures manager.
             cctx.dataStructures().onTxCommitted(tx);
@@ -981,6 +991,11 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
             if (!tx.dht() && tx.local())
                 cctx.cache().metrics0().onTxCommit();
 
+            if (slowTxWarnTimeout > 0 && tx.local() &&
+                System.currentTimeMillis() - tx.startTime() > slowTxWarnTimeout)
+                U.warn(log, "Slow transaction detected [tx=" + tx +
+                    ", slowTxWarnTimeout=" + slowTxWarnTimeout + ']') ;
+
             if (log.isDebugEnabled())
                 log.debug("Committed from TM: " + tx);
         }
@@ -1004,7 +1019,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
 
         if (idMap.remove(tx.xidVersion(), tx)) {
             // 2. Add to eviction policy queue prior to unlocking for proper ordering.
-            cctx.evicts().touch(tx, false);
+            cctx.evicts().touch(tx);
 
             // 3. Unlock write resources.
             unlockMultiple(tx, tx.writeEntries());
@@ -1049,8 +1064,9 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
      *
      * @param entry Cache entry.
      * @param owner Candidate that won ownership.
+     * @return {@code True} if transaction was notified, {@code false} otherwise.
      */
-    public void onOwnerChanged(GridCacheEntryEx<K, V> entry, GridCacheMvccCandidate<K> owner) {
+    public boolean onOwnerChanged(GridCacheEntryEx<K, V> entry, GridCacheMvccCandidate<K> owner) {
         // We only care about acquired locks.
         if (owner != null) {
             GridCacheTxAdapter<K, V> tx = tx(owner.version());
@@ -1062,6 +1078,8 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
                             ", tx=" + tx + ']');
 
                     tx.onOwnerChanged(entry, owner);
+
+                    return true;
                 }
                 else if (log.isDebugEnabled())
                     log.debug("Ignoring local transaction for owner change event: " + tx);
@@ -1069,6 +1087,8 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
             else if (log.isDebugEnabled())
                 log.debug("Transaction not found for owner changed event [owner=" + owner + ", entry=" + entry + ']');
         }
+
+        return false;
     }
 
     /**
@@ -1244,6 +1264,20 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
      */
     public Collection<GridCacheTxEx<K, V>> txs() {
         return idMap.values();
+    }
+
+    /**
+     * @return Slow tx warn timeout.
+     */
+    public int slowTxWarnTimeout() {
+        return slowTxWarnTimeout;
+    }
+
+    /**
+     * @param slowTxWarnTimeout Slow tx warn timeout.
+     */
+    public void slowTxWarnTimeout(int slowTxWarnTimeout) {
+        this.slowTxWarnTimeout = slowTxWarnTimeout;
     }
 
     /**

@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*
  * _________
@@ -36,8 +36,8 @@ import org.gridgain.grover.categories.GroverProjectionCategory
  * Remote nodes should always be started with configuration file which includes
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 @Typed
 @Use(GroverProjectionCategory)
@@ -109,7 +109,7 @@ class GroverCountGraphTrianglesExample {
         // For each vertex we take all its neighbors (directly from adjacency list),
         // generate the list of all possible edges between neighbors and check their existence.
         // Existence of the edge means existence of triangle.
-        def counts = grid.affinityCall(CACHE_NAME, vertices, new AlgorithmClosure());
+        def counts = grid.affinityCall(CACHE_NAME, vertices, new AlgorithmClosure())
 
         // Reduce and return total number of triangles in graph.
         counts.sum()
@@ -130,8 +130,8 @@ class GroverCountGraphTrianglesExample {
     /**
      * Main algorithm closure.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2012 Copyright (C) GridGain Systems
+     * @version 3.6.0c.06012012
      */
     @Typed
     private static class AlgorithmClosure extends COX<Integer> {

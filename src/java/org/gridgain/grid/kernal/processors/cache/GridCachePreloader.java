@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -10,7 +10,6 @@
 package org.gridgain.grid.kernal.processors.cache;
 
 import org.gridgain.grid.*;
-import org.gridgain.grid.events.*;
 
 import java.util.*;
 
@@ -18,8 +17,8 @@ import java.util.*;
  * Cache preloader that is responsible for loading cache entries either from remote
  * nodes (for distributed cache) or anywhere else at cache startup.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public interface GridCachePreloader<K, V> {
     /**
@@ -55,7 +54,8 @@ public interface GridCachePreloader<K, V> {
      * Requests that preloader sends the request for the key.
      *
      * @param keys Keys to request.
+     * @param topVer Topology version, {@code -1} if not required.
      * @return Future to complete when all keys are preloaded.
      */
-    public GridFuture<Object> request(Collection<? extends K> keys);
+    public GridFuture<Object> request(Collection<? extends K> keys, long topVer);
 }

@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -11,8 +11,8 @@ package org.gridgain.grid.kernal.processors.cache;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
-import org.gridgain.grid.kernal.processors.cache.distributed.near.*;
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
@@ -21,6 +21,7 @@ import org.jetbrains.annotations.*;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.cache.GridCacheMode.*;
 import static org.gridgain.grid.cache.GridCachePeekMode.*;
@@ -28,10 +29,17 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
 /**
  * Entry wrapper that never obscures obsolete entries from user.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridCacheEvictionEntry<K, V> implements GridCacheEntry<K, V>, Externalizable {
+    /** Static logger to avoid re-creation. */
+    private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
+
+    /** Logger. */
+    @GridToStringExclude
+    protected final GridLogger log;
+
     /** Cached entry. */
     @GridToStringInclude
     protected GridCacheEntryEx<K, V> cached;
@@ -40,7 +48,7 @@ public class GridCacheEvictionEntry<K, V> implements GridCacheEntry<K, V>, Exter
      * Empty constructor required for {@link Externalizable}.
      */
     public GridCacheEvictionEntry() {
-        // No-op.
+        log = null;
     }
 
     /**
@@ -49,6 +57,8 @@ public class GridCacheEvictionEntry<K, V> implements GridCacheEntry<K, V>, Exter
     @SuppressWarnings({"TypeMayBeWeakened"})
     protected GridCacheEvictionEntry(GridCacheEntryEx<K, V> cached) {
         this.cached = cached;
+
+        log = U.logger(cached.context().kernalContext(), logRef, this);
     }
 
     /** {@inheritDoc} */
@@ -256,9 +266,14 @@ public class GridCacheEvictionEntry<K, V> implements GridCacheEntry<K, V>, Exter
     @Override public boolean evict(@Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
         GridCacheContext<K, V> ctx = cached.context();
 
-        return ctx.isNear() ?
-            ((GridNearCache<K, V>)ctx.cache()).evictNearOnly(cached.key(), filter) :
-            ctx.cache().evict(cached.key(), filter);
+        try {
+            return ctx.evicts().evict(cached, null, false, filter);
+        }
+        catch (GridException e) {
+            U.error(log, "Failed to evict entry from cache: " + cached, e);
+
+            return false;
+        }
     }
 
     /** {@inheritDoc} */
@@ -549,18 +564,19 @@ public class GridCacheEvictionEntry<K, V> implements GridCacheEntry<K, V>, Exter
         if (obj == this)
             return true;
 
-        if (!(obj instanceof GridCacheEntry))
-            return false;
+        if (obj instanceof GridCacheEvictionEntry) {
+            GridCacheEvictionEntry<K, V> other = (GridCacheEvictionEntry<K, V>)obj;
 
-        GridCacheEvictionEntry<K, V> other = (GridCacheEvictionEntry<K, V>)obj;
+            V v1 = peek();
+            V v2 = other.peek();
 
-        V v1 = peek();
-        V v2 = other.peek();
+            return
+                cached.key().equals(other.cached.key()) &&
+                F.eq(cached.context().cache().name(), other.cached.context().cache().name()) &&
+                F.eq(v1, v2);
+        }
 
-        return
-            cached.key().equals(other.cached.key()) &&
-            F.eq(cached.context().cache().name(), other.cached.context().cache().name()) &&
-            F.eq(v1, v2);
+        return false;
     }
 
     /** {@inheritDoc} */

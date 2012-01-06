@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -35,8 +35,8 @@ import static org.gridgain.grid.kernal.GridTopic.*;
 /**
  * Thread pool for demanding entries.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 class GridReplicatedPreloadDemandPool<K, V> {
     /** Dummy message to wake up demand worker. */
@@ -76,19 +76,26 @@ class GridReplicatedPreloadDemandPool<K, V> {
     /** Future to get done after assignments completion. */
     private GridFutureAdapter<?> finishFut;
 
+    /** Predicate to check whether preloading is permitted. */
+    private final GridPredicate2<K, GridCacheVersion> preloadPred;
+
     /**
      * @param cctx Cache context.
      * @param busyLock Shutdown lock.
      * @param evictLock Preloading lock.
+     * @param preloadPred Predicate to check whether preloading is permitted.
      */
-    GridReplicatedPreloadDemandPool(GridCacheContext<K, V> cctx, ReadWriteLock busyLock, ReadWriteLock evictLock) {
+    GridReplicatedPreloadDemandPool(GridCacheContext<K, V> cctx, ReadWriteLock busyLock, ReadWriteLock evictLock,
+        GridPredicate2<K, GridCacheVersion> preloadPred) {
         assert cctx != null;
         assert busyLock != null;
         assert evictLock != null;
+        assert preloadPred != null;
 
         this.cctx = cctx;
         this.busyLock = busyLock;
         this.evictLock = evictLock;
+        this.preloadPred = preloadPred;
 
         log = cctx.logger(getClass());
 
@@ -105,7 +112,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
      */
     void start() {
         for (DemandWorker w : workers)
-            new GridThread(cctx.gridName(), "preldr-demand-wrk", w).start();
+            new GridThread(cctx.gridName(), "preldr-demand-worker", w).start();
 
         if (log.isDebugEnabled())
             log.debug("Started demand pool: " + workers.size());
@@ -226,7 +233,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
          * @param id Worker ID.
          */
         private DemandWorker(int id) {
-            super(cctx.gridName(), "preloader-demand-wrk", log);
+            super(cctx.gridName(), "preloader-demand-worker", log);
 
             assert id >= 0;
 
@@ -525,7 +532,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
 
             try {
                 for (GridCacheEntryInfo<K, V> info : supply.entries()) {
-                    if (!cctx.evicts().preloadingPermitted(info.key(), info.version())) {
+                    if (!preloadPred.apply(info.key(), info.version())) {
                         if (log.isDebugEnabled())
                             log.debug("Preloading is not permitted for entry due to evictions [key=" +
                                 info.key() + ", ver=" + info.version() + ']');
@@ -538,16 +545,17 @@ class GridReplicatedPreloadDemandPool<K, V> {
                     try {
                         cached = cctx.cache().entryEx(info.key());
 
-                        if (!cached.initialValue(
+                        if (cached.initialValue(
                             info.value(),
                             info.valueBytes(),
                             info.version(),
                             info.ttl(),
                             info.expireTime(),
                             info.metrics())) {
-                            if (log.isDebugEnabled())
-                                log.debug("Preloading entry is already in cache (will ignore): " + cached);
+                            cctx.evicts().touch(cached); // Start tracking.
                         }
+                        else if (log.isDebugEnabled())
+                            log.debug("Preloading entry is already in cache (will ignore): " + cached);
                     }
                     catch (GridCacheEntryRemovedException ignored) {
                         if (log.isDebugEnabled())

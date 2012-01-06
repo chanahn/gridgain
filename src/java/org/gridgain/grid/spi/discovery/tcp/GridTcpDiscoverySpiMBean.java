@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -21,8 +21,8 @@ import java.util.*;
 /**
  * Management bean for {@link GridTcpDiscoverySpi}.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
     /**
@@ -31,7 +31,7 @@ public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
      * @return Time period in milliseconds.
      */
     @GridMBeanDescription("Heartbeat frequency.")
-    public int getHeartbeatFrequency();
+    public long getHeartbeatFrequency();
 
     /**
      * Gets current SPI state.
@@ -72,7 +72,7 @@ public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
      * @return Network timeout.
      */
     @GridMBeanDescription("Network timeout.")
-    public int getNetworkTimeout();
+    public long getNetworkTimeout();
 
     /**
      * Gets local TCP port SPI listens to.
@@ -112,7 +112,7 @@ public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
      * @return IP finder clean frequency.
      */
     @GridMBeanDescription("Stores clean frequency.")
-    public int getStoresCleanFrequency();
+    public long getStoresCleanFrequency();
 
     /**
      * Gets statistics print frequency.
@@ -120,7 +120,7 @@ public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
      * @return Statistics print frequency in milliseconds.
      */
     @GridMBeanDescription("Statistics print frequency.")
-    public int getStatisticsPrintFrequency();
+    public long getStatisticsPrintFrequency();
 
     /**
      * Gets {@link GridTcpDiscoveryTopologyStore} (string representation).
@@ -242,4 +242,28 @@ public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
      */
     @GridMBeanDescription("Coordinator node ID.")
     @Nullable public UUID getCoordinator();
+
+    /**
+     * Gets message acknowledgement timeout.
+     *
+     * @return Message acknowledgement timeout.
+     */
+    @GridMBeanDescription("Message acknowledgement timeout.")
+    public long getAckTimeout();
+
+    /**
+     * Gets socket timeout.
+     *
+     * @return Socket timeout.
+     */
+    @GridMBeanDescription("Socket timeout.")
+    public long getSocketTimeout();
+
+    /**
+     * Gets join timeout.
+     *
+     * @return Join timeout.
+     */
+    @GridMBeanDescription("Join timeout.")
+    public long getJoinTimeout();
 }

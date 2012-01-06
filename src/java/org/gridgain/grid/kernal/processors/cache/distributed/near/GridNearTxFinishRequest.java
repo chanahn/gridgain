@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -21,8 +21,8 @@ import java.util.*;
 /**
  * Near transaction finish request.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridNearTxFinishRequest<K, V> extends GridDistributedTxFinishRequest<K, V> {
     /** Mini future ID. */
@@ -30,6 +30,9 @@ public class GridNearTxFinishRequest<K, V> extends GridDistributedTxFinishReques
 
     /** Explicit lock flag. */
     private boolean explicitLock;
+
+    /** Topology version. */
+    private long topVer;
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -46,6 +49,7 @@ public class GridNearTxFinishRequest<K, V> extends GridDistributedTxFinishReques
      * @param commit Commit flag.
      * @param invalidate Invalidate flag.
      * @param explicitLock Explicit lock flag.
+     * @param topVer Topology version.
      * @param baseVer Base version.
      * @param committedVers Committed versions.
      * @param rolledbackVers Rolled back versions.
@@ -60,6 +64,7 @@ public class GridNearTxFinishRequest<K, V> extends GridDistributedTxFinishReques
         boolean commit,
         boolean invalidate,
         boolean explicitLock,
+        long topVer,
         GridCacheVersion baseVer, Collection<GridCacheVersion> committedVers,
         Collection<GridCacheVersion> rolledbackVers,
         Collection<GridCacheTxEntry<K, V>> writeEntries,
@@ -68,6 +73,7 @@ public class GridNearTxFinishRequest<K, V> extends GridDistributedTxFinishReques
             writeEntries, reply);
 
         this.explicitLock = explicitLock;
+        this.topVer = topVer;
     }
 
     /**
@@ -91,11 +97,19 @@ public class GridNearTxFinishRequest<K, V> extends GridDistributedTxFinishReques
         this.miniId = miniId;
     }
 
+    /**
+     * @return Topology version.
+     */
+    public long topologyVersion() {
+        return topVer;
+    }
+
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
 
         out.writeBoolean(explicitLock);
+        out.writeLong(topVer);
 
         assert miniId != null;
 
@@ -107,6 +121,7 @@ public class GridNearTxFinishRequest<K, V> extends GridDistributedTxFinishReques
         super.readExternal(in);
 
         explicitLock = in.readBoolean();
+        topVer = in.readLong();
 
         miniId = U.readGridUuid(in);
 

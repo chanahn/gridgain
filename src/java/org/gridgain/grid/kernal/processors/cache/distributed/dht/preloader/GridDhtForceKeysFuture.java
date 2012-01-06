@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -30,8 +30,8 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
 /**
  * Force keys request future.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Object, Collection<K>>
     implements GridDhtFuture<Collection<K>> {
@@ -57,23 +57,29 @@ public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Objec
     private Collection<Integer> invalidParts = new GridLeanSet<Integer>();
 
     /** Topology change counter. */
-    private AtomicInteger topVer = new AtomicInteger(1);
+    private AtomicInteger topCntr = new AtomicInteger(1);
+
+    /** Topology version. */
+    private long topVer;
 
     /** Future ID. */
     private GridUuid futId = GridUuid.randomUuid();
 
     /**
      * @param cctx Cache context.
+     * @param topVer Topology version.
      * @param keys Keys.
      */
-    public GridDhtForceKeysFuture(GridCacheContext<K, V> cctx, Collection<? extends K> keys) {
+    public GridDhtForceKeysFuture(GridCacheContext<K, V> cctx, long topVer, Collection<? extends K> keys) {
         super(cctx.kernalContext());
 
+        assert topVer != 0;
         assert cctx.preloader().startFuture().isDone();
         assert !F.isEmpty(keys);
 
         this.cctx = cctx;
         this.keys = keys;
+        this.topVer = topVer;
 
         top = cctx.dht().topology();
 
@@ -114,7 +120,7 @@ public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Objec
      */
     @SuppressWarnings( {"unchecked"})
     public void onDiscoveryEvent(GridDiscoveryEvent evt) {
-        topVer.incrementAndGet();
+        topCntr.incrementAndGet();
 
         int type = evt.type();
 
@@ -176,7 +182,7 @@ public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Objec
 
         GridNode loc = cctx.localNode();
 
-        int curTopVer = topVer.get();
+        int curTopVer = topCntr.get();
 
         for (K key : keys)
             map(key, mappings, exc);
@@ -206,7 +212,8 @@ public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Objec
                     assert !n.id().equals(loc.id());
 
                     if (log.isDebugEnabled())
-                        log.debug("Sending force key request [cacheName=" + cctx.name() + ", req=" + req + ']');
+                        log.debug("Sending force key request [cacheName=" + cctx.name() + "node=" + n.id() +
+                            ", req=" + req + ']');
 
                     cctx.io().send(n, req);
                 }
@@ -251,13 +258,13 @@ public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Objec
                     ", locId=" + cctx.nodeId() + ']');
         }
 
-        List<GridNode> owners = F.isEmpty(exc) ? top.owners(part) :
-            new ArrayList<GridNode>(F.view(top.owners(part), F.notIn(exc)));
+        List<GridNode> owners = F.isEmpty(exc) ? top.owners(part, topVer) :
+            new ArrayList<GridNode>(F.view(top.owners(part, topVer), F.notIn(exc)));
 
         if (owners.isEmpty() || (owners.contains(loc) && cctx.preloadEnabled())) {
             if (log.isDebugEnabled())
                 log.debug("Will not preload key (local node is owner) [key=" + key + ", part=" + part +
-                    ", locId=" + cctx.nodeId() + ']');
+                    "topVer=" + topVer + ", locId=" + cctx.nodeId() + ']');
 
             // Key is already preloaded.
             return;
@@ -265,6 +272,10 @@ public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Objec
 
         // Create partition.
         GridDhtLocalPartition<K, V> locPart = top.localPartition(part, -1, false);
+
+        if (log.isDebugEnabled())
+            log.debug("Mapping local partition [loc=" + cctx.localNodeId() + ", topVer" + topVer +
+                ", part=" + locPart + ", owners=" + owners + ", allOwners=" + U.toShortString(top.owners(part)) + ']');
 
         if (locPart == null)
             invalidParts.add(part);
@@ -410,7 +421,7 @@ public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Objec
             boolean remapMissed = false;
 
             if (!F.isEmpty(missedKeys)) {
-                if (curTopVer != topVer.get() || pauseLatch.getCount() == 0)
+                if (curTopVer != topCntr.get() || pauseLatch.getCount() == 0)
                     map(missedKeys, Collections.<GridNode>emptyList());
                 else
                     remapMissed = true;
@@ -461,10 +472,8 @@ public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Objec
                 }
             }
 
-            if (remapMissed) {
-                if (pause())
-                    map(missedKeys, Collections.<GridNode>emptyList());
-            }
+            if (remapMissed && pause())
+                map(missedKeys, Collections.<GridNode>emptyList());
 
             // Finish mini future.
             onDone(true);

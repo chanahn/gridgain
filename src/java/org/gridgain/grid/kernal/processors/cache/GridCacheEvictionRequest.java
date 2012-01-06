@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
 *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -22,20 +22,23 @@ import java.util.*;
 /**
  * Cache eviction request.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 class GridCacheEvictionRequest<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable {
     /** Future id. */
     private long futId;
 
-    /** Keys to clear from near and backup nodes. */
+    /** Entries to clear from near and backup nodes. */
     @GridToStringInclude
-    private Map<K, GridTuple2<GridCacheVersion, Boolean>> keys;
+    private Collection<GridTuple3<K, GridCacheVersion, Boolean>> entries;
 
-    /** Serialized keys. */
+    /** Serialized entries. */
     @GridToStringExclude
-    private byte[] keyBytes;
+    private byte[] entriesBytes;
+
+    /** Topology version. */
+    private long topVer;
 
     /**
      * Required by {@link Externalizable}.
@@ -47,21 +50,28 @@ class GridCacheEvictionRequest<K, V> extends GridCacheMessage<K, V> implements G
     /**
      * @param futId Future id.
      * @param size Size.
+     * @param topVer Topology version.
      */
-    GridCacheEvictionRequest(long futId, int size) {
+    GridCacheEvictionRequest(long futId, int size, long topVer) {
+        assert futId > 0;
+        assert size > 0;
+        assert topVer > 0;
+
         this.futId = futId;
 
-        keys = new HashMap<K, GridTuple2<GridCacheVersion, Boolean>>(size, 1.0f);
+        entries = new ArrayList<GridTuple3<K, GridCacheVersion, Boolean>>(size);
+
+        this.topVer = topVer;
     }
 
     /** {@inheritDoc} */
     @Override public void p2pMarshal(GridCacheContext<K, V> ctx) throws GridException {
         super.p2pMarshal(ctx);
 
-        if (keys != null) {
-            prepareObjects(keys.keySet(), ctx);
+        if (entries != null) {
+            prepareObjects(entries, ctx);
 
-            keyBytes = U.marshal(ctx.marshaller(), keys).getEntireArray();
+            entriesBytes = U.marshal(ctx.marshaller(), entries).getEntireArray();
         }
     }
 
@@ -69,8 +79,8 @@ class GridCacheEvictionRequest<K, V> extends GridCacheMessage<K, V> implements G
     @Override public void p2pUnmarshal(GridCacheContext<K, V> ctx, ClassLoader ldr) throws GridException {
         super.p2pUnmarshal(ctx, ldr);
 
-        if (keyBytes != null)
-            keys = U.unmarshal(ctx.marshaller(), new GridByteArrayList(keyBytes), ldr);
+        if (entriesBytes != null)
+            entries = U.unmarshal(ctx.marshaller(), new GridByteArrayList(entriesBytes), ldr);
     }
 
     /**
@@ -81,10 +91,17 @@ class GridCacheEvictionRequest<K, V> extends GridCacheMessage<K, V> implements G
     }
 
     /**
-     * @return Key map.
+     * @return Entries - {{Key, Version, Boolean (near or not)}, ...}.
      */
-    Map<K, GridTuple2<GridCacheVersion, Boolean>> keys() {
-        return keys;
+    Collection<GridTuple3<K, GridCacheVersion, Boolean>> entries() {
+        return entries;
+    }
+
+    /**
+     * @return Topology version.
+     */
+    long topologyVersion() {
+        return topVer;
     }
 
     /**
@@ -98,7 +115,7 @@ class GridCacheEvictionRequest<K, V> extends GridCacheMessage<K, V> implements G
         assert key != null;
         assert ver != null;
 
-        keys.put(key, F.t(ver, near));
+        entries.add(F.t(key, ver, near));
     }
 
     /** {@inheritDoc} */
@@ -112,7 +129,9 @@ class GridCacheEvictionRequest<K, V> extends GridCacheMessage<K, V> implements G
 
         out.writeLong(futId);
 
-        U.writeByteArray(out, keyBytes);
+        U.writeByteArray(out, entriesBytes);
+
+        out.writeLong(topVer);
     }
 
     /** {@inheritDoc} */
@@ -121,7 +140,9 @@ class GridCacheEvictionRequest<K, V> extends GridCacheMessage<K, V> implements G
 
         futId = in.readLong();
 
-        keyBytes = U.readByteArray(in);
+        entriesBytes = U.readByteArray(in);
+
+        topVer = in.readLong();
     }
 
     /** {@inheritDoc} */

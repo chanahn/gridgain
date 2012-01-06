@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -41,8 +41,8 @@ import java.io.*;
  * {@link GridCacheAffinityMapper} and {@link GridCacheAffinityMapped @GridCacheAffinityMapped}
  * documentation.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  * @see GridCacheAffinityMapped
  * @see GridCacheAffinityMapper
  * @see GridCacheAffinity
@@ -133,18 +133,6 @@ public class GridCacheAffinityKey<K> implements Externalizable {
         this.affKey = affKey;
     }
 
-    /**
-     * Hash code implementation which delegates to the underlying {@link #key()}.
-     * It is equivalent to calling {@code 'key().hashCode()'}.
-     *
-     * @return Hash code.
-     */
-    @Override public int hashCode() {
-        A.notNull(key, "key");
-
-        return key.hashCode();
-    }
-
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(key);
@@ -159,9 +147,24 @@ public class GridCacheAffinityKey<K> implements Externalizable {
     }
 
     /**
-     * Equality check which delegates to the underlying key equality. It is
-     * equivalent to:
-     * <pre>return obj instanceof GridCacheKey ? key().equals(((GridCacheKey)obj).key()) : key().equals(obj);</pre>
+     * Hash code implementation which delegates to the underlying {@link #key()}. Note, however,
+     * that different subclasses of {@code GridCacheAffinityKey} will produce different hash codes.
+     * <p>
+     * Users should override this method if different behavior is desired.
+     *
+     * @return Hash code.
+     */
+    @Override public int hashCode() {
+        A.notNull(key, "key");
+
+        return 31 * key.hashCode() + getClass().getName().hashCode();
+    }
+
+    /**
+     * Equality check which delegates to the underlying key equality. Note, however, that
+     * different subclasses of {@code GridCacheAffinityKey} will never be equal.
+     * <p>
+     * Users should override this method if different behavior is desired.
      *
      * @param obj Object to check for equality.
      * @return {@code True} if objects are equal.
@@ -169,7 +172,7 @@ public class GridCacheAffinityKey<K> implements Externalizable {
     @Override public boolean equals(Object obj) {
         A.notNull(key, "key");
 
-        return obj instanceof GridCacheAffinityKey ? key.equals(((GridCacheAffinityKey)obj).key) : key.equals(obj);
+        return obj != null && getClass() == obj.getClass() && key.equals(((GridCacheAffinityKey)obj).key);
     }
 
     /** {@inheritDoc} */

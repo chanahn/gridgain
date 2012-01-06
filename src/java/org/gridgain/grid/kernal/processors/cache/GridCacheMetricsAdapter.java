@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -19,8 +19,8 @@ import java.util.concurrent.atomic.*;
 /**
  * Adapter for cache metrics.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridCacheMetricsAdapter implements GridCacheMetrics, Externalizable {
     /** Create time. */
@@ -215,6 +215,28 @@ public class GridCacheMetricsAdapter implements GridCacheMetrics, Externalizable
             m.misses(),
             m.txCommits(),
             m.txRollbacks()
+        );
+    }
+
+    /**
+     * @param m1 Metrics to merge.
+     * @param m2 Metrics to merge.
+     * @return Merged metrics.
+     */
+    public static GridCacheMetricsAdapter merge(GridCacheMetrics m1, GridCacheMetrics m2) {
+        assert m1 != null;
+        assert m2 != null;
+
+        return new GridCacheMetricsAdapter(
+            m1.createTime() < m2.createTime() ? m1.createTime() : m2.createTime(), // Prefer earliest.
+            m1.readTime() < m2.readTime() ? m2.readTime() : m1.readTime(), // Prefer latest.
+            m1.writeTime() < m2.writeTime() ? m2.writeTime() : m1.writeTime(), // Prefer latest.
+            m1.reads() + m2.reads(),
+            m1.writes() + m2.writes(),
+            m1.hits() + m2.hits(),
+            m1.misses() + m2.misses(),
+            m1.txCommits() + m2.txCommits(),
+            m1.txRollbacks() + m2.txRollbacks()
         );
     }
 
