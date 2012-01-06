@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -37,8 +37,8 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
 /**
  * Responsible for all grid job execution and communication.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 @SuppressWarnings({"deprecation"})
 public class GridJobProcessor extends GridProcessorAdapter {
@@ -771,7 +771,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
     /**
      * Handles job state changes.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
+     * @author 2012 Copyright (C) GridGain Systems
      */
     private class JobEventListener implements GridJobEventListener {
         private final GridMessageListener sesLsnr = new JobSessionListener();
@@ -844,7 +844,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
     /**
      * Handles task and job cancellations.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
+     * @author 2012 Copyright (C) GridGain Systems
      */
     private class JobCancelListener implements GridMessageListener {
         @Override public void onMessage(UUID nodeId, Object msg) {
@@ -948,8 +948,8 @@ public class GridJobProcessor extends GridProcessorAdapter {
     /**
      * Handles job execution requests.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2012 Copyright (C) GridGain Systems
+     * @version 3.6.0c.06012012
      */
     private class JobExecutionListener implements GridMessageListener {
         @SuppressWarnings({"unchecked", "ThrowableInstanceNeverThrown"})
@@ -1287,8 +1287,8 @@ public class GridJobProcessor extends GridProcessorAdapter {
     /**
      * Listener to node discovery events.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2012 Copyright (C) GridGain Systems
+     * @version 3.6.0c.06012012
      */
     private class JobDiscoveryListener implements GridLocalEventListener {
         /**

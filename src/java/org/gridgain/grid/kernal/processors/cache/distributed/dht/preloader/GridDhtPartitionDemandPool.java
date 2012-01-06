@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -40,8 +40,8 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * Thread pool for requesting partitions from other nodes
  * and populating local cache.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 @SuppressWarnings( {"NonConstantFieldWithUpperCaseName"})
 public class GridDhtPartitionDemandPool<K, V> {
@@ -126,7 +126,7 @@ public class GridDhtPartitionDemandPool<K, V> {
      * @param exchFut Exchange future for this node.
      */
     void start(GridDhtPartitionsExchangeFuture<K, V> exchFut) {
-        assert exchFut.causeNodeId().equals(cctx.nodeId());
+        assert exchFut.exchangeId().nodeId().equals(cctx.nodeId());
 
         for (DemandWorker w : dmdWorkers)
             new GridThread(cctx.gridName(), "preloader-demand-worker", w).start();
@@ -169,6 +169,19 @@ public class GridDhtPartitionDemandPool<K, V> {
      */
     int poolSize() {
         return poolSize;
+    }
+
+    /**
+     * Resend partition map.
+     */
+    void resendPartitions() {
+        try {
+            refreshPartitions(0);
+        }
+        catch (GridInterruptedException e) {
+            U.warn(log, "Partitions were not refreshed (thread got interrupted): " + e,
+                "Partitions were not refreshed (thread got interrupted)");
+        }
     }
 
     /**
@@ -227,11 +240,13 @@ public class GridDhtPartitionDemandPool<K, V> {
 
     /**
      * @param discoEvt Discovery evet.
+     * @param reassign Dummy reassign flag.
      * @return Dummy partition exchange to handle reassignments if partition topology
      *      changes after preloading started.
      */
-    private GridDhtPartitionsExchangeFuture<K, V> dummyExchange(GridDiscoveryEvent discoEvt) {
-        return new GridDhtPartitionsExchangeFuture<K, V>(cctx, discoEvt);
+    private GridDhtPartitionsExchangeFuture<K, V> dummyExchange(boolean reassign,
+        @Nullable GridDiscoveryEvent discoEvt) {
+        return new GridDhtPartitionsExchangeFuture<K, V>(cctx, reassign, discoEvt);
     }
 
     /**
@@ -240,6 +255,14 @@ public class GridDhtPartitionDemandPool<K, V> {
      */
     private boolean dummyExchange(GridDhtPartitionsExchangeFuture<K, V> exch) {
         return exch.dummy();
+    }
+
+    /**
+     * @param exch Exchange.
+     * @return {@code True} if dummy reassign.
+     */
+    private boolean dummyReassign(GridDhtPartitionsExchangeFuture<K, V> exch) {
+        return exch.dummy() && exch.reassign();
     }
 
     /**
@@ -338,10 +361,17 @@ public class GridDhtPartitionDemandPool<K, V> {
 
         long now = System.currentTimeMillis();
 
-        if (last != -1 && now - last >= timeout) {
-            if (lastRefresh.compareAndSet(last, now))
-                cctx.dht().dhtPreloader().refreshPartitions();
+        if (last != -1 && now - last >= timeout && lastRefresh.compareAndSet(last, now)) {
+            if (log.isDebugEnabled())
+                log.debug("Refreshing partitions [last=" + last + ", now=" + now + ", delta=" + (now - last) +
+                    ", timeout=" + timeout + ", lastRefresh=" + lastRefresh + ']');
+
+            cctx.dht().dhtPreloader().refreshPartitions();
         }
+        else
+            if (log.isDebugEnabled())
+                log.debug("Partitions were not refreshed [last=" + last + ", now=" + now + ", delta=" + (now - last) +
+                    ", timeout=" + timeout + ", lastRefresh=" + lastRefresh + ']');
     }
 
     /**
@@ -497,29 +527,21 @@ public class GridDhtPartitionDemandPool<K, V> {
                 try {
                     cached = cctx.dht().entryEx(entry.key());
 
-                    if (!cctx.evicts().preloadingPermitted(entry.key(), entry.version())) {
-                        if (log.isDebugEnabled())
-                            log.debug("Preloading is not permitted for entry due to evictions [key= " + entry.key() +
-                                ", ver=" + entry.version() + ']');
-
-                        // Partition is valid, but preloading of the entry should be cancelled.
-                        return true;
-                    }
-
                     if (log.isDebugEnabled())
                         log.debug("Preloading key [key=" + entry.key() + ", part=" + p + ", node=" + pick.id() + ']');
 
-                    if (!cached.initialValue(
+                    if (cached.initialValue(
                         entry.value(),
                         entry.valueBytes(),
                         entry.version(),
                         entry.ttl(),
                         entry.expireTime(),
                         entry.metrics())) {
-                        if (log.isDebugEnabled())
-                            log.debug("Preloading entry is already in cache (will ignore) [key=" + cached.key() +
-                                ", part=" + p + ']');
+                        cctx.evicts().touch(cached); // Start tracking.
                     }
+                    else if (log.isDebugEnabled())
+                        log.debug("Preloading entry is already in cache (will ignore) [key=" + cached.key() +
+                            ", part=" + p + ']');
                 }
                 catch (GridCacheEntryRemovedException ignored) {
                     if (log.isDebugEnabled())
@@ -554,7 +576,7 @@ public class GridDhtPartitionDemandPool<K, V> {
 
         /**
          * @param node Node to demand from.
-         * @param lastJoinOrder Last join order.
+         * @param topVer Topology version.
          * @param d Demand message.
          * @param exchFut Exchange future.
          * @return Missed partitions.
@@ -562,7 +584,7 @@ public class GridDhtPartitionDemandPool<K, V> {
          * @throws GridTopologyException If node left.
          * @throws GridException If failed to send message.
          */
-        private Set<Integer> demandFromNode(GridNode node, long lastJoinOrder,  GridDhtPartitionDemandMessage<K, V> d,
+        private Set<Integer> demandFromNode(GridNode node, long topVer,  GridDhtPartitionDemandMessage<K, V> d,
             GridDhtPartitionsExchangeFuture<K, V> exchFut) throws InterruptedException, GridException {
             GridRichNode loc = cctx.localNode();
 
@@ -689,8 +711,8 @@ public class GridDhtPartitionDemandPool<K, V> {
                         for (Map.Entry<Integer, Collection<GridCacheEntryInfo<K, V>>> e : supply.infos().entrySet()) {
                             int p = e.getKey();
 
-                            if (cctx.belongs(p, lastJoinOrder, loc)) {
-                                GridDhtLocalPartition<K, V> part = top.localPartition(p, lastJoinOrder, true);
+                            if (cctx.belongs(p, topVer, loc)) {
+                                GridDhtLocalPartition<K, V> part = top.localPartition(p, topVer, true);
 
                                 assert part != null;
 
@@ -708,6 +730,15 @@ public class GridDhtPartitionDemandPool<K, V> {
                                         // Loop through all received entries and try to preload them.
                                         for (GridCacheEntryInfo<K, V> entry : e.getValue()) {
                                             if (!invalidParts.contains(p)) {
+                                                if (!part.preloadingPermitted(entry.key(), entry.version())) {
+                                                    if (log.isDebugEnabled())
+                                                        log.debug("Preloading is not permitted for entry due to " +
+                                                            "evictions [key=" + entry.key() +
+                                                            ", ver=" + entry.version() + ']');
+
+                                                    continue;
+                                                }
+
                                                 if (!preloadEntry(node, p, entry)) {
                                                     invalidParts.add(p);
 
@@ -866,7 +897,7 @@ public class GridDhtPartitionDemandPool<K, V> {
                                     continue; // For.
 
                                 try {
-                                    Set<Integer> set = demandFromNode(node, assigns.lastJoinOrder(), d, exchFut);
+                                    Set<Integer> set = demandFromNode(node, assigns.topologyVersion(), d, exchFut);
 
                                     if (!set.isEmpty()) {
                                         if (log.isDebugEnabled())
@@ -899,7 +930,7 @@ public class GridDhtPartitionDemandPool<K, V> {
                                 if (log.isDebugEnabled())
                                     log.debug("Reassigning partitions that were missed: " + missed);
 
-                                exchWorker.addFuture(dummyExchange(exchFut.discoveryEvent()));
+                                exchWorker.addFuture(dummyExchange(true, exchFut.discoveryEvent()));
                             }
                             else
                                 break; // While.
@@ -910,6 +941,8 @@ public class GridDhtPartitionDemandPool<K, V> {
 
                         syncFut.onWorkerDone(this);
                     }
+
+                    resendPartitions();
                 }
             }
             finally {
@@ -933,18 +966,18 @@ public class GridDhtPartitionDemandPool<K, V> {
         private final GridDhtPartitionsExchangeFuture<K, V> exchFut;
 
         /** Last join order. */
-        private final long lastJoinOrder;
+        private final long topVer;
 
         /**
          * @param exchFut Exchange future.
-         * @param lastJoinOrder Last join order.
+         * @param topVer Last join order.
          */
-        Assignments(GridDhtPartitionsExchangeFuture<K, V> exchFut, long lastJoinOrder) {
+        Assignments(GridDhtPartitionsExchangeFuture<K, V> exchFut, long topVer) {
             assert exchFut != null;
-            assert lastJoinOrder > 0;
+            assert topVer > 0;
 
             this.exchFut = exchFut;
-            this.lastJoinOrder = lastJoinOrder;
+            this.topVer = topVer;
         }
 
         /**
@@ -954,8 +987,11 @@ public class GridDhtPartitionDemandPool<K, V> {
             return exchFut;
         }
 
-        long lastJoinOrder() {
-            return lastJoinOrder;
+        /**
+         * @return Topology version.
+         */
+        long topologyVersion() {
+            return topVer;
         }
 
         /** {@inheritDoc} */
@@ -1008,8 +1044,11 @@ public class GridDhtPartitionDemandPool<K, V> {
                 try {
                     // If not first preloading and no more topology events present,
                     // then we periodically refresh partition map.
-                    if (futQ.isEmpty() && syncFut.isDone())
+                    if (futQ.isEmpty() && syncFut.isDone()) {
                         refreshPartitions(timeout);
+
+                        timeout = cctx.gridConfig().getNetworkTimeout();
+                    }
 
                     // After workers line up and before preloading starts we initialize all futures.
                     if (log.isDebugEnabled())
@@ -1047,14 +1086,22 @@ public class GridDhtPartitionDemandPool<K, V> {
                             // Just pick first worker to do this, so we don't
                             // invoke topology callback more than once for the
                             // same event.
-                            top.afterExchange(exchFut.exchangeId());
+                            if (top.afterExchange(exchFut.exchangeId()))
+                                resendPartitions(); // Force topology refresh.
 
                             // Preload event notification.
                             preloadEvent(EVT_CACHE_PRELOAD_STARTED, exchFut.discoveryEvent());
                         }
-                        else
+                        else {
                             if (log.isDebugEnabled())
                                 log.debug("Got dummy exchange (will reassign)");
+
+                            if (!dummyReassign(exchFut)) {
+                                timeout = 0; // Force refresh.
+
+                                continue;
+                            }
+                        }
 
                         assigns = assign(exchFut);
 
@@ -1094,20 +1141,20 @@ public class GridDhtPartitionDemandPool<K, V> {
         private Assignments assign(GridDhtPartitionsExchangeFuture<K, V> exchFut) {
             // No assignments for disabled preloader.
             if (!cctx.preloadEnabled())
-                return new Assignments(exchFut, top.lastJoinOrder());
+                return new Assignments(exchFut, top.topologyVersion());
 
             int partCnt = cctx.partitions();
 
             GridRichNode loc = cctx.localNode();
 
-            Assignments assigns = new Assignments(exchFut, top.lastJoinOrder());
+            Assignments assigns = new Assignments(exchFut, top.topologyVersion());
 
-            Collection<GridRichNode> allNodes = CU.allNodes(cctx, assigns.lastJoinOrder());
+            Collection<GridRichNode> allNodes = CU.allNodes(cctx, assigns.topologyVersion());
 
             for (int p = 0; p < partCnt && !isCancelled() && futQ.isEmpty(); p++) {
                 // If partition belongs to local node.
                 if (cctx.belongs(p, loc, allNodes)) {
-                    GridDhtLocalPartition<K, V> part = top.localPartition(p, assigns.lastJoinOrder(), true);
+                    GridDhtLocalPartition<K, V> part = top.localPartition(p, assigns.topologyVersion(), true);
 
                     assert part != null;
                     assert part.id() == p;

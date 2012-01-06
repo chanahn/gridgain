@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -16,6 +16,7 @@ import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
+import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.util.*;
@@ -23,8 +24,8 @@ import java.util.*;
 /**
  * Lock request message.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridDistributedLockRequest<K, V> extends GridDistributedBaseMessage<K, V> {
     /** Sender node ID. */
@@ -202,8 +203,8 @@ public class GridDistributedLockRequest<K, V> extends GridDistributedBaseMessage
      * @param ctx Context.
      * @throws GridException If failed.
      */
-    public void addKeyBytes(K key, byte[] keyBytes, boolean retVal, Collection<GridCacheMvccCandidate<K>> cands,
-        GridCacheContext<K, V> ctx) throws GridException {
+    public void addKeyBytes(K key, byte[] keyBytes, boolean retVal,
+        @Nullable Collection<GridCacheMvccCandidate<K>> cands, GridCacheContext<K, V> ctx) throws GridException {
         if (keyBytes != null) {
             prepareObject(key, ctx);
 

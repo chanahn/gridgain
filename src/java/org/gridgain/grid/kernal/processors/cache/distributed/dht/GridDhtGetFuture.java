@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -27,8 +27,8 @@ import java.util.concurrent.atomic.*;
 /**
  *
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collection<GridCacheEntryInfo<K, V>>>
     implements GridDhtFuture<Collection<GridCacheEntryInfo<K, V>>> {
@@ -59,6 +59,9 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
     /** Version. */
     private GridCacheVersion ver;
 
+    /** Topology version .*/
+    private long topVer;
+
     /** Transaction. */
     private GridCacheTxLocalEx<K, V> tx;
 
@@ -84,6 +87,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
      * @param keys Keys.
      * @param reload Reload flag.
      * @param tx Transaction.
+     * @param topVer Topology version.
      * @param filters Filters.
      */
     public GridDhtGetFuture(
@@ -93,6 +97,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
         Collection<? extends K> keys,
         boolean reload,
         @Nullable GridCacheTxLocalEx<K, V> tx,
+        long topVer,
         @Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filters) {
         super(cctx.kernalContext(), CU.<GridCacheEntryInfo<K, V>>collectionsReducer());
 
@@ -107,6 +112,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
         this.reload = reload;
         this.filters = filters;
         this.tx = tx;
+        this.topVer = topVer;
 
         futId = GridUuid.randomUuid();
 
@@ -169,7 +175,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
      * @param keys Keys.
      */
     private void map(final Collection<? extends K> keys) {
-        GridDhtFuture<Object> fut = cctx.dht().dhtPreloader().request(keys);
+        GridDhtFuture<Object> fut = cctx.dht().dhtPreloader().request(keys, topVer);
 
         if (!F.isEmpty(fut.invalidPartitions()))
             retries.addAll(fut.invalidPartitions());
@@ -208,7 +214,9 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
      * @return {@code True} if mapped.
      */
     private boolean map(K key, Collection<GridDhtLocalPartition> parts, Collection<K> keys) {
-        GridDhtLocalPartition part = cache().topology().localPartition(key, false);
+        GridDhtLocalPartition part = topVer > 0 ?
+            cache().topology().localPartition(cctx.partition(key), topVer, true) :
+            cache().topology().localPartition(key, false);
 
         if (part == null)
             return false;
@@ -243,7 +251,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
 
         for (K k : keys) {
             while (true) {
-                GridDhtCacheEntry<K, V> e = cache().entryExx(k);
+                GridDhtCacheEntry<K, V> e = cache().entryExx(k, topVer);
 
                 try {
                     GridCacheEntryInfo<K, V> info = e.info();
@@ -254,6 +262,11 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
 
                     // Register reader. If there are active transactions for this entry,
                     // then will wait for their completion before proceeding.
+                    // TODO: What if any transaction we wait for actually removes this entry?
+                    // TODO: In this case seems like we will be stuck with untracked near entry.
+                    // TODO: To fix, check that reader is contained in the list of readers once
+                    // TODO: again after the returned future completes - if not, try again.
+                    // TODO: Also, why is info read before transactions are complete, and not after?
                     GridFuture<Boolean> f = e.addReader(reader, msgId);
 
                     if (f != null) {

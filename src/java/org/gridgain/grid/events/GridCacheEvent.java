@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -57,8 +57,8 @@ import java.util.*;
  * events are required for GridGain's internal operations and such events will still be generated but not stored by
  * event storage SPI if they are disabled in GridGain configuration.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  * @see GridEventType#EVT_CACHE_ENTRY_CREATED
  * @see GridEventType#EVT_CACHE_ENTRY_DESTROYED
  * @see GridEventType#EVT_CACHE_ENTRY_EVICTED
@@ -102,6 +102,10 @@ public class GridCacheEvent extends GridEventAdapter {
     @GridToStringExclude
     private final UUID evtNodeId;
 
+    /** Flag indicating whether event happened on {@code near} or {@code partitioned} cache. */
+    @GridToStringInclude
+    private boolean near;
+
     /**
      * Constructs cache event.
      *
@@ -111,6 +115,7 @@ public class GridCacheEvent extends GridEventAdapter {
      * @param msg Event message.
      * @param type Event type.
      * @param partition Partition for the event (usually the partition the key belongs to).
+     * @param near Flag indicating whether event happened on {@code near} or {@code partitioned} cache.
      * @param key Cache key.
      * @param xid Transaction ID.
      * @param lockId Lock ID.
@@ -118,11 +123,12 @@ public class GridCacheEvent extends GridEventAdapter {
      * @param oldVal Old value.
      */
     public GridCacheEvent(String cacheName, UUID nodeId, UUID evtNodeId, String msg, int type, int partition,
-        Object key, GridUuid xid, GridUuid lockId, Object newVal, Object oldVal) {
+        boolean near, Object key, GridUuid xid, GridUuid lockId, Object newVal, Object oldVal) {
         super(nodeId, msg, type);
         this.cacheName = cacheName;
         this.evtNodeId = evtNodeId;
         this.partition = partition;
+        this.near = near;
         this.key = key;
         this.xid = xid;
         this.lockId = lockId;
@@ -146,6 +152,15 @@ public class GridCacheEvent extends GridEventAdapter {
      */
     public int partition() {
         return partition;
+    }
+
+    /**
+     * Gets flag indicating whether event happened on {@code near} or {@code partitioned} cache.
+     *
+     * @return Flag indicating whether event happened on {@code near} or {@code partitioned} cache.
+     */
+    public boolean isNear() {
+        return near;
     }
 
     /**
@@ -203,7 +218,8 @@ public class GridCacheEvent extends GridEventAdapter {
 
     /** {@inheritDoc} */
     @Override public String shortDisplay() {
-        return name() + ": key=" + key + ", newVal=" + newVal + ", oldVal=" + oldVal;
+        return name() + ": near=" + near + ", key=" + key + ", newVal=" + newVal + ", oldVal=" + oldVal +
+            ", nodeId8=" + U.id8(nodeId());
     }
 
     /** {@inheritDoc} */

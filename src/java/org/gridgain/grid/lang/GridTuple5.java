@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -25,8 +25,8 @@ import java.util.*;
  * and it is responsibility of the user of this class to provide outside
  * synchronization, if needed.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  * @see GridFunc#t5()
  * @see GridFunc#t(Object, Object, Object, Object, Object)
  */
@@ -68,7 +68,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      * @param v4 Forth value.
      * @param v5 Fifth value.
      */
-    public GridTuple5(V1 v1, V2 v2, V3 v3, V4 v4, V5 v5) {
+    public GridTuple5(@Nullable V1 v1, @Nullable V2 v2, @Nullable V3 v3, @Nullable V4 v4, @Nullable V5 v5) {
         this.v1 = v1;
         this.v2 = v2;
         this.v3 = v3;
@@ -105,7 +105,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      *
      * @return First value.
      */
-    public V1 get1() {
+    @Nullable public V1 get1() {
         return v1;
     }
 
@@ -114,7 +114,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      *
      * @return Second value.
      */
-    public V2 get2() {
+    @Nullable public V2 get2() {
         return v2;
     }
 
@@ -123,7 +123,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      *
      * @return Third value.
      */
-    public V3 get3() {
+    @Nullable public V3 get3() {
         return v3;
     }
 
@@ -132,7 +132,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      *
      * @return Forth value.
      */
-    public V4 get4() {
+    @Nullable public V4 get4() {
         return v4;
     }
 
@@ -141,7 +141,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      *
      * @return Fifth value.
      */
-    public V5 get5() {
+    @Nullable public V5 get5() {
         return v5;
     }
 
@@ -150,7 +150,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      *
      * @param v1 First value.
      */
-    public void set1(V1 v1) {
+    public void set1(@Nullable V1 v1) {
         this.v1 = v1;
     }
 
@@ -159,7 +159,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      *
      * @param v2 Second value.
      */
-    public void set2(V2 v2) {
+    public void set2(@Nullable V2 v2) {
         this.v2 = v2;
     }
 
@@ -168,7 +168,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      *
      * @param v3 Third value.
      */
-    public void set3(V3 v3) {
+    public void set3(@Nullable V3 v3) {
         this.v3 = v3;
     }
 
@@ -177,7 +177,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      *
      * @param v4 Forth value.
      */
-    public void set4(V4 v4) {
+    public void set4(@Nullable V4 v4) {
         this.v4 = v4;
     }
 
@@ -186,7 +186,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      *
      * @param v5 Fifth value.
      */
-    public void set5(V5 v5) {
+    public void set5(@Nullable V5 v5) {
         this.v5 = v5;
     }
 
@@ -200,7 +200,7 @@ public class GridTuple5<V1, V2, V3, V4, V5> extends GridMetadataAwareAdapter imp
      * @param val4 Fourth value.
      * @param val5 Fifth value.
      */
-    public void set(V1 val1, V2 val2, V3 val3, V4 val4, V5 val5) {
+    public void set(@Nullable V1 val1, @Nullable V2 val2, @Nullable V3 val3, @Nullable V4 val4, @Nullable V5 val5) {
         set1(val1);
         set2(val2);
         set3(val3);

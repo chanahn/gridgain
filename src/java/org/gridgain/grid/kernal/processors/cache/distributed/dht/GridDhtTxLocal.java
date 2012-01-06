@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -33,8 +33,8 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
 /**
  * Replicated user transaction.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implements GridCacheMappedVersion {
     /** */
@@ -544,7 +544,7 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
                 entry = e.cleanCopy(cctx);
 
                 while (true) {
-                    GridDhtCacheEntry<K, V> cached = cctx.dht().entryExx(entry.key());
+                    GridDhtCacheEntry<K, V> cached = cctx.dht().entryExx(entry.key(), topologyVersion());
 
                     try {
                         // Set key bytes to avoid serializing in future.
@@ -624,7 +624,7 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
 
                 // First time access.
                 if (txEntry == null) {
-                    GridDhtCacheEntry<K, V> cached = cctx.dht().entryExx(key);
+                    GridDhtCacheEntry<K, V> cached = cctx.dht().entryExx(key, topologyVersion());
 
                     cached.unswap();
 

@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,8 +32,8 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
 /**
  * DHT cache.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Near cache. */
@@ -283,7 +283,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     }
 
     /**
-     * This method is used internally. Use {@link #getDhtAsync(UUID, long, Collection, boolean, GridPredicate[])}
+     * This method is used internally. Use {@link #getDhtAsync(UUID, long, Collection, boolean, long, GridPredicate[])}
      * method instead to retrieve DHT value.
      *
      * @param keys {@inheritDoc}
@@ -300,12 +300,15 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      * @param msgId Message ID.
      * @param keys Keys to get.
      * @param reload Reload flag.
+     * @param topVer Topology version.
      * @param filter Optional filter.
      * @return DHT future.
      */
     public GridDhtFuture<Collection<GridCacheEntryInfo<K, V>>> getDhtAsync(UUID reader, long msgId,
-        Collection<? extends K> keys, boolean reload, GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
-        GridDhtGetFuture<K, V> fut = new GridDhtGetFuture<K, V>(ctx, msgId, reader, keys, reload, /*tx*/ null, filter);
+        Collection<? extends K> keys, boolean reload, long topVer,
+        GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
+        GridDhtGetFuture<K, V> fut = new GridDhtGetFuture<K, V>(ctx, msgId, reader, keys, reload, /*tx*/ null,
+            topVer, filter);
 
         fut.init();
 
@@ -336,7 +339,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
         }
 
         GridFuture<Object> fut = ctx.preloader().request(
-            F.viewReadOnly(F.concat(false, req.reads(), req.writes()), CU.<K, V>tx2key()));
+            F.viewReadOnly(F.concat(false, req.reads(), req.writes()), CU.<K, V>tx2key()), req.topologyVersion());
 
         return new GridEmbeddedFuture<GridCacheTxEx<K, V>, Object>(
             ctx.kernalContext(),
@@ -355,6 +358,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
                     if (tx != null) {
                         try {
+                            tx.topologyVersion(req.topologyVersion());
+
                             GridCompoundFuture<Boolean, GridCacheTxEx<K, V>> txFut = null;
 
                             if (req.reads() != null)
@@ -537,6 +542,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
                     if (tx == null || !ctx.tm().onStarted(tx))
                         throw new GridCacheTxRollbackException("Attempt to start a completed transaction: " + req);
+
+                    tx.topologyVersion(req.topologyVersion());
                 }
 
                 if (!tx.markFinalizing()) {
@@ -695,6 +702,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                 ctx.deploy().globalLoader(),
                 nodeId,
                 req.threadId(),
+                req.topologyVersion(),
                 req.version(),
                 req.commitVersion(),
                 req.concurrency(),
@@ -782,6 +790,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                                 req.futureId(),
                                 nodeId,
                                 req.threadId(),
+                                req.topologyVersion(),
                                 req.version(),
                                 /*commitVer*/null,
                                 PESSIMISTIC,
@@ -874,7 +883,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      * @throws GridDistributedLockCancelledException If lock has been cancelled.
      */
     @SuppressWarnings({"RedundantTypeArguments"})
-    @Nullable GridDhtTxRemote<K, V> startRemoteTx(UUID nodeId, GridDistributedLockRequest<K, V> req,
+    @Nullable GridDhtTxRemote<K, V> startRemoteTx(UUID nodeId, GridDhtLockRequest<K, V> req,
         GridDhtLockResponse<K, V> res)
         throws GridException, GridDistributedLockCancelledException {
         List<byte[]> keyBytes = req.keyBytes();
@@ -913,6 +922,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                                     req.futureId(),
                                     nodeId,
                                     req.threadId(),
+                                    req.topologyVersion(),
                                     req.version(),
                                     /*commitVer*/null,
                                     PESSIMISTIC,
@@ -1020,7 +1030,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      */
     private void processNearGetRequest(final UUID nodeId, final GridNearGetRequest<K, V> req) {
         GridFuture<Collection<GridCacheEntryInfo<K, V>>> fut =
-            getDhtAsync(nodeId, req.messageId(), req.keys(), req.reload(), req.filter());
+            getDhtAsync(nodeId, req.messageId(), req.keys(), req.reload(), req.topologyVersion(), req.filter());
 
         fut.listenAsync(new CI1<GridFuture<Collection<GridCacheEntryInfo<K, V>>>>() {
             @Override public void apply(GridFuture<Collection<GridCacheEntryInfo<K, V>>> f) {
@@ -1197,7 +1207,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      * @param req Request.
      */
     @SuppressWarnings({"unchecked"})
-    private void processDhtTxFinishRequest(UUID nodeId, GridDhtTxFinishRequest<K, V> req) {
+    private void processDhtTxFinishRequest(final UUID nodeId, final GridDhtTxFinishRequest<K, V> req) {
         assert nodeId != null;
         assert req != null;
 
@@ -1504,7 +1514,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
             try {
                 while (true) {
-                    GridDhtCacheEntry<K, V> entry = entryExx(key);
+                    GridDhtCacheEntry<K, V> entry = entryExx(key, tx.topologyVersion());
 
                     try {
                         fut.addEntry(entry);
@@ -1554,7 +1564,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     public GridFuture<GridNearLockResponse<K, V>> lockAllAsync(final GridNode nearNode,
         final GridNearLockRequest<K, V> req, @Nullable final Collection<K> keys,
         @Nullable final GridPredicate<? super GridCacheEntry<K, V>>[] filter0) {
-        GridDhtFuture<Object> keyFut = ctx.dht().dhtPreloader().request(keys == null ? req.keys() : keys);
+        GridDhtFuture<Object> keyFut = ctx.dht().dhtPreloader().request(
+            keys == null ? req.keys() : keys, req.topologyVersion());
 
         return new GridEmbeddedFuture<GridNearLockResponse<K, V>, Object>(true, keyFut,
             new C2<Object, Exception, GridFuture<GridNearLockResponse<K,V>>>() {
@@ -1902,11 +1913,11 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                 }
             }
 
-            // Don't send reply message to this node.
-            if (!nearNode.id().equals(ctx.nodeId())) {
+            // Don't send reply message to this node or if lock was cancelled.
+            if (!nearNode.id().equals(ctx.nodeId()) && !X.hasCause(err, GridDistributedLockCancelledException.class)) {
                 ctx.io().send(nearNode, res);
 
-                // Throw error after sending reply.
+                // Log error after sending reply.
                 if (err != null && !(err instanceof GridCacheLockTimeoutException))
                     log.error("Failed to acquire lock for request: " + req, err);
             }
@@ -2027,14 +2038,14 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      * @param nodeId Sender node ID.
      * @param topVer Topology version.
      * @param cached Entry.
+     * @param readers Readers for this entry.
      * @param dhtMap DHT map.
      * @param nearMap Near map.
      * @throws GridException If failed.
-     * @throws GridCacheEntryRemovedException If entry is removed.
      */
-    private void map(UUID nodeId, long topVer, GridDhtCacheEntry<K, V> cached,
+    private void map(UUID nodeId, long topVer, GridCacheEntryEx<K,V> cached, Collection<UUID> readers,
         Map<GridNode, List<T2<K, byte[]>>> dhtMap, Map<GridNode, List<T2<K, byte[]>>> nearMap)
-        throws GridException, GridCacheEntryRemovedException {
+        throws GridException {
         Collection<GridNode> dhtNodes = ctx.dht().topology().nodes(cached.partition(), topVer);
 
         GridNode primary = CU.primary(dhtNodes);
@@ -2050,15 +2061,14 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
         if (log.isDebugEnabled())
             log.debug("Mapping entry to DHT nodes [nodes=" + U.toShortString(dhtNodes) + ", entry=" + cached + ']');
 
-        Collection<UUID> readers = cached.readers();
-
         Collection<GridNode> nearNodes = null;
 
         if (!F.isEmpty(readers)) {
             nearNodes = ctx.discovery().nodes(readers, F.<UUID>not(F.idForNodeId(nodeId)));
 
             if (log.isDebugEnabled())
-                log.debug("Mapping entry to near nodes [nodes=" + U.toShortString(nearNodes) + ", entry=" + cached + ']');
+                log.debug("Mapping entry to near nodes [nodes=" + U.toShortString(nearNodes) + ", entry=" + cached +
+                    ']');
         }
         else {
             if (log.isDebugEnabled())
@@ -2146,12 +2156,17 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
 
                     long topVer = cand == null ? -1 : cand.topologyVersion();
 
+                    // Note that we obtain readers before lock is removed.
+                    // Even in case if entry would be removed just after lock is removed,
+                    // we must send release messages to backups and readers.
+                    Collection<UUID> readers = entry.readers();
+
                     // Note that we don't reorder completed versions here,
                     // as there is no point to reorder relative to the version
                     // we are about to remove.
                     if (entry.removeLock(dhtVer)) {
                         // Map to backups and near readers.
-                        map(nodeId, topVer, entry, dhtMap, nearMap);
+                        map(nodeId, topVer, entry, readers, dhtMap, nearMap);
 
                         if (log.isDebugEnabled())
                             log.debug("Removed lock [lockId=" + ver + ", key=" + key + ']');

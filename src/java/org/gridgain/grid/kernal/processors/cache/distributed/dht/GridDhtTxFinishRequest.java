@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -22,8 +22,8 @@ import java.util.*;
 /**
  * Near transaction finish request.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridDhtTxFinishRequest<K, V> extends GridDistributedTxFinishRequest<K, V> {
     /** Near node ID. */
@@ -41,6 +41,9 @@ public class GridDhtTxFinishRequest<K, V> extends GridDistributedTxFinishRequest
     /** System invalidation flag. */
     private boolean sysInvalidate;
 
+    /** Topology version. */
+    private long topVer;
+
     /**
      * Empty constructor required for {@link Externalizable}.
      */
@@ -52,6 +55,7 @@ public class GridDhtTxFinishRequest<K, V> extends GridDistributedTxFinishRequest
      * @param nearNodeId Near node ID.
      * @param futId Future ID.
      * @param miniId Mini future ID.
+     * @param topVer Topology version.
      * @param xidVer Transaction ID.
      * @param threadId Thread ID.
      * @param commitVer Commit version.
@@ -70,6 +74,7 @@ public class GridDhtTxFinishRequest<K, V> extends GridDistributedTxFinishRequest
         UUID nearNodeId,
         GridUuid futId,
         GridUuid miniId,
+        long topVer,
         GridCacheVersion xidVer,
         GridCacheVersion commitVer,
         long threadId,
@@ -89,6 +94,7 @@ public class GridDhtTxFinishRequest<K, V> extends GridDistributedTxFinishRequest
         assert nearNodeId != null;
         assert isolation != null;
 
+        this.topVer = topVer;
         this.nearNodeId = nearNodeId;
         this.isolation = isolation;
         this.nearWrites = nearWrites;
@@ -136,6 +142,13 @@ public class GridDhtTxFinishRequest<K, V> extends GridDistributedTxFinishRequest
         return sysInvalidate;
     }
 
+    /**
+     * @return Topology version.
+     */
+    public long topologyVersion() {
+        return topVer;
+    }
+
     /** {@inheritDoc} */
     @Override public void p2pMarshal(GridCacheContext<K, V> ctx) throws GridException {
         super.p2pMarshal(ctx);
@@ -160,8 +173,8 @@ public class GridDhtTxFinishRequest<K, V> extends GridDistributedTxFinishRequest
         U.writeGridUuid(out, miniId);
         U.writeCollection(out, nearWrites);
 
+        out.writeLong(topVer);
         out.writeByte(isolation.ordinal());
-
         out.writeBoolean(sysInvalidate);
     }
 
@@ -173,8 +186,8 @@ public class GridDhtTxFinishRequest<K, V> extends GridDistributedTxFinishRequest
         miniId = U.readGridUuid(in);
         nearWrites = U.readCollection(in);
 
+        topVer = in.readLong();
         isolation = GridCacheTxIsolation.fromOrdinal(in.readByte());
-
         sysInvalidate = in.readBoolean();
 
         assert miniId != null;

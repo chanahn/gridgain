@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -136,8 +136,8 @@ import java.util.concurrent.*;
  * All classes passed into cache API will be automatically deployed to any participating grid nodes.
  * No explicit deployment step is required.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public interface GridCacheProjection<K, V> extends Iterable<GridCacheEntry<K, V>>, GridMetadataAware {
     /**
@@ -2852,7 +2852,8 @@ public interface GridCacheProjection<K, V> extends Iterable<GridCacheEntry<K, V>
      *
      * @param key Key to lock.
      * @param timeout Timeout in milliseconds to wait for lock to be acquired
-     *      ({@code '0'} for no expiration).
+     *      ({@code '0'} for no expiration), {@code -1} for immediate failure if
+     *      lock cannot be acquired immediately).
      * @param filter Optional filter to validate prior to acquiring the lock.
      * @return {@code True} if all filters passed and lock was acquired,
      *      {@code false} otherwise.
@@ -2877,7 +2878,8 @@ public interface GridCacheProjection<K, V> extends Iterable<GridCacheEntry<K, V>
      *
      * @param key Key to lock.
      * @param timeout Timeout in milliseconds to wait for lock to be acquired
-     *      ({@code '0'} for no expiration).
+     *      ({@code '0'} for no expiration, {@code -1} for immediate failure if
+     *      lock cannot be acquired immediately).
      * @param filter Optional filter to validate prior to acquiring the lock.
      * @return Future for the lock operation. The future will return {@code true}
      *      whenever all filters pass and locks are acquired before timeout is expired,

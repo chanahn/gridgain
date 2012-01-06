@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -24,8 +24,8 @@ import java.util.*;
 /**
  * DHT lock request.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridDhtLockRequest<K, V> extends GridDistributedLockRequest<K, V> {
     /** Near keys to lock. */
@@ -38,6 +38,9 @@ public class GridDhtLockRequest<K, V> extends GridDistributedLockRequest<K, V> {
     /** Owner mapped version, if any. */
     @GridToStringInclude
     private Map<K, List<GridCacheVersion>> owned;
+
+    /** Topology version. */
+    private long topVer;
 
     /** Near keys. */
     @GridToStringInclude
@@ -56,6 +59,7 @@ public class GridDhtLockRequest<K, V> extends GridDistributedLockRequest<K, V> {
      * @param futId Future ID.
      * @param miniId Mini future ID.
      * @param lockVer Cache version.
+     * @param topVer Topology version.
      * @param isInTx {@code True} if implicit transaction lock.
      * @param isRead Indicates whether implicit lock is for read or write operation.
      * @param isolation Transaction isolation.
@@ -65,10 +69,12 @@ public class GridDhtLockRequest<K, V> extends GridDistributedLockRequest<K, V> {
      * @param nearCnt Near count.
      */
     public GridDhtLockRequest(UUID nodeId, long threadId, GridUuid futId, GridUuid miniId, GridCacheVersion lockVer,
-        boolean isInTx, boolean isRead, GridCacheTxIsolation isolation, boolean isInvalidate, long timeout,
+        long topVer, boolean isInTx, boolean isRead, GridCacheTxIsolation isolation, boolean isInvalidate, long timeout,
         int dhtCnt, int nearCnt) {
         super(nodeId, threadId, futId, lockVer, isInTx, isRead, isolation, isInvalidate, timeout,
             dhtCnt == 0 ? nearCnt : dhtCnt);
+
+        this.topVer = topVer;
 
         nearKeyBytes = nearCnt == 0 ? Collections.<byte[]>emptyList() : new ArrayList<byte[]>(nearCnt);
         nearKeys = nearCnt == 0 ? Collections.<K>emptyList() : new ArrayList<K>(nearCnt);
@@ -88,6 +94,13 @@ public class GridDhtLockRequest<K, V> extends GridDistributedLockRequest<K, V> {
      */
     public UUID nearNodeId() {
         return nodeId();
+    }
+
+    /**
+     * @return Topology version.
+     */
+    public long topologyVersion() {
+        return topVer;
     }
 
     /**
@@ -183,6 +196,8 @@ public class GridDhtLockRequest<K, V> extends GridDistributedLockRequest<K, V> {
 
         assert miniId != null;
 
+        out.writeLong(topVer);
+
         U.writeCollection(out, nearKeyBytes);
         U.writeMap(out, owned);
         U.writeGridUuid(out, miniId);
@@ -191,6 +206,8 @@ public class GridDhtLockRequest<K, V> extends GridDistributedLockRequest<K, V> {
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
+
+        topVer = in.readLong();
 
         nearKeyBytes = U.readList(in);
         owned = U.readMap(in);

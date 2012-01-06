@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,8 +32,8 @@ import static org.gridgain.grid.cache.GridCacheTxConcurrency.*;
 /**
  * Near cache.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** DHT cache. */
@@ -575,6 +575,9 @@ public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                             tx = ctx.tm().tx(req.version());
 
                             if (tx != null) {
+                                if (tx.local())
+                                    return null;
+
                                 if (tx.markFinalizing())
                                     tx.addWrite(txEntry.key(), txEntry.keyBytes());
                                 else

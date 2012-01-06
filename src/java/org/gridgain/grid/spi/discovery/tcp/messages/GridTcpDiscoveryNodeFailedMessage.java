@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -9,25 +9,22 @@
 
 package org.gridgain.grid.spi.discovery.tcp.messages;
 
-import org.gridgain.grid.spi.discovery.tcp.*;
 import org.gridgain.grid.typedef.internal.*;
-import org.gridgain.grid.util.tostring.*;
 
 import java.io.*;
 import java.util.*;
 
 /**
- * Sent by node that has detected nodes failure to coordinator across the ring,
+ * Sent by node that has detected node failure to coordinator across the ring,
  * then sent by coordinator across the ring.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 @GridTcpDiscoveryEnsureDelivery
 public class GridTcpDiscoveryNodeFailedMessage extends GridTcpDiscoveryAbstractMessage {
-    /** IDs of the failed nodes. */
-    @GridToStringInclude
-    private Collection<UUID> failedNodesIds;
+    /** ID of the failed node. */
+    private UUID failedNodeId;
 
     /**
      * Public default no-arg constructor for {@link Externalizable} interface.
@@ -40,35 +37,35 @@ public class GridTcpDiscoveryNodeFailedMessage extends GridTcpDiscoveryAbstractM
      * Constructor.
      *
      * @param creatorNodeId ID of the node that detects nodes failure.
-     * @param failedNodesIds IDs of the failed nodes.
+     * @param failedNodeId IDs of the failed nodes.
      */
-    public GridTcpDiscoveryNodeFailedMessage(UUID creatorNodeId, Collection<UUID> failedNodesIds) {
+    public GridTcpDiscoveryNodeFailedMessage(UUID creatorNodeId, UUID failedNodeId) {
         super(creatorNodeId);
 
-        this.failedNodesIds = failedNodesIds;
+        this.failedNodeId = failedNodeId;
     }
 
     /**
-     * Gets IDs of the failed nodes.
+     * Gets ID of the failed node.
      *
-     * @return IDs of the failed nodes.
+     * @return ID of the failed node.
      */
-    public Collection<UUID> failedNodesIds() {
-        return failedNodesIds;
+    public UUID failedNodeId() {
+        return failedNodeId;
     }
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
 
-        U.writeCollection(out, failedNodesIds);
+        U.writeUuid(out, failedNodeId);
     }
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
 
-        failedNodesIds = U.readList(in);
+        failedNodeId = U.readUuid(in);
     }
 
     /** {@inheritDoc} */

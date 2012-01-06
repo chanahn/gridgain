@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -31,13 +31,16 @@ import java.util.concurrent.locks.*;
 /**
  * Future for exchanging partition maps.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Object>
     implements Comparable<GridDhtPartitionsExchangeFuture<K, V>> {
     /** Dummy flag. */
     private final boolean dummy;
+
+    /** Dummy reassign flag. */
+    private final boolean reassign;
 
     /** */
     private final GridDhtPartitionTopology<K, V> top;
@@ -118,15 +121,17 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
      * topology changed while preloading.
      *
      * @param cctx Cache context.
+     * @param reassign Dummy reassign flag.
      * @param discoEvt Discovery event.
      */
-    public GridDhtPartitionsExchangeFuture(GridCacheContext<K, V> cctx, GridDiscoveryEvent discoEvt) {
+    public GridDhtPartitionsExchangeFuture(GridCacheContext<K, V> cctx, boolean reassign, GridDiscoveryEvent discoEvt) {
         super(cctx.kernalContext());
         dummy = true;
 
         top = null;
         exchId = null;
 
+        this.reassign = reassign;
         this.discoEvt = discoEvt;
         this.cctx = cctx;
 
@@ -150,6 +155,7 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
         assert exchId != null;
 
         dummy = false;
+        reassign = false;
 
         this.cctx = cctx;
         this.busyLock = busyLock;
@@ -162,7 +168,7 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
         GridRichNode loc = cctx.localNode();
 
         // Grab all nodes with order of equal or less than last joined node.
-        Collection<GridRichNode> allNodes = new LinkedList<GridRichNode>(CU.allNodes(cctx, exchId.lastJoinOrder()));
+        Collection<GridRichNode> allNodes = new LinkedList<GridRichNode>(CU.allNodes(cctx, exchId.topologyVersion()));
 
         oldestNode.set(F.isEmpty(allNodes) ? loc : CU.oldest(allNodes));
 
@@ -184,6 +190,7 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
         assert false;
 
         dummy = true;
+        reassign = false;
 
         top = null;
         exchId = null;
@@ -198,11 +205,18 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
     }
 
     /**
+     * @return Dummy reassign flag.
+     */
+    boolean reassign() {
+        return reassign;
+    }
+
+    /**
      * Rechecks topology.
      */
     void initTopology() {
         // Grab all nodes with order of equal or less than last joined node.
-        Collection<GridRichNode> allNodes = new LinkedList<GridRichNode>(CU.allNodes(cctx, exchId.lastJoinOrder()));
+        Collection<GridRichNode> allNodes = new LinkedList<GridRichNode>(CU.allNodes(cctx, exchId.topologyVersion()));
 
         rmtNodes = new ConcurrentLinkedQueue<GridRichNode>(F.view(allNodes, F.remoteNodes(cctx.nodeId())));
 
@@ -263,41 +277,6 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
      */
     GridNode oldestNode() {
         return oldestNode.get();
-    }
-
-    /**
-     * @return Cause node id.
-     */
-    UUID causeNodeId() {
-        return exchId.nodeId();
-    }
-
-    /**
-     * @return {@code True} if exchange is due to local node event.
-     */
-    boolean local() {
-        return causeNodeId().equals(cctx.nodeId());
-    }
-
-    /**
-     * @return Cause node order.
-     */
-    long causeNodeOrder() {
-        return exchId.order();
-    }
-
-    /**
-     * @return Last join order.
-     */
-    long lastJoinOrder() {
-        return exchId.lastJoinOrder();
-    }
-
-    /**
-     * @return Discovery event type.
-     */
-    int event() {
-        return exchId.event();
     }
 
     /**
@@ -364,14 +343,12 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
                 initTopology();
 
                 // Update before waiting for locks.
-                top.updateJoinOrder(exchId);
+                top.updateTopologyVersion(exchId);
 
                 // Only wait in case of join event. If a node leaves,
                 // then transactions handled by it will be either remapped
                 // or invalidated.
                 if (exchId.isJoined()) {
-                    assert exchId.order() == exchId.lastJoinOrder() : "Order does not match join order: " + exchId;
-
                     GridNode node = cctx.node(exchId.nodeId());
 
                     if (node == null) {
@@ -383,13 +360,13 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
                         return;
                     }
 
-                    long lastJoinOrder = exchId.order();
+                    long topVer = exchId.topologyVersion();
 
-                    assert lastJoinOrder == top.lastJoinOrder();
+                    assert topVer == top.topologyVersion();
 
-                    Set<Integer> parts = cctx.primaryPartitions(node, lastJoinOrder);
+                    Set<Integer> parts = cctx.primaryPartitions(node, topVer);
 
-                    GridFuture<?> partReleaseFut = cctx.partitionReleaseFuture(parts, lastJoinOrder);
+                    GridFuture<?> partReleaseFut = cctx.partitionReleaseFuture(parts, topVer);
 
                     // Assign to class variable so it will be included into toString() method.
                     this.partReleaseFut = partReleaseFut;
@@ -704,7 +681,7 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
 
                             boolean set = false;
 
-                            GridNode newOldest = CU.oldest(CU.allNodes(cctx, exchId.lastJoinOrder()));
+                            GridNode newOldest = CU.oldest(CU.allNodes(cctx, exchId.topologyVersion()));
 
                             // If local node is now oldest.
                             if (newOldest.id().equals(cctx.nodeId())) {
@@ -875,6 +852,9 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
      * @return Remaining node IDs.
      */
     Collection<UUID> remaining() {
+        if (rmtIds == null || rcvdIds == null)
+            return Collections.emptyList();
+
         return F.lose(rmtIds, true, rcvdIds);
     }
 
@@ -904,6 +884,7 @@ public class GridDhtPartitionsExchangeFuture<K, V> extends GridFutureAdapter<Obj
             "oldest", oldestNode == null ? "null" : oldestNode.get().id(),
             "oldestOrder", oldestNode == null ? "null" : oldestNode.get().order(),
             "evtLatch", evtLatch == null ? "null" : evtLatch.getCount(),
+            "remaining", remaining(),
             "super", super.toString());
     }
 }

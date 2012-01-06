@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -28,8 +28,8 @@ import static org.gridgain.grid.cache.GridCacheFlag.*;
 /**
  * Concurrent implementation of cache map.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridCacheConcurrentMap<K, V> {
     /** Debug flag. */
@@ -230,6 +230,22 @@ public class GridCacheConcurrentMap<K, V> {
         assert factory != null;
 
         this.factory = factory;
+    }
+
+    /**
+     * @return Non-internal predicate.
+     */
+    private static <K, V> GridPredicate<? super GridCacheEntry<K, V>>[] nonInternal() {
+        return (GridPredicate<? super GridCacheEntry<K,V>>[])NON_INTERNAL_ARR;
+    }
+
+    /**
+     * @param filter Filter to add to non-internal-key filter.
+     * @return Non-internal predicate.
+     */
+    private static <K, V> GridPredicate<? super GridCacheEntry<K, V>>[] nonInternal(
+        GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
+        return F.asArray(F.and(filter, (GridPredicate<? super GridCacheEntry<K, V>>)NON_INTERNAL));
     }
 
     /**
@@ -478,7 +494,7 @@ public class GridCacheConcurrentMap<K, V> {
      * Same as {@link #wrappers(GridPredicate[])}
      *
      * @param filter Filter.
-     * @return a collection view of the mappings contained in this map.
+     * @return Set of the mappings contained in this map.
      */
     @SuppressWarnings({"unchecked"})
     public Set<GridCacheEntry<K, V>> entries(GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
@@ -486,20 +502,28 @@ public class GridCacheConcurrentMap<K, V> {
     }
 
     /**
-     * Internal entry set.
+     * Internal entry set, excluding {@link GridCacheInternal} entries.
      *
-     * @param filter Filter.
-     * @return a collection view of the mappings contained in this map.
+     * @return Set of the mappings contained in this map.
      */
-    public Set<GridCacheEntryEx<K, V>> entries0(GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
-        return new Set0<K, V>(this, filter);
+    public Set<GridCacheEntryEx<K, V>> entries0() {
+        return new Set0<K, V>(this, GridCacheConcurrentMap.<K, V>nonInternal());
+    }
+
+    /**
+     * Gets all internal entry set, including {@link GridCacheInternal} entries.
+     *
+     * @return All internal entry set, including {@link GridCacheInternal} entries.
+     */
+    public Set<GridCacheEntryEx<K, V>> allEntries0() {
+        return new Set0<K, V>(this, CU.<K, V>empty());
     }
 
     /**
      * Key set.
      *
      * @param filter Filter.
-     * @return a set view of the keys contained in this map.
+     * @return Set of the keys contained in this map.
      */
     public Set<K> keySet(GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
         return new KeySet<K, V>(this, filter);
@@ -509,7 +533,7 @@ public class GridCacheConcurrentMap<K, V> {
      * Collection of non-{@code null} values.
      *
      * @param filter Filter.
-     * @return a collection view of the values contained in this map.
+     * @return Collection view of the values contained in this map.
      */
     public Collection<V> values(GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
         return F.view(allValues(filter), F.<V>notNull());
@@ -1469,7 +1493,7 @@ public class GridCacheConcurrentMap<K, V> {
                             continue;
                     }
 
-                    if (next.visitable(NON_INTERNAL_ARR) && next.visitable(filter))
+                    if (next.visitable(filter))
                         return true;
                 }
 
@@ -1972,7 +1996,7 @@ public class GridCacheConcurrentMap<K, V> {
         private KeySet(GridCacheConcurrentMap<K, V> map, GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
             assert map != null;
 
-            set = new Set0<K, V>(map, filter);
+            set = new Set0<K, V>(map, nonInternal(filter));
         }
 
         /** {@inheritDoc} */
@@ -2037,7 +2061,7 @@ public class GridCacheConcurrentMap<K, V> {
         private Values(GridCacheConcurrentMap<K, V> map, GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
             assert map != null;
 
-            set = new Set0<K, V>(map, filter);
+            set = new Set0<K, V>(map, nonInternal(filter));
         }
 
         /** {@inheritDoc} */
@@ -2093,7 +2117,7 @@ public class GridCacheConcurrentMap<K, V> {
         private EntrySet(GridCacheConcurrentMap<K, V> map, GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
             assert map != null;
 
-            set = new Set0<K, V>(map, filter);
+            set = new Set0<K, V>(map, nonInternal(filter));
         }
 
         /** {@inheritDoc} */

@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -32,8 +32,8 @@ import java.util.concurrent.atomic.*;
 /**
  * Cache lock future.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
     implements GridCacheMvccFuture<K, V, Boolean>, GridDhtFuture<Boolean>, GridCacheMappedVersion {
@@ -101,15 +101,8 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
     /** Transaction. */
     private GridDhtTxLocal<K, V> tx;
 
-    /** Replied flag. */
-    private AtomicBoolean replied = new AtomicBoolean(false);
-
     /** All replies flag. */
     private AtomicBoolean allReplies = new AtomicBoolean(false);
-
-    /** Latch to wait for reply to be sent. */
-    @GridToStringExclude
-    private CountDownLatch replyLatch = new CountDownLatch(1);
 
     /** */
     private Collection<Integer> invalidParts = new GridLeanSet<Integer>();
@@ -528,7 +521,8 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
 
                         if (!locked(entry, owner))
                             if (log.isDebugEnabled())
-                                log.debug("Entry is not locked (will keep waiting) [entry=" + entry + ", fut=" + this + ']');
+                                log.debug("Entry is not locked (will keep waiting) [entry=" + entry +
+                                    ", fut=" + this + ']');
 
                         break; // Inner while loop.
                     }
@@ -538,7 +532,7 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
                         if (log.isDebugEnabled())
                             log.debug("Failed to ready lock because entry was removed (will renew).");
 
-                        entries.set(i, (GridDhtCacheEntry<K, V>)cctx.cache().entryEx(entry.key()));
+                        entries.set(i, (GridDhtCacheEntry<K, V>)cctx.cache().entryEx(entry.key(), topVer));
                     }
                 }
             }
@@ -549,11 +543,8 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
      * @param e Error.
      */
     public void onError(GridDistributedLockCancelledException e) {
-        // Don't send reply for cancelled lock.
-        replied.set(true);
-        replyLatch.countDown();
-
-        onComplete(false);
+        if (err.compareAndSet(null, e))
+            onComplete(false);
     }
 
     /**
@@ -594,6 +585,9 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
      * @param entry Entry whose lock ownership changed.
      */
     @Override public boolean onOwnerChanged(GridCacheEntryEx<K, V> entry, GridCacheMvccCandidate<K> owner) {
+        if (isDone())
+            return false; // Check other futures.
+
         if (log.isDebugEnabled())
             log.debug("Received onOwnerChanged() call back [entry=" + entry + ", owner=" + owner + "]");
 
@@ -636,7 +630,7 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
                             log.debug("Got removed entry in checkLocks method (will retry): " + entry);
 
                         // Replace old entry with new one.
-                        entries.set(i, (GridDhtCacheEntry<K, V>)cctx.cache().entryEx(entry.key()));
+                        entries.set(i, (GridDhtCacheEntry<K, V>)cctx.cache().entryEx(entry.key(), topVer));
                     }
                 }
             }
@@ -761,6 +755,9 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
      */
     @SuppressWarnings( {"ForLoopReplaceableByForEach"})
     private boolean map(Iterable<GridDhtCacheEntry<K, V>> entries) {
+        if (log.isDebugEnabled())
+            log.debug("Mapping entry for DHT lock future: " + this);
+
         boolean hasRemoteNodes = false;
 
         // Assign keys to primary nodes.
@@ -768,9 +765,6 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
             try {
                 while (true) {
                     try {
-                        if (log.isDebugEnabled())
-                            log.debug("Mapping entries for DHT lock future: " + this);
-
                         hasRemoteNodes = cctx.dhtMap(nearNodeId, topVer, entry, log, dhtMap, nearMap);
 
                         GridCacheMvccCandidate<K> cand = entry.mappings(lockVer,
@@ -791,7 +785,7 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
                         if (log.isDebugEnabled())
                             log.debug("Got removed entry when mapping DHT lock future (will retry): " + entry);
 
-                        entry = cctx.dht().entryExx(entry.key());
+                        entry = cctx.dht().entryExx(entry.key(), topVer);
                     }
                 }
             }
@@ -842,7 +836,7 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
                 MiniFuture fut = new MiniFuture(n, dhtMapping, nearMapping);
 
                 GridDhtLockRequest<K, V> req = new GridDhtLockRequest<K, V>(nearNodeId, threadId, futId,
-                    fut.futureId(), lockVer, inTx(), read, isolation(), isInvalidate(), timeout,
+                    fut.futureId(), lockVer, topVer, inTx(), read, isolation(), isInvalidate(), timeout,
                     cnt, F.size(nearMapping));
 
                 try {
@@ -895,7 +889,7 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
                     MiniFuture fut = new MiniFuture(n, null, nearMapping);
 
                     GridDhtLockRequest<K, V> req = new GridDhtLockRequest<K, V>(nearNodeId, threadId, futId,
-                        fut.futureId(), lockVer, inTx(), read, isolation(), isInvalidate(), timeout, 0, cnt);
+                        fut.futureId(), lockVer, topVer, inTx(), read, isolation(), isInvalidate(), timeout, 0, cnt);
 
                     try {
                         for (ListIterator<GridDhtCacheEntry<K, V>> it = nearMapping.listIterator(); it.hasNext();) {
@@ -980,7 +974,7 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
                 if (log.isDebugEnabled())
                     log.debug("Got removed entry when creating DHT lock request (will retry): " + e);
 
-                e = cctx.dht().entryExx(e.key());
+                e = cctx.dht().entryExx(e.key(), topVer);
             }
         }
 

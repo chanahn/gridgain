@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -21,8 +21,8 @@ import java.util.*;
 /**
  * Near transaction prepare request.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridNearTxPrepareRequest<K, V> extends GridDistributedTxPrepareRequest<K, V> {
     /** Future ID. */
@@ -37,6 +37,9 @@ public class GridNearTxPrepareRequest<K, V> extends GridDistributedTxPrepareRequ
     /** Synchronous rollback flag. */
     private boolean syncRollback;
 
+    /** Topology version. */
+    private long topVer;
+
     /**
      * Empty constructor required for {@link Externalizable}.
      */
@@ -46,13 +49,14 @@ public class GridNearTxPrepareRequest<K, V> extends GridDistributedTxPrepareRequ
 
     /**
      * @param futId Future ID.
+     * @param topVer Topology version.
      * @param tx Transaction.
      * @param reads Read entries.
      * @param writes Write entries.
      * @param syncCommit Synchronous commit.
      * @param syncRollback Synchronous rollback.
      */
-    public GridNearTxPrepareRequest(GridUuid futId, GridCacheTxEx<K, V> tx,
+    public GridNearTxPrepareRequest(GridUuid futId, long topVer, GridCacheTxEx<K, V> tx,
         Collection<GridCacheTxEntry<K, V>> reads, Collection<GridCacheTxEntry<K, V>> writes,
         boolean syncCommit, boolean syncRollback) {
         super(tx, reads, writes);
@@ -60,6 +64,7 @@ public class GridNearTxPrepareRequest<K, V> extends GridDistributedTxPrepareRequ
         assert futId != null;
 
         this.futId = futId;
+        this.topVer = topVer;
         this.syncCommit = syncCommit;
         this.syncRollback = syncRollback;
     }
@@ -100,6 +105,13 @@ public class GridNearTxPrepareRequest<K, V> extends GridDistributedTxPrepareRequ
     }
 
     /**
+     * @return Topology version.
+     */
+    public long topologyVersion() {
+        return topVer;
+    }
+
+    /**
      * @param ctx Cache context.
      */
     void cloneEntries(GridCacheContext<K, V> ctx) {
@@ -135,6 +147,7 @@ public class GridNearTxPrepareRequest<K, V> extends GridDistributedTxPrepareRequ
         U.writeGridUuid(out, futId);
         U.writeGridUuid(out, miniId);
 
+        out.writeLong(topVer);
         out.writeBoolean(syncCommit);
         out.writeBoolean(syncRollback);
     }
@@ -149,6 +162,7 @@ public class GridNearTxPrepareRequest<K, V> extends GridDistributedTxPrepareRequ
         assert futId != null;
         assert miniId != null;
 
+        topVer = in.readLong();
         syncCommit = in.readBoolean();
         syncRollback = in.readBoolean();
     }

@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -24,8 +24,8 @@ import java.util.*;
 /**
  * Replicated cache entry.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 @SuppressWarnings({"TooBroadScope"}) public class GridDhtCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     /** Gets node value from reader ID. */
@@ -37,13 +37,10 @@ import java.util.*;
 
     /** Reader clients. */
     @GridToStringInclude
-    private volatile List<ReaderId> readers = Collections.emptyList();
+    private volatile List<ReaderId<K, V>> readers = Collections.emptyList();
 
     /** Local partition. */
     private final GridDhtLocalPartition<K, V> locPart;
-
-    /** Transactions future for added readers. */
-    private volatile GridCacheMultiTxFuture<K, V> txFut;
 
     /**
      * @param ctx Cache context.
@@ -61,6 +58,11 @@ import java.util.*;
 
         // Record this entry with partition.
         locPart = ctx.dht().topology().onAdded(topVer, this);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isDht() {
+        return true;
     }
 
     /** {@inheritDoc} */
@@ -249,8 +251,8 @@ import java.util.*;
      * @param nodeId Node ID.
      * @return reader ID.
      */
-    @Nullable private ReaderId readerId(UUID nodeId) {
-        for (ReaderId reader : readers)
+    @Nullable private ReaderId<K, V> readerId(UUID nodeId) {
+        for (ReaderId<K, V> reader : readers)
             if (reader.nodeId().equals(nodeId))
                 return reader;
 
@@ -271,8 +273,15 @@ import java.util.*;
 
         GridNode node = cctx.discovery().node(nodeId);
 
+        if (node == null) {
+            if (log.isDebugEnabled())
+                log.debug("Ignoring near reader because node left the grid: " + nodeId);
+
+            return null;
+        }
+
         // If remote node has no near cache, don't add it.
-        if (node == null || !U.hasNearCache(node, cctx.dht().near().name())) {
+        if (!U.hasNearCache(node, cctx.dht().near().name()) && !(key instanceof GridCacheInternal)) {
             if (log.isDebugEnabled())
                 log.debug("Ignoring near reader because near cache is disabled: " + nodeId);
 
@@ -289,32 +298,34 @@ import java.util.*;
 
         Collection<GridCacheMvccCandidate<K>> cands = null;
 
+        ReaderId<K, V> reader;
+
         lock();
 
         try {
             checkObsolete();
 
-            txFut = this.txFut;
-
-            ReaderId reader = readerId(nodeId);
+            reader = readerId(nodeId);
 
             if (reader == null) {
-                reader = new ReaderId(nodeId, msgId);
+                reader = new ReaderId<K, V>(nodeId, msgId);
 
-                readers = new LinkedList<ReaderId>(readers);
+                readers = new LinkedList<ReaderId<K, V>>(readers);
 
                 readers.add(reader);
 
                 // Seal.
                 readers = Collections.unmodifiableList(readers);
 
-                txFut = this.txFut = new GridCacheMultiTxFuture<K, V>(cctx);
+                txFut = reader.getOrCreateTxFuture(cctx);
 
                 cands = localCandidates();
 
                 ret = true;
             }
             else {
+                txFut = reader.txFuture();
+
                 long id = reader.messageId();
 
                 if (id < msgId)
@@ -343,13 +354,15 @@ import java.util.*;
             txFut.init();
 
             if (!txFut.isDone()) {
+                final ReaderId<K, V> reader0 = reader;
+
                 txFut.listenAsync(new CI1<GridFuture<?>>() {
                     @Override public void apply(GridFuture<?> f) {
                         lock();
 
                         try {
                             // Release memory.
-                            GridDhtCacheEntry.this.txFut = null;
+                            reader0.resetTxFuture();
                         }
                         finally {
                             unlock();
@@ -357,9 +370,19 @@ import java.util.*;
                     }
                 });
             }
-            else
-                // Release memory.
-                txFut = this.txFut = null;
+            else {
+                lock();
+
+                try {
+                    // Release memory.
+                    reader.resetTxFuture();
+                }
+                finally {
+                    unlock();
+                }
+
+                txFut = null;
+            }
         }
 
         return txFut;
@@ -382,7 +405,7 @@ import java.util.*;
             if (reader == null || reader.messageId() > msgId)
                 return false;
 
-            readers = new LinkedList<ReaderId>(readers);
+            readers = new LinkedList<ReaderId<K, V>>(readers);
 
             readers.remove(reader);
 
@@ -414,7 +437,7 @@ import java.util.*;
      * @return Collection of readers after check.
      * @throws GridCacheEntryRemovedException If removed.
      */
-    public Collection<ReaderId> checkReaders() throws GridCacheEntryRemovedException {
+    public Collection<ReaderId<K, V>> checkReaders() throws GridCacheEntryRemovedException {
         lock();
 
         try {
@@ -433,7 +456,7 @@ import java.util.*;
                 }
 
                 if (rmv != null) {
-                    readers = new LinkedList<ReaderId>(readers);
+                    readers = new LinkedList<ReaderId<K, V>>(readers);
 
                     for (ReaderId rdr : rmv)
                         readers.remove(rdr);
@@ -515,12 +538,15 @@ import java.util.*;
     /**
      * Reader ID.
      */
-    private static class ReaderId {
+    private static class ReaderId<K, V> {
         /** Node ID. */
         private UUID nodeId;
 
         /** Message ID. */
         private long msgId;
+
+        /** Transaction future. */
+        private GridCacheMultiTxFuture<K, V> txFut;
 
         /**
          * @param nodeId Node ID.
@@ -550,6 +576,37 @@ import java.util.*;
          */
         void messageId(long msgId) {
             this.msgId = msgId;
+        }
+
+        /**
+         * @param cctx Cache context.
+         * @return Transaction future.
+         */
+        GridCacheMultiTxFuture<K, V> getOrCreateTxFuture(GridCacheContext<K, V> cctx) {
+            if (txFut == null)
+                txFut = new GridCacheMultiTxFuture<K, V>(cctx);
+
+            return txFut;
+        }
+
+        /**
+         * @return Transaction future.
+         */
+        GridCacheMultiTxFuture<K, V> txFuture() {
+            return txFut;
+        }
+
+        /**
+         * Sets multi-transaction future to {@code null}.
+         *
+         * @return Previous transaction future.
+         */
+        GridCacheMultiTxFuture<K, V> resetTxFuture() {
+            GridCacheMultiTxFuture<K, V> txFut = this.txFut;
+
+            this.txFut = null;
+
+            return txFut;
         }
 
         /** {@inheritDoc} */

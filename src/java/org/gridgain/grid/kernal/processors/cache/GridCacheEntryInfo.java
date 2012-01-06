@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -21,8 +21,8 @@ import java.io.*;
 /**
  * Entry information that gets passed over wire.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridCacheEntryInfo<K, V> implements Externalizable {
     /** Cache key. */
@@ -43,7 +43,6 @@ public class GridCacheEntryInfo<K, V> implements Externalizable {
     private long ttl;
 
     /** Expiration time. */
-    @GridToStringInclude
     private long expireTime;
 
     /** Entry version. */
@@ -51,6 +50,9 @@ public class GridCacheEntryInfo<K, V> implements Externalizable {
 
     /** Metrics. */
     private GridCacheMetricsAdapter metrics;
+
+    /** New flag. */
+    private boolean isNew;
 
     /**
      * @param key Entry key.
@@ -165,6 +167,20 @@ public class GridCacheEntryInfo<K, V> implements Externalizable {
     }
 
     /**
+     * @return New flag.
+     */
+    public boolean isNew() {
+        return isNew;
+    }
+
+    /**
+     * @param isNew New flag.
+     */
+    public void setNew(boolean isNew) {
+        this.isNew = isNew;
+    }
+
+    /**
      * @param ctx Cache context.
      * @throws GridException In case of error.
      */
@@ -244,6 +260,7 @@ public class GridCacheEntryInfo<K, V> implements Externalizable {
     /** {@inheritDoc} */
     @Override public String toString() {
         return S.toString(GridCacheEntryInfo.class, this,
+            "isNull", val == null,
             "keyBytesSize", (keyBytes == null ? "null" : Integer.toString(keyBytes.length)),
             "valBytesSize", (valBytes == null ? "null" : Integer.toString(valBytes.length)));
     }

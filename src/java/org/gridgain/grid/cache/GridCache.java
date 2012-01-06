@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -61,8 +61,8 @@ import java.util.*;
  * User can also relax this annotation and can manually ensure that nodes are started sequentially (not concurrently).
  * To do that, {@link GridSystemProperties#GG_NO_DISCO_ORDER} must be provided at startup.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  * @param <K> Cache key type.
  * @param <V> Cache value type.
  */
@@ -531,5 +531,5 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * @param global If {@code true} then GC procedure will start on all nodes having this cache.
      * @param removeLocks If {@code false} then DGC does not remove locks, just report them to log.
      */
-    public void dgc(int suspectLockTimeout, boolean global, boolean removeLocks);
+    public void dgc(long suspectLockTimeout, boolean global, boolean removeLocks);
 }

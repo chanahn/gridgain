@@ -6,8 +6,8 @@ import org.gridgain.grid.util.mbean.*;
 /**
  * MBean provide access to TCP-based communication SPI.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 @GridMBeanDescription("MBean provide access to TCP-based communication SPI.")
 public interface GridTcpCommunicationSpiMBean extends GridSpiManagementMBean {
@@ -131,6 +131,24 @@ public interface GridTcpCommunicationSpiMBean extends GridSpiManagementMBean {
     public boolean isDirectBuffer();
 
     /**
+     * Gets maximum count of simultaneously open TCP clients
+     * for one remote node.
+     *
+     * @return Maximum count of open TCP clients per node.
+     */
+    @GridMBeanDescription("Maximum count of simultaneously open clients for one remote node.")
+    public int getMaxOpenClients();
+
+    /**
+     * Gets count of selectors used in TCP server. Default value equals to the
+     * number of CPUs available in the system.
+     *
+     * @return Count of selectors in TCP server.
+     */
+    @GridMBeanDescription("Count of selectors used in TCP server.")
+    public int getSelectorsCount();
+
+    /**
      * Gets number of threads used for handling NIO messages.
      *
      * @return Number of threads used for handling NIO messages.
@@ -175,6 +193,15 @@ public interface GridTcpCommunicationSpiMBean extends GridSpiManagementMBean {
      *
      * @return Port resolver for ports mapping determination.
      */
-    @GridMBeanDescription("Port resolver for ports mapping determination..")
+    @GridMBeanDescription("Port resolver for ports mapping determination.")
     public GridSpiPortResolver getSpiPortResolver();
+
+    /**
+     * Gets connect timeout used when establishing connection
+     * with remote nodes.
+     *
+     * @return Connect timeout.
+     */
+    @GridMBeanDescription("Connect timeout.")
+    public int getConnectTimeout();
 }

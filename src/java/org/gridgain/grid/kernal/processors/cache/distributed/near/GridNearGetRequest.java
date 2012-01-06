@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -24,8 +24,8 @@ import java.util.*;
 /**
  * Get request.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
     implements GridCacheDeployable, GridCacheVersionable {
@@ -52,6 +52,9 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
     /** Filter bytes. */
     private byte[][] filterBytes;
 
+    /** Topology version. */
+    private long topVer;
+
     /** Filters. */
     private GridPredicate<? super GridCacheEntry<K, V>>[] filter;
 
@@ -68,10 +71,11 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
      * @param ver Version.
      * @param keys Keys.
      * @param reload Reload flag.
+     * @param topVer Topology version.
      * @param filter Filter.
      */
     public GridNearGetRequest(GridUuid futId, GridUuid miniId, GridCacheVersion ver, Collection<K> keys,
-        boolean reload, GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
+        boolean reload, long topVer, GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
         assert futId != null;
         assert miniId != null;
         assert ver != null;
@@ -82,6 +86,7 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
         this.ver = ver;
         this.keys = keys;
         this.reload = reload;
+        this.topVer = topVer;
         this.filter = filter;
     }
 
@@ -116,6 +121,13 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
      */
     public boolean reload() {
         return reload;
+    }
+
+    /**
+     * @return Topology version.
+     */
+    public long topologyVersion() {
+        return topVer;
     }
 
     /**
@@ -166,6 +178,7 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
         assert ver != null;
 
         out.writeBoolean(reload);
+        out.writeLong(topVer);
 
         U.writeGridUuid(out, futId);
         U.writeGridUuid(out, miniId);
@@ -183,6 +196,7 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
         super.readExternal(in);
 
         reload = in.readBoolean();
+        topVer = in.readLong();
 
         futId = U.readGridUuid(in);
         miniId = U.readGridUuid(in);

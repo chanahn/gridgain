@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -14,8 +14,8 @@ import org.gridgain.grid.typedef.internal.*;
 /**
  * Per-thread cache of {@link StringBuilder} instances.
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public final class GridStringBuilderFactory {
     /** Cache string builders per thread for better performance. */
@@ -55,8 +55,8 @@ public final class GridStringBuilderFactory {
     /**
      * Cached builder.
      *
-     * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
-     * @version 3.5.1c.18112011
+     * @author 2012 Copyright (C) GridGain Systems
+     * @version 3.6.0c.06012012
      */
     private static class CachedBuilder {
         /** Cached builder. */

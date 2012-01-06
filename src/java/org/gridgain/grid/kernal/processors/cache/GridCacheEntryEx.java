@@ -1,4 +1,4 @@
-// Copyright (C) GridGain Systems, Inc. Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+// Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
 
 /*  _________        _____ __________________        _____
  *  __  ____/___________(_)______  /__  ____/______ ____(_)_______
@@ -22,10 +22,30 @@ import java.util.*;
 /**
  * Internal API for cache entry ({@code 'Ex'} stands for extended).
  *
- * @author 2005-2011 Copyright (C) GridGain Systems, Inc.
- * @version 3.5.1c.18112011
+ * @author 2012 Copyright (C) GridGain Systems
+ * @version 3.6.0c.06012012
  */
 public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
+    /**
+     * @return {@code True} if DHT.
+     */
+    public boolean isDht();
+
+    /**
+     * @return {@code True} if near.
+     */
+    public boolean isNear();
+
+    /**
+     * @return {@code True} if replicated.
+     */
+    public boolean isReplicated();
+
+    /**
+     * @return {@code True} if local.
+     */
+    public boolean isLocal();
+
     /**
      * @return Context.
      */
@@ -205,7 +225,8 @@ public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
      * @param ttl Time to live.
      * @param evt Flag to signal event notification.
      * @param filter Filter.
-     * @return Cached value.
+     * @return Tuple containing success flag and old value. If success is {@code false},
+     *      then value is {@code null}.
      * @throws GridException If storing value failed.
      * @throws GridCacheEntryRemovedException If entry has been removed.
      */
@@ -215,13 +236,14 @@ public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
         throws GridException, GridCacheEntryRemovedException;
 
     /**
-     * @return Old value.
      * @param tx Cache transaction.
      * @param evtNodeId ID of node responsible for this change.
      * @param affNodeId Partitioned node iD.
      * @param writeThrough If {@code true}, persist to the storage.
      * @param evt Flag to signal event notification.
      * @param filter Filter.
+     * @return Tuple containing success flag and old value. If success is {@code false},
+     *      then value is {@code null}.
      * @throws GridException If remove failed.
      * @throws GridCacheEntryRemovedException If entry has been removed.
      */
