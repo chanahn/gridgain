@@ -1,4 +1,4 @@
-GridGain - Real Time Big Data Test
+GridGain - Real Time Big Data
 =============================
 Nikita Ivanov <nivanov@gridgain.com>
 :Author Initials: NI
