@@ -20,7 +20,7 @@ import java.util.*;
  * rather calls manager that further delegate the apply to specific SPI module.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @GridToStringExclude
 public interface GridManager extends GridComponent {

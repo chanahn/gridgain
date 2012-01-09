@@ -16,14 +16,14 @@ import org.gridgain.grid.lang.*;
  * Eviction filter to specify which entries should not be evicted
  * (except explicit evict by calling {@link GridCacheEntry#evict(GridPredicate[])}).
  * If {@link #evictAllowed(GridCacheEntry)} method returns {@code false} then eviction
- * policy will not be notified.
+ * policy will not be notified and entry will never be evicted.
  * <p>
  * Eviction filter can be configured via {@link GridCacheConfiguration#getEvictionFilter()}
  * configuration property. Default value is {@code null} which means that all
  * cache entries will be tracked by eviction policy.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public interface GridCacheEvictionFilter<K, V> {
     /**

@@ -21,7 +21,7 @@ import java.util.*;
  * This class defines externalizable job execution request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
     /** */

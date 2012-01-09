@@ -19,7 +19,7 @@ import java.util.concurrent.*;
  * callback.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @param <R> Type of the result for the future.
  */
 public interface GridFuture<R> extends GridMetadataAware, Callable<R> {

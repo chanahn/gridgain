@@ -41,7 +41,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Grid communication manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
     /** */
@@ -1746,7 +1746,7 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
      * This class represents a pair of listener and its corresponding message p.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.06012012
+     * @version 3.6.0c.09012012
      */
     @SuppressWarnings("deprecation")
     private class GridFilteredMessageListener implements GridMessageListener {
@@ -1798,7 +1798,7 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
      * This class represents a message listener wrapper that knows about peer deployment.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.06012012
+     * @version 3.6.0c.09012012
      */
     @SuppressWarnings("deprecation")
     private class GridUserMessageListener implements GridMessageListener {
@@ -1894,7 +1894,7 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
      * Ordered communication message set.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.06012012
+     * @version 3.6.0c.09012012
      */
     private class GridCommunicationMessageSet implements GridTimeoutObject {
         /** */

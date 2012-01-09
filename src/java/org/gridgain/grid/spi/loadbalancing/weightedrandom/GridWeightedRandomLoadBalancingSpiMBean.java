@@ -16,7 +16,7 @@ import org.gridgain.grid.util.mbean.*;
  * Management MBean for {@link GridWeightedRandomLoadBalancingSpi} SPI.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @GridMBeanDescription("MBean that provides access to weighted random load balancing SPI configuration.")
 public interface GridWeightedRandomLoadBalancingSpiMBean extends GridSpiManagementMBean {

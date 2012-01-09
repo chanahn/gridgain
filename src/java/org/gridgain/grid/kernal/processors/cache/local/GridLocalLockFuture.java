@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.*;
  * Cache lock future.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
     implements GridCacheMvccFuture<K, V, Boolean> {

@@ -30,7 +30,7 @@ import static org.gridgain.grid.GridFactoryState.STARTED;
  * {@code gridified} methods.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @see Gridify
  */
 @Aspect(scope = Scope.PER_VM)

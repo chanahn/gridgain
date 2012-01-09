@@ -9,7 +9,7 @@ import java.util.*;
  * This class is an extension of {@link ObjectInputStream} compatible with {@link GridOptimizedObjectOutput}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class GridOptimizedObjectInput extends ObjectInputStream {
     /** */

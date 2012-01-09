@@ -15,6 +15,6 @@ package org.gridgain.scalar
  * Contains Scala "Pimp" implementations for main GridGain entities.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 package object pimps

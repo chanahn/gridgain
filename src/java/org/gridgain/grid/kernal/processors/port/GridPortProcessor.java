@@ -20,7 +20,7 @@ import java.util.*;
  * Registers and deregisters all ports used by SPI and Manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridPortProcessor extends GridProcessorAdapter {
     /** Collection of records about ports use. */

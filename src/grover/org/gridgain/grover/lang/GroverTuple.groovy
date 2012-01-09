@@ -15,7 +15,7 @@ package org.gridgain.grover.lang
  * Convenient tuple.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @Typed
 class GroverTuple<V1, V2> {

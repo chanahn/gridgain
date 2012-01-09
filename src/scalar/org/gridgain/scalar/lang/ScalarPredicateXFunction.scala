@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.GridPredicateX
  * Wrapping Scala function for `GridPredicateX`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class ScalarPredicateXFunction[T](val inner: GridPredicateX[T]) extends (T => Boolean) {
     assert(inner != null)

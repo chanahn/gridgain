@@ -17,7 +17,7 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * This example calculates Pi number in parallel on the grid.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public final class GridPiCalculationExample {
     /** Number of calculation per node. */

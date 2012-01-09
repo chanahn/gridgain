@@ -149,14 +149,14 @@ import static org.gridgain.grid.spi.discovery.tcp.topologystore.GridTcpDiscovery
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @see GridDiscoverySpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.6.0c.06012012")
+    version = "3.6.0c.09012012")
 @GridSpiMultipleInstancesSupport(true)
 @GridDiscoverySpiOrderSupport(true)
 @GridDiscoverySpiReconnectSupport(true)
@@ -188,8 +188,8 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
     /** Default max heartbeats count node can miss without initiating status check (value is <tt>1</tt>). */
     public static final int DFLT_MAX_MISSED_HEARTBEATS = 1;
 
-    /** Default value for thread priority (value is <tt>7</tt>). */
-    public static final int DFLT_THREAD_PRI = 7;
+    /** Default value for thread priority (value is <tt>10</tt>). */
+    public static final int DFLT_THREAD_PRI = 10;
 
     /** Default stores (IP finder clean and metrics store) frequency in milliseconds (value is <tt>60000</tt>). */
     public static final long DFLT_STORES_CLEAN_FREQ = 60 * 1000;
@@ -765,7 +765,9 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
     @Nullable @Override public GridNode getNode(UUID nodeId) {
         assert nodeId != null;
 
-        if (locNodeId.equals(nodeId))
+        UUID locNodeId0 = locNodeId;
+
+        if (locNodeId0 != null && locNodeId0.equals(nodeId))
             // Return local node directly.
             return locNode;
 
@@ -3954,8 +3956,6 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
 
                     synchronized (mux) {
                         readers.add(reader);
-
-                        reader.setPriority(threadPri);
 
                         reader.start();
                     }

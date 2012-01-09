@@ -21,7 +21,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Special kill task that never fails over jobs.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class GridKillTask extends GridTaskNoReduceAdapter<Object> {
     /** Restart flag. */
@@ -65,7 +65,7 @@ class GridKillTask extends GridTaskNoReduceAdapter<Object> {
      * Kill job.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.06012012
+     * @version 3.6.0c.09012012
      */
     private class GridKillJob extends GridJobAdapterEx {
         /** {@inheritDoc} */

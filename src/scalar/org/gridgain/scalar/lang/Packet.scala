@@ -15,6 +15,6 @@ package org.gridgain.scalar
  * Contains Scala side adapters for implicits conversion.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 package object lang

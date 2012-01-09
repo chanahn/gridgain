@@ -26,7 +26,7 @@ import java.util.*;
  * Adapter for transforming cache queries.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridCacheTransformQueryAdapter<K, V, T> extends GridCacheQueryBaseAdapter<K, V>
     implements GridCacheTransformQuery<K, V, T> {

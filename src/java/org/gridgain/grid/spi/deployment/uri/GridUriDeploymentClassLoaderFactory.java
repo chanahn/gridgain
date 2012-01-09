@@ -25,7 +25,7 @@ import java.util.*;
  * directory.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class GridUriDeploymentClassLoaderFactory {
     /** Libraries directory default value (value is {@code lib}). */

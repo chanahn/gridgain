@@ -17,6 +17,6 @@ import org.gridgain.grid.kernal.*;
  * use only and meant to provide for more terse code when readability of code is not compromised.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public interface GPC<T> extends GridPlainCallable<T> { /* No-op. */ }

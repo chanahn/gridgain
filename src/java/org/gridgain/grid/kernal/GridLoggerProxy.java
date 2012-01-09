@@ -22,7 +22,7 @@ import static org.gridgain.grid.GridSystemProperties.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridLoggerProxy extends GridMetadataAwareAdapter implements GridLogger, Externalizable {
     /** Global flag to enable/disable GridGain debug logging. */

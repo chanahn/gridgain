@@ -62,7 +62,7 @@ import java.util.*;
  * To do that, {@link GridSystemProperties#GG_NO_DISCO_ORDER} must be provided at startup.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @param <K> Cache key type.
  * @param <V> Cache value type.
  */

@@ -19,7 +19,7 @@ import collection._
  * Peer deploy aware adapter for Java's `GridReducer2`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class ScalarReducer2[E1, E2, R](private val r: (Seq[E1], Seq[E2]) => R) extends GridReducer2[E1, E2, R] {
     assert(r != null)

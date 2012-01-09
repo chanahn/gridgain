@@ -18,7 +18,7 @@ import java.lang.reflect.*;
  * Bean contains {@link Field} and {@link Annotation} for that class field.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class GridResourceField {
     /** Field where resource should be injected. */

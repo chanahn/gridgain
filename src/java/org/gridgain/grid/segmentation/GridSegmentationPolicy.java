@@ -16,7 +16,7 @@ import org.gridgain.grid.loaders.cmdline.*;
  * Policy that defines how node will react on topology segmentation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @see GridSegmentationResolver
  */
 public enum GridSegmentationPolicy {

@@ -19,7 +19,7 @@ import java.util.*;
  * GridGain license version 1 bean.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @XmlRootElement(name = "gridgain-license")
 @XmlAccessorType(XmlAccessType.NONE)

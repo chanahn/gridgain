@@ -17,7 +17,7 @@ import java.util.*;
  * Management bean for {@link GridUriDeploymentSpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @GridMBeanDescription("MBean that provides access to URI deployment SPI configuration.")
 public interface GridUriDeploymentSpiMBean extends GridSpiManagementMBean {

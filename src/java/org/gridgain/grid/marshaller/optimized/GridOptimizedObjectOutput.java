@@ -11,7 +11,7 @@ import java.util.*;
  * It performs optimization. It considers {@link GridMarshallerExclusions}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class GridOptimizedObjectOutput extends ObjectOutputStream {
     /** Whether or not to require an object to be serializable in order to be serialized. */

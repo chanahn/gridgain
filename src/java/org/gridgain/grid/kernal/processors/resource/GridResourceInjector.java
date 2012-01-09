@@ -17,7 +17,7 @@ import org.gridgain.grid.kernal.managers.deployment.*;
  * should be injected for selected target objects.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 interface GridResourceInjector {
     /**

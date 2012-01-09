@@ -27,7 +27,7 @@ import java.util.*;
  * about every change.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridUriDeploymentFileScanner extends GridUriDeploymentScanner {
     /** Scanning directory or file. */

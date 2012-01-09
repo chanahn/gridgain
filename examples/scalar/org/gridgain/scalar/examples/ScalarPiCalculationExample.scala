@@ -20,7 +20,7 @@ import org.gridgain.grid.Grid
   * This example calculates Pi number in parallel on the grid.
   *
   * @author 2012 Copyright (C) GridGain Systems
-  * @version 3.6.0c.06012012
+  * @version 3.6.0c.09012012
   */
 object ScalarPiCalculationExample {
     /** Number of calculations per node. */

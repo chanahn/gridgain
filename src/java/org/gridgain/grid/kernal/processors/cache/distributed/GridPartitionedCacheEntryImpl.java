@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * Partitioned cache entry public API.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridPartitionedCacheEntryImpl<K, V> extends GridCacheEntryImpl<K, V> {
     /**

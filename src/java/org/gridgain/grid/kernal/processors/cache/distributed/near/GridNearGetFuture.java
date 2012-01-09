@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.*;
  *
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Map<K, V>>
     implements GridCacheFuture<Map<K, V>> {
@@ -336,7 +336,8 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
 
                     if (keys != null && keys.contains(key)) {
                         onDone(new GridException("Failed to remap key to a new node (key got remapped to the " +
-                            "same node) [key=" + key + ", node=" + U.toShortString(node) + ']'));
+                            "same node) [key=" + key + ", node=" + U.toShortString(node) + ", mappings=" +
+                            mapped + ']'));
 
                         return;
                     }

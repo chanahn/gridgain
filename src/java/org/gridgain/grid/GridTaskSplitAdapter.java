@@ -54,7 +54,7 @@ import java.util.*;
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @param <T> Type of the task execution argument.
  * @param <R> Type of the task result returning from {@link GridTask#reduce(List)} method.
  */

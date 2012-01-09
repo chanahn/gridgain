@@ -89,7 +89,7 @@ import java.util.*;
  * No explicit deployment step is required.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @param <K> Key type.
  * @param <V> Value type.
  */

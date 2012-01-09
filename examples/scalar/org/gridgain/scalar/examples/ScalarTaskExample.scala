@@ -23,7 +23,7 @@ import collection.JavaConversions._
  * As a trade off in such cases the more code needs to be written vs. simple closure execution.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 object ScalarTaskExample {
     /**

@@ -13,7 +13,7 @@ package org.gridgain.grid.kernal.controllers.license;
  * GridGain license type.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @SuppressWarnings({"UnusedDeclaration"})
 public enum GridLicenseType {

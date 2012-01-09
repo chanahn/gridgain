@@ -20,7 +20,7 @@ import java.util.*;
  * separate words and printing them on the remote nodes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridifySplitHelloWorldTask extends GridifyTaskSplitAdapter<Object> {
     /** {@inheritDoc} */

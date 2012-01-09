@@ -41,7 +41,7 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * and populating local cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @SuppressWarnings( {"NonConstantFieldWithUpperCaseName"})
 public class GridDhtPartitionDemandPool<K, V> {
@@ -1146,6 +1146,9 @@ public class GridDhtPartitionDemandPool<K, V> {
             int partCnt = cctx.partitions();
 
             GridRichNode loc = cctx.localNode();
+
+            assert exchFut.exchangeId().topologyVersion() == top.topologyVersion() :
+                "Topology version mismatch [exchId=" + exchFut.exchangeId() + ", topVer=" + top.topologyVersion() + ']';
 
             Assignments assigns = new Assignments(exchFut, top.topologyVersion());
 

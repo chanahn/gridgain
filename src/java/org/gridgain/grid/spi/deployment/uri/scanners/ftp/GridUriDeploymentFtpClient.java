@@ -20,7 +20,7 @@ import java.util.*;
  * TODO: add file description.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class GridUriDeploymentFtpClient {
     /** Timeout in milliseconds on the underlying socket. */

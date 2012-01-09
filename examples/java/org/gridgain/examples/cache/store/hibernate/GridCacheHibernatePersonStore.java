@@ -25,7 +25,7 @@ import java.util.*;
  * and deals with maps {@link UUID} to {@link Person}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridCacheHibernatePersonStore extends GridCacheStoreAdapter<UUID, Person> {
     /** Default hibernate configuration resource path. */

@@ -21,7 +21,7 @@ import static org.gridgain.grid.GridClosureCallMode.UNICAST
  * two nodes. It is analogous to {@code GridMessagingPingPongExample} on Java side.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @Typed
 class GroverPingPongExample {

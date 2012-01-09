@@ -16,7 +16,7 @@ import java.io.*;
  * Serializable mutex.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @SuppressWarnings( {"CloneDoesntDeclareCloneNotSupportedException"})
 public class GridMutex implements Externalizable, Cloneable {

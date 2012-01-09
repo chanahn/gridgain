@@ -16,7 +16,7 @@ import java.io.*;
  * files/directories and handles them by calling given handler.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public final class GridDeploymentFolderScannerHelper {
     /**

@@ -20,7 +20,7 @@ import java.io.*;
  *  {@link GridCacheTransformQuery}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public interface GridCacheQueryBase<K, V> extends GridMetadataAware, Closeable {
     /** Default query page size. */

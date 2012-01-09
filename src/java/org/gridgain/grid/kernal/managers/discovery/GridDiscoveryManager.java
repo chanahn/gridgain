@@ -39,7 +39,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * Discovery SPI manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     /** System line separator. */
@@ -517,7 +517,13 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     public boolean alive(UUID nodeId) {
         assert nodeId != null;
 
-        return node(nodeId) != null;
+        boolean alive = getSpi().getNode(nodeId) != null; // Go directly to SPI without checking disco cache.
+
+        // Refresh disco cache if some node died.
+        if (!alive)
+            discoCache.set(null);
+
+        return alive;
     }
 
     /**

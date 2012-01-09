@@ -16,7 +16,7 @@ import org.gridgain.grid.typedef.internal.*;
  * JUnit 3 serializable test case.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class GridJunit3SerializableTestCase implements GridJunit3SerializableTest {
     /** */

@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.GridReducer
  * Wrapping Scala function for `GridReducer`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class ScalarReducerFunction[E1, R](val inner: GridReducer[E1, R]) extends (Seq[E1] => R) {
     assert(inner != null)

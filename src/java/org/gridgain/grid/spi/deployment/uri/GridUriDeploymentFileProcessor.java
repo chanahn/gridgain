@@ -29,7 +29,7 @@ import static org.gridgain.grid.spi.deployment.uri.GridUriDeploymentSpi.*;
  * Provides useful and common functions for URI deployment.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 final class GridUriDeploymentFileProcessor {
     /**

@@ -32,7 +32,7 @@ import static org.gridgain.grid.util.GridConcurrentFactory.*;
  * DHT cache preloader.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
     /** Exchange history size. */

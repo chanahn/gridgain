@@ -21,7 +21,7 @@ import java.util.*;
  * {@link org.gridgain.grid.util.worker.GridWorker} thread.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridThreadLocalEx<T> extends ThreadLocal<T> {
     /** Thread context for non-worker threads. */

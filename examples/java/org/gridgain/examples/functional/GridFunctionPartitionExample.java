@@ -17,7 +17,7 @@ import java.util.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridFunctionPartitionExample {
     /**
@@ -73,7 +73,7 @@ public class GridFunctionPartitionExample {
      * This class represents a person information.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.06012012
+     * @version 3.6.0c.09012012
      */
     private static class Person {
         /** Person name. */

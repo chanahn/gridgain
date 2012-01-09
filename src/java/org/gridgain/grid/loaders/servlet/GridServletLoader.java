@@ -103,7 +103,7 @@ import java.util.*;
  * <a target=wiki href="http://www.gridgainsystems.com:8080/wiki/display/GG15UG/Configuration+And+Startup">GridGain Configuration And Startup</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @GridLoader(description = "Servlet loader")
 public class GridServletLoader extends HttpServlet {

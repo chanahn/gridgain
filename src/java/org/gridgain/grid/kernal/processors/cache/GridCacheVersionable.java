@@ -13,7 +13,7 @@ package org.gridgain.grid.kernal.processors.cache;
  * Classes that are based on version may choose to implement this interface.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public interface GridCacheVersionable {
     /**

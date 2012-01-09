@@ -18,7 +18,7 @@ import java.util.*;
  * extra logic or state in addition to {@link AbstractCollection}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public abstract class GridSerializableCollection<E> extends AbstractCollection<E> implements Serializable {
     // No-op.

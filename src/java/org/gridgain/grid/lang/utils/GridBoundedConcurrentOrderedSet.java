@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.*;
  * Note that {@link #remove(Object)} method is not supported for this kind of set.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridBoundedConcurrentOrderedSet<E> extends GridConcurrentSkipListSet<E> {
     /** Element count. */

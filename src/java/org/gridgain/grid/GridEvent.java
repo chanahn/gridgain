@@ -46,7 +46,7 @@ import java.util.*;
  * event storage SPI if they are disabled in GridGain configuration.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @see GridJobEvent
  * @see GridCacheEvent
  * @see GridCachePreloadEvent

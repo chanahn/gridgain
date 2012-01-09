@@ -18,7 +18,7 @@ import java.util.*;
  * Demonstrates new functional APIs.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @see GridTaskExample4
  */
 public class GridClosureExample4 {

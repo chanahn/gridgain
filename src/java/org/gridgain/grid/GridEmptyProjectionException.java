@@ -16,7 +16,7 @@ import org.jetbrains.annotations.*;
  * that requires at least one node is called on empty projection.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridEmptyProjectionException extends GridException {
     /**

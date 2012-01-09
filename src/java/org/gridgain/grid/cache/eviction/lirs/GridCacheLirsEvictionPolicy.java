@@ -41,7 +41,7 @@ import static org.gridgain.grid.lang.utils.GridQueue.*;
  * algorithm by Sone Jiang and Xiaodong Zhang.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @SuppressWarnings({"MismatchedQueryAndUpdateOfCollection"})
 public class GridCacheLirsEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,

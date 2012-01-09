@@ -26,7 +26,7 @@ import java.util.*;
  * when this typedef <b>does not sacrifice</b> the code readability.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public final class X {
     /** Time span dividers. */

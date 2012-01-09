@@ -103,7 +103,7 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @see GridCommunicationSpi
  */
 @SuppressWarnings({"deprecation"}) @GridSpiInfo(
@@ -600,7 +600,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     private GridNioServer resetServer() throws GridException {
         int maxPort = localPort + localPortRange;
 
-        GridNioServerListener listener = new GridNioServerListener() {
+        GridNioServerListener lsnr = new GridNioServerListener() {
             /** Cached class loader. */
             private final ClassLoader clsLdr = getClass().getClassLoader();
 
@@ -629,7 +629,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
         if (boundTcpPort < 0)
             for (int port = localPort; port < maxPort; port++)
                 try {
-                    srvr = new GridNioServer(localHost, port, listener, log, nioExec, selectorsCnt, gridName,
+                    srvr = new GridNioServer(localHost, port, lsnr, log, nioExec, selectorsCnt, gridName,
                         directBuf, false);
 
                     boundTcpPort = port;
@@ -1169,28 +1169,24 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
         /**
          * Checks that pool was not closed, increments request counter and acquires semaphore.
+         * Note that semaphore is acquired uninterruptibly because message sending should proceed
+         * without any dependency on thread interrupted status.
          *
          * @return {@code True} if acquired semaphore, {@code false} if pool was closed.
-         * @throws GridInterruptedException If thread was interrupted while waiting for semaphore release.
          */
-        private boolean checkAcquireClient() throws GridInterruptedException {
-            try {
-                while (true) {
-                   int prev = clientsCnt.clientReservations();
+        private boolean checkAcquireClient() {
+            while (true) {
+               int prev = clientsCnt.clientReservations();
 
-                   // Pool was released and should not be used.
-                   if (prev == -1)
-                       return false;
+               // Pool was released and should not be used.
+               if (prev == -1)
+                   return false;
 
-                   if (clientsCnt.compareAndSetClientReservations(prev, prev + 1)) {
-                       semaphore.acquire();
+               if (clientsCnt.compareAndSetClientReservations(prev, prev + 1)) {
+                   semaphore.acquireUninterruptibly();
 
-                       return true;
-                   }
-                }
-            }
-            catch (InterruptedException e) {
-                throw new GridInterruptedException(e);
+                   return true;
+               }
             }
         }
 

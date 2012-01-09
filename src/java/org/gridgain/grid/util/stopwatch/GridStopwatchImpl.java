@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.*;
  * Accumulates execution statistics for named pieces of code.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @GridToStringExclude
 class GridStopwatchImpl implements GridStopwatch {

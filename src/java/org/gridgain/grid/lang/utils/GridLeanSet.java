@@ -19,7 +19,7 @@ import java.util.*;
  * documentation. See {@link GridLeanMap} for more information.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridLeanSet<E> extends GridSetWrapper<E> implements Cloneable {
     /**

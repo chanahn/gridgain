@@ -23,7 +23,7 @@ import java.util.*;
  * Lock request message.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridDistributedUnlockRequest<K, V> extends GridDistributedBaseMessage<K, V> {
     /** Keys to unlock. */

@@ -58,7 +58,7 @@ import org.jetbrains.annotations.*;
  * by default in "quiet" mode. Both scripts accept {@code -v} arguments to turn off "quiet" mode.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @GridToStringExclude
 public interface GridLogger extends GridMetadataAware {

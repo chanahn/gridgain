@@ -29,7 +29,7 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * Partition topology.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @GridToStringExclude
 class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, V> {
@@ -370,7 +370,6 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
 
                     GridDhtPartitionState state = locPart.state();
 
-                    // Don't do anything if this node is joining.
                     if (state == MOVING) {
                         if (cctx.preloadEnabled()) {
                             Collection<GridNode> owners = owners(p);
@@ -580,7 +579,8 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
 
             Collection<UUID> nodeIds = part2node.get(p);
 
-            int size = nodeIds.size();
+            // Node IDs can be null if both, primary and backup, nodes disappear.
+            int size = nodeIds == null ? 0 : nodeIds.size();
 
             if (size == 0)
                 return Collections.emptyList();
@@ -940,9 +940,11 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
             if (seq != updateSeq) {
                 if (seq > updateSeq) {
                     if (this.updateSeq.get() < seq) {
-                        boolean b = this.updateSeq.compareAndSet(updateSeq, seq + 1); // Update global counter if necessary.
+                        // Update global counter if necessary.
+                        boolean b = this.updateSeq.compareAndSet(this.updateSeq.get(), seq + 1);
 
-                        assert b : "Invalid update sequence: " + this;
+                        assert b : "Invalid update sequence [updateSeq=" + updateSeq + ", seq=" + seq +
+                            ", curUpdateSeq=" + this.updateSeq.get() + ", node2part=" + node2part.toFullString() + ']';
 
                         updateSeq = seq + 1;
                     }
@@ -1102,7 +1104,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
             if (node2part == null)
                 return;
 
-            for (Map.Entry<UUID, GridDhtPartitionMap> e : node2part.entrySet())
+            for (Map.Entry<UUID, GridDhtPartitionMap> e : node2part.entrySet()) {
                 for (Integer p : e.getValue().keySet()) {
                     Set<UUID> nodeIds = part2node.get(p);
 
@@ -1110,8 +1112,9 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
                     assert nodeIds.contains(e.getKey()) : "Failed consistency check [part=" + p + ", nodeId=" +
                         e.getKey() + ", nodeIds=" + nodeIds + ']';
                 }
+            }
 
-            for (Map.Entry<Integer, Set<UUID>> e : part2node.entrySet())
+            for (Map.Entry<Integer, Set<UUID>> e : part2node.entrySet()) {
                 for (UUID nodeId : e.getValue()) {
                     GridDhtPartitionMap map = node2part.get(nodeId);
 
@@ -1119,6 +1122,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
                     assert map.containsKey(e.getKey()) : "Failed consistency check [part=" + e.getKey() +
                         ", nodeId=" + nodeId + ']';
                 }
+            }
         }
     }
 }

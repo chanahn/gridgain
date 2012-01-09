@@ -16,7 +16,7 @@ import org.gridgain.grid.typedef.*;
  * Management bean that provides access to {@link GridFactory}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridFactoryMBeanAdapter implements GridFactoryMBean {
     /** {@inheritDoc} */

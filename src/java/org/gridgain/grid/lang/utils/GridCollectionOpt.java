@@ -17,7 +17,7 @@ import java.util.*;
  * which case it will act as an empty collection.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridCollectionOpt<T> extends GridSerializableCollection<T> {
     /** */

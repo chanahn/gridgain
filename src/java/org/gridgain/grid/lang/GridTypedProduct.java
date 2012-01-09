@@ -13,7 +13,7 @@ package org.gridgain.grid.lang;
  * Interface similar in purpose to Scala's {@code Product} trait.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public interface GridTypedProduct<T> extends Iterable<T> {
     /**

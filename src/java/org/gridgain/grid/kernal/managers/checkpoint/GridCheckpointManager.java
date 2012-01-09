@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.GridTopic.*;
  * This class defines a checkpoint manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter", "deprecation"})
 public class GridCheckpointManager extends GridManagerAdapter<GridCheckpointSpi> {

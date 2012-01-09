@@ -28,7 +28,7 @@ import java.util.*;
  * different from modification date new expiration date is set.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class GridSharedFsTimeoutTask extends GridSpiThread {
     /** Map of files to their access and expiration date. */

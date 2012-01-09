@@ -16,7 +16,7 @@ import org.jetbrains.annotations.*;
  * and their usage see {@link GridCacheQuery} documentation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @see GridCacheQuery
  */
 public enum GridCacheQueryType {

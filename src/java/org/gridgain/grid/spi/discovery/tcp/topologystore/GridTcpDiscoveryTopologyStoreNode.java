@@ -15,7 +15,7 @@ import java.util.*;
  * Node interface for topology store.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public interface GridTcpDiscoveryTopologyStoreNode {
     /**

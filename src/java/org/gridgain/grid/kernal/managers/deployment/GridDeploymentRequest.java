@@ -18,7 +18,7 @@ import java.io.*;
  * TODO: add file description.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class GridDeploymentRequest implements Externalizable {
     /** Response topic name. Response should be sent back to this topic. */

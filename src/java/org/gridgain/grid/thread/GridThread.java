@@ -29,7 +29,7 @@ import static org.gridgain.grid.GridSystemProperties.*;
  * <b>Note</b>: this class is intended for internal use only.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridThread extends Thread {
     /** Default thread's group. */

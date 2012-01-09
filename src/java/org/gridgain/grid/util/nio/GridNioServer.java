@@ -29,7 +29,7 @@ import java.util.concurrent.*;
  * NIO server with improved functionality. There can be several selectors and several reading threads.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridNioServer {
     /** Time, which server will wait before retry operation. */

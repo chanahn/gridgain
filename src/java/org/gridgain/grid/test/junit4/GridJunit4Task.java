@@ -17,7 +17,7 @@ import java.util.*;
  * JUnit4 task.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 /*@hide.from.javadoc*/public class GridJunit4Task extends GridTaskAdapter<GridJunit4Argument, Object> {
     /** Deploy class. */

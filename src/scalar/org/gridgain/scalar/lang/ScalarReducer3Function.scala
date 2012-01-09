@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.GridReducer3
  * Wrapping Scala function for `GridReducer3`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class ScalarReducer3Function[E1, E2, E3, R](val inner: GridReducer3[E1, E2, E3, R]) extends
     ((Seq[E1], Seq[E2], Seq[E3]) => R) {

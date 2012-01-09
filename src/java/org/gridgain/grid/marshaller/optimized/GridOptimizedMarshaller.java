@@ -81,7 +81,7 @@ import java.util.*;
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridOptimizedMarshaller implements GridMarshaller {
     /** Whether or not to require an object to be serializable in order to be marshalled. */

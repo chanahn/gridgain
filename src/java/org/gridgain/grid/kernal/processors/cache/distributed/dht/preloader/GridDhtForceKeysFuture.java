@@ -31,7 +31,7 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * Force keys request future.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public final class GridDhtForceKeysFuture<K, V> extends GridCompoundFuture<Object, Collection<K>>
     implements GridDhtFuture<Collection<K>> {

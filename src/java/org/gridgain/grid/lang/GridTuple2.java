@@ -26,7 +26,7 @@ import java.util.*;
  * synchronization, if needed.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @see GridFunc#t2()
  * @see GridFunc#t(Object, Object)
  */

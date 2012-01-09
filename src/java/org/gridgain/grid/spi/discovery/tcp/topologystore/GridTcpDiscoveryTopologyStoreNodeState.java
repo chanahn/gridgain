@@ -13,7 +13,7 @@ package org.gridgain.grid.spi.discovery.tcp.topologystore;
  * Node state to use in topology store.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public enum GridTcpDiscoveryTopologyStoreNodeState {
     /** Node is online. */

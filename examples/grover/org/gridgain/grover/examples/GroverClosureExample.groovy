@@ -20,7 +20,7 @@ import org.gridgain.grover.categories.*
  * Demonstrates various closure executions on the cloud using Grover.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @Typed
 @Use(GroverProjectionCategory)

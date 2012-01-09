@@ -18,7 +18,7 @@ import java.util.*;
  * @param <K> Map key.
  * @param <V> Map entry.
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridBoundedLinkedHashMap<K, V> extends LinkedHashMap<K, V> {
     /** Maximum map capacity. */

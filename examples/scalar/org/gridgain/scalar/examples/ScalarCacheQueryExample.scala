@@ -22,7 +22,7 @@ import java.util._
  * Demonstrates cache ad-hoc queries with Scalar.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 object ScalarCacheQueryExample {
     /** Cache name. */
@@ -156,7 +156,7 @@ object ScalarCacheQueryExample {
  * Organization class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 private case class Organization(
     @ScalarCacheQuerySqlField
@@ -171,7 +171,7 @@ private case class Organization(
  * Person class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 private case class Person(
     org: Organization,

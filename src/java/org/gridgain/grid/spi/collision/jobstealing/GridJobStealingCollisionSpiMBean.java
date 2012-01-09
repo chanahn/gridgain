@@ -19,7 +19,7 @@ import java.util.*;
  * Management MBean for job stealing based collision SPI.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 @GridMBeanDescription("MBean for job stealing based collision SPI.")
 public interface GridJobStealingCollisionSpiMBean extends GridSpiManagementMBean {

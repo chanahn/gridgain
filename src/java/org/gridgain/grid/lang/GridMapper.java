@@ -21,7 +21,7 @@ import java.util.*;
  * in {@link Grid#mapreduce(GridMapper, Collection, GridReducer, GridPredicate[])} method.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public abstract class GridMapper<T1, T2> extends GridClosure<T1, T2> {
     /**

@@ -21,7 +21,7 @@ import org.gridgain.grid._
  * Demonstrates various closure executions on the cloud using Scalar.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 object ScalarClosureExample {
     /**

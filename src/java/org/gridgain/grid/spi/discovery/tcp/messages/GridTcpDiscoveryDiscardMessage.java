@@ -20,7 +20,7 @@ import java.util.*;
  * nodes should discard this and all preceding messages in local buffers.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridTcpDiscoveryDiscardMessage extends GridTcpDiscoveryAbstractMessage {
     /** ID of the message to discard (this and all preceding). */

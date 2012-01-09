@@ -20,7 +20,7 @@ import java.io.*;
  * DHT transaction finish response.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridDhtTxFinishResponse<K, V> extends GridDistributedTxFinishResponse<K, V> {
     /** Mini future ID. */

@@ -24,7 +24,7 @@ import java.util.concurrent.*;
  * Cache transaction proxy.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridCacheTxProxyImpl implements GridCacheTxProxy, Externalizable {
     /** Wrapped transaction. */

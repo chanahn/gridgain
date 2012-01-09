@@ -18,7 +18,7 @@ import org.gridgain.grid.typedef.internal.*;
  * be fixed, it can only be replaced. 
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridBreaker extends GridAbsClosure {
     /** */

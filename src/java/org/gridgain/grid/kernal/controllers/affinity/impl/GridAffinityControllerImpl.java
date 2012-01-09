@@ -33,7 +33,7 @@ import static org.gridgain.grid.kernal.controllers.affinity.impl.GridAffinityUti
  * Processor responsible for getting key affinity nodes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public class GridAffinityControllerImpl extends GridControllerAdapter implements GridAffinityController {
     /** Retries to get affinity in case of error. */

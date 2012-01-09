@@ -19,7 +19,7 @@ import org.gridgain.grid._
  * Peer deploy aware adapter for Java's `GridPredicate2X`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 class ScalarPredicate2X[T1, T2](private val p: (T1, T2) => Boolean) extends GridPredicate2X[T1, T2] {
     assert(p != null)

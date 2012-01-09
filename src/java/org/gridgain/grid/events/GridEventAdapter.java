@@ -22,7 +22,7 @@ import java.util.*;
  * extend this adapter as it provides necessary plumbing implementation details.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public abstract class GridEventAdapter extends GridMetadataAwareAdapter implements GridEvent {
     /** */

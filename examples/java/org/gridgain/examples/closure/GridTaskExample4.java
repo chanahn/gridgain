@@ -20,7 +20,7 @@ import java.util.*;
  * example code to see the difference in coding approach.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  * @see GridClosureExample4
  */
 public class GridTaskExample4 {
@@ -70,7 +70,7 @@ public class GridTaskExample4 {
      * node for information gathering about it.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.06012012
+     * @version 3.6.0c.09012012
      */
     private static class GridNodeInformationGatheringTask extends GridTaskAdapter<Void, String> {
         /** Execution nodes. */

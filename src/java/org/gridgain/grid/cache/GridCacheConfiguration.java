@@ -34,7 +34,7 @@ import java.util.*;
  * default configuration.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.06012012
+ * @version 3.6.0c.09012012
  */
 public interface GridCacheConfiguration {
     /** Default query log name. */
@@ -244,12 +244,14 @@ public interface GridCacheConfiguration {
     public <K, V> GridCacheEvictionPolicy<K, V> getNearEvictionPolicy();
 
     /**
-     * Gets eviction filter to define entries that should cause
-     * eviction policy notification on access in order to be evicted and
-     * entries that should never be evicted (except explicit evict by calling
-     * {@link GridCacheEntry#evict(GridPredicate[])}).
+     * Gets eviction filter to specify which entries should not be evicted
+     * (except explicit evict by calling {@link GridCacheEntry#evict(GridPredicate[])}).
+     * If {@link GridCacheEvictionFilter#evictAllowed(GridCacheEntry)} method returns
+     * {@code false} then eviction policy will not be notified and entry will
+     * never be evicted.
      * <p>
-     * If not provided, all entries accesses cause eviction policy notification.
+     * If not provided, any entry may be evicted depending on
+     * {@link #getEvictionPolicy() eviction policy} configuration.
      *
      * @return Eviction filter or {@code null}.
      */
