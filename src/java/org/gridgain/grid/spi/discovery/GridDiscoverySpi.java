@@ -37,7 +37,7 @@ import java.util.*;
  * to undefined behavior and explicitly not supported.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridDiscoverySpi extends GridSpi, GridSpiJsonConfigurable {
     /**
@@ -125,12 +125,4 @@ public interface GridDiscoverySpi extends GridSpi, GridSpiJsonConfigurable {
      * @see #disconnect()
      */
     public void reconnect() throws GridSpiException;
-
-    /**
-     * Gets topology version on this node start.
-     *
-     * @return Topology version on node start or {code 0}
-     *      if SPI implementation does not support versioning.
-     */
-    public long startTopologyVersion();
 }

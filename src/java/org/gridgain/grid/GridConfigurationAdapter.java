@@ -9,26 +9,30 @@
 
 package org.gridgain.grid;
 
-import org.gridgain.grid.cache.*;
-import org.gridgain.grid.editions.*;
-import org.gridgain.grid.kernal.managers.eventstorage.*;
-import org.gridgain.grid.lang.*;
-import org.gridgain.grid.logger.*;
-import org.gridgain.grid.marshaller.*;
-import org.gridgain.grid.segmentation.*;
-import org.gridgain.grid.spi.checkpoint.*;
-import org.gridgain.grid.spi.collision.*;
-import org.gridgain.grid.spi.communication.*;
-import org.gridgain.grid.spi.deployment.*;
-import org.gridgain.grid.spi.discovery.*;
-import org.gridgain.grid.spi.eventstorage.*;
-import org.gridgain.grid.spi.failover.*;
-import org.gridgain.grid.spi.loadbalancing.*;
-import org.gridgain.grid.spi.metrics.*;
-import org.gridgain.grid.spi.swapspace.*;
-import org.gridgain.grid.spi.topology.*;
+import org.gridgain.client.ssl.GridSslContextFactory;
+import org.gridgain.grid.cache.GridCacheConfiguration;
+import org.gridgain.grid.lang.GridPredicate;
+import org.gridgain.grid.logger.GridLogger;
+import org.gridgain.grid.marshaller.GridMarshaller;
+import org.gridgain.grid.segmentation.GridSegmentationPolicy;
+import org.gridgain.grid.segmentation.GridSegmentationResolver;
+import org.gridgain.grid.spi.authentication.GridAuthenticationSpi;
+import org.gridgain.grid.spi.checkpoint.GridCheckpointSpi;
+import org.gridgain.grid.spi.collision.GridCollisionSpi;
+import org.gridgain.grid.spi.communication.GridCommunicationSpi;
+import org.gridgain.grid.spi.deployment.GridDeploymentSpi;
+import org.gridgain.grid.spi.discovery.GridDiscoverySpi;
+import org.gridgain.grid.spi.eventstorage.GridEventStorageSpi;
+import org.gridgain.grid.spi.failover.GridFailoverSpi;
+import org.gridgain.grid.spi.loadbalancing.GridLoadBalancingSpi;
+import org.gridgain.grid.spi.metrics.GridLocalMetricsSpi;
+import org.gridgain.grid.spi.securesession.GridSecureSessionSpi;
+import org.gridgain.grid.spi.swapspace.GridSwapSpaceSpi;
+import org.gridgain.grid.spi.topology.GridTopologySpi;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.kernal.managers.eventstorage.*;
 import org.jetbrains.annotations.*;
+
 import javax.management.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -39,7 +43,7 @@ import java.util.concurrent.*;
  * will automatically pick default values for all values that are not set.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridConfigurationAdapter implements GridConfiguration {
     /** Optional grid name. */
@@ -55,7 +59,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
     private ExecutorService execSvc;
 
     /** Executor service. */
-    private ExecutorService systemSvc;
+    private ExecutorService sysSvc;
 
     /** Peer class loading executor service shutdown flag. */
     private boolean p2pSvcShutdown = true;
@@ -97,7 +101,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
     private boolean p2pEnabled = DFLT_P2P_ENABLED;
 
     /** List of package prefixes from the system class path that should be P2P loaded. */
-    private String[] p2pLocalClsPathExcl;
+    private String[] p2pLocClsPathExcl;
 
     /** Events of these types should be recorded. */
     private int[] inclEvtTypes;
@@ -136,7 +140,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
     private boolean allResolversPassReq = DFLT_ALL_SEG_RESOLVERS_PASS_REQ;
 
     /** Segment check frequency. */
-    private int segChkFreq = DFLT_SEG_CHK_FREQ;
+    private long segChkFreq = DFLT_SEG_CHK_FREQ;
 
     /** Communication SPI. */
     private GridCommunicationSpi commSpi;
@@ -149,6 +153,12 @@ public class GridConfigurationAdapter implements GridConfiguration {
 
     /** Metrics SPI. */
     private GridLocalMetricsSpi metricsSpi;
+
+    /** Authentication SPI. */
+    private GridAuthenticationSpi authSpi;
+
+    /** Secure session SPI. */
+    private GridSecureSessionSpi sesSpi;
 
     /** Deployment SPI. */
     private GridDeploymentSpi deploySpi;
@@ -172,7 +182,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
     private GridCacheConfiguration[] cacheCfg;
 
     /** Discovery startup delay. */
-    private long discoStartupDelay;
+    private long discoStartupDelay = DFLT_DISCOVERY_STARTUP_DELAY;
 
     /** Tasks classes sharing mode. */
     private GridDeploymentMode deployMode = DFLT_DEPLOYMENT_MODE;
@@ -217,10 +227,34 @@ public class GridConfigurationAdapter implements GridConfiguration {
     private String licUrl;
 
     /** Frequency of metrics log print out. */
-    private int metricsLogFreq = DFLT_METRICS_LOG_FREQ;
+    private long metricsLogFreq = DFLT_METRICS_LOG_FREQ;
 
     /** Local event listeners. */
     private Map<GridLocalEventListener, int[]> lsnrs;
+
+    /** TCP host. */
+    private String restTcpHost;
+
+    /** TCP port. */
+    private int restTcpPort = DFLT_TCP_PORT;
+
+    /** TCP no delay flag. */
+    private boolean restTcpNoDelay = DFLT_TCP_NODELAY;
+
+    /** SSL enable flag, default is disabled. */
+    private boolean restTcpSslEnabled;
+
+    /** SSL need client auth flag. */
+    private boolean restTcpSslClientAuth;
+
+    /** SSL context factory for rest binary server. */
+    private GridSslContextFactory restTcpSslCtxFactory;
+
+    /** Jetty port */
+    private int jettyPort;
+
+    /** Folders accessible by REST. */
+    private String[] restAccessibleFolders;
 
     /**
      * Creates valid grid configuration with all default values.
@@ -248,6 +282,8 @@ public class GridConfigurationAdapter implements GridConfiguration {
         failSpi = cfg.getFailoverSpi();
         topSpi = cfg.getTopologySpi();
         metricsSpi = cfg.getMetricsSpi();
+        authSpi = cfg.getAuthenticationSpi();
+        sesSpi = cfg.getSecureSessionSpi();
         loadBalancingSpi = cfg.getLoadBalancingSpi();
         swapSpaceSpi = cfg.getSwapSpaceSpi();
 
@@ -267,6 +303,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
         inclEvtTypes = cfg.getIncludeEventTypes();
         includeProps = cfg.getIncludeProperties();
         jettyPath = cfg.getRestJettyPath();
+        jettyPort = cfg.getRestJettyPort();
         licUrl = cfg.getLicenseUrl();
         lifecycleBeans = cfg.getLifecycleBeans();
         lifeCycleEmailNtf = cfg.isLifeCycleEmailNotification();
@@ -283,8 +320,15 @@ public class GridConfigurationAdapter implements GridConfiguration {
         p2pEnabled = cfg.isPeerClassLoadingEnabled();
         p2pMissedCacheSize = cfg.getPeerClassLoadingMissedResourcesCacheSize();
         p2pSvc = cfg.getPeerClassLoadingExecutorService();
+        restAccessibleFolders = cfg.getRestAccessibleFolders();
         restEnabled = cfg.isRestEnabled();
         restSecretKey = cfg.getRestSecretKey();
+        restTcpHost = cfg.getRestTcpHost();
+        restTcpNoDelay = cfg.isRestTcpNoDelay();
+        restTcpPort = cfg.getRestTcpPort();
+        restTcpSslCtxFactory = cfg.getRestTcpSslContextFactory();
+        restTcpSslEnabled = cfg.isRestTcpSslEnabled();
+        restTcpSslClientAuth = cfg.isRestTcpSslClientAuth();
         segChkFreq = cfg.getSegmentCheckFrequency();
         segPlc = cfg.getSegmentationPolicy();
         segResolvers = cfg.getSegmentationResolvers();
@@ -295,7 +339,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
         smtpFromEmail = cfg.getSmtpFromEmail();
         smtpSsl = cfg.isSmtpSsl();
         smtpStartTls = cfg.isSmtpStartTls();
-        systemSvc = cfg.getSystemExecutorService();
+        sysSvc = cfg.getSystemExecutorService();
         userAttrs = cfg.getUserAttributes();
         waitForSegOnStart = cfg.isWaitForSegmentOnStart();
     }
@@ -361,14 +405,10 @@ public class GridConfigurationAdapter implements GridConfiguration {
 
     /**
      * Sets whether or not to enable lifecycle email notifications.
-     * <p>
-     * Note that life cycle notification is only available in Enterprise Edition. In
-     * Community Edition this property is ignored.
      *
      * @param lifeCycleEmailNtf {@code True} to enable lifecycle email notifications.
      * @see GridSystemProperties#GG_LIFECYCLE_EMAIL_NOTIFY
      */
-    @GridEnterpriseFeature
     public void setLifeCycleEmailNotification(boolean lifeCycleEmailNtf) {
         this.lifeCycleEmailNtf = lifeCycleEmailNtf;
     }
@@ -593,7 +633,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
 
     /** {@inheritDoc} */
     @Override public ExecutorService getSystemExecutorService() {
-        return systemSvc;
+        return sysSvc;
     }
 
     /** {@inheritDoc} */
@@ -639,11 +679,11 @@ public class GridConfigurationAdapter implements GridConfiguration {
     /**
      * Sets system thread pool to use within grid.
      *
-     * @param systemSvc Thread pool to use within grid.
+     * @param sysSvc Thread pool to use within grid.
      * @see GridConfiguration#getSystemExecutorService()
      */
-    public void setSystemExecutorService(ExecutorService systemSvc) {
-        this.systemSvc = systemSvc;
+    public void setSystemExecutorService(ExecutorService sysSvc) {
+        this.sysSvc = sysSvc;
     }
 
     /**
@@ -753,18 +793,18 @@ public class GridConfigurationAdapter implements GridConfiguration {
 
     /** {@inheritDoc} */
     @Override public String[] getPeerClassLoadingClassPathExclude() {
-        return p2pLocalClsPathExcl;
+        return p2pLocClsPathExcl;
     }
 
     /**
      * Sets list of packages in a system class path that should be to P2P
      * loaded even if they exist locally.
      *
-     * @param p2pLocalClsPathExcl List of P2P loaded packages. Package
+     * @param p2pLocClsPathExcl List of P2P loaded packages. Package
      *      name supports '*' at the end like in package import clause.
      */
-    public void setPeerClassLoadingLocalClassPathExclude(String... p2pLocalClsPathExcl) {
-        this.p2pLocalClsPathExcl = p2pLocalClsPathExcl;
+    public void setPeerClassLoadingLocalClassPathExclude(String... p2pLocClsPathExcl) {
+        this.p2pLocClsPathExcl = p2pLocClsPathExcl;
     }
 
     /** {@inheritDoc} */
@@ -938,7 +978,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
     }
 
     /** {@inheritDoc} */
-    @Override public int getSegmentCheckFrequency() {
+    @Override public long getSegmentCheckFrequency() {
         return segChkFreq;
     }
 
@@ -947,7 +987,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
      *
      * @param segChkFreq Segment check frequency.
      */
-    public void setSegmentCheckFrequency(int segChkFreq) {
+    public void setSegmentCheckFrequency(long segChkFreq) {
         this.segChkFreq = segChkFreq;
     }
 
@@ -996,6 +1036,38 @@ public class GridConfigurationAdapter implements GridConfiguration {
      */
     public void setMetricsSpi(GridLocalMetricsSpi metricsSpi) {
         this.metricsSpi = metricsSpi;
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridAuthenticationSpi getAuthenticationSpi() {
+        return authSpi;
+    }
+
+    /**
+     * Sets fully configured instance of {@link GridAuthenticationSpi}.
+     *
+     * @param authSpi Fully configured instance of {@link GridAuthenticationSpi} or
+     * {@code null} if no SPI provided.
+     * @see GridConfiguration#getAuthenticationSpi()
+     */
+    public void setAuthenticationSpi(GridAuthenticationSpi authSpi) {
+        this.authSpi = authSpi;
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridSecureSessionSpi getSecureSessionSpi() {
+        return sesSpi;
+    }
+
+    /**
+     * Sets fully configured instance of {@link GridSecureSessionSpi}.
+     *
+     * @param sesSpi Fully configured instance of {@link GridSecureSessionSpi} or
+     * {@code null} if no SPI provided.
+     * @see GridConfiguration#getSecureSessionSpi()
+     */
+    public void setSecureSessionSpi(GridSecureSessionSpi sesSpi) {
+        this.sesSpi = sesSpi;
     }
 
     /** {@inheritDoc} */
@@ -1212,6 +1284,124 @@ public class GridConfigurationAdapter implements GridConfiguration {
         return restEnabled;
     }
 
+    /** {@inheritDoc} */
+    @Override public String getRestTcpHost() {
+        return restTcpHost;
+    }
+
+    /**
+     * Sets host for TCP binary protocol server.
+     *
+     * @param restTcpHost TCP host.
+     */
+    public void setRestTcpHost(String restTcpHost) {
+        this.restTcpHost = restTcpHost;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getRestTcpPort() {
+        return restTcpPort;
+    }
+
+    /**
+     * Sets port for TCP binary protocol server.
+     *
+     * @param restTcpPort TCP port.
+     */
+    public void setRestTcpPort(int restTcpPort) {
+        this.restTcpPort = restTcpPort;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isRestTcpNoDelay() {
+        return restTcpNoDelay;
+    }
+
+    /**
+     * Sets whether {@code TCP_NODELAY} option should be set for all accepted client connections.
+     *
+     * @param restTcpNoDelay {@code True} if option should be enabled.
+     * @see #isRestTcpNoDelay()
+     */
+    public void setRestTcpNoDelay(boolean restTcpNoDelay) {
+        this.restTcpNoDelay = restTcpNoDelay;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isRestTcpSslEnabled() {
+        return restTcpSslEnabled;
+    }
+
+    /**
+     * Sets whether Secure Socket Layer should be enabled for REST TCP binary protocol.
+     * <p/>
+     * Note that if this flag is set to {@code true}, then a valid instance of {@link GridSslContextFactory}
+     * should be provided in {@code GridConfiguration}. Otherwise, TCP binary protocol will fail to start.
+     *
+     * @param restTcpSslEnabled {@code True} if SSL should be enabled.
+     */
+    public void setRestTcpSslEnabled(boolean restTcpSslEnabled) {
+        this.restTcpSslEnabled = restTcpSslEnabled;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isRestTcpSslClientAuth() {
+        return restTcpSslClientAuth;
+    }
+
+    /**
+     * Sets flag indicating whether or not SSL client authentication is required.
+     *
+     * @param needClientAuth Whether or not client authentication is required.
+     */
+    public void setRestTcpSslClientAuth(boolean needClientAuth) {
+        restTcpSslClientAuth = needClientAuth;
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridSslContextFactory getRestTcpSslContextFactory() {
+        return restTcpSslCtxFactory;
+    }
+
+    /**
+     * Sets instance of {@link GridSslContextFactory} that will be used to create an instance of {@code SSLContext}
+     * for Secure Socket Layer on TCP binary protocol. This factory will only be used if
+     * {@link #setRestTcpSslEnabled(boolean)} is set to {@code true}.
+     *
+     * @param restTcpSslCtxFactory Instance of {@link GridSslContextFactory}
+     */
+    public void setRestTcpSslContextFactory(GridSslContextFactory restTcpSslCtxFactory) {
+        this.restTcpSslCtxFactory = restTcpSslCtxFactory;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getRestJettyPort() {
+        return jettyPort;
+    }
+
+    /**
+     * Sets port number on which jetty rest server will be bound.
+     *
+     * @param jettyPort Port number.
+     */
+    public void setRestJettyPort(int jettyPort) {
+        this.jettyPort = jettyPort;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String[] getRestAccessibleFolders() {
+        return restAccessibleFolders;
+    }
+
+    /**
+     * Sets array of folders accessible by REST processor for log reading command.
+     *
+     * @param restAccessibleFolders Array of folder paths.
+     */
+    public void setRestAccessibleFolders(String... restAccessibleFolders) {
+        this.restAccessibleFolders = restAccessibleFolders;
+    }
+
     /**
      * Sets system-wide local address or host for all GridGain components to bind to. If provided it will
      * override all default local bind settings within GridGain or any of its SPIs.
@@ -1232,12 +1422,12 @@ public class GridConfigurationAdapter implements GridConfiguration {
      *
      * @param restSecretKey REST secret key.
      */
-    public void setRestSecretKey(String restSecretKey) {
+    public void setRestSecretKey(@Nullable String restSecretKey) {
         this.restSecretKey = restSecretKey;
     }
 
     /** {@inheritDoc} */
-    @Override public String getRestSecretKey() {
+    @Override @Nullable public String getRestSecretKey() {
         return restSecretKey;
     }
 
@@ -1257,7 +1447,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
     }
 
     /** {@inheritDoc} */
-    @Override public int getMetricsLogFrequency() {
+    @Override public long getMetricsLogFrequency() {
         return metricsLogFreq;
     }
 
@@ -1270,7 +1460,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
      *
      * @param metricsLogFreq Frequency of metrics log print out.
      */
-    public void setMetricsLogFrequency(int metricsLogFreq) {
+    public void setMetricsLogFrequency(long metricsLogFreq) {
         this.metricsLogFreq = metricsLogFreq;
     }
 

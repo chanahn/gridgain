@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * Partitioned cache entry public API.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridPartitionedCacheEntryImpl<K, V> extends GridCacheEntryImpl<K, V> {
     /**
@@ -96,7 +96,12 @@ public class GridPartitionedCacheEntryImpl<K, V> extends GridCacheEntryImpl<K, V
 
     /** {@inheritDoc} */
     @Override public V peek(@Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
-        V val = super.peek(filter);
+        GridCacheEntryEx<K, V> cached = this.cached;
+
+        V val = null;
+
+        if ((cached != null && cached.isNear()) || (cached == null && ctx.isNear()))
+            val = super.peek(filter);
 
         if (val == null)
             val = peekDht(filter);
@@ -295,9 +300,9 @@ public class GridPartitionedCacheEntryImpl<K, V> extends GridCacheEntryImpl<K, V
     }
 
     /** {@inheritDoc} */
-    @Override protected GridCacheEntryEx<K, V> entryEx() {
+    @Override protected GridCacheEntryEx<K, V> entryEx(boolean touch) {
         try {
-            return ctx.belongs(key, ctx.localNode()) ? dht().entryEx(key) : near().entryEx(key);
+            return ctx.belongs(key, ctx.localNode()) ? dht().entryEx(key, touch) : near().entryEx(key, touch);
         }
         catch (GridDhtInvalidPartitionException ignore) {
             return near().entryEx(key);

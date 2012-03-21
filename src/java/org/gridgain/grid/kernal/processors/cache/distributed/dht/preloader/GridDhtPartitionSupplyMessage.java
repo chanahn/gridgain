@@ -21,7 +21,7 @@ import java.util.*;
  * Partition supply message.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class GridDhtPartitionSupplyMessage<K, V> extends GridCacheMessage<K, V> {
     /** Worker ID. */
@@ -177,7 +177,7 @@ class GridDhtPartitionSupplyMessage<K, V> extends GridCacheMessage<K, V> {
 
         marshalInfo(info, ctx);
 
-        byte[] bytes = CU.marshal(ctx, info).getEntireArray();
+        byte[] bytes = CU.marshal(ctx, info).entireArray();
 
         msgSize += bytes.length;
 

@@ -19,7 +19,7 @@ import java.io.*;
  * concise code in cases when readability won't be sacrificed. For more information see {@link GridTuple}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @param <V> Type of the free variable.
  * @see GridFunc
  * @see GridTuple

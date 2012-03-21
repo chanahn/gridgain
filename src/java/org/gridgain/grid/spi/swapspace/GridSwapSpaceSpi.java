@@ -27,7 +27,7 @@ import java.util.*;
  * to undefined behavior and explicitly not supported.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridSwapSpaceSpi extends GridSpi, GridSpiJsonConfigurable {
     /**
@@ -57,20 +57,6 @@ public interface GridSwapSpaceSpi extends GridSpi, GridSpiJsonConfigurable {
      * @throws GridSpiException In case of any errors.
      */
     public long count(@Nullable String space) throws GridSpiException;
-
-    /**
-     * Gets storage total size.
-     *
-     * @return Total size.
-     */
-    public long totalSize();
-
-    /**
-     * Gets total number of entries (keys) in the swap storage.
-     *
-     * @return Total number of entries in the swap storage.
-     */
-    public long totalCount();
 
     /**
      * Reads stored value as array of bytes by key from data space with given name.

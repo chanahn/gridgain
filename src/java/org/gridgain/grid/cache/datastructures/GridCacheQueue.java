@@ -19,8 +19,6 @@ import java.util.concurrent.*;
 /**
  * This interface provides a rich API for working with Data Grid-based distributed queues.
  * <p>
- * Note that queues are only available in <b>Enterprise Edition</b>.
- * <p>
  * <h1 class="header">Overview</h1>
  * Cache queue provides an access to cache elements using typical queue API. Cache queue also implements
  * {@link Collection} interface and provides all methods from collections including
@@ -98,7 +96,7 @@ import java.util.concurrent.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridCache#queue(String)
  * @see GridCache#queue(String, GridCacheQueueType)
  * @see GridCache#queue(String, GridCacheQueueType, int)

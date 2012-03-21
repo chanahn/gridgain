@@ -18,7 +18,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Cache entry for local caches.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
@@ -80,12 +80,12 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
         }
 
         if (cand != null) {
-            if (!cand.reentry()) {
+            if (!cand.reentry())
                 cctx.mvcc().addNext(cand);
-            }
 
             // Event notification.
-            cctx.events().addEvent(partition(), key, cand.nodeId(), cand, EVT_CACHE_OBJECT_LOCKED, val, val);
+            if (cctx.events().isRecordable(EVT_CACHE_OBJECT_LOCKED))
+                cctx.events().addEvent(partition(), key, cand.nodeId(), cand, EVT_CACHE_OBJECT_LOCKED, val, val);
         }
 
         checkOwnerChanged(prev, owner);
@@ -273,7 +273,8 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             checkThreadChain(prev);
 
             // Event notification.
-            cctx.events().addEvent(partition(), key, prev.nodeId(), prev, EVT_CACHE_OBJECT_UNLOCKED, val, val);
+            if (cctx.events().isRecordable(EVT_CACHE_OBJECT_UNLOCKED))
+                cctx.events().addEvent(partition(), key, prev.nodeId(), prev, EVT_CACHE_OBJECT_UNLOCKED, val, val);
         }
 
         checkOwnerChanged(prev, owner);
@@ -323,7 +324,8 @@ public class GridLocalCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             checkThreadChain(doomed);
 
             // Event notification.
-            cctx.events().addEvent(partition(), key, doomed.nodeId(), doomed, EVT_CACHE_OBJECT_UNLOCKED, val, val);
+            if (cctx.events().isRecordable(EVT_CACHE_OBJECT_UNLOCKED))
+                cctx.events().addEvent(partition(), key, doomed.nodeId(), doomed, EVT_CACHE_OBJECT_UNLOCKED, val, val);
         }
 
         checkOwnerChanged(prev, owner);

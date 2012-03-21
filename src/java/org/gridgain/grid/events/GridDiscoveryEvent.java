@@ -58,11 +58,13 @@ import java.util.*;
  * event storage SPI if they are disabled in GridGain configuration.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridEventType#EVT_NODE_METRICS_UPDATED
  * @see GridEventType#EVT_NODE_FAILED
  * @see GridEventType#EVT_NODE_JOINED
  * @see GridEventType#EVT_NODE_LEFT
+ * @see GridEventType#EVT_NODE_RECONNECTED
+ * @see GridEventType#EVT_NODE_SEGMENTED
  * @see GridEventType#EVTS_DISCOVERY_ALL
  * @see GridEventType#EVTS_DISCOVERY
  */

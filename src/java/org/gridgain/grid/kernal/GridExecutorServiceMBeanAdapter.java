@@ -16,7 +16,7 @@ import java.util.concurrent.*;
  * TODO: add file description.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridExecutorServiceMBeanAdapter implements GridExecutorServiceMBean {
     /** */
@@ -123,9 +123,9 @@ public class GridExecutorServiceMBeanAdapter implements GridExecutorServiceMBean
         if (!(exec instanceof ThreadPoolExecutor))
             return "";
 
-        RejectedExecutionHandler handler = ((ThreadPoolExecutor)exec).getRejectedExecutionHandler();
+        RejectedExecutionHandler hnd = ((ThreadPoolExecutor)exec).getRejectedExecutionHandler();
 
-        return handler == null ? "" : handler.getClass().getName();
+        return hnd == null ? "" : hnd.getClass().getName();
     }
 
     /** {@inheritDoc} */

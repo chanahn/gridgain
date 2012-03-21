@@ -23,7 +23,7 @@ import java.util.*;
  * Cache eviction request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class GridCacheEvictionRequest<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable {
     /** Future id. */
@@ -71,7 +71,7 @@ class GridCacheEvictionRequest<K, V> extends GridCacheMessage<K, V> implements G
         if (entries != null) {
             prepareObjects(entries, ctx);
 
-            entriesBytes = U.marshal(ctx.marshaller(), entries).getEntireArray();
+            entriesBytes = U.marshal(ctx.marshaller(), entries).entireArray();
         }
     }
 

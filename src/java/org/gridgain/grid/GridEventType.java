@@ -48,7 +48,7 @@ import java.util.*;
  * event storage SPI if they are disabled in GridGain configuration.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridEventType {
     /**
@@ -637,6 +637,29 @@ public interface GridEventType {
         EVT_TASK_DEPLOYED,
         EVT_TASK_UNDEPLOYED,
         EVT_TASK_DEPLOY_FAILED
+    };
+
+    /**
+     * All events indicating an error or failure condition. It is convenient to use
+     * when fetching all events indicating error or failure.
+     */
+    public static final int[] EVTS_ERROR = {
+        EVT_JOB_TIMEDOUT,
+        EVT_JOB_FAILED,
+        EVT_JOB_FAILED_OVER,
+        EVT_JOB_REJECTED,
+        EVT_JOB_CANCELLED,
+        EVT_TASK_TIMEDOUT,
+        EVT_TASK_FAILED,
+        EVT_CLASS_DEPLOY_FAILED,
+        EVT_TASK_DEPLOY_FAILED,
+        EVT_TASK_DEPLOYED,
+        EVT_TASK_UNDEPLOYED,
+        EVT_LIC_CLEARED,
+        EVT_LIC_VIOLATION,
+        EVT_LIC_GRACE_EXPIRED,
+        EVT_CACHE_PRELOAD_STARTED,
+        EVT_CACHE_PRELOAD_STOPPED
     };
 
     /**

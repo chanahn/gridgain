@@ -19,7 +19,7 @@ import java.util.*;
  * Argument builder used for creating arguments for tasks and jobs in gridified methods.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see org.gridgain.grid.gridify.GridifySetToValue
  * @see org.gridgain.grid.gridify.GridifySetToSet
  */

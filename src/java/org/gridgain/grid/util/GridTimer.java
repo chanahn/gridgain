@@ -18,7 +18,7 @@ import java.util.*;
  * Timer to use mostly for debugging purposes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridTimer {
     /** Debug date format. */
@@ -135,9 +135,6 @@ public class GridTimer {
     }
 
     /**
-     * This method should be used for adding quick debug statements in code
-     * while debugging. Calls to this method should never be committed to trunk.
-     *
      * @param msg Message to debug.
      */
     private void debug(String msg) {

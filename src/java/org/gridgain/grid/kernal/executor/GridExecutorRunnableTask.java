@@ -22,7 +22,7 @@ import java.util.*;
  * for more details.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"TransientFieldNotInitialized"})
 public class GridExecutorRunnableTask extends GridTaskAdapter<Runnable, Object> {

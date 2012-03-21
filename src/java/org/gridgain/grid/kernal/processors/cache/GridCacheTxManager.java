@@ -36,7 +36,7 @@ import static org.gridgain.grid.util.GridConcurrentFactory.*;
  * Cache transaction manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
     /** Maximum number of transactions that have completed (initialized to 100K). */
@@ -932,7 +932,7 @@ public class GridCacheTxManager<K, V> extends GridCacheManager<K, V> {
          */
 
         // 1. Make sure that committed version has been recorded.
-        assert tx.ec() || committedVers.contains(tx.xidVersion()) || tx.writeSet().isEmpty() :
+        assert tx.ec() || committedVers.contains(tx.xidVersion()) || tx.writeSet().isEmpty() || tx.isSystemInvalidate():
             "Missing commit version [ver=" + tx.xidVersion() + ", firstVer=" + committedVers.firstx() +
                 ", lastVer=" + committedVers.lastx() + ", tx=" + tx + ']';
 

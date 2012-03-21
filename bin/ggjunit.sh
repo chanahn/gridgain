@@ -7,7 +7,7 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 3.6.0c.09012012
+# Version: 4.0.0c.21032012
 #
 
 #
@@ -49,7 +49,7 @@ fi
 #
 # Set property JAR name during the Ant build.
 #
-ANT_AUGMENTED_GGJAR=gridgain-3.6.0c.jar
+ANT_AUGMENTED_GGJAR=gridgain-4.0.0c.jar
 
 osname=`uname`
 

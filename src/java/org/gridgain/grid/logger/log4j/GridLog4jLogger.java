@@ -55,7 +55,7 @@ import static org.gridgain.grid.GridSystemProperties.*;
  * injection.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridLog4jLogger extends GridMetadataAwareAdapter implements GridLogger {
     /** Log4j implementation proxy. */

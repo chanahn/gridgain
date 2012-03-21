@@ -26,7 +26,7 @@ import java.util.concurrent.*;
  * Cache proxy.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheProxyImpl<K, V> implements GridCacheProxy<K, V>, Externalizable {
     /** Context. */
@@ -988,6 +988,16 @@ public class GridCacheProxyImpl<K, V> implements GridCacheProxy<K, V>, Externali
         finally {
             gate.leave(prev);
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean poke(K key, V val) throws GridException {
+        return cache.poke(key, val);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void pokeAll(Map<? extends K, ? extends V> m) throws GridException {
+        cache.pokeAll(m);
     }
 
     /** {@inheritDoc} */
@@ -3141,12 +3151,11 @@ public class GridCacheProxyImpl<K, V> implements GridCacheProxy<K, V>, Externali
     }
 
     /** {@inheritDoc} */
-    @Override public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int capacity)
-        throws GridException {
+    @Override public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int cap) throws GridException {
         GridCacheProjectionImpl<K, V> prev = gate.enter(prj);
 
         try {
-            return cache.queue(name, type, capacity);
+            return cache.queue(name, type, cap);
         }
         finally {
             gate.leave(prev);
@@ -3154,12 +3163,12 @@ public class GridCacheProxyImpl<K, V> implements GridCacheProxy<K, V>, Externali
     }
 
     /** {@inheritDoc} */
-    @Override public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int capacity,
-        boolean collocated) throws GridException {
+    @Override public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int cap, boolean collocated)
+        throws GridException {
         GridCacheProjectionImpl<K, V> prev = gate.enter(prj);
 
         try {
-            return cache.queue(name, type, capacity, collocated);
+            return cache.queue(name, type, cap, collocated);
         }
         finally {
             gate.leave(prev);
@@ -3311,12 +3320,12 @@ public class GridCacheProxyImpl<K, V> implements GridCacheProxy<K, V>, Externali
     }
 
     /** {@inheritDoc} */
-    @Nullable @Override public GridCacheCountDownLatch countDownLatch(String name, int count, boolean autoDelete)
+    @Nullable @Override public GridCacheCountDownLatch countDownLatch(String name, int cnt, boolean autoDel)
         throws GridException {
         GridCacheProjectionImpl<K, V> prev = gate.enter(prj);
 
         try {
-            return cache.countDownLatch(name, count, autoDelete);
+            return cache.countDownLatch(name, cnt, autoDel);
         }
         finally {
             gate.leave(prev);
@@ -3360,11 +3369,11 @@ public class GridCacheProxyImpl<K, V> implements GridCacheProxy<K, V>, Externali
     }
 
     /** {@inheritDoc} */
-    @Override public void dgc(long suspectLockTimeout, boolean global, boolean removeLocks) {
+    @Override public void dgc(long suspectLockTimeout, boolean global, boolean rmvLocks) {
         GridCacheProjectionImpl<K, V> prev = gate.enter(prj);
 
         try {
-            cache.dgc(suspectLockTimeout, global, removeLocks);
+            cache.dgc(suspectLockTimeout, global, rmvLocks);
         }
         finally {
             gate.leave(prev);

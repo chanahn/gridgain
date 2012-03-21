@@ -21,16 +21,14 @@ import org.gridgain.grid.typedef.*;
  * Note that other examples in this package provide more detailed examples
  * of affinity co-location.
  * <p>
- * Note also that for Enterprise Edition affinity routing is enabled for all caches. In
- * Community Edition affinity routing works only if the cache is configured locally.
+ * Affinity routing is enabled for all caches.
  * <p>
  * Remote nodes should always be started with configuration file which includes
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}. Local node can
- * be started with or without cache depending on whether community or enterprise
- * edition is used respectively.
+ * be started with or without cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridCacheAffinitySimpleExample {
     /** Number of keys. */
@@ -38,13 +36,6 @@ public final class GridCacheAffinitySimpleExample {
 
     /** Grid instance. */
     private static Grid g;
-
-    /**
-     * Enforces singleton.
-     */
-    private GridCacheAffinitySimpleExample() {
-        // No-op.
-    }
 
     /**
      * Executes cache affinity example.

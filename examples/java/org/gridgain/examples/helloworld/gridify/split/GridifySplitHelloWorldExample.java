@@ -109,17 +109,10 @@ import org.gridgain.grid.typedef.*;
  * with Spring AOP refer to {@link GridifySpringHelloWorldExample} example.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 
 public class GridifySplitHelloWorldExample {
-    /**
-     * Enforces singleton.
-     */
-    private GridifySplitHelloWorldExample() {
-        // No-op.
-    }
-
     /**
      * Execute {@code HelloWorld} example grid-enabled with {@code Gridify} annotation.
      *

@@ -12,13 +12,12 @@ package org.gridgain.grid.kernal;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.affinity.*;
-import org.gridgain.grid.editions.*;
 import org.gridgain.grid.kernal.controllers.*;
-import org.gridgain.grid.kernal.controllers.affinity.*;
+import org.gridgain.grid.kernal.processors.affinity.*;
 import org.gridgain.grid.kernal.controllers.license.*;
-import org.gridgain.grid.kernal.controllers.rest.*;
-import org.gridgain.grid.kernal.controllers.segmentation.*;
+import org.gridgain.grid.kernal.processors.rest.*;
 import org.gridgain.grid.kernal.managers.*;
+import org.gridgain.grid.kernal.managers.authentication.*;
 import org.gridgain.grid.kernal.managers.checkpoint.*;
 import org.gridgain.grid.kernal.managers.collision.*;
 import org.gridgain.grid.kernal.managers.communication.*;
@@ -28,6 +27,7 @@ import org.gridgain.grid.kernal.managers.eventstorage.*;
 import org.gridgain.grid.kernal.managers.failover.*;
 import org.gridgain.grid.kernal.managers.loadbalancer.*;
 import org.gridgain.grid.kernal.managers.metrics.*;
+import org.gridgain.grid.kernal.managers.securesession.*;
 import org.gridgain.grid.kernal.managers.swapspace.*;
 import org.gridgain.grid.kernal.managers.topology.*;
 import org.gridgain.grid.kernal.processors.cache.*;
@@ -39,17 +39,13 @@ import org.gridgain.grid.kernal.processors.port.*;
 import org.gridgain.grid.kernal.processors.resource.*;
 import org.gridgain.grid.kernal.processors.rich.*;
 import org.gridgain.grid.kernal.processors.schedule.*;
+import org.gridgain.grid.kernal.processors.segmentation.*;
 import org.gridgain.grid.kernal.processors.session.*;
 import org.gridgain.grid.kernal.processors.task.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.spi.*;
-import org.gridgain.grid.spi.checkpoint.*;
-import org.gridgain.grid.spi.failover.*;
-import org.gridgain.grid.spi.loadbalancing.*;
-import org.gridgain.grid.spi.swapspace.*;
-import org.gridgain.grid.spi.topology.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.*;
@@ -67,6 +63,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
+import static org.gridgain.grid.GridLifecycleEventType.*;
 import static org.gridgain.grid.GridSystemProperties.*;
 import static org.gridgain.grid.cache.GridCacheMode.*;
 import static org.gridgain.grid.kernal.GridKernalState.*;
@@ -79,14 +76,17 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * misspelling.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridKernal extends GridProjectionAdapter implements Grid, GridKernalMBean, Externalizable {
     /** Ant-augmented version number. */
-    private static final String VER = "3.6.0c";
+    private static final String VER = "4.0.0c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "09012012";
+    private static final String BUILD = "21032012";
+
+    /** Ant-augmented release date. */
+    private static final String RELEASE_DATE = "21032012";
 
     /** Ant-augmented copyright blurb. */
     private static final String COPYRIGHT = "2012 Copyright (C) GridGain Systems";
@@ -156,7 +156,10 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     private boolean errOnStop;
 
     /** Node local store. */
-    private GridNodeLocal nodeLocal;
+    private GridNodeLocal nodeLoc;
+
+    /** Release date. */
+    private Date relDate;
 
     /** Kernal gateway. */
     private final AtomicReference<GridKernalGateway> gw = new AtomicReference<GridKernalGateway>();
@@ -323,6 +326,20 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     }
 
     /** {@inheritDoc} */
+    @Override public String getAuthenticationSpiFormatted() {
+        assert cfg != null;
+
+        return cfg.getAuthenticationSpi().toString();
+    }
+
+    /** {@inheritDoc} */
+    @Override public String getSecureSessionSpiFormatted() {
+        assert cfg != null;
+
+        return cfg.getSecureSessionSpi().toString();
+    }
+
+    /** {@inheritDoc} */
     @Override public String getTopologySpiFormatted() {
         assert cfg != null;
 
@@ -396,8 +413,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
 
         // That's why Java sucks...
         return F.transform(cfg.getUserAttributes().entrySet(), new C1<Map.Entry<String, ?>, String>() {
-            @Override
-            public String apply(Map.Entry<String, ?> e) {
+            @Override public String apply(Map.Entry<String, ?> e) {
                 return e.getKey() + ", " + e.getValue().toString();
             }
         });
@@ -437,14 +453,14 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     /**
      * @param attrs Current attributes.
      * @param name  New attribute name.
-     * @param value New attribute value.
+     * @param val New attribute value.
      * @throws GridException If duplicated SPI name found.
      */
-    private void add(Map<String, Object> attrs, String name, @Nullable Serializable value) throws GridException {
+    private void add(Map<String, Object> attrs, String name, @Nullable Serializable val) throws GridException {
         assert attrs != null;
         assert name != null;
 
-        if (attrs.put(name, value) != null) {
+        if (attrs.put(name, val) != null) {
             if (name.endsWith(ATTR_SPI_CLASS))
                 // User defined duplicated names for the different SPIs.
                 throw new GridException("Failed to set SPI attribute. Duplicated SPI name found: " +
@@ -459,22 +475,30 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
      * Notifies life-cycle beans of grid event.
      *
      * @param evt Grid event.
+     * @throws GridException If user threw exception during start.
      */
     @SuppressWarnings({"CatchGenericClass"})
-    private void notifyLifecycleBeans(GridLifecycleEventType evt) {
-        if (cfg.getLifecycleBeans() != null) {
-            for (GridLifecycleBean bean : cfg.getLifecycleBeans()) {
-                if (bean != null) {
-                    try {
-                        bean.onLifecycleEvent(evt);
-                    }
-                    // Catch generic throwable to secure against user assertions.
-                    catch (Throwable e) {
-                        U.error(log, "Failed to notify lifecycle bean (safely ignored) [evt=" + evt +
-                            ", gridName=" + gridName + ", bean=" + bean + ']', e);
-                    }
-                }
-            }
+    private void notifyLifecycleBeans(GridLifecycleEventType evt) throws GridException {
+        if (cfg.getLifecycleBeans() != null)
+            for (GridLifecycleBean bean : cfg.getLifecycleBeans())
+                if (bean != null)
+                    bean.onLifecycleEvent(evt);
+    }
+
+    /**
+     * Notifies life-cycle beans of grid event.
+     *
+     * @param evt Grid event.
+     */
+    @SuppressWarnings({"CatchGenericClass"})
+    private void notifyLifecycleBeansEx(GridLifecycleEventType evt) {
+        try {
+            notifyLifecycleBeans(evt);
+        }
+        // Catch generic throwable to secure against user assertions.
+        catch (Throwable e) {
+            U.error(log, "Failed to notify lifecycle bean (safely ignored) [evt=" + evt +
+                ", gridName=" + gridName + ']', e);
         }
     }
 
@@ -519,6 +543,13 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             gw.writeUnlock();
         }
 
+        try {
+            relDate = new SimpleDateFormat("ddMMyyyy").parse(RELEASE_DATE);
+        }
+        catch (ParseException e) {
+            throw new GridException("Failed to parse release date: " + RELEASE_DATE, e);
+        }
+
         assert cfg != null;
 
         // Make sure we got proper configuration.
@@ -538,6 +569,8 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         A.notNull(cfg.getDiscoverySpi(), "cfg.getDiscoverySpi()");
         A.notNull(cfg.getEventStorageSpi(), "cfg.getEventStorageSpi()");
         A.notNull(cfg.getMetricsSpi(), "cfg.getMetricsSpi()");
+        A.notNull(cfg.getAuthenticationSpi(), "cfg.getAuthenticationSpi()");
+        A.notNull(cfg.getSecureSessionSpi(), "cfg.getSecureSessionSpi()");
         A.notNull(cfg.getCollisionSpi(), "cfg.getCollisionSpi()");
         A.notNull(cfg.getFailoverSpi(), "cfg.getFailoverSpi()");
         A.notNull(cfg.getLoadBalancingSpi(), "cfg.getLoadBalancingSpi()");
@@ -602,7 +635,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         try {
             GridKernalContextImpl ctx = new GridKernalContextImpl(this, cfg, gw);
 
-            nodeLocal = new GridNodeLocalImpl(ctx);
+            nodeLoc = new GridNodeLocalImpl(ctx);
 
             // Set context into rich adapter.
             setKernalContext(ctx);
@@ -622,7 +655,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
                         rsrcProc.inject(bean);
 
             // Lifecycle notification.
-            notifyLifecycleBeans(GridLifecycleEventType.BEFORE_GRID_START);
+            notifyLifecycleBeans(BEFORE_GRID_START);
 
             // Closure processor should be started before all others
             // (except for resource processor), as many components can depend on it.
@@ -641,6 +674,8 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             // Start SPI managers.
             // NOTE: that order matters as there are dependencies between managers.
             startManager(ctx, new GridLocalMetricsManager(ctx), attrs);
+            startManager(ctx, new GridAuthenticationManager(ctx), attrs);
+            startManager(ctx, new GridSecureSessionManager(ctx), attrs);
             startManager(ctx, new GridIoManager(ctx), attrs);
             startManager(ctx, new GridCheckpointManager(ctx), attrs);
 
@@ -652,19 +687,21 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             startManager(ctx, new GridTopologyManager(ctx), attrs);
             startManager(ctx, new GridSwapSpaceManager(ctx), attrs);
 
+            ackSecurity(ctx);
+
             // Create the controllers. Order is important.
             startController(ctx, GridLicenseController.class);
-            startController(ctx, GridAffinityController.class);
-            startController(ctx, GridRestController.class);
-            startController(ctx, GridSegmentationController.class);
 
             // Start processors before discovery manager, so they will
             // be able to start receiving messages once discovery completes.
+            startProcessor(ctx, new GridAffinityProcessor(ctx));
+            startProcessor(ctx, new GridSegmentationProcessor(ctx));
             startProcessor(ctx, new GridCacheProcessor(ctx));
             startProcessor(ctx, new GridTaskSessionProcessor(ctx));
             startProcessor(ctx, new GridJobProcessor(ctx));
             startProcessor(ctx, new GridTaskProcessor(ctx));
             startProcessor(ctx, new GridScheduleProcessor(ctx));
+            startProcessor(ctx, new GridRestProcessor(ctx));
 
             gw.writeLock();
 
@@ -678,9 +715,13 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
                 gw.writeUnlock();
             }
 
+            // Notify discovery manager the first to make sure that topology is discovered.
+            ctx.discovery().onKernalStart();
+
             // Callbacks.
             for (GridComponent comp : ctx)
-                comp.onKernalStart();
+                if (!(comp instanceof GridDiscoveryManager)) // Skip discovery manager.
+                    comp.onKernalStart();
 
             // Ack the license.
             ctx.license().ackLicense();
@@ -714,16 +755,16 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             // Setup periodic version check.
             updateNtfTimer.scheduleAtFixedRate(new GridTimerTask() {
                 @Override public void safeRun() throws InterruptedException {
-                    GridUpdateNotifier notifier = new GridUpdateNotifier(gridName, true, nodes(EMPTY_PN).size());
+                    GridUpdateNotifier ntf = new GridUpdateNotifier(gridName, true, nodes(EMPTY_PN).size());
 
-                    notifier.checkForNewVersion(cfg.getExecutorService(), log);
+                    ntf.checkForNewVersion(cfg.getExecutorService(), log);
 
                     // Just wait for 10 secs.
                     Thread.sleep(PERIODIC_VER_CHECK_CONN_TIMEOUT);
 
                     // Report status if one is available.
                     // No-op is status is NOT available.
-                    notifier.reportStatus(log);
+                    ntf.reportStatus(log);
                 }
             }, PERIODIC_VER_CHECK_DELAY, PERIODIC_VER_CHECK_DELAY);
         }
@@ -769,7 +810,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
                 }
             }, PERIODIC_LIC_CHECK_DELAY, PERIODIC_LIC_CHECK_DELAY);
 
-        int metricsLogFreq = cfg.getMetricsLogFrequency();
+        long metricsLogFreq = cfg.getMetricsLogFrequency();
 
         if (metricsLogFreq > 0) {
             metricsLogTimer = new Timer("gridgain-metrics-logger");
@@ -826,7 +867,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
                 ", addrs=" + getAddresses(locNode) +
                 ']');
 
-            U.quiet("ZZZzz zz z...");
+            U.quiet(U.rainbow("ZZZzz zz z..."));
         }
         else if (log.isInfoEnabled()) {
             String ack = "GridGain ver. " + VER + '-' + BUILD;
@@ -862,7 +903,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         }
 
         // Send node start email notification, if enabled.
-        if (isSmtpEnabled() && isAdminEmailsSet() && cfg.isLifeCycleEmailNotification() && isEnterprise()) {
+        if (isSmtpEnabled() && isAdminEmailsSet() && cfg.isLifeCycleEmailNotification()) {
             SB sb = new SB();
 
             for (GridPortRecord rec : ctx.ports().records())
@@ -890,8 +931,8 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
                 "JVM vendor: " + U.jvmVendor() + NL +
                 "JVM version: " + U.jvmVersion() + NL +
                 "VM name: " + rtBean.getName() + NL +
-                "License ID: "  +  lic.getId().toString().toUpperCase() + NL +
-                "Licesned to: " + lic.getUserOrganization() + NL +
+                "License ID: "  +  lic.id().toString().toUpperCase() + NL +
+                "Licensed to: " + lic.userOrganization() + NL +
                 "----" + NL +
                 NL +
                 "NOTE:" + NL +
@@ -971,8 +1012,8 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
                     log.debug("Added system properties to node attributes.");
             }
             catch (SecurityException e) {
-                throw new GridException("Failed to add system properties to node attributes due to security violation: " +
-                    e.getMessage());
+                throw new GridException("Failed to add system properties to node attributes due to security " +
+                    "violation: " + e.getMessage());
             }
         }
 
@@ -1030,85 +1071,24 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         // Whether restart is enabled and stick the attribute.
         add(attrs, ATTR_RESTART_ENABLED, Boolean.toString(isRestartEnabled()));
 
-        /*
-         * Stick in SPI versions and classes attributes.
-         */
+        // Stick in rest tcp and jetty ports.
+        add(attrs, ATTR_REST_TCP_PORT, cfg.getRestTcpPort());
+        add(attrs, ATTR_REST_JETTY_PORT, cfg.getRestJettyPort());
 
-        // Collision SPI.
-        Class<? extends GridSpi> spiCls = cfg.getCollisionSpi().getClass();
-
-        add(attrs, U.spiAttribute(cfg.getCollisionSpi(), ATTR_SPI_CLASS), spiCls.getName());
-        add(attrs, U.spiAttribute(cfg.getCollisionSpi(), ATTR_SPI_VER), getSpiVersion(spiCls));
-
-        // SwapSpace SPIs.
-        for (GridSwapSpaceSpi swapSpi : cfg.getSwapSpaceSpi()) {
-            spiCls = swapSpi.getClass();
-
-            add(attrs, U.spiAttribute(swapSpi, ATTR_SPI_CLASS), spiCls.getName());
-            add(attrs, U.spiAttribute(swapSpi, ATTR_SPI_VER), getSpiVersion(spiCls));
-        }
-
-        // Topology SPIs.
-        for (GridTopologySpi topSpi : cfg.getTopologySpi()) {
-            spiCls = topSpi.getClass();
-
-            add(attrs, U.spiAttribute(topSpi, ATTR_SPI_CLASS), spiCls.getName());
-            add(attrs, U.spiAttribute(topSpi, ATTR_SPI_VER), getSpiVersion(spiCls));
-        }
-
-        // Discovery SPI.
-        spiCls = cfg.getDiscoverySpi().getClass();
-
-        add(attrs, U.spiAttribute(cfg.getDiscoverySpi(), ATTR_SPI_CLASS), spiCls.getName());
-        add(attrs, U.spiAttribute(cfg.getDiscoverySpi(), ATTR_SPI_VER), getSpiVersion(spiCls));
-
-        // Failover SPIs.
-        for (GridFailoverSpi failSpi : cfg.getFailoverSpi()) {
-            spiCls = failSpi.getClass();
-
-            add(attrs, U.spiAttribute(failSpi, ATTR_SPI_CLASS), spiCls.getName());
-            add(attrs, U.spiAttribute(failSpi, ATTR_SPI_VER), getSpiVersion(spiCls));
-        }
-
-        // Communication SPI.
-        spiCls = cfg.getCommunicationSpi().getClass();
-
-        add(attrs, U.spiAttribute(cfg.getCommunicationSpi(), ATTR_SPI_CLASS), spiCls.getName());
-        add(attrs, U.spiAttribute(cfg.getCommunicationSpi(), ATTR_SPI_VER), getSpiVersion(spiCls));
-
-        // Event storage SPI.
-        spiCls = cfg.getEventStorageSpi().getClass();
-
-        add(attrs, U.spiAttribute(cfg.getEventStorageSpi(), ATTR_SPI_CLASS), spiCls.getName());
-        add(attrs, U.spiAttribute(cfg.getEventStorageSpi(), ATTR_SPI_VER), getSpiVersion(spiCls));
-
-        // Checkpoints SPIs.
-        for (GridCheckpointSpi cpSpi : cfg.getCheckpointSpi()) {
-            spiCls = cpSpi.getClass();
-
-            add(attrs, U.spiAttribute(cpSpi, ATTR_SPI_CLASS), spiCls.getName());
-            add(attrs, U.spiAttribute(cpSpi, ATTR_SPI_VER), getSpiVersion(spiCls));
-        }
-
-        // Load balancing SPIs.
-        for (GridLoadBalancingSpi loadSpi : cfg.getLoadBalancingSpi()) {
-            spiCls = loadSpi.getClass();
-
-            add(attrs, U.spiAttribute(loadSpi, ATTR_SPI_CLASS), spiCls.getName());
-            add(attrs, U.spiAttribute(loadSpi, ATTR_SPI_VER), getSpiVersion(spiCls));
-        }
-
-        // Metrics SPI.
-        spiCls = cfg.getMetricsSpi().getClass();
-
-        add(attrs, U.spiAttribute(cfg.getMetricsSpi(), ATTR_SPI_CLASS), spiCls.getName());
-        add(attrs, U.spiAttribute(cfg.getMetricsSpi(), ATTR_SPI_VER), getSpiVersion(spiCls));
-
-        // Deployment SPI.
-        spiCls = cfg.getDeploymentSpi().getClass();
-
-        add(attrs, U.spiAttribute(cfg.getDeploymentSpi(), ATTR_SPI_VER), getSpiVersion(spiCls));
-        add(attrs, U.spiAttribute(cfg.getDeploymentSpi(), ATTR_SPI_CLASS), spiCls.getName());
+        // Stick in SPI versions and classes attributes.
+        addAttributes(attrs, cfg.getCollisionSpi());
+        addAttributes(attrs, cfg.getSwapSpaceSpi());
+        addAttributes(attrs, cfg.getTopologySpi());
+        addAttributes(attrs, cfg.getDiscoverySpi());
+        addAttributes(attrs, cfg.getFailoverSpi());
+        addAttributes(attrs, cfg.getCommunicationSpi());
+        addAttributes(attrs, cfg.getEventStorageSpi());
+        addAttributes(attrs, cfg.getCheckpointSpi());
+        addAttributes(attrs, cfg.getLoadBalancingSpi());
+        addAttributes(attrs, cfg.getMetricsSpi());
+        addAttributes(attrs, cfg.getAuthenticationSpi());
+        addAttributes(attrs, cfg.getSecureSessionSpi());
+        addAttributes(attrs, cfg.getDeploymentSpi());
 
         // Set cache attribute.
         GridCacheAttributes[] cacheAttrVals = new GridCacheAttributes[cfg.getCacheConfiguration().length];
@@ -1139,6 +1119,22 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             }
 
         return attrs;
+    }
+
+    /**
+     * Add SPI version and class attributes into node attributes.
+     *
+     * @param attrs Node attributes map to add SPI attributes to.
+     * @param spiList Collection of SPIs to get attributes from.
+     * @throws GridException Thrown if was unable to set up attribute.
+     */
+    private void addAttributes(Map<String, Object> attrs, GridSpi... spiList) throws GridException {
+        for (GridSpi spi : spiList) {
+            Class<? extends GridSpi> spiCls = spi.getClass();
+
+            add(attrs, U.spiAttribute(spi, ATTR_SPI_CLASS), spiCls.getName());
+            add(attrs, U.spiAttribute(spi, ATTR_SPI_VER), getSpiVersion(spiCls));
+        }
     }
 
     /** @throws GridException If registration failed. */
@@ -1320,8 +1316,8 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             ctrl = (GridController)Proxy.newProxyInstance(itf.getClassLoader(), new Class[] {itf},
                 new InvocationHandler() {
                     @Nullable
-                    @Override public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                        return "implemented".equals(method.getName()) && args == null ?  Boolean.FALSE : null;
+                    @Override public Object invoke(Object proxy, Method mtd, Object[] args) throws Throwable {
+                        return "implemented".equals(mtd.getName()) && args == null ?  Boolean.FALSE : null;
                     }
                 }
             );
@@ -1384,9 +1380,6 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
      * Acks remote management.
      */
     private void ackRemoteManagement() {
-        if (!isEnterprise() && isRestEnabled())
-            U.warn(log, "REST is not supported in Community Edition (ignoring).");
-
         SB sb = new SB();
 
         sb.a("Remote Management [");
@@ -1604,7 +1597,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             if (log.isDebugEnabled())
                 log.debug("Notifying lifecycle beans.");
 
-            notifyLifecycleBeans(GridLifecycleEventType.BEFORE_GRID_STOP);
+            notifyLifecycleBeansEx(GridLifecycleEventType.BEFORE_GRID_STOP);
         }
 
         List<GridComponent> comps = ctx.components();
@@ -1645,7 +1638,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
                 metricsLogTimer.cancel();
 
             // Clear node local store.
-            nodeLocal.clear();
+            nodeLoc.clear();
 
             if (log.isDebugEnabled())
                 log.debug("Grid " + (gridName == null ? "" : '\'' + gridName + "' ") + "is stopping.");
@@ -1681,7 +1674,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         }
 
         // Lifecycle notification.
-        notifyLifecycleBeans(GridLifecycleEventType.AFTER_GRID_STOP);
+        notifyLifecycleBeansEx(GridLifecycleEventType.AFTER_GRID_STOP);
 
         for (GridWorker w : GridWorkerGroup.instance(gridName).activeWorkers()) {
             String n1 = w.gridName() == null ? "" : w.gridName();
@@ -1766,7 +1759,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         W.printAll();
 
         // Send node start email notification, if enabled.
-        if (isSmtpEnabled() && isAdminEmailsSet() && cfg.isLifeCycleEmailNotification() && isEnterprise()) {
+        if (isSmtpEnabled() && isAdminEmailsSet() && cfg.isLifeCycleEmailNotification()) {
             String errOk = errOnStop ? "with ERRORS" : "OK";
 
             String headline = "GridGain ver. " + VER + '-' + BUILD + " stopped " + errOk + ":";
@@ -1782,8 +1775,8 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
                 "Grid name: " + gridName + NL +
                 "Node ID: " + nid + NL +
                 "Node uptime: " + X.timeSpan2HMSM(System.currentTimeMillis() - startTime) + NL +
-                "License ID: "  +  lic.getId().toString().toUpperCase() + NL +
-                "Licesned to: " + lic.getUserOrganization() + NL +
+                "License ID: "  +  lic.id().toString().toUpperCase() + NL +
+                "Licensed to: " + lic.userOrganization() + NL +
                 "----" + NL +
                 NL +
                 "NOTE:" + NL +
@@ -1966,6 +1959,8 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             log.debug("Grid failover SPI       : " + Arrays.toString(cfg.getFailoverSpi()));
             log.debug("Grid load balancing SPI : " + Arrays.toString(cfg.getLoadBalancingSpi()));
             log.debug("Grid metrics SPI        : " + cfg.getMetricsSpi());
+            log.debug("Grid authentication SPI : " + cfg.getAuthenticationSpi());
+            log.debug("Grid secure session SPI : " + cfg.getSecureSessionSpi());
             log.debug("Grid swap space SPI     : " + Arrays.toString(cfg.getSwapSpaceSpi()));
             log.debug("Grid topology SPI       : " + Arrays.toString(cfg.getTopologySpi()));
         }
@@ -2008,36 +2003,50 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     }
 
     /**
+     * Prints security status.
+     *
+     * @param ctx Kernal context.
+     */
+    private void ackSecurity(GridKernalContext ctx) {
+        if (log.isQuiet())
+            U.quiet("Security status [authentication=" + onOff(ctx.auth().securityEnabled()) + ", " +
+                "secure-session=" + onOff(ctx.secureSession().securityEnabled()) + ']');
+        else if (log.isInfoEnabled())
+            log.info("Security status [authentication=" + onOff(ctx.auth().securityEnabled()) + ", " +
+                "secure-session=" + onOff(ctx.secureSession().securityEnabled()) + ']');
+
+        if (!ctx.isEnterprise())
+            U.warn(log, "Security is disabled.");
+    }
+
+    /**
      * Prints out SMTP configuration.
      */
     private void ackSmtpConfiguration() {
-        // Ack SMTP only in Enterprise Edition.
-        if (isEnterprise()) {
-            String host = cfg.getSmtpHost();
+        String host = cfg.getSmtpHost();
 
-            boolean ssl = cfg.isSmtpSsl();
-            int port = cfg.getSmtpPort();
+        boolean ssl = cfg.isSmtpSsl();
+        int port = cfg.getSmtpPort();
 
-            if (host != null) {
-                String from = cfg.getSmtpFromEmail();
+        if (host != null) {
+            String from = cfg.getSmtpFromEmail();
 
-                if (log.isQuiet())
-                    U.quiet("SMTP enabled [host=" + host + ":" + port + ", ssl=" + (ssl ? "on" : "off") + ", from=" +
-                        from + ']');
-                else if (log.isInfoEnabled()) {
-                    String[] adminEmails = cfg.getAdminEmails();
+            if (log.isQuiet())
+                U.quiet("SMTP enabled [host=" + host + ":" + port + ", ssl=" + (ssl ? "on" : "off") + ", from=" +
+                    from + ']');
+            else if (log.isInfoEnabled()) {
+                String[] adminEmails = cfg.getAdminEmails();
 
-                    log.info("SMTP enabled [host=" + host + ", port=" + port + ", ssl=" + ssl + ", from=" +
-                        from + ']');
-                    log.info("Admin emails: " + (!isAdminEmailsSet() ? "N/A" : Arrays.toString(adminEmails)));
-                }
-
-                if (isEnterprise() && !isAdminEmailsSet())
-                    U.warn(log, "Admin emails are not set - automatic email notifications are off.");
+                log.info("SMTP enabled [host=" + host + ", port=" + port + ", ssl=" + ssl + ", from=" +
+                    from + ']');
+                log.info("Admin emails: " + (!isAdminEmailsSet() ? "N/A" : Arrays.toString(adminEmails)));
             }
-            else
-                U.warn(log, "SMTP is not configured - email notifications are off.");
+
+            if (!isAdminEmailsSet())
+                U.warn(log, "Admin emails are not set - automatic email notifications are off.");
         }
+        else
+            U.warn(log, "SMTP is not configured - email notifications are off.");
     }
 
     /**
@@ -2175,6 +2184,12 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     }
 
     /** {@inheritDoc} */
+    @Override public Date releaseDate() {
+        // Date object is mutable, so we have to return copy here.
+        return new Date(relDate.getTime());
+    }
+
+    /** {@inheritDoc} */
     @Override public String copyright() {
         return COPYRIGHT;
     }
@@ -2241,9 +2256,6 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         A.notNull(subj, "subj");
         A.notNull(body, "body");
 
-        if (!isEnterprise())
-            throw new GridEnterpriseFeatureException();
-
         if (isSmtpEnabled() && isAdminEmailsSet()) {
             guard();
 
@@ -2263,9 +2275,6 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         A.notNull(subj, "subj");
         A.notNull(body, "body");
 
-        if (!isEnterprise())
-            throw new GridEnterpriseFeatureException();
-
         if (isSmtpEnabled() && isAdminEmailsSet()) {
             guard();
 
@@ -2284,6 +2293,18 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
 
         try {
             return ctx.license().license();
+        }
+        finally {
+            unguard();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public void updateLicense(String lic) throws GridLicenseException {
+        guard();
+
+        try {
+            ctx.license().updateLicense(lic);
         }
         finally {
             unguard();
@@ -2426,11 +2447,11 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     }
 
     /** {@inheritDoc} */
-    @Override public <R> GridScheduleFuture<R> scheduleLocal(Callable<R> c, String pattern) throws GridException {
+    @Override public <R> GridScheduleFuture<R> scheduleLocal(Callable<R> c, String ptrn) throws GridException {
         guard();
 
         try {
-            return ctx.schedule().schedule(c, pattern);
+            return ctx.schedule().schedule(c, ptrn);
         }
         finally {
             unguard();
@@ -2438,11 +2459,11 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     }
 
     /** {@inheritDoc} */
-    @Override public GridScheduleFuture<?> scheduleLocal(Runnable c, String pattern) throws GridException {
+    @Override public GridScheduleFuture<?> scheduleLocal(Runnable c, String ptrn) throws GridException {
         guard();
 
         try {
-            return ctx.schedule().schedule(c, pattern);
+            return ctx.schedule().schedule(c, ptrn);
         }
         finally {
             unguard();
@@ -2455,7 +2476,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         guard();
 
         try {
-            return nodeLocal;
+            return nodeLoc;
         }
         finally {
             unguard();
@@ -2490,7 +2511,10 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         guard();
 
         try {
-            ctx.deploy().deploy(taskCls, clsLdr);
+            GridDeployment dep = ctx.deploy().deploy(taskCls, clsLdr);
+
+            if (dep == null)
+                throw new GridDeploymentException("Failed to deploy task (was task (re|un)deployed?): " + taskCls);
         }
         finally {
             unguard();
@@ -2634,13 +2658,13 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
 
             if (c != null)
                 c1 = new CIX1<byte[]>() {
-                    @Override public void applyx(byte[] removed) throws GridException {
+                    @Override public void applyx(byte[] rmv) throws GridException {
                         Object val = null;
 
                         ClassLoader ldr0 = ldr != null ? ldr : classLoader();
 
-                        if (removed != null)
-                            val = U.unmarshal(cfg.getMarshaller(), new ByteArrayInputStream(removed), ldr0);
+                        if (rmv != null)
+                            val = U.unmarshal(cfg.getMarshaller(), new ByteArrayInputStream(rmv), ldr0);
 
                         c.apply(val);
                     }

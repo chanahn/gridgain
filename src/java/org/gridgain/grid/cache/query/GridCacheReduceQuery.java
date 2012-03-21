@@ -95,8 +95,12 @@ import java.util.*;
  * double averageOtherSalary = qry.with("Other").reduce(grid).get())
  * </pre>
  *
+ * @param <K> Key type.
+ * @param <V> Value type.
+ * @param <R1> Remotely reduced type.
+ * @param <R2> Locally reduced type.
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridCacheReduceQuery<K, V, R1, R2> extends GridCacheQueryBase<K, V> {
     /**
@@ -156,8 +160,6 @@ public interface GridCacheReduceQuery<K, V, R1, R2> extends GridCacheQueryBase<K
      * @param grid Grid projection to execute query on, if not provided, all grid nodes will be used.
      * @return Future for the reduced query result.
      */
-    @GridEnterpriseFeature("Distributed queries are enterprise-only feature " +
-        "(local queries are available in community edition)")
     public GridFuture<R2> reduce(@Nullable GridProjection... grid);
 
     /**
@@ -174,7 +176,5 @@ public interface GridCacheReduceQuery<K, V, R1, R2> extends GridCacheQueryBase<K
      * @param grid Grid projection to execute query on, if not provided, all grid nodes will be used.
      * @return Future for the reduced query result.
      */
-    @GridEnterpriseFeature("Distributed queries are enterprise-only feature " +
-        "(local queries are available in community edition)")
     public GridFuture<Collection<R1>> reduceRemote(GridProjection... grid);
 }

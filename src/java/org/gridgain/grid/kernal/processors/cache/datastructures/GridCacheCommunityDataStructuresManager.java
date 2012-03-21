@@ -17,7 +17,7 @@ import org.gridgain.grid.kernal.processors.cache.*;
  * Community manager of data structures.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridCacheCommunityDataStructuresManager<K, V> extends GridCacheDataStructuresManager<K, V> {
     /** Error message. */
@@ -90,6 +90,11 @@ public final class GridCacheCommunityDataStructuresManager<K, V> extends GridCac
     @Override public void onTxCommitted(GridCacheTxEx tx) {
         // This method is always called on transaction commit from transaction
         // manager and it should be no-op for community edition.
+    }
+
+    /** {@inheritDoc} */
+    @Override public void onPartitionsChange() {
+        // No-op.
     }
 
     /** {@inheritDoc} */

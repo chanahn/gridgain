@@ -6,20 +6,38 @@
  *  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
  *  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
  */
-
 package org.gridgain.grid.util.nio;
 
-import java.util.*;
+import org.jetbrains.annotations.*;
 
 /**
- * NIO server listener.
+ * Listener passed in to the {@link org.gridgain.grid.util.nio.impl.GridNioServerImpl} that will be notified on client events.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
-public interface GridNioServerListener extends EventListener {
+public interface GridNioServerListener<T> {
     /**
-     * @param data Data.
+     * This method is called whenever a new client is connected and session is created.
+     *
+     * @param ses Newly created session for remote client.
      */
-    public void onMessage(byte[] data);
+    public void onConnected(GridNioSession ses);
+
+    /**
+     * This method is called whenever client is disconnected due to correct connection close
+     * or due to {@code IOException} during network operations.
+     *
+     * @param ses Closed session.
+     * @param e Exception occurred, if any.
+     */
+    public void onDisconnected(GridNioSession ses, @Nullable Exception e);
+
+    /**
+     * This method is called whenever a {@link GridNioParser} returns non-null value.
+     *
+     * @param ses Session on which message was received.
+     * @param msg Parsed message.
+     */
+    public void onMessage(GridNioSession ses, T msg);
 }

@@ -53,7 +53,7 @@ import java.util.*;
  * See {@link GridConfiguration#getNodeId()} for Grid configuration details.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

@@ -20,7 +20,7 @@ import java.util.*;
  * Communication topic.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public enum GridTopic {
     /** */
@@ -49,9 +49,6 @@ public enum GridTopic {
 
     /** */
     TOPIC_COMM_USER,
-
-    /** */
-    TOPIC_COMM_SYNC,
 
     /** */
     TOPIC_REST;

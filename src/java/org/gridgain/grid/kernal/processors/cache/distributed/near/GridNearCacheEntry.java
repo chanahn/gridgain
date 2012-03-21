@@ -28,7 +28,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Replicated cache entry.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
@@ -302,7 +302,7 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     }
 
     /** {@inheritDoc} */
-    @Override protected void refreshAhead(GridCacheTx tx, K key, GridCacheVersion matchVer) {
+    @Override protected void refreshAhead(K key, GridCacheVersion matchVer) {
         // No-op.
     }
 
@@ -332,39 +332,38 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
         if (valBytes != null && val == null && isNewLocked())
             val = U.<V>unmarshal(cctx.marshaller(), new GridByteArrayList(valBytes), cctx.deploy().globalLoader());
 
+        lock();
+
         try {
-            lock();
+            checkObsolete();
 
-            try {
-                checkObsolete();
+            if (metrics == null)
+                metrics = new GridCacheMetricsAdapter();
 
-                if (metrics == null)
-                    metrics = new GridCacheMetricsAdapter();
+            metrics.onRead(false);
 
-                metrics.onRead(false);
+            boolean ret = false;
 
-                if (isNew() || !valid()) {
-                    this.primaryNodeId = primaryNodeId;
+            if (isNew() || !valid()) {
+                this.primaryNodeId = primaryNodeId;
 
-                    isRefreshing = false;
+                isRefreshing = false;
 
-                    // Version does not change for load ops.
-                    update(val, valBytes, expireTime, ttl, ver, metrics);
+                // Version does not change for load ops.
+                update(val, valBytes, expireTime, ttl, ver, metrics);
 
-                    updateIndex(val);
+                updateIndex(val);
 
-                    return true;
-                }
-
-                return false;
+                ret = true;
             }
-            finally {
-                unlock();
-            }
+
+            if (evt && cctx.events().isRecordable(EVT_CACHE_OBJECT_READ))
+                cctx.events().addEvent(partition(), key, tx, null, EVT_CACHE_OBJECT_READ, val, null);
+
+            return ret;
         }
         finally {
-            if (evt)
-                cctx.events().addEvent(partition(), key, tx, null, EVT_CACHE_OBJECT_READ, val, null);
+            unlock();
         }
     }
 

@@ -14,11 +14,9 @@ import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
-import org.gridgain.grid.util.*;
 import org.gridgain.grid.util.future.*;
 
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
 
 import static org.gridgain.grid.GridEventType.*;
@@ -28,7 +26,7 @@ import static org.gridgain.grid.cache.GridCachePreloadMode.*;
  * Class that takes care about entries preloading in replicated cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
     /** Busy lock to control activeness of threads (loader, sender). */
@@ -38,7 +36,7 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
     private final GridFutureAdapter<?> syncPreloadFut = new GridFutureAdapter(cctx.kernalContext());
 
     /** Lock to prevent preloading for the time of eviction. */
-    private final ReadWriteLock evictLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock evictLock = new ReentrantReadWriteLock();
 
     /** Supply pool. */
     private GridReplicatedPreloadSupplyPool<K, V> supplyPool;
@@ -47,7 +45,7 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
     private GridReplicatedPreloadDemandPool<K, V> demandPool;
 
     /** Eviction history. */
-    private final ConcurrentMap<K, GridCacheVersion> evictHist = GridConcurrentFactory.newMap();
+    private volatile Map<K, GridCacheVersion> evictHist = new HashMap<K, GridCacheVersion>();
 
     /**
      * @param cctx Cache context.
@@ -63,14 +61,7 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
         demandPool = new GridReplicatedPreloadDemandPool<K, V>(cctx, busyLock, evictLock,
             new P2<K, GridCacheVersion>() {
                 @Override public boolean apply(K key, GridCacheVersion ver) {
-                    assert key != null;
-                    assert ver != null;
-
-                    GridCacheVersion ver0 = evictHist.get(key);
-
-                    // Permit preloading if version in history
-                    // is missing or less than passed in.
-                    return ver0 == null || ver0.isLess(ver);
+                    return preloadingPermitted(key, ver);
                 }
             });
 
@@ -99,12 +90,12 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
         // Clear eviction history on preload finish.
         syncPreloadFut.listenAsync(
             new CIX1<GridFuture<?>>() {
-                @Override public void applyx(GridFuture<?> gridFuture) {
+                @Override public void applyx(GridFuture<?> gridFut) {
                     // Wait until all eviction activities finish.
                     evictLock.writeLock().lock();
 
                     try {
-                        evictHist.clear();
+                        evictHist = null;
                     }
                     finally {
                         evictLock.writeLock().unlock();
@@ -160,8 +151,9 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
             }
         }
 
-        cctx.events().addPreloadEvent(-1, EVT_CACHE_PRELOAD_STARTED, cctx.discovery().shadow(cctx.localNode()),
-            discoEvtType, cctx.localNode().metrics().getNodeStartTime());
+        if (cctx.events().isRecordable(EVT_CACHE_PRELOAD_STARTED))
+            cctx.events().addPreloadEvent(-1, EVT_CACHE_PRELOAD_STARTED, cctx.discovery().shadow(cctx.localNode()),
+                discoEvtType, cctx.localNode().metrics().getNodeStartTime());
 
         if (!assigns.isEmpty())
             demandPool.assign(assigns, finishFut, maxOrder);
@@ -169,15 +161,17 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
             finishFut.onDone();
 
         // Preloading stopped event notification.
-        finishFut.listenAsync(
-            new CIX1<GridFuture<?>>() {
-                @Override public void applyx(GridFuture<?> gridFuture) {
-                    cctx.events().addPreloadEvent(-1, EVT_CACHE_PRELOAD_STOPPED,
-                        cctx.discovery().shadow(cctx.localNode()),
-                        discoEvtType, cctx.localNode().metrics().getNodeStartTime());
+        if (cctx.events().isRecordable(EVT_CACHE_PRELOAD_STOPPED)) {
+            finishFut.listenAsync(
+                new CIX1<GridFuture<?>>() {
+                    @Override public void applyx(GridFuture<?> gridFut) {
+                        cctx.events().addPreloadEvent(-1, EVT_CACHE_PRELOAD_STOPPED,
+                            cctx.discovery().shadow(cctx.localNode()),
+                            discoEvtType, cctx.localNode().metrics().getNodeStartTime());
+                    }
                 }
-            }
-        );
+            );
+        }
     }
 
     /**
@@ -256,24 +250,26 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
     public void onEntryEvicted(K key, GridCacheVersion ver) {
         assert key != null;
         assert ver != null;
+        assert evictLock.isWriteLockedByCurrentThread(); // Only one thread can enter this method at a time.
 
         if (syncPreloadFut.isDone())
             // Ignore since preloading finished.
             return;
 
-        // Only one thread can enter this method at a time.
-        GridCacheVersion ver0 = evictHist.putIfAbsent(key, ver);
+        Map<K, GridCacheVersion> evictHist0 = evictHist;
 
-        if (ver0 != null && ver0.isLess(ver)) {
-            boolean r = evictHist.replace(key, ver0, ver);
+        assert evictHist0 != null;
 
-            assert r;
+        GridCacheVersion ver0 = evictHist0.get(key);
+
+        if (ver0 == null || ver0.isLess(ver)) {
+            GridCacheVersion ver1 = evictHist0.put(key, ver);
+
+            assert ver1 == ver0;
         }
     }
 
     /**
-     * Cache preloader should call this method within partition lock.
-     *
      * @param key Key.
      * @param ver Version.
      * @return {@code True} if preloading is permitted.
@@ -281,8 +277,14 @@ public class GridReplicatedPreloader<K, V> extends GridCachePreloaderAdapter<K, 
     public boolean preloadingPermitted(K key, GridCacheVersion ver) {
         assert key != null;
         assert ver != null;
+        assert evictLock.getReadHoldCount() == 1;
+        assert !syncPreloadFut.isDone();
 
-        GridCacheVersion ver0 = evictHist.get(key);
+        Map<K, GridCacheVersion> evictHist0 = evictHist;
+
+        assert evictHist0 != null;
+
+        GridCacheVersion ver0 = evictHist0.get(key);
 
         // Permit preloading if version in history
         // is missing or less than passed in.

@@ -42,7 +42,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Adapter for different cache implementations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter implements GridCache<K, V>,
     Externalizable {
@@ -812,6 +812,64 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     }
 
     /** {@inheritDoc} */
+    @Override public boolean poke(K key, V val) throws GridException {
+        A.notNull(key, "key", val, "val");
+
+        ctx.denyOnFlag(READ);
+
+        return poke0(key, val);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void pokeAll(Map<? extends K, ? extends V> m) throws GridException {
+        ctx.denyOnFlag(READ);
+
+        if (F.isEmpty(m))
+            return;
+
+        GridException err = null;
+
+        for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
+            try {
+                poke0(e.getKey(), e.getValue());
+            }
+            catch (GridException ex) {
+                err = ex;
+            }
+        }
+
+        if (err != null)
+            throw err;
+    }
+
+    /**
+     * Pokes an entry.
+     *
+     * @param key Key.
+     * @param newVal New values.
+     * @return {@code True} if entry was poked.
+     * @throws GridException If failed.
+     */
+    private boolean poke0(K key, @Nullable V newVal) throws GridException {
+        GridCacheEntryEx<K, V> entryEx = peekEx(key);
+
+        if (entryEx == null)
+            return newVal == null;
+
+        if (newVal == null)
+            return entryEx.markObsolete(ctx.versions().next(), true);
+
+        try {
+            entryEx.poke(newVal);
+        }
+        catch (GridCacheEntryRemovedException ignore) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /** {@inheritDoc} */
     @Override public void forEach(GridInClosure<? super GridCacheEntry<K, V>> vis) {
         A.notNull(vis, "vis");
 
@@ -1015,7 +1073,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
     /** {@inheritDoc} */
     @Nullable @Override public GridCacheEntry<K, V> entry(K key) {
-        return entryEx(key).wrap(true);
+        return entryEx(key, true).wrap(true);
     }
 
     /**
@@ -1024,7 +1082,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
      * @return Entry or <tt>null</tt>.
      */
     @Nullable public GridCacheEntryEx<K, V> peekEx(K key) {
-        return entry0(key, -1, false);
+        return entry0(key, -1, false, false);
     }
 
     /**
@@ -1032,7 +1090,16 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
      * @return Entry (never {@code null}).
      */
     public GridCacheEntryEx<K, V> entryEx(K key) {
-        GridCacheEntryEx<K, V> e = entry0(key, -1, true);
+        return entryEx(key, false);
+    }
+
+    /**
+     * @param key Entry key.
+     * @param touch Whether created entry should be touched.
+     * @return Entry (never {@code null}).
+     */
+    public GridCacheEntryEx<K, V> entryEx(K key, boolean touch) {
+        GridCacheEntryEx<K, V> e = entry0(key, -1, true, touch);
 
         assert e != null;
 
@@ -1045,7 +1112,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
      * @return Entry (never {@code null}).
      */
     public GridCacheEntryEx<K, V> entryEx(K key, long topVer) {
-        GridCacheEntryEx<K, V> e = entry0(key, topVer, true);
+        GridCacheEntryEx<K, V> e = entry0(key, topVer, true, false);
 
         assert e != null;
 
@@ -1056,9 +1123,10 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
      * @param key Entry key.
      * @param topVer Topology version at the time of creation.
      * @param create Flag to create entry if it does not exist.
+     * @param touch Flag to touch created entry (only if entry was actually created).
      * @return Entry or <tt>null</tt>.
      */
-    @Nullable private GridCacheEntryEx<K, V> entry0(K key, long topVer, boolean create) {
+    @Nullable private GridCacheEntryEx<K, V> entry0(K key, long topVer, boolean create, boolean touch) {
         GridTriple<GridCacheMapEntry<K, V>> t = map.putEntryIfObsoleteOrAbsent(topVer, key, null,
             ctx.config().getDefaultTimeToLive(), create);
 
@@ -1066,15 +1134,20 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         GridCacheEntryEx<K, V> created = t.get2();
         GridCacheEntryEx<K, V> doomed = t.get3();
 
-        if (doomed != null)
+        if (doomed != null && ctx.events().isRecordable(EVT_CACHE_ENTRY_DESTROYED))
             // Event notification.
             ctx.events().addEvent(doomed.partition(), doomed.key(), locNodeId, (GridUuid)null, null,
                 EVT_CACHE_ENTRY_DESTROYED, null, null);
 
-        if (created != null)
+        if (created != null) {
             // Event notification.
-            ctx.events().addEvent(created.partition(), created.key(), locNodeId, (GridUuid)null, null,
-                EVT_CACHE_ENTRY_CREATED, null, null);
+            if (ctx.events().isRecordable(EVT_CACHE_ENTRY_CREATED))
+                ctx.events().addEvent(created.partition(), created.key(), locNodeId, (GridUuid)null, null,
+                    EVT_CACHE_ENTRY_CREATED, null, null);
+
+            if (touch)
+                ctx.evicts().touch(cur);
+        }
 
         return cur;
     }
@@ -1309,9 +1382,10 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
             if (log.isDebugEnabled())
                 log.debug("Removed entry from cache: " + entry);
 
-            // Event notification.
-            ctx.events().addEvent(entry.partition(), entry.key(), locNodeId, (GridUuid)null, null,
-                EVT_CACHE_ENTRY_DESTROYED, null, null);
+            if (ctx.events().isRecordable(EVT_CACHE_ENTRY_DESTROYED))
+                // Event notification.
+                ctx.events().addEvent(entry.partition(), entry.key(), locNodeId, (GridUuid)null, null,
+                    EVT_CACHE_ENTRY_DESTROYED, null, null);
         }
         else if (log.isDebugEnabled())
             log.debug("Remove will not be done for key (obsolete entry got replaced or removed): " + key);
@@ -2918,29 +2992,29 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     }
 
     /** {@inheritDoc} */
-    @Override public void loadCache(final GridPredicate2<K, V> p, long ttl, Object[] args) throws GridException {
+    @Override public void loadCache(final GridPredicate2<K, V> p, final long ttl, Object[] args) throws GridException {
+        // Version for all loaded entries.
+        final GridCacheVersion ver = ctx.versions().next();
+
         CU.loadCache(ctx, log, new CI2<K, V>() {
-            // Version for all loaded entries.
-            private GridCacheVersion ver = ctx.versions().next();
-
             @Override public void apply(K key, V val) {
-                if (p != null && !p.apply(key, val)) {
+                if (p != null && !p.apply(key, val))
                     return;
-                }
 
-                GridCacheEntryEx<K, V> entry = entryEx(key);
+                GridCacheEntryEx<K, V> entry = entryEx(key, true);
 
                 try {
-                    entry.versionedValue(val, null, ver);
+                    entry.initialValue(val, null, ver, ttl, -1, null);
                 }
                 catch (GridException e) {
                     throw new GridRuntimeException("Failed to put cache value: " + entry, e);
                 }
                 catch (GridCacheEntryRemovedException ignore) {
-                    if (log.isDebugEnabled()) {
+                    if (log.isDebugEnabled())
                         log.debug("Got removed entry during loadCache (will ignore): " + entry);
-                    }
                 }
+
+                CU.unwindEvicts(ctx);
             }
         }, args);
     }
@@ -2974,8 +3048,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     @Override public GridCacheQuery<K, V> createQuery(GridCacheQueryType type) {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createQuery(type, null, flags());
     }
@@ -2985,8 +3058,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         @Nullable String clause) {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createQuery(type, cls, clause, null, flags());
     }
@@ -2996,8 +3068,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         @Nullable String clause) {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createQuery(type, clsName, clause, null, flags());
     }
@@ -3006,8 +3077,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     @Override public <T> GridCacheTransformQuery<K, V, T> createTransformQuery() {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createTransformQuery(null, flags());
     }
@@ -3016,8 +3086,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     @Override public <T> GridCacheTransformQuery<K, V, T> createTransformQuery(GridCacheQueryType type) {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createTransformQuery(type, null, flags());
     }
@@ -3027,8 +3096,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         @Nullable Class<?> cls, @Nullable String clause) {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createTransformQuery(type, cls, clause, null, flags());
     }
@@ -3038,8 +3106,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         @Nullable String clsName, @Nullable String clause) {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createTransformQuery(type, clsName, clause, null, flags());
     }
@@ -3048,8 +3115,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     @Override public <R1, R2> GridCacheReduceQuery<K, V, R1, R2> createReduceQuery() {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createReduceQuery(null, flags());
     }
@@ -3058,8 +3124,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     @Override public <R1, R2> GridCacheReduceQuery<K, V, R1, R2> createReduceQuery(GridCacheQueryType type) {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createReduceQuery(type, null, flags());
     }
@@ -3069,8 +3134,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         @Nullable Class<?> cls, @Nullable String clause) {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createReduceQuery(type, cls, clause, null, flags());
     }
@@ -3080,8 +3144,7 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
         @Nullable String clsName, @Nullable String clause) {
         GridCacheQueryManager<K, V> qryMgr = ctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createReduceQuery(type, clsName, clause, null, flags());
     }
@@ -3208,9 +3271,10 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
             return null;
         }
 
-        // Event notification.
-        ctx.events().addEvent(entry.partition(), key, ctx.discovery().localNode().id(), (GridUuid)null, null,
-            EVT_CACHE_OBJECT_UNSWAPPED, null, null);
+        if (ctx.events().isRecordable(EVT_CACHE_OBJECT_UNSWAPPED))
+            // Event notification.
+            ctx.events().addEvent(entry.partition(), key, ctx.discovery().localNode().id(), (GridUuid)null, null,
+                EVT_CACHE_OBJECT_UNSWAPPED, null, null);
 
         return ctx.cloneOnFlag(unswapped.value());
     }
@@ -3692,15 +3756,15 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     }
 
     /** {@inheritDoc} */
-    @Override public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int capacity)
+    @Override public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int cap)
         throws GridException {
-        return ctx.dataStructures().queue(name, type, capacity <= 0 ? Integer.MAX_VALUE : capacity, true, true);
+        return ctx.dataStructures().queue(name, type, cap <= 0 ? Integer.MAX_VALUE : cap, true, true);
     }
 
     /** {@inheritDoc} */
-    @Override public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int capacity,
+    @Override public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int cap,
         boolean collocated) throws GridException {
-        return ctx.dataStructures().queue(name, type, capacity <= 0 ? Integer.MAX_VALUE : capacity, collocated, true);
+        return ctx.dataStructures().queue(name, type, cap <= 0 ? Integer.MAX_VALUE : cap, collocated, true);
     }
 
     /** {@inheritDoc} */
@@ -3850,9 +3914,9 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     }
 
     /** {@inheritDoc} */
-    @Nullable @Override public GridCacheCountDownLatch countDownLatch(String name, int count, boolean autoDelete)
+    @Nullable @Override public GridCacheCountDownLatch countDownLatch(String name, int cnt, boolean autoDel)
         throws GridException {
-        return ctx.dataStructures().countDownLatch(name, count, autoDelete, true);
+        return ctx.dataStructures().countDownLatch(name, cnt, autoDel, true);
     }
 
     /** {@inheritDoc} */
@@ -3871,8 +3935,8 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
     }
 
     /** {@inheritDoc} */
-    @Override public void dgc(long suspectLockTimeout, boolean global, boolean removeLocks) {
-        ctx.dgc().dgc(suspectLockTimeout, global, removeLocks);
+    @Override public void dgc(long suspectLockTimeout, boolean global, boolean rmvLocks) {
+        ctx.dgc().dgc(suspectLockTimeout, global, rmvLocks);
     }
 
     /**

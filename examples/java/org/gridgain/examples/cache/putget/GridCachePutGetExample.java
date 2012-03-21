@@ -31,7 +31,7 @@ import static org.gridgain.grid.GridEventType.*;
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCachePutGetExample {
     /** Cache name. */
@@ -116,12 +116,5 @@ public class GridCachePutGetExample {
         finally {
             G.stop(true);
         }
-    }
-
-    /**
-     * Ensure singleton.
-     */
-    private GridCachePutGetExample() {
-        // No-op.
     }
 }

@@ -23,7 +23,7 @@ import java.util.*;
  * join process.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridTcpDiscoveryEnsureDelivery
 public class GridTcpDiscoveryNodeAddedMessage extends GridTcpDiscoveryAbstractMessage {
@@ -36,6 +36,9 @@ public class GridTcpDiscoveryNodeAddedMessage extends GridTcpDiscoveryAbstractMe
     /** Current topology. Initialized by coordinator. */
     @GridToStringInclude
     private Collection<GridTcpDiscoveryNode> top;
+
+    /** If {@code true} messages will be processed, otherwise registered. */
+    private boolean procPendingMsgs;
 
     /**
      * Public default no-arg constructor for {@link Externalizable} interface.
@@ -90,7 +93,7 @@ public class GridTcpDiscoveryNodeAddedMessage extends GridTcpDiscoveryAbstractMe
      *
      * @return Current topology.
      */
-    public Collection<GridTcpDiscoveryNode> topology() {
+    @Nullable public Collection<GridTcpDiscoveryNode> topology() {
         return top;
     }
 
@@ -103,6 +106,20 @@ public class GridTcpDiscoveryNodeAddedMessage extends GridTcpDiscoveryAbstractMe
         this.top = top;
     }
 
+    /**
+     * @return {@code True} if pending messages should be processed on receive.
+     */
+    public boolean processPendingMessages() {
+        return procPendingMsgs;
+    }
+
+    /**
+     * @param procPendingMsgs {@code True} if pending messages should be processed on receive.
+     */
+    public void processPendingMessages(boolean procPendingMsgs) {
+        this.procPendingMsgs = procPendingMsgs;
+    }
+
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
@@ -110,6 +127,7 @@ public class GridTcpDiscoveryNodeAddedMessage extends GridTcpDiscoveryAbstractMe
         out.writeObject(node);
         U.writeCollection(out, msgs);
         U.writeCollection(out, top);
+        out.writeBoolean(procPendingMsgs);
     }
 
     /** {@inheritDoc} */
@@ -119,6 +137,7 @@ public class GridTcpDiscoveryNodeAddedMessage extends GridTcpDiscoveryAbstractMe
         node = (GridTcpDiscoveryNode)in.readObject();
         msgs = U.readCollection(in);
         top = U.readCollection(in);
+        procPendingMsgs = in.readBoolean();
     }
 
     /** {@inheritDoc} */

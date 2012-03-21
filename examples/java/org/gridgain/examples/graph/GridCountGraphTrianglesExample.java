@@ -35,16 +35,11 @@ import java.util.*;
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCountGraphTrianglesExample {
     /** Cache name. */
     private static final String CACHE_NAME = "partitioned";
-
-    /** Ensure singleton. */
-    private GridCountGraphTrianglesExample() {
-        // No-op
-    }
 
     /**
      * @param args Command line arguments (none required).

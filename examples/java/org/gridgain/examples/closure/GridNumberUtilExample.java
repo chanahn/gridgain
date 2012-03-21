@@ -16,18 +16,11 @@ import java.util.*;
  * This class for internal use in examples.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class GridNumberUtilExample {
     /** Random numbers generator. */
     static final Random rand = new Random();
-
-    /**
-     * Enforces singleton.
-     */
-    private GridNumberUtilExample() {
-        // No-op.
-    }
 
     /**
      * Calculates greatest common divisor (GCD) of two numbers.

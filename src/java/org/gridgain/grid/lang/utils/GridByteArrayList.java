@@ -18,7 +18,7 @@ import java.nio.*;
  * Re-sizable array implementation of the byte list (eliminating auto-boxing of primitive byte type).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridByteArrayList implements Externalizable {
     /** List byte data. */
@@ -39,12 +39,12 @@ public class GridByteArrayList implements Externalizable {
     /**
      * Creates empty list with the specified initial capacity.
      *
-     * @param capacity Initial capacity.
+     * @param cap Initial capacity.
      */
-    public GridByteArrayList(int capacity) {
-        assert capacity > 0;
+    public GridByteArrayList(int cap) {
+        assert cap > 0;
 
-        data = new byte[capacity];
+        data = new byte[cap];
     }
 
     /**
@@ -89,7 +89,7 @@ public class GridByteArrayList implements Externalizable {
      *
      * @return Internal array.
      */
-    public byte[] getInternalArray() {
+    public byte[] internalArray() {
         return data;
     }
 
@@ -98,7 +98,7 @@ public class GridByteArrayList implements Externalizable {
      *
      * @return Copy of internal array.
      */
-    public byte[] getArray() {
+    public byte[] array() {
         byte[] res = new byte[size];
 
         System.arraycopy(data, 0, res, 0, size);
@@ -108,12 +108,12 @@ public class GridByteArrayList implements Externalizable {
 
     /**
      * Returns internal array if it represents the whole length,
-     * otherwise returns the result of {@link #getArray()}.
+     * otherwise returns the result of {@link #array}.
      *
      * @return Array of exact data size.
      */
-    public byte[] getEntireArray() {
-        return size == data.length ? getInternalArray() : getArray();
+    public byte[] entireArray() {
+        return size == data.length ? internalArray() : array();
     }
 
     /**
@@ -121,24 +121,24 @@ public class GridByteArrayList implements Externalizable {
      *
      * @return Initial capacity.
      */
-    public int getCapacity() {
+    public int capacity() {
         return data.length;
     }
 
     /**
      * Sets initial capacity of the list.
      *
-     * @param capacity Initial capacity.
+     * @param cap Initial capacity.
      */
-    private void setCapacity(int capacity) {
-        assert capacity > 0;
+    private void capacity(int cap) {
+        assert cap > 0;
 
-        if (capacity != getCapacity()) {
-            if (capacity < size) {
-                size = capacity;
+        if (cap != capacity()) {
+            if (cap < size) {
+                size = cap;
             }
 
-            byte[] newData = new byte[capacity];
+            byte[] newData = new byte[cap];
 
             System.arraycopy(data, 0, newData, 0, size);
 
@@ -151,7 +151,7 @@ public class GridByteArrayList implements Externalizable {
      *
      * @return Number of bytes in the list.
      */
-    public int getSize() {
+    public int size() {
         return size;
     }
 
@@ -162,8 +162,8 @@ public class GridByteArrayList implements Externalizable {
      * @param cnt Byte number to preallocate.
      */
     public void allocate(int cnt) {
-        if (size + cnt > getCapacity()) {
-            setCapacity(size + cnt);
+        if (size + cnt > capacity()) {
+            capacity(size + cnt);
         }
     }
 
@@ -173,8 +173,8 @@ public class GridByteArrayList implements Externalizable {
      * @param cnt Number of bytes to request.
      */
     private void requestFreeSize(int cnt) {
-        if (size + cnt > getCapacity()) {
-            setCapacity((size + cnt) << 1);
+        if (size + cnt > capacity()) {
+            capacity((size + cnt) << 1);
         }
     }
 
@@ -213,6 +213,32 @@ public class GridByteArrayList implements Externalizable {
         U.intToBytes(i, data, size);
 
         size += 4;
+    }
+
+    /**
+     * Appends short to the next 2 bytes of the list.
+     *
+     * @param i Short to append.
+     */
+    public void add(short i) {
+        requestFreeSize(2);
+
+        U.shortToBytes(i, data, size);
+
+        size += 2;
+    }
+
+    /**
+     * Sets short at specified position.
+     *
+     * @param pos Specified position.
+     * @param i Short to set.
+     */
+    public void set(int pos, short i) {
+        assert pos >= 0;
+        assert pos + 2 <= size;
+
+        U.shortToBytes(i, data, pos);
     }
 
     /**
@@ -317,12 +343,12 @@ public class GridByteArrayList implements Externalizable {
         int read = 0;
 
         while (read >= 0) {
-            int free = getCapacity() - size;
+            int free = capacity() - size;
 
             if (free == 0) {
                 requestFreeSize(1);
 
-                free = getCapacity() - size;
+                free = capacity() - size;
 
                 assert free > 0;
             }

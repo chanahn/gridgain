@@ -20,16 +20,9 @@ import org.jetbrains.annotations.Nullable;
  * is divisible by any of these divisors.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridPrimeChecker {
-    /**
-     * Enforces singleton.
-     */
-    private GridPrimeChecker() {
-        // No-op.
-    }
-
     /**
      * This method is used by both, {@link GridPrimeExample} and {@link GridifyPrimeExample},
      * examples. Whenever invoked from {@link GridifyPrimeExample}, this method will

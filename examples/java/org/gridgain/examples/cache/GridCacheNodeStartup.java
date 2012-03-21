@@ -19,14 +19,14 @@ import javax.swing.*;
  * You can also start a stand-alone GridGain instance by passing the path
  * to configuration file to {@code 'ggstart.{sh|bat}'} script, like so:
  * {@code 'ggstart.sh examples/config/spring-cache.xml'}.
+ * <p>
+ * The difference is that running this class from IDE adds all example classes to classpath
+ * but running from command line doesn't.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheNodeStartup {
-    /** Ensure singleton. */
-    private GridCacheNodeStartup() { /* No-op. */ }
-
     /**
      * Start up an empty node with specified cache configuration.
      *

@@ -19,7 +19,7 @@ import java.util.*;
  * Base class to implement discovery messages.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable {
     /** Sender of the message (transient). */
@@ -27,9 +27,6 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
 
     /** Message ID. */
     private GridUuid id;
-
-    /** Verified flag. */
-    private boolean verified;
 
     /** Verifier node ID. */
     private UUID verifierNodeId;
@@ -95,7 +92,7 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
      * @return {@code true} if message was verified.
      */
     public boolean verified() {
-        return verified;
+        return verifierNodeId != null;
     }
 
     /**
@@ -113,8 +110,6 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
      * @param verifierNodeId Verifier node ID.
      */
     public void verify(UUID verifierNodeId) {
-        verified = true;
-
         this.verifierNodeId = verifierNodeId;
     }
 
@@ -140,7 +135,6 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         U.writeGridUuid(out, id);
         U.writeUuid(out, verifierNodeId);
-        out.writeBoolean(verified);
         out.writeLong(topVer);
     }
 
@@ -148,7 +142,6 @@ public abstract class GridTcpDiscoveryAbstractMessage implements Externalizable 
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         id = U.readGridUuid(in);
         verifierNodeId = U.readUuid(in);
-        verified = in.readBoolean();
         topVer = in.readLong();
     }
 

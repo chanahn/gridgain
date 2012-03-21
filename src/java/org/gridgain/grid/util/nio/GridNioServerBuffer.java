@@ -16,9 +16,9 @@ import java.nio.*;
  * NIO server buffer.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
-class GridNioServerBuffer {
+public class GridNioServerBuffer {
     /** Preallocate 8K. */
     private GridByteArrayList msgBytes = new GridByteArrayList(1024 << 3);
 
@@ -26,7 +26,7 @@ class GridNioServerBuffer {
     private int msgSize = -1;
 
     /** */
-    void reset() {
+    public void reset() {
         msgBytes.reset();
 
         msgSize = -1;
@@ -44,30 +44,30 @@ class GridNioServerBuffer {
      *
      * @return Message bytes read so far.
      */
-    GridByteArrayList getMessageBytes() { return msgSize < 0 ? null : msgBytes; }
+    public GridByteArrayList getMessageBytes() { return msgSize < 0 ? null : msgBytes; }
 
     /**
      * Checks whether the byte array is filled.
      *
      * @return Flag indicating whether byte array is filled or not.
      */
-    boolean isFilled() { return msgSize > 0 && msgBytes.getSize() == msgSize; }
+    public boolean isFilled() { return msgSize > 0 && msgBytes.size() == msgSize; }
 
     /**
      * @param buf Buffer.
      */
-    void read(ByteBuffer buf) {
+    public void read(ByteBuffer buf) {
         if (msgSize < 0) {
             int remaining = buf.remaining();
 
             if (remaining > 0) {
-                int missing = 4 - msgBytes.getSize();
+                int missing = 4 - msgBytes.size();
 
                 msgBytes.add(buf, missing < remaining ? missing : remaining);
 
-                assert msgBytes.getSize() <= 4;
+                assert msgBytes.size() <= 4;
 
-                if (msgBytes.getSize() == 4) {
+                if (msgBytes.size() == 4) {
                     msgSize = msgBytes.getInt(0);
 
                     assert msgSize > 0;
@@ -84,7 +84,7 @@ class GridNioServerBuffer {
 
         // If there are more bytes in buffer.
         if (remaining > 0) {
-            int missing = msgSize - msgBytes.getSize();
+            int missing = msgSize - msgBytes.size();
 
             // Read only up to message size.
             if (missing > 0) {

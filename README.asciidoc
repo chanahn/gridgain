@@ -7,11 +7,10 @@ Nikita Ivanov <nivanov@gridgain.com>
 :numbered:
 :website: http://www.gridgain.com
 
-image::http://www.gridgain.com/images/faces.gif[]
+image::http://www.gridgain.com/images/logo2_bw_no_ver.png[]
 
-GridGain is a JVM-based based software middleware that enables development
-of high performance distributed application that scale up on any managed infrastructure: 
-from a single laptop, to cluster and grids, to public and private clouds. 
+GridGain is Java based open source middleware for real time big data processing and 
+analytics that scales up from one server to thousands of machines. 
 
 GridGain - Community Edition
 ----------------------------

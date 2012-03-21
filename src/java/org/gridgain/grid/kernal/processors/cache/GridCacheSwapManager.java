@@ -24,7 +24,7 @@ import java.io.*;
  * Handles all swap operations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
     /** Swap manager. */
@@ -126,8 +126,8 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
         final GridTuple<byte[]> t = F.t1();
 
         swapMgr.remove(spaceName, new GridSwapKey(key, cctx.partition(key), keyBytes), new CI1<byte[]>() {
-            @Override public void apply(byte[] removed) {
-                t.set(removed);
+            @Override public void apply(byte[] rmv) {
+                t.set(rmv);
             }
         }, cctx.deploy().localLoader());
 
@@ -159,7 +159,7 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
         if (!enabled)
             return null;
 
-        return read(key, CU.marshal(cctx, key).getEntireArray());
+        return read(key, CU.marshal(cctx, key).entireArray());
     }
 
     /**
@@ -183,7 +183,7 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
         if (!enabled)
             return null;
 
-        return readAndRemove(key, CU.marshal(cctx, key).getEntireArray());
+        return readAndRemove(key, CU.marshal(cctx, key).entireArray());
     }
 
     /**
@@ -242,6 +242,6 @@ public class GridCacheSwapManager<K, V> extends GridCacheManager<K, V> {
      * @throws GridException If marshalling failed.
      */
     private byte[] marshal(Object obj) throws GridException {
-        return CU.marshal(cctx, obj).getEntireArray();
+        return CU.marshal(cctx, obj).entireArray();
     }
 }

@@ -21,7 +21,7 @@ import java.util.*;
  * Utility class with common methods used in gridify annotations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridifyUtils {
     /** */

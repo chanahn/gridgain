@@ -17,18 +17,11 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * This example calculates Pi number in parallel on the grid.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridPiCalculationExample {
     /** Number of calculation per node. */
     private static final int N = 1000;
-
-    /**
-     * Ensures singleton.
-     */
-    private GridPiCalculationExample() {
-        /* No-op. */
-    }
 
     /**
      * Calculates Pi part for a given range.
@@ -37,6 +30,8 @@ public final class GridPiCalculationExample {
      * @return Calculation for the range.
      */
     private static double calcPi(int start) {
+        X.println("Calculating PI from: " + start);
+
         double acc = 0.0;
 
         for (int i = start; i < start + N; i++)

@@ -57,7 +57,7 @@ import java.util.*;
  * folder.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridContinuousMapperExample {
     public static void main(String[] args) throws GridException {
@@ -85,19 +85,12 @@ public class GridContinuousMapperExample {
      * @param word Word to count characters in.
      * @return Number of characters in the given word.
      */
-    public static int charCount(String word) {
+    static int charCount(String word) {
         X.println(
             ">>>",
             ">>> Printing '" + word + "' from grid job at time: " + new Date(),
             ">>>");
 
         return word.length();
-    }
-
-    /**
-     * Ensure singleton.
-     */
-    private GridContinuousMapperExample() {
-         // No-op.
     }
 }

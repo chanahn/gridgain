@@ -17,16 +17,9 @@ import org.jetbrains.annotations.Nullable;
  * is divisible by any of these divisors.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridSimplePrimeChecker {
-    /**
-     * Enforces singleton.
-     */
-    private GridSimplePrimeChecker() {
-        // No-op.
-    }
-
     /**
      * Method to check value for prime.
      * Returns first divisor found or {@code null} if no divisor was found.

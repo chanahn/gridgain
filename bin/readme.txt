@@ -23,8 +23,10 @@ ggscala.{sh|bat}
 
 ggvisor.{sh|bat}
 ----------------
-    This script starts Scala RELP with GridGain on the classpath and Visor loaded. 
-    Visor gets loaded by loading Scala script "bin/visor.scala". 
+    ** Enteprise & OEM Editions Only. **
+
+    This script starts Visor Management & Monitoring application that is based on
+    Scala RELP. Visor gets loaded by loading Scala script "bin/visor.scala". 
     
     Note that you can freely modify script "bin/visor.scala" to load custom commands,
     pre-built scripts, etc.

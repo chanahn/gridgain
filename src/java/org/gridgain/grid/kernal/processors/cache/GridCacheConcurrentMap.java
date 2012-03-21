@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.GridCacheFlag.*;
  * Concurrent implementation of cache map.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheConcurrentMap<K, V> {
     /** Debug flag. */
@@ -134,7 +134,7 @@ public class GridCacheConcurrentMap<K, V> {
      * capacity, load factor and concurrency level.
      *
      * @param ctx Cache context.
-     * @param initialCapacity the initial capacity. The implementation
+     * @param initCap the initial capacity. The implementation
      *      performs internal sizing to accommodate this many elements.
      * @param loadFactor  the load factor threshold, used to control resizing.
      *      Resizing may be performed when the average number of elements per
@@ -147,11 +147,11 @@ public class GridCacheConcurrentMap<K, V> {
      *      non-positive.
      */
     @SuppressWarnings({"unchecked"})
-    private GridCacheConcurrentMap(GridCacheContext<K, V> ctx, int initialCapacity, float loadFactor,
+    private GridCacheConcurrentMap(GridCacheContext<K, V> ctx, int initCap, float loadFactor,
         int concurrencyLevel) {
         this.ctx = ctx;
 
-        if (!(loadFactor > 0) || initialCapacity < 0 || concurrencyLevel <= 0)
+        if (!(loadFactor > 0) || initCap < 0 || concurrencyLevel <= 0)
             throw new IllegalArgumentException();
 
         if (concurrencyLevel > MAX_SEGS)
@@ -170,12 +170,12 @@ public class GridCacheConcurrentMap<K, V> {
         segMask = ssize - 1;
         segs = (Segment[])Array.newInstance(Segment.class, ssize);
 
-        if (initialCapacity > MAX_CAP)
-            initialCapacity = MAX_CAP;
+        if (initCap > MAX_CAP)
+            initCap = MAX_CAP;
 
-        int c = initialCapacity / ssize;
+        int c = initCap / ssize;
 
-        if (c * ssize < initialCapacity)
+        if (c * ssize < initCap)
             ++c;
 
         int cap = 1;
@@ -195,7 +195,7 @@ public class GridCacheConcurrentMap<K, V> {
      * and load factor and with the default concurrencyLevel (16).
      *
      * @param ctx Cache context.
-     * @param initialCapacity The implementation performs internal
+     * @param initCap The implementation performs internal
      *      sizing to accommodate this many elements.
      * @param loadFactor  the load factor threshold, used to control resizing.
      *      Resizing may be performed when the average number of elements per
@@ -203,8 +203,8 @@ public class GridCacheConcurrentMap<K, V> {
      * @throws IllegalArgumentException if the initial capacity of
      *      elements is negative or the load factor is non-positive.
      */
-    public GridCacheConcurrentMap(GridCacheContext<K, V> ctx, int initialCapacity, float loadFactor) {
-        this(ctx, initialCapacity, loadFactor, DFLT_CONCUR_LEVEL);
+    public GridCacheConcurrentMap(GridCacheContext<K, V> ctx, int initCap, float loadFactor) {
+        this(ctx, initCap, loadFactor, DFLT_CONCUR_LEVEL);
     }
 
     /**
@@ -212,13 +212,13 @@ public class GridCacheConcurrentMap<K, V> {
      * and with default load factor (0.75) and concurrencyLevel (16).
      *
      * @param ctx Cache context.
-     * @param initialCapacity the initial capacity. The implementation
+     * @param initCap the initial capacity. The implementation
      *      performs internal sizing to accommodate this many elements.
      * @throws IllegalArgumentException if the initial capacity of
      *      elements is negative.
      */
-    public GridCacheConcurrentMap(GridCacheContext<K, V> ctx, int initialCapacity) {
-        this(ctx, initialCapacity, DFLT_LOAD_FACTOR, DFLT_CONCUR_LEVEL);
+    public GridCacheConcurrentMap(GridCacheContext<K, V> ctx, int initCap) {
+        this(ctx, initCap, DFLT_LOAD_FACTOR, DFLT_CONCUR_LEVEL);
     }
 
     /**
@@ -1104,9 +1104,9 @@ public class GridCacheConcurrentMap<K, V> {
         void rehash() {
             Bucket<K, V>[] oldTable = table;
 
-            int oldCapacity = oldTable.length;
+            int oldCap = oldTable.length;
 
-            if (oldCapacity >= MAX_CAP)
+            if (oldCap >= MAX_CAP)
                 return;
 
             /*
@@ -1122,13 +1122,13 @@ public class GridCacheConcurrentMap<K, V> {
              * reader thread that may be in the midst of traversing table
              * right now.
              */
-            Bucket<K, V>[] newTable = Bucket.newArray(oldCapacity << 1);
+            Bucket<K, V>[] newTable = Bucket.newArray(oldCap << 1);
 
             threshold = (int)(newTable.length * loadFactor);
 
             int sizeMask = newTable.length - 1;
 
-            for (int i = 0; i < oldCapacity ; i++) {
+            for (int i = 0; i < oldCap; i++) {
                 // We need to guarantee that any existing reads of old Map can proceed.
                 // So, we cannot yet null out each bin.
                 Bucket<K, V> b1 = oldTable[i];
@@ -1219,12 +1219,12 @@ public class GridCacheConcurrentMap<K, V> {
                 while (e != null && (e.hash != hash || !key.equals(e.key)))
                     e = e.next;
 
-                GridCacheMapEntry<K, V> oldValue = null;
+                GridCacheMapEntry<K, V> oldVal = null;
 
                 if (e != null) {
-                    oldValue = e.val;
+                    oldVal = e.val;
 
-                    if (filter != null && !filter.apply(oldValue))
+                    if (filter != null && !filter.apply(oldVal))
                         return null;
 
                     // All entries following removed node can stay in list,
@@ -1257,7 +1257,7 @@ public class GridCacheConcurrentMap<K, V> {
                     segSize--;
                 }
 
-                return oldValue;
+                return oldVal;
             }
             finally {
                 if (DEBUG)
@@ -1373,10 +1373,10 @@ public class GridCacheConcurrentMap<K, V> {
      */
     private static class Iterator0<K, V> implements Iterator<GridCacheEntryEx<K, V>>, Externalizable {
         /** */
-        private int nextSegmentIndex;
+        private int nextSegIdx;
 
         /** */
-        private int nextTableIndex;
+        private int nextTableIdx;
 
         /** */
         private Bucket<K,V>[] curTable;
@@ -1430,8 +1430,8 @@ public class GridCacheConcurrentMap<K, V> {
 
             ctx = map.ctx;
 
-            nextSegmentIndex = map.segs.length - 1;
-            nextTableIndex = -1;
+            nextSegIdx = map.segs.length - 1;
+            nextTableIdx = -1;
 
             advance();
         }
@@ -1444,15 +1444,15 @@ public class GridCacheConcurrentMap<K, V> {
             if (nextEntry != null && advanceInBucket(nextEntry, true))
                 return;
 
-            while (nextTableIndex >= 0) {
-                Bucket<K, V> bucket = curTable[nextTableIndex--];
+            while (nextTableIdx >= 0) {
+                Bucket<K, V> bucket = curTable[nextTableIdx--];
 
                 if (bucket != null && advanceInBucket(bucket.entry(), false))
                     return;
             }
 
-            while (nextSegmentIndex >= 0) {
-                GridCacheConcurrentMap.Segment seg = map.segs[nextSegmentIndex--];
+            while (nextSegIdx >= 0) {
+                GridCacheConcurrentMap.Segment seg = map.segs[nextSegIdx--];
 
                 if (seg.size() != 0) {
                     curTable = seg.table;
@@ -1461,7 +1461,7 @@ public class GridCacheConcurrentMap<K, V> {
                         Bucket<K, V> bucket = curTable[j];
 
                         if (bucket != null && advanceInBucket(bucket.entry(), false)) {
-                            nextTableIndex = j - 1;
+                            nextTableIdx = j - 1;
 
                             return;
                         }
@@ -2133,7 +2133,13 @@ public class GridCacheConcurrentMap<K, V> {
         /** {@inheritDoc} */
         @SuppressWarnings({"unchecked"})
         @Override public boolean contains(Object o) {
-            return o instanceof GridCacheEntryImpl && set.contains(((GridCacheEntryImpl<K, V>)o).unwrap());
+            if (o instanceof GridCacheEntryImpl) {
+                GridCacheEntryEx<K, V> unwrapped = ((GridCacheEntryImpl<K, V>)o).unwrapNoCreate();
+
+                return unwrapped != null && set.contains(unwrapped);
+            }
+
+            return false;
         }
 
         /** {@inheritDoc} */

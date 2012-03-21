@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Replicated user transaction.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implements GridCacheMappedVersion {
     /** */
@@ -658,7 +658,7 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
             // Otherwise, during rollback we will not know whether locks need
             // to be rolled back.
             // Loose all skipped and previously locked (we cannot reenter locks here).
-            final Collection<? extends K> passedKeys = F.view(keys, F.notIn(skipped));
+            final Collection<? extends K> passedKeys = skipped != null ? F.view(keys, F.notIn(skipped)) : keys;
 
             if (log.isDebugEnabled())
                 log.debug("Lock keys: " + passedKeys);
@@ -772,7 +772,9 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
     /** {@inheritDoc} */
     @SuppressWarnings({"CatchGenericClass", "ThrowableInstanceNeverThrown"})
     @Override public void finish(boolean commit) throws GridException {
-        assert nearFinFutId != null || isInvalidate() || !commit || isSystemInvalidate();
+        assert nearFinFutId != null || isInvalidate() || !commit || isSystemInvalidate() :
+            "Invalid state [nearFinFutId=" + nearFinFutId + ", isInvalidate=" + isInvalidate() + ", commit=" + commit +
+            ", sysInvalidate=" + isSystemInvalidate() + ']';
         assert nearMiniId != null;
 
         if (log.isDebugEnabled())
@@ -936,7 +938,15 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
      */
     private void sendFinishReply(boolean commit, @Nullable Throwable err) {
         if (nearFinFutId != null) {
-            GridCacheMessage<K, V> res = new GridNearTxFinishResponse<K, V>(nearXidVer, nearFinFutId, nearFinMiniId, err);
+            if (nearNodeId.equals(cctx.localNodeId())) {
+                if (log.isDebugEnabled())
+                    log.debug("Skipping response sending to local node: " + this);
+
+                return;
+            }
+
+            GridNearTxFinishResponse<K, V> res = new GridNearTxFinishResponse<K, V>(nearXidVer, nearFinFutId,
+                nearFinMiniId, err);
 
             try {
                 cctx.io().send(nearNodeId, res);

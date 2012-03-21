@@ -58,16 +58,9 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * folder.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridContinuationExample {
-    /**
-     * Ensure singleton.
-     */
-    private GridContinuationExample() {
-        /* No-op. */
-    }
-
     /**
      * This example recursively calculates {@code 'Fibonacci'} numbers on the grid. This is
      * a powerful design pattern which allows for creation of distributively recursive
@@ -113,7 +106,7 @@ public final class GridContinuationExample {
                     // serialized and sent to remote nodes.
                     // However, these fields will be preserved locally while
                     // this closure is being "held", i.e. while it is suspended
-                    // and is waiting to be continued. 
+                    // and is waiting to be continued.
                     private transient GridFuture<BigInteger> fut1, fut2;
 
                     // Auto-inject job context.

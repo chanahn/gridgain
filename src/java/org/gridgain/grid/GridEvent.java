@@ -44,9 +44,32 @@ import java.util.*;
  * {@link GridConfiguration#getIncludeEventTypes()} methods in GridGain configuration. Note that certain
  * events are required for GridGain's internal operations and such events will still be generated but not stored by
  * event storage SPI if they are disabled in GridGain configuration.
+ * <h1 class="header">Internal and Hidden Events</h1>
+ * Also note that some events are considered to be internally used or hidden.
+ * <p>
+ * Internally used events are always "recordable" for notification purposes (regardless of whether they were
+ * enabled or disabled). But won't be sent down to SPI level if user specifically excluded them.
+ * <p>
+ * All discovery events are internal:
+ * <ul>
+ *     <li>{@link GridEventType#EVT_NODE_FAILED}</li>
+ *     <li>{@link GridEventType#EVT_NODE_LEFT}</li>
+ *     <li>{@link GridEventType#EVT_NODE_JOINED}</li>
+ *     <li>{@link GridEventType#EVT_NODE_METRICS_UPDATED}</li>
+ *     <li>{@link GridEventType#EVT_NODE_SEGMENTED}</li>
+ *     <li>{@link GridEventType#EVT_NODE_RECONNECTED}</li>
+ * </ul>
+ * <p>
+ * Hidden events are NEVER sent to SPI level. They serve purpose of local
+ * notification for the local node.
+ * <p>
+ * Hidden events:
+ * <ul>
+ *     <li>{@link GridEventType#EVT_NODE_METRICS_UPDATED}</li>
+ * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridJobEvent
  * @see GridCacheEvent
  * @see GridCachePreloadEvent

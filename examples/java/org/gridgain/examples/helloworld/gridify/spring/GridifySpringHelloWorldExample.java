@@ -76,16 +76,9 @@ import org.gridgain.grid.typedef.*;
  * folder.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridifySpringHelloWorldExample {
-    /**
-     * Ensure singleton.
-     */
-    private GridifySpringHelloWorldExample() {
-        // No-op.
-    }
-
     /**
      * Execute {@code HelloWorld} example grid-enabled with {@code Gridify} annotation.
      *

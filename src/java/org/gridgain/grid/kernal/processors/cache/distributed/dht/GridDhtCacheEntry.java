@@ -25,7 +25,7 @@ import java.util.*;
  * Replicated cache entry.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"TooBroadScope"}) public class GridDhtCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     /** Gets node value from reader ID. */
@@ -52,8 +52,7 @@ import java.util.*;
      * @param ttl Time to live.
      */
     public GridDhtCacheEntry(GridCacheContext<K, V> ctx, long topVer, K key, int hash, V val,
-        GridCacheMapEntry<K, V> next,
-        long ttl) {
+        GridCacheMapEntry<K, V> next, long ttl) {
         super(ctx, key, hash, val, next, ttl);
 
         // Record this entry with partition.

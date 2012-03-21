@@ -28,7 +28,7 @@ import org.gridgain.grid.lang.*;
  * you can equate the service outage with network outage via segmentation resolution
  * and employ the unified approach in dealing with these types of problems.
  * <p>
- * The following implementations are built-in (Enterprise edition only):
+ * The following implementations are built-in:
  * <ul>
  *     <li>{@link org.gridgain.grid.segmentation.reachability.GridReachabilitySegmentationResolver}</li>
  *     <li>{@link org.gridgain.grid.segmentation.sharedfs.GridSharedFsSegmentationResolver}</li>
@@ -36,7 +36,7 @@ import org.gridgain.grid.lang.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridConfiguration#getSegmentationResolvers()
  * @see GridConfiguration#getSegmentationPolicy()
  * @see GridConfiguration#getSegmentCheckFrequency()
@@ -62,7 +62,6 @@ public abstract class GridSegmentationResolver extends GridAbsPredicate {
      * @return {@code True} if segment is correct, {@code false} otherwise.
      * @throws GridException If an error occurred.
      */
-    @GridEnterpriseFeature
     public abstract boolean isValidSegment() throws GridException;
 
     /**

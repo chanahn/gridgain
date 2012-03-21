@@ -23,7 +23,7 @@ import java.util.*;
  * Response to prepare request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridDistributedTxPrepareResponse<K, V> extends GridDistributedBaseMessage<K, V> {
     /** Collections of local lock candidates. */
@@ -116,7 +116,7 @@ public class GridDistributedTxPrepareResponse<K, V> extends GridDistributedBaseM
             for (K k : cands.keySet())
                 prepareObject(k, ctx);
 
-            candsBytes = CU.marshal(ctx, cands).getEntireArray();
+            candsBytes = CU.marshal(ctx, cands).entireArray();
         }
     }
 

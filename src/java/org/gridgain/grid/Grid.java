@@ -43,7 +43,7 @@ import java.util.concurrent.*;
  * on Wiki.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface Grid extends GridProjection {
     /**
@@ -51,9 +51,17 @@ public interface Grid extends GridProjection {
      *
      * @return Enterprise license descriptor or {@code null} when running on Community Edition.
      */
-    @Nullable
     @GridEnterpriseFeature("Returns 'null' in Community Edition.")
-    public GridEnterpriseLicense license();
+    @Nullable public GridEnterpriseLicense license();
+
+    /**
+     * Updates a new Enterprise license.
+     *
+     * @param lic The content of the license.
+     * @throws GridLicenseException If license could not be updated.
+     */
+    @GridEnterpriseFeature("No-op in community edition.")
+    public void updateLicense(String lic) throws GridLicenseException;
 
     /**
      * Whether or not node restart is enabled. Node restart us supported when this node was started
@@ -117,7 +125,6 @@ public interface Grid extends GridProjection {
      * @see #sendAdminEmail(String, String, boolean)
      * @see GridConfiguration#getAdminEmails()
      */
-    @GridEnterpriseFeature
     public GridFuture<Boolean> sendAdminEmailAsync(String subj, String body, boolean html);
 
     /**
@@ -141,7 +148,6 @@ public interface Grid extends GridProjection {
      * @see #sendAdminEmailAsync(String, String, boolean)
      * @see GridConfiguration#getAdminEmails()
      */
-    @GridEnterpriseFeature
     public void sendAdminEmail(String subj, String body, boolean html) throws GridException;
 
     /**
@@ -427,13 +433,13 @@ public interface Grid extends GridProjection {
      *
      * @param c Closure to schedule to run as a background cron-based job.
      *      If {@code null} - this method is no-op.
-     * @param pattern Scheduling pattern in UNIX cron format with optional prefix <tt>{n1, n2}</tt>
+     * @param ptrn Scheduling pattern in UNIX cron format with optional prefix <tt>{n1, n2}</tt>
      *      where {@code n1} is delay of scheduling in seconds and {@code n2} is the number of execution. Both
      *      parameters are optional.
      * @return Scheduled execution future.
      * @throws GridException Thrown in case of any errors.
      */
-    public GridScheduleFuture<?> scheduleLocal(@Nullable Runnable c, String pattern) throws GridException;
+    public GridScheduleFuture<?> scheduleLocal(@Nullable Runnable c, String ptrn) throws GridException;
 
     /**
      * Schedules closure for execution using local <b>cron-based</b> scheduling.
@@ -466,13 +472,13 @@ public interface Grid extends GridProjection {
      *
      * @param c Closure to schedule to run as a background cron-based job.
      *       If {@code null} - this method is no-op.
-     * @param pattern Scheduling pattern in UNIX cron format with optional prefix <tt>{n1, n2}</tt>
+     * @param ptrn Scheduling pattern in UNIX cron format with optional prefix <tt>{n1, n2}</tt>
      *      where {@code n1} is delay of scheduling in seconds and {@code n2} is the number of execution. Both
      *      parameters are optional.
      * @return Scheduled execution future.
      * @throws GridException Thrown in case of any errors.
      */
-    public <R> GridScheduleFuture<R> scheduleLocal(@Nullable Callable<R> c, String pattern) throws GridException;
+    public <R> GridScheduleFuture<R> scheduleLocal(@Nullable Callable<R> c, String ptrn) throws GridException;
 
     /**
      * Gets node-local storage instance.
@@ -692,6 +698,14 @@ public interface Grid extends GridProjection {
      * @see #version()
      */
     public String build();
+
+    /**
+     * Gets release date of this GridGain instance. This method is for information
+     * purpose only.
+     *
+     * @return GridGain release date.
+     */
+    public Date releaseDate();
 
     /**
      * Copyright statement for GridGain code.

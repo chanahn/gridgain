@@ -25,7 +25,7 @@ import java.util.*;
  * Get request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
     implements GridCacheDeployable, GridCacheVersionable {
@@ -40,14 +40,14 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
 
     /** */
     @GridToStringInclude
-    private Collection<K> keys;
+    private LinkedHashMap<K, Boolean> keys;
 
     /** Reload flag. */
     private boolean reload;
 
     /** */
     @GridToStringExclude
-    private Collection<byte[]> keyBytes;
+    private LinkedHashMap<byte[], Boolean> keyBytes;
 
     /** Filter bytes. */
     private byte[][] filterBytes;
@@ -74,7 +74,7 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
      * @param topVer Topology version.
      * @param filter Filter.
      */
-    public GridNearGetRequest(GridUuid futId, GridUuid miniId, GridCacheVersion ver, Collection<K> keys,
+    public GridNearGetRequest(GridUuid futId, GridUuid miniId, GridCacheVersion ver, LinkedHashMap<K, Boolean> keys,
         boolean reload, long topVer, GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
         assert futId != null;
         assert miniId != null;
@@ -112,7 +112,7 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
     /**
      * @return Keys
      */
-    public Collection<K> keys() {
+    public LinkedHashMap<K, Boolean> keys() {
         return keys;
     }
 
@@ -148,7 +148,7 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
         assert !F.isEmpty(keys);
 
         if (keyBytes == null)
-            keyBytes = marshalCollection(keys, ctx);
+            keyBytes = marshalBooleanLinkedMap(keys, ctx);
 
         if (filterBytes == null)
             filterBytes = marshalFilter(filter, ctx);
@@ -163,7 +163,7 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
         super.p2pUnmarshal(ctx, ldr);
 
         if (keys == null)
-            keys = unmarshalCollection(keyBytes, ctx, ldr);
+            keys = unmarshalBooleanLinkedMap(keyBytes, ctx, ldr);
 
         if (filter == null)
             filter = unmarshalFilter(filterBytes, ctx, ldr);
@@ -185,7 +185,7 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
 
         out.writeObject(filterBytes);
 
-        U.writeCollection(out, keyBytes);
+        U.writeMap(out, keyBytes);
 
         CU.writeVersion(out, ver);
     }
@@ -203,7 +203,7 @@ public class GridNearGetRequest<K, V> extends GridCacheMessage<K, V>
 
         filterBytes = (byte[][])in.readObject();
 
-        keyBytes = U.readCollection(in);
+        keyBytes = U.readLinkedMap(in);
 
         ver = CU.readVersion(in);
 

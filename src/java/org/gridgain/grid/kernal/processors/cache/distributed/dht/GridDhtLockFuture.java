@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.*;
  * Cache lock future.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
     implements GridCacheMvccFuture<K, V, Boolean>, GridDhtFuture<Boolean>, GridCacheMappedVersion {
@@ -758,14 +758,14 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
         if (log.isDebugEnabled())
             log.debug("Mapping entry for DHT lock future: " + this);
 
-        boolean hasRemoteNodes = false;
+        boolean hasRmtNodes = false;
 
         // Assign keys to primary nodes.
         for (GridDhtCacheEntry<K, V> entry : entries) {
             try {
                 while (true) {
                     try {
-                        hasRemoteNodes = cctx.dhtMap(nearNodeId, topVer, entry, log, dhtMap, nearMap);
+                        hasRmtNodes = cctx.dhtMap(nearNodeId, topVer, entry, log, dhtMap, nearMap);
 
                         GridCacheMvccCandidate<K> cand = entry.mappings(lockVer,
                             F.nodeIds(F.concat(false, dhtMap.keySet(), nearMap.keySet())));
@@ -798,7 +798,7 @@ public final class GridDhtLockFuture<K, V> extends GridCompoundIdentityFuture<Bo
             tx.addDhtMapping(dhtMap);
             tx.addNearMapping(nearMap);
 
-            tx.needsCompletedVersions(hasRemoteNodes);
+            tx.needsCompletedVersions(hasRmtNodes);
         }
 
         if (isDone()) {

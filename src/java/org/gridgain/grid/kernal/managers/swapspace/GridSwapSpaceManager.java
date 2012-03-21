@@ -30,7 +30,7 @@ import static org.gridgain.grid.GridEventType.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridSwapSpaceManager extends GridManagerAdapter<GridSwapSpaceSpi> {
     /** Local node ID. */
@@ -144,7 +144,7 @@ public class GridSwapSpaceManager extends GridManagerAdapter<GridSwapSpaceSpi> {
         }
         catch (GridSpiException e) {
             throw new GridException("Failed to write to swap space [space=" + space + ", key=" + key +
-                ", val=" + val + ']', e);
+                ", valLen=" + val.length + ']', e);
         }
     }
 
@@ -256,7 +256,7 @@ public class GridSwapSpaceManager extends GridManagerAdapter<GridSwapSpaceSpi> {
      * @throws GridException If failed.
      */
     private byte[] marshal(Object obj) throws GridException {
-        return U.marshal(ctx.config().getMarshaller(), obj).getEntireArray();
+        return U.marshal(ctx.config().getMarshaller(), obj).entireArray();
     }
 
     /**

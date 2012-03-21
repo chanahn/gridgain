@@ -9,7 +9,7 @@ import static org.gridgain.grid.marshaller.optimized.GridOptimizedUtils.*;
  * Responsible for serialization of non-serializable objects.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class GridOptimizedWrapper implements Externalizable {
     /** */
@@ -41,12 +41,12 @@ class GridOptimizedWrapper implements Externalizable {
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
-        GridOptimizedObjectOutput ggout = (GridOptimizedObjectOutput)out;
+        GridOptimizedObjectOutput optOut = (GridOptimizedObjectOutput)out;
 
         // Only write class without fields.
-        ggout.writeClass(obj.getClass());
+        optOut.writeClass(obj.getClass());
 
-        ggout.delay(this);
+        optOut.delay(this);
     }
 
     /**
@@ -68,9 +68,9 @@ class GridOptimizedWrapper implements Externalizable {
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        GridOptimizedObjectInput ggin = (GridOptimizedObjectInput)in;
+        GridOptimizedObjectInput optIn = (GridOptimizedObjectInput)in;
 
-        Class cls = ggin.readClass();
+        Class cls = optIn.readClass();
 
         try {
             // Create object, but do not populate fields.
@@ -88,7 +88,7 @@ class GridOptimizedWrapper implements Externalizable {
             throw new IOException("Failed to create new instance for class: " + cls, e);
         }
 
-        ggin.delay(this);
+        optIn.delay(this);
     }
 
     /**

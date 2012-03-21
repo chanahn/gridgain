@@ -17,7 +17,7 @@ import java.nio.channels.*;
  * GridGain port scanner.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridPortScanner {
     /** Minimum port number */
@@ -58,7 +58,7 @@ public class GridPortScanner {
 
             int startPort;
 
-            if (startPortStr != null && startPortStr.length() > 0) {
+            if (startPortStr != null && !startPortStr.isEmpty()) {
                 startPort = Integer.valueOf(startPortStr) + 1;
 
                 if (startPort > MAX_PORT)

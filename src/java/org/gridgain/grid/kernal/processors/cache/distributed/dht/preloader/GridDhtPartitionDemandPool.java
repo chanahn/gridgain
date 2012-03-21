@@ -41,7 +41,7 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * and populating local cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings( {"NonConstantFieldWithUpperCaseName"})
 public class GridDhtPartitionDemandPool<K, V> {
@@ -765,7 +765,9 @@ public class GridDhtPartitionDemandPool<K, V> {
 
                                             watch.step("LAST_PARTITION");
 
-                                            preloadEvent(p, EVT_CACHE_PRELOAD_PART_LOADED, exchFut.discoveryEvent());
+                                            if (cctx.events().isRecordable(EVT_CACHE_PRELOAD_PART_LOADED))
+                                                preloadEvent(p, EVT_CACHE_PRELOAD_PART_LOADED,
+                                                    exchFut.discoveryEvent());
                                         }
                                     }
                                     finally {
@@ -841,9 +843,9 @@ public class GridDhtPartitionDemandPool<K, V> {
                 while (!isCancelled()) {
                     try {
                         // Barrier check must come first because we must always execute it.
-                        if (barrier.await() == 0 && exchFut != null && !exchFut.dummy()) {
+                        if (barrier.await() == 0 && exchFut != null && !exchFut.dummy() &&
+                            cctx.events().isRecordable(EVT_CACHE_PRELOAD_STOPPED))
                             preloadEvent(EVT_CACHE_PRELOAD_STOPPED, exchFut.discoveryEvent());
-                        }
                     }
                     catch (BrokenBarrierException ignore) {
                         throw new InterruptedException("Demand worker stopped.");
@@ -1090,7 +1092,8 @@ public class GridDhtPartitionDemandPool<K, V> {
                                 resendPartitions(); // Force topology refresh.
 
                             // Preload event notification.
-                            preloadEvent(EVT_CACHE_PRELOAD_STARTED, exchFut.discoveryEvent());
+                            if (cctx.events().isRecordable(EVT_CACHE_PRELOAD_STARTED))
+                                preloadEvent(EVT_CACHE_PRELOAD_STARTED, exchFut.discoveryEvent());
                         }
                         else {
                             if (log.isDebugEnabled())
@@ -1147,7 +1150,7 @@ public class GridDhtPartitionDemandPool<K, V> {
 
             GridRichNode loc = cctx.localNode();
 
-            assert exchFut.exchangeId().topologyVersion() == top.topologyVersion() :
+            assert dummyReassign(exchFut) || exchFut.exchangeId().topologyVersion() == top.topologyVersion() :
                 "Topology version mismatch [exchId=" + exchFut.exchangeId() + ", topVer=" + top.topologyVersion() + ']';
 
             Assignments assigns = new Assignments(exchFut, top.topologyVersion());
@@ -1247,7 +1250,7 @@ public class GridDhtPartitionDemandPool<K, V> {
      */
     private static class SupplyMessage<K, V> {
         /** Sender ID. */
-        private UUID senderId;
+        private UUID sndId;
 
         /** Supply message. */
         private GridDhtPartitionSupplyMessage<K, V> supply;
@@ -1260,11 +1263,11 @@ public class GridDhtPartitionDemandPool<K, V> {
         }
 
         /**
-         * @param senderId Sender ID.
+         * @param sndId Sender ID.
          * @param supply Supply message.
          */
-        SupplyMessage(UUID senderId, GridDhtPartitionSupplyMessage<K, V> supply) {
-            this.senderId = senderId;
+        SupplyMessage(UUID sndId, GridDhtPartitionSupplyMessage<K, V> supply) {
+            this.sndId = sndId;
             this.supply = supply;
         }
 
@@ -1272,7 +1275,7 @@ public class GridDhtPartitionDemandPool<K, V> {
          * @return Sender ID.
          */
         UUID senderId() {
-            return senderId;
+            return sndId;
         }
 
         /**

@@ -13,21 +13,19 @@ package org.gridgain.scalar.pimps
 
 import org.gridgain.grid._
 import org.jetbrains.annotations._
-import org.gridgain.scalar._
-import scalar._
 import org.gridgain.grid.lang._
 
 /**
  * Companion object.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object ScalarRichNodePimp {
     /**
      * Creates new Scalar node pimp with given Java-side implementation.
      *
-     * @param value Java-side implementation.
+     * @param impl Java-side implementation.
      */
     def apply(impl: GridRichNode) = {
         if (impl == null)
@@ -61,7 +59,7 @@ object ScalarRichNodePimp {
  * Scala's side method with `$` suffix.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class ScalarRichNodePimp extends ScalarProjectionPimp[GridRichNode]
     with Ordered[GridRichNode]

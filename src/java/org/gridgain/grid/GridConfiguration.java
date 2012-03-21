@@ -9,12 +9,13 @@
 
 package org.gridgain.grid;
 
+import org.gridgain.client.ssl.*;
 import org.gridgain.grid.cache.*;
-import org.gridgain.grid.editions.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.marshaller.*;
 import org.gridgain.grid.segmentation.*;
+import org.gridgain.grid.spi.authentication.*;
 import org.gridgain.grid.spi.checkpoint.*;
 import org.gridgain.grid.spi.collision.*;
 import org.gridgain.grid.spi.communication.*;
@@ -24,9 +25,11 @@ import org.gridgain.grid.spi.eventstorage.*;
 import org.gridgain.grid.spi.failover.*;
 import org.gridgain.grid.spi.loadbalancing.*;
 import org.gridgain.grid.spi.metrics.*;
+import org.gridgain.grid.spi.securesession.*;
 import org.gridgain.grid.spi.swapspace.*;
 import org.gridgain.grid.spi.topology.*;
 import org.jetbrains.annotations.*;
+
 import javax.management.*;
 import java.lang.management.*;
 import java.util.*;
@@ -52,9 +55,12 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * property.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridConfiguration {
+    /** Courtesy notice log category. */
+    public static final String COURTESY_LOGGER_NAME = "org.gridgain.grid.CourtesyConfigNotice";
+
     /**
      * Default flag for peer class loading. By default the value is {@code true}
      * which means that peer class loading is enabled.
@@ -116,10 +122,16 @@ public interface GridConfiguration {
     public static final int DFLT_SEG_RESOLVE_ATTEMPTS = 2;
 
     /** Default segment check frequency in discovery manager. */
-    public static final int DFLT_SEG_CHK_FREQ = 10000;
+    public static final long DFLT_SEG_CHK_FREQ = 10000;
 
-    /** */
-    public static final int DFLT_METRICS_LOG_FREQ = 0;
+    /** Default frequency of metrics log print out. */
+    public static final long DFLT_METRICS_LOG_FREQ = 0;
+
+    /** Default TCP server port. */
+    public static final int DFLT_TCP_PORT = 11211;
+
+    /** Default TCP_NODELAY flag. */
+    public static final boolean DFLT_TCP_NODELAY = true;
 
     /**
      * Whether or not send email notifications on node start and stop. Note if enabled
@@ -127,15 +139,11 @@ public interface GridConfiguration {
      * admin email is provided.
      * <p>
      * By default - email notifications are enabled.
-     * <p>
-     * Note that life cycle notification is only available in Enterprise Edition. In
-     * Community Edition this property is ignored.
      *
      * @return {@code True} to enable lifecycle email notifications.
      * @see #getSmtpHost()
      * @see #getAdminEmails()
      */
-    @GridEnterpriseFeature
     public boolean isLifeCycleEmailNotification();
 
     /**
@@ -152,7 +160,6 @@ public interface GridConfiguration {
      * @return SMTP host name or {@code null} if SMTP is not configured.
      * @see GridSystemProperties#GG_SMTP_HOST
      */
-    @GridEnterpriseFeature
     @Nullable public String getSmtpHost();
 
     /**
@@ -170,7 +177,6 @@ public interface GridConfiguration {
      * @see #DFLT_SMTP_SSL
      * @see GridSystemProperties#GG_SMTP_SSL
      */
-    @GridEnterpriseFeature
     public boolean isSmtpSsl();
 
     /**
@@ -188,7 +194,6 @@ public interface GridConfiguration {
      * @see #DFLT_SMTP_STARTTLS
      * @see GridSystemProperties#GG_SMTP_STARTTLS
      */
-    @GridEnterpriseFeature
     public boolean isSmtpStartTls();
 
     /**
@@ -206,7 +211,6 @@ public interface GridConfiguration {
      * @see #DFLT_SMTP_PORT
      * @see GridSystemProperties#GG_SMTP_PORT
      */
-    @GridEnterpriseFeature
     public int getSmtpPort();
 
     /**
@@ -223,7 +227,6 @@ public interface GridConfiguration {
      * @return SMTP username or {@code null}.
      * @see GridSystemProperties#GG_SMTP_USERNAME
      */
-    @GridEnterpriseFeature
     @Nullable public String getSmtpUsername();
 
     /**
@@ -240,7 +243,6 @@ public interface GridConfiguration {
      * @return SMTP password or {@code null}.
      * @see GridSystemProperties#GG_SMTP_PWD
      */
-    @GridEnterpriseFeature
     @Nullable public String getSmtpPassword();
 
     /**
@@ -256,7 +258,6 @@ public interface GridConfiguration {
      *      if one provided.
      * @see GridSystemProperties#GG_ADMIN_EMAILS
      */
-    @GridEnterpriseFeature
     @Nullable public String[] getAdminEmails();
 
     /**
@@ -268,7 +269,6 @@ public interface GridConfiguration {
      * @see #DFLT_SMTP_FROM_EMAIL
      * @see GridSystemProperties#GG_SMTP_FROM
      */
-    @GridEnterpriseFeature
     @Nullable public String getSmtpFromEmail();
 
     /**
@@ -453,7 +453,6 @@ public interface GridConfiguration {
      *
      * @return Segmentation resolve attempts.
      */
-    @GridEnterpriseFeature
     public int getSegmentationResolveAttempts();
 
     /**
@@ -462,7 +461,6 @@ public interface GridConfiguration {
      *
      * @return Segmentation resolvers.
      */
-    @GridEnterpriseFeature
     @Nullable public GridSegmentationResolver[] getSegmentationResolvers();
 
     /**
@@ -476,7 +474,6 @@ public interface GridConfiguration {
      *
      * @return {@code True} to wait for segment on startup, {@code false} otherwise.
      */
-    @GridEnterpriseFeature
     public boolean isWaitForSegmentOnStart();
 
     /**
@@ -484,7 +481,6 @@ public interface GridConfiguration {
      *
      * @return Segmentation policy.
      */
-    @GridEnterpriseFeature
     public GridSegmentationPolicy getSegmentationPolicy();
 
     /**
@@ -500,7 +496,6 @@ public interface GridConfiguration {
      * @return {@code True} if all segmentation resolvers should succeed,
      *      {@code false} if only one is enough.
      */
-    @GridEnterpriseFeature
     public boolean isAllSegmentationResolversPassRequired();
 
     /**
@@ -513,8 +508,7 @@ public interface GridConfiguration {
      *
      * @return Segment check frequency.
      */
-    @GridEnterpriseFeature
-    public int getSegmentCheckFrequency();
+    public long getSegmentCheckFrequency();
 
     /**
      * Should return fully configured SPI communication  implementation. If not provided, default
@@ -547,6 +541,22 @@ public interface GridConfiguration {
      * @return Grid metrics SPI implementation or {@code null} to use default implementation.
      */
     public GridLocalMetricsSpi getMetricsSpi();
+
+    /**
+     * Should return fully configured authentication SPI implementation. If not provided, default
+     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     *
+     * @return Grid authentication SPI implementation or {@code null} to use default implementation.
+     */
+    public GridAuthenticationSpi getAuthenticationSpi();
+
+    /**
+     * Should return fully configured secure session SPI implementation. If not provided, default
+     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     *
+     * @return Grid secure session SPI implementation or {@code null} to use default implementation.
+     */
+    public GridSecureSessionSpi getSecureSessionSpi();
 
     /**
      * Should return fully configured deployment SPI implementation. If not provided, default
@@ -763,28 +773,103 @@ public interface GridConfiguration {
      * accessing GridGain APIs remotely.
      * <p>
      * By default, {@code Jetty} configuration file is located under {@code GRIDGAIN_HOME/config/rest-jetty.xml}.
-     * <p>
-     * Note that REST support available in Enterprise Edition only.
      *
      * @return Path to {@code JETTY} XML configuration file.
      * @see GridSystemProperties#GG_JETTY_HOST
      * @see GridSystemProperties#GG_JETTY_PORT
      */
-    @GridEnterpriseFeature
     public String getRestJettyPath();
+
+    /**
+     * Gets port on which jetty rest server should be bound.
+     * <p>
+     * If this property is not provided, then system property <tt>GRIDGAIN_JETTY_PORT</tt> is looked up.
+     * If this system property is not specified, then port value from {@code Jetty} xml configuration file is taken.
+     * <p>
+     * By default, {@code Jetty} configuration file is located under {@code GRIDGAIN_HOME/config/rest-jetty.xml}.
+     *
+     * @return Jetty port (greater then zero) or {@code 0} if port was not configured.
+     * @see GridSystemProperties#GG_JETTY_PORT
+     */
+    public int getRestJettyPort();
 
     /**
      * Gets flag indicating whether external {@code REST} access is enabled or not. By default,
      * external {@code REST} access is turned on.
-     * <p>
-     * Note that REST support available in Enterprise Edition only.
      *
      * @return Flag indicating whether external {@code REST} access is enabled or not.
      * @see GridSystemProperties#GG_JETTY_HOST
      * @see GridSystemProperties#GG_JETTY_PORT
      */
-    @GridEnterpriseFeature
     public boolean isRestEnabled();
+
+    /**
+     * Gets host for TCP binary protocol server.
+     * <p>
+     * If not defined, system-wide local address will be used
+     * (see {@link #getLocalHost()}.
+     *
+     * @return TCP host.
+     */
+    public String getRestTcpHost();
+
+    /**
+     * Gets port for TCP binary protocol server.
+     * <p>
+     * Default is 11211.
+     *
+     * @return TCP port.
+     */
+    public int getRestTcpPort();
+
+    /**
+     * Gets flag indicating whether {@code TCP_NODELAY} option should be set for accepted client connections.
+     * Setting this option reduces network latency and should be set to {@code true} in majority of cases.
+     * For more information, see {@link java.net.Socket#setTcpNoDelay(boolean)}
+     * <p/>
+     * If not specified, default value is
+     *
+     * @return Whether {@code TCP_NODELAY} option should be enabled.
+     */
+    public boolean isRestTcpNoDelay();
+
+    /**
+     * Whether secure socket layer should be enabled on binary rest server.
+     * <p>
+     * Note that if this flag is set to {@code true}, an instance of {@link GridSslContextFactory}
+     * should be provided, otherwise binary rest protocol will fail to start.
+     *
+     * @return {@code True} if SSL should be enabled.
+     */
+    public boolean isRestTcpSslEnabled();
+
+    /**
+     * Gets a flag indicating whether or not remote clients will be required to have a valid SSL certificate which
+     * validity will be verified with trust manager.
+     *
+     * @return Whether or not client authentication is required.
+     */
+    public boolean isRestTcpSslClientAuth();
+
+    /**
+     * Gets context factory that will be used for creating a secure socket layer of rest binary server.
+     *
+     * @return SslContextFactory instance.
+     * @see GridSslContextFactory
+     */
+    public GridSslContextFactory getRestTcpSslContextFactory();
+
+    /**
+     * Gets list of folders that are accessible for log reading command. When remote client requests
+     * a log file, file path is checked against this list. If requested file is not located in any
+     * sub-folder of these folders, request is not processed.
+     * <p>
+     * By default, list consists of a single {@code GRIDGAIN_HOME} folder. If {@code GRIDGAIN_HOME}
+     * could not be detected and property is not specified, no restrictions applied.
+     *
+     * @return Array of folders that are allowed be read by remote clients.
+     */
+    public String[] getRestAccessibleFolders();
 
     /**
      * Gets system-wide local address or host for all GridGain components to bind to. If provided it will
@@ -796,14 +881,11 @@ public interface GridConfiguration {
 
     /**
      * Gets secret key to authenticate REST requests. If key is {@code null} or empty authentication is disabled.
-     * <p>
-     * Note that REST support available in Enterprise Edition only.
      *
      * @return Secret key.
      * @see GridSystemProperties#GG_JETTY_HOST
      * @see GridSystemProperties#GG_JETTY_PORT
      */
-    @GridEnterpriseFeature
     @Nullable public String getRestSecretKey();
 
     /**
@@ -823,7 +905,6 @@ public interface GridConfiguration {
      * @return Custom license file URL or {@code null} to use the default
      *      <code>$GRIDGAIN_HOME</code>-related location.
      */
-    @GridEnterpriseFeature
     @Nullable public String getLicenseUrl();
 
     /**
@@ -835,7 +916,7 @@ public interface GridConfiguration {
      *
      * @return Frequency of metrics log print out.
      */
-    public int getMetricsLogFrequency();
+    public long getMetricsLogFrequency();
 
     /**
      * Gets map of pre-configured local event listeners.

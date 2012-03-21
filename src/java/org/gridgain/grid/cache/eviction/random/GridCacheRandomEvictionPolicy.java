@@ -26,7 +26,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * key has the same probability of being accessed.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheRandomEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,
     GridCacheRandomEvictionPolicyMBean {
@@ -99,6 +99,9 @@ public class GridCacheRandomEvictionPolicy<K, V> implements GridCacheEvictionPol
 
     /** {@inheritDoc} */
     @Override public void onEntryAccessed(boolean rmv, GridCacheEntry<K, V> entry) {
+        if (!entry.isCached())
+            return;
+
         GridCache<K, V> cache = entry.parent().cache();
 
         if (!allowEmptyEntries && empty(entry))

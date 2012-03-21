@@ -61,7 +61,7 @@ import java.util.concurrent.*;
  * <p>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, DisposableBean, InitializingBean,
     ApplicationContextAware, Externalizable {
@@ -188,6 +188,13 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
         assert g != null;
 
         return g.build();
+    }
+
+    /** {@inheritDoc} */
+    @Override public Date releaseDate() {
+        assert g != null;
+
+        return g.releaseDate();
     }
 
     /** {@inheritDoc} */
@@ -382,6 +389,13 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
         assert g != null;
 
         return g.license();
+    }
+
+    /** {@inheritDoc} */
+    @Override public void updateLicense(@NotNull final String lic) throws GridLicenseException {
+        assert g != null;
+
+        g.updateLicense(lic);
     }
 
     /** {@inheritDoc} */
@@ -668,17 +682,17 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
     }
 
     /** {@inheritDoc} */
-    @Override public <R> GridScheduleFuture<R> scheduleLocal(@Nullable Callable<R> r, String pattern) throws GridException {
+    @Override public <R> GridScheduleFuture<R> scheduleLocal(@Nullable Callable<R> r, String ptrn) throws GridException {
         assert g != null;
 
-        return g.scheduleLocal(r, pattern);
+        return g.scheduleLocal(r, ptrn);
     }
 
     /** {@inheritDoc} */
-    @Override public GridScheduleFuture<?> scheduleLocal(@Nullable Runnable r, String pattern) throws GridException {
+    @Override public GridScheduleFuture<?> scheduleLocal(@Nullable Runnable r, String ptrn) throws GridException {
         assert g != null;
 
-        return g.scheduleLocal(r, pattern);
+        return g.scheduleLocal(r, ptrn);
     }
 
     /** {@inheritDoc} */

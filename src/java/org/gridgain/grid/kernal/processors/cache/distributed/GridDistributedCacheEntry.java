@@ -22,7 +22,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Entry for distributed (replicated/partitioned) cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
@@ -378,7 +378,8 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
         assert isHeldByCurrentThread();
 
         if ((obsoleteVer != null && obsoleteVer.equals(ver)) || cctx.mvcc().isRemoved(ver))
-            throw new GridDistributedLockCancelledException();
+            throw new GridDistributedLockCancelledException("Lock has been cancelled [key=" + key +
+                ", ver=" + ver + ']');
     }
 
     /**
@@ -713,11 +714,11 @@ public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {
             if (owner != null && owner.local())
                 checkThreadChain(owner);
 
-            if (prev != null)
+            if (prev != null && cctx.events().isRecordable(EVT_CACHE_OBJECT_UNLOCKED))
                 // Event notification.
                 cctx.events().addEvent(partition(), key, prev.nodeId(), prev, EVT_CACHE_OBJECT_UNLOCKED, val, val);
 
-            if (owner != null)
+            if (owner != null && cctx.events().isRecordable(EVT_CACHE_OBJECT_LOCKED))
                 // Event notification.
                 cctx.events().addEvent(partition(), key, owner.nodeId(), owner, EVT_CACHE_OBJECT_LOCKED, val, val);
         }

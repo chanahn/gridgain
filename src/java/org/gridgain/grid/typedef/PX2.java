@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.*;
  * concise code in cases when readability won't be sacrificed. For more information see {@link GridPredicate2X}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @param <T1> Type of the first free variable, i.e. the element the closure is called on.
  * @param <T2> Type of the second free variable, i.e. the element the closure is called on.
  * @see GridFunc

@@ -62,7 +62,7 @@ import java.util.*;
  * To do that, {@link GridSystemProperties#GG_NO_DISCO_ORDER} must be provided at startup.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @param <K> Cache key type.
  * @param <V> Cache value type.
  */
@@ -198,20 +198,15 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * Will get a sequence from cache or create one with initial value of
      * {@code 0} if it has not been created yet. This method is analogous to
      * calling {@link #atomicSequence(String, long, boolean)} sequence(name, 0, false)}.
-     * <p>
-     * Note that sequence is only available in Enterprise Edition.
      *
      * @param name Sequence name.
      * @return Sequence.
      * @throws GridException If sequence could not be fetched or created.
      */
-    @GridEnterpriseFeature
     public GridCacheAtomicSequence atomicSequence(String name) throws GridException;
 
     /**
      * Will get an atomic sequence from cache and create one if it has not been created yet.
-     * <p>
-     * Note that sequence is only available in Enterprise Edition.
      *
      * @param name Sequence name.
      * @param initVal Initial value for sequence. If sequence already cached, {@code initVal} will be ignored.
@@ -220,39 +215,30 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * @return Sequence for the given name.
      * @throws GridException If sequence could not be fetched or created.
      */
-    @GridEnterpriseFeature
     public GridCacheAtomicSequence atomicSequence(String name, long initVal, boolean persistent) throws GridException;
 
     /**
      * Remove sequence from cache.
-     * <p>
-     * Note that sequence is only available in Enterprise Edition.
      *
      * @param name Sequence name.
      * @return {@code True} if sequence has been removed, {@code false} otherwise.
      * @throws GridException If remove failed.
      */
-    @GridEnterpriseFeature
     public boolean removeAtomicSequence(String name) throws GridException;
 
     /**
      * Will get a atomic long from cache or create one with initial value of
      * {@code 0} if it has not been created yet. This method is analogous to
      * calling {@link #atomicLong(String,long,boolean) atomicLong(name, 0, false)}.
-     * <p>
-     * Note that atomic long is only available in Enterprise Edition.
      *
      * @param name Atomic long name.
      * @return Atomic long for the given name.
      * @throws GridException If atomic long could not be fetched or created.
      */
-    @GridEnterpriseFeature
     public GridCacheAtomicLong atomicLong(String name) throws GridException;
 
     /**
      * Will get a atomic long from cache and create one if it has not been created yet.
-     * <p>
-     * Note that atomic long is only available in Enterprise Edition.
      *
      * @param name Name of atomic long.
      * @param initVal Initial value for atomic long. If atomic long already cached, {@code initVal}
@@ -262,19 +248,15 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * @return Atomic long.
      * @throws GridException If atomic long could not be fetched or created.
      */
-    @GridEnterpriseFeature
     public GridCacheAtomicLong atomicLong(String name, long initVal, boolean persistent) throws GridException;
 
     /**
      * Remove atomic long from cache.
-     * <p>
-     * Note that atomic long is only available in Enterprise Edition.
      *
      * @param name Name of atomic long.
      * @return {@code True} if atomic long has been removed, {@code false} otherwise.
      * @throws GridException If removing failed.
      */
-    @GridEnterpriseFeature
     public boolean removeAtomicLong(String name) throws GridException;
 
     /**
@@ -282,14 +264,11 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * If queue is present in cache already, queue properties will not be changed.
      * This method is analogous to calling {@link #queue(String,GridCacheQueueType, int, boolean)}
      * queue(name, FIFO, 0 , true)}.
-     * <p>
-     * Note that queue is only available in Enterprise Edition.
      *
      * @param name Name of queue.
      * @return Queue.
      * @throws GridException If removing failed.
      */
-    @GridEnterpriseFeature
     public <T> GridCacheQueue<T> queue(String name) throws GridException;
 
     /**
@@ -297,15 +276,12 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * If queue is present in cache already, queue properties will not be changed.
      * This method is analogous to calling {@link #queue(String,GridCacheQueueType, int, boolean)}
      * queue(name, type, 0, true)}.
-     * <p>
-     * Note that queue is only available in Enterprise Edition.
      *
      * @param name Name of queue.
      * @param type Type of queue.
      * @return Queue.
      * @throws GridException If removing failed.
      */
-    @GridEnterpriseFeature
     public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type) throws GridException;
 
     /**
@@ -313,8 +289,6 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * If queue is present in cache already, queue properties will not be changed.
      * This method is analogous to calling {@link #queue(String,GridCacheQueueType, int, boolean)}
      * queue(name, type, capacity, true)}.
-     * <p>
-     * Note that queue is only available in Enterprise Edition.
      *
      * @param name Name of queue.
      * @param type Type of queue.
@@ -322,7 +296,6 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * @return Queue.
      * @throws GridException If removing failed.
      */
-    @GridEnterpriseFeature
     public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int capacity) throws GridException;
 
     /**
@@ -333,8 +306,6 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * few very large queues, then you should consider turning off collocation as they simply
      * may not fit in a single node's memory. However note that in this case
      * to get a single element off the queue all nodes may have to be queried.
-     * <p>
-     * Note that queue is only available in Enterprise Edition.
      *
      * @param name Name of queue.
      * @param type Type of queue.
@@ -346,7 +317,6 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * @return Queue with given properties.
      * @throws GridException If remove failed.
      */
-    @GridEnterpriseFeature
     public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int capacity, boolean collocated)
         throws GridException;
 
@@ -356,14 +326,11 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * {@link #removeQueue(String, int)} which allows to specify batch size. In that case
      * transaction will be split into multiple transactions which will have upto {@code batchSize}
      * elements in it.
-     * <p>
-     * Note that queue is only available in Enterprise Edition.
      *
      * @param name Name queue.
      * @return {@code True} if queue has been removed and false if it's not cached.
      * @throws GridException If remove failed.
      */
-    @GridEnterpriseFeature
     public boolean removeQueue(String name) throws GridException;
 
     /**
@@ -371,35 +338,27 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * with no more than {@code batchSize} elements in them. For larger queues, this
      * method is preferrable over {@link #removeQueue(String)} which will create only
      * one transaction for the whole operation.
-     * <p>
-     * Note that queue is only available in Enterprise Edition.
      *
      * @param name Name queue.
      * @param batchSize Batch size.
      * @return {@code True} if queue has been removed and false if it's not cached.
      * @throws GridException If remove failed.
      */
-    @GridEnterpriseFeature
     public boolean removeQueue(String name, int batchSize) throws GridException;
 
     /**
      * Will get a atomic reference from cache or create one with initial value of
      * {@code null} if it has not been created yet. This method is analogous to
      * calling {@link #atomicReference(String,Object, boolean)} atomicReference(name, null, false)}.
-     * <p>
-     * Note that atomic reference is only available in Enterprise Edition.
      *
      * @param name Atomic reference name.
      * @return Atomic reference.
      * @throws GridException If atomic reference could not be fetched or created.
      */
-    @GridEnterpriseFeature
     public <T> GridCacheAtomicReference<T> atomicReference(String name) throws GridException;
 
     /**
      * Will get a atomic reference from cache and create one if it has not been created yet.
-     * <p>
-     * Note that atomic reference is only available in Enterprise Edition.
      *
      * @param name Atomic reference name.
      * @param initVal Initial value for atomic reference. If atomic reference already cached,
@@ -409,40 +368,31 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * @return Atomic reference for the given name.
      * @throws GridException If atomic reference could not be fetched or created.
      */
-    @GridEnterpriseFeature
     public <T> GridCacheAtomicReference<T> atomicReference(String name, T initVal, boolean persistent)
         throws GridException;
 
     /**
      * Remove atomic reference from cache.
-     * <p>
-     * Note that atomic reference is only available in Enterprise Edition.
      *
      * @param name Atomic reference name.
      * @return {@code True} if atomic reference has been removed, {@code false} otherwise.
      * @throws GridException If remove failed.
      */
-    @GridEnterpriseFeature
     public boolean removeAtomicReference(String name) throws GridException;
 
     /**
      * Will get a atomic stamped from cache or create one with initial value of
      * {@code null} if it has not been created yet. This method is analogous to
      * calling {@link #atomicStamped(String,Object,Object)} atomicStamped(name, null, null)}.
-     * <p>
-     * Note that atomic stamped is only available in Enterprise Edition.
      *
      * @param name Atomic stamped name.
      * @return Atomic stamped.
      * @throws GridException If atomic stamped could not be fetched or created.
      */
-    @GridEnterpriseFeature
     public <T, S> GridCacheAtomicStamped<T, S> atomicStamped(String name) throws GridException;
 
     /**
      * Will get a atomic stamped from cache and create one if it has not been created yet.
-     * <p>
-     * Note that atomic stamped is only available in Enterprise Edition.
      *
      * @param name Atomic stamped name.
      * @param initVal Initial value for atomic stamped. If atomic stamped already cached,
@@ -452,26 +402,20 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * @return Atomic stamped for the given name.
      * @throws GridException If atomic stamped could not be fetched or created.
      */
-    @GridEnterpriseFeature
     public <T, S> GridCacheAtomicStamped<T, S> atomicStamped(String name, T initVal, S initStamp) throws GridException;
 
     /**
      * Remove atomic stamped from cache.
-     * <p>
-     * Note that atomic stamped is only available in Enterprise Edition.
      *
      * @param name Atomic stamped name.
      * @return {@code True} if atomic stamped has been removed, {@code false} otherwise.
      * @throws GridException If remove failed.
      */
-    @GridEnterpriseFeature
     public boolean removeAtomicStamped(String name) throws GridException;
 
     /**
      * Gets or creates count down latch. If count down latch is not found in cache,
      * it is created using provided name and count parameter.
-     * <p>
-     * Note that count down latch is only available in Enterprise Edition.
      *
      * @param name Name of the latch.
      * @param count Count for new latch creation.
@@ -480,32 +424,25 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * @return Count down latch for the given name.
      * @throws GridException If operation failed.
      */
-    @GridEnterpriseFeature
     public GridCacheCountDownLatch countDownLatch(String name, int count, boolean autoDelete) throws GridException;
 
     /**
      * Gets count down latch. If count down latch is not found in cache
      * {@code null} is returned.
-     * <p>
-     * Note that count down latch is only available in Enterprise Edition.
      *
      * @param name Name of the latch.
      * @return Count down latch for the given name or {@code null}.
      * @throws GridException If operation failed.
      */
-    @GridEnterpriseFeature
     @Nullable public GridCacheCountDownLatch countDownLatch(String name) throws GridException;
 
     /**
      * Removes count down latch from cache.
-     * <p>
-     * Note that count down latch is only available in Enterprise Edition.
      *
      * @param name Name of the latch.
      * @return Count down latch for the given name.
      * @throws GridException If operation failed.
      */
-    @GridEnterpriseFeature
     public boolean removeCountDownLatch(String name) throws GridException;
 
     /**

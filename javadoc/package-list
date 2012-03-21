@@ -1,3 +1,8 @@
+org.gridgain.client.marshaller
+org.gridgain.client.marshaller.jdk
+org.gridgain.client.marshaller.protobuf
+org.gridgain.client.message
+org.gridgain.client.ssl
 org.gridgain.grid
 org.gridgain.grid.benchmarks
 org.gridgain.grid.cache
@@ -47,6 +52,8 @@ org.gridgain.grid.marshaller.optimized
 org.gridgain.grid.marshaller.xstream
 org.gridgain.grid.resources
 org.gridgain.grid.spi
+org.gridgain.grid.spi.authentication
+org.gridgain.grid.spi.authentication.noop
 org.gridgain.grid.spi.checkpoint
 org.gridgain.grid.spi.checkpoint.cache
 org.gridgain.grid.spi.checkpoint.jdbc
@@ -65,11 +72,15 @@ org.gridgain.grid.spi.discovery
 org.gridgain.grid.spi.discovery.multicast
 org.gridgain.grid.spi.discovery.tcp
 org.gridgain.grid.spi.discovery.tcp.ipfinder
+org.gridgain.grid.spi.discovery.tcp.ipfinder.jdbc
+org.gridgain.grid.spi.discovery.tcp.ipfinder.s3
+org.gridgain.grid.spi.discovery.tcp.ipfinder.sharedfs
 org.gridgain.grid.spi.discovery.tcp.ipfinder.vm
 org.gridgain.grid.spi.discovery.tcp.metricsstore
+org.gridgain.grid.spi.discovery.tcp.metricsstore.jdbc
+org.gridgain.grid.spi.discovery.tcp.metricsstore.s3
+org.gridgain.grid.spi.discovery.tcp.metricsstore.sharedfs
 org.gridgain.grid.spi.discovery.tcp.metricsstore.vm
-org.gridgain.grid.spi.discovery.tcp.topologystore
-org.gridgain.grid.spi.discovery.tcp.topologystore.vm
 org.gridgain.grid.spi.eventstorage
 org.gridgain.grid.spi.eventstorage.memory
 org.gridgain.grid.spi.failover
@@ -82,8 +93,11 @@ org.gridgain.grid.spi.loadbalancing.roundrobin
 org.gridgain.grid.spi.loadbalancing.weightedrandom
 org.gridgain.grid.spi.metrics
 org.gridgain.grid.spi.metrics.jdk
+org.gridgain.grid.spi.securesession
+org.gridgain.grid.spi.securesession.noop
 org.gridgain.grid.spi.swapspace
 org.gridgain.grid.spi.swapspace.file
+org.gridgain.grid.spi.swapspace.leveldb
 org.gridgain.grid.spi.topology
 org.gridgain.grid.spi.topology.attributes
 org.gridgain.grid.spi.topology.basic

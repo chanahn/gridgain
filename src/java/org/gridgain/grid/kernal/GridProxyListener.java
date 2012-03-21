@@ -20,27 +20,27 @@ import java.util.*;
  * is made to get invocation result and exception, if there was one.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridProxyListener extends EventListener {
     /**
      * Method is called right before the traced method.
      *
      * @param cls Callee class.
-     * @param methodName Callee method name.
+     * @param mtdName Callee method name.
      * @param args Callee method parameters.
      */
-    public void beforeCall(Class<?> cls, String methodName, Object[] args);
+    public void beforeCall(Class<?> cls, String mtdName, Object[] args);
 
     /**
      * Method is called right after the traced method.
      *
      * @param cls Callee class.
-     * @param methodName Callee method name.
+     * @param mtdName Callee method name.
      * @param args Callee method parameters.
      * @param res Call result. Might be {@code null} if apply
      *      returned {@code null} or if exception happened.
      * @param e Exception thrown by given method apply, if any. Can be {@code null}.
      */
-    public void afterCall(Class<?> cls, String methodName, Object[] args, Object res, Throwable e);
+    public void afterCall(Class<?> cls, String mtdName, Object[] args, Object res, Throwable e);
 }

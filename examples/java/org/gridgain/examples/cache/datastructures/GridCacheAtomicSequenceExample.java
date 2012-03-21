@@ -18,14 +18,13 @@ import java.util.*;
 import static org.gridgain.grid.GridClosureCallMode.*;
 
 /**
- * Demonstrates a simple usage of distributed atomic sequence. Note that atomic long is only
- * available in <b>Enterprise Edition</b>.
+ * Demonstrates a simple usage of distributed atomic sequence.
  * <p>
  * Remote nodes should always be started with configuration file which includes
  * cache configuration, e.g. {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridCacheAtomicSequenceExample {
     /** Cache name. */
@@ -49,12 +48,6 @@ public final class GridCacheAtomicSequenceExample {
         Grid grid = G.start("examples/config/spring-cache.xml");
 
         try {
-            if (!grid.isEnterprise()) {
-                System.err.println("This example works only in Enterprise Edition.");
-
-                return;
-            }
-
             print("Starting atomic sequence example on nodes: " + grid.nodes().size());
 
             // Make name of sequence.
@@ -98,12 +91,5 @@ public final class GridCacheAtomicSequenceExample {
      */
     private static void print(Object o) {
         X.println(">>> " + o);
-    }
-
-    /**
-     * Ensure singleton.
-     */
-    private GridCacheAtomicSequenceExample() {
-        // No-op.
     }
 }

@@ -17,7 +17,7 @@ import org.jetbrains.annotations.*;
  * Kernal controller responsible for license management.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridLicenseController extends GridController {
     /**
@@ -27,6 +27,14 @@ public interface GridLicenseController extends GridController {
      * @throws GridLicenseException Thrown in case of any license violation.
      */
     public void checkLicense() throws GridLicenseException;
+
+    /**
+     * Upload the new license into the current node. Throw the exception if the license is not validated.
+     *
+     * @param licenseCtx String - The string representation of the license file.
+     * @throws GridLicenseException - Throw the exception in the case of failed validation.
+     */
+    public void updateLicense(String licenseCtx) throws GridLicenseException;
 
     /**
      * Acks the license to the log.

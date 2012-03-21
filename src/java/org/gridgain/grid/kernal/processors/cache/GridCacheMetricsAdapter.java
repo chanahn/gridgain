@@ -14,45 +14,44 @@ import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
 
 import java.io.*;
-import java.util.concurrent.atomic.*;
 
 /**
  * Adapter for cache metrics.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheMetricsAdapter implements GridCacheMetrics, Externalizable {
     /** Create time. */
     private long createTime = System.currentTimeMillis();
 
     /** Last read time. */
-    private final AtomicLong readTime = new AtomicLong(System.currentTimeMillis());
+    private volatile long readTime = System.currentTimeMillis();
 
     /** Last update time. */
-    private final AtomicLong writeTime = new AtomicLong(System.currentTimeMillis());
+    private volatile long writeTime = System.currentTimeMillis();
 
     /** Number of reads. */
-    private final AtomicInteger reads = new AtomicInteger();
+    private volatile int reads;
 
     /** Number of writes. */
-    private final AtomicInteger writes = new AtomicInteger();
+    private volatile int writes;
 
     /** Number of hits. */
-    private final AtomicInteger hits = new AtomicInteger();
+    private volatile int hits;
 
     /** Number of misses. */
-    private final AtomicInteger misses = new AtomicInteger();
+    private volatile int misses;
 
     /** Number of transaction commits. */
-    private final AtomicInteger txCommits = new AtomicInteger();
+    private volatile int txCommits;
 
     /** Number of transaction rollbacks. */
-    private final AtomicInteger txRollbacks = new AtomicInteger();
+    private volatile int txRollbacks;
 
     /** Cache metrics. */
     @GridToStringExclude
-    private GridCacheMetricsAdapter delegate;
+    private transient GridCacheMetricsAdapter delegate;
 
     /**
      *
@@ -84,14 +83,14 @@ public class GridCacheMetricsAdapter implements GridCacheMetrics, Externalizable
     public GridCacheMetricsAdapter(long createTime, long readTime, long writeTime, int reads, int writes, int hits,
         int misses, int txCommits, int txRollbacks) {
         this.createTime = createTime;
-        this.readTime.set(readTime);
-        this.writeTime.set(writeTime);
-        this.reads.set(reads);
-        this.writes.set(writes);
-        this.hits.set(hits);
-        this.misses.set(misses);
-        this.txCommits.set(txCommits);
-        this.txRollbacks.set(txRollbacks);
+        this.readTime = readTime;
+        this.writeTime = writeTime;
+        this.reads = reads;
+        this.writes = writes;
+        this.hits = hits;
+        this.misses = misses;
+        this.txCommits = txCommits;
+        this.txRollbacks = txRollbacks;
     }
 
     /**
@@ -108,42 +107,42 @@ public class GridCacheMetricsAdapter implements GridCacheMetrics, Externalizable
 
     /** {@inheritDoc} */
     @Override public long writeTime() {
-        return writeTime.get();
+        return writeTime;
     }
 
     /** {@inheritDoc} */
     @Override public long readTime() {
-        return readTime.get();
+        return readTime;
     }
 
     /** {@inheritDoc} */
     @Override public int reads() {
-        return reads.get();
+        return reads;
     }
 
     /** {@inheritDoc} */
     @Override public int writes() {
-        return writes.get();
+        return writes;
     }
 
     /** {@inheritDoc} */
     @Override public int hits() {
-        return hits.get();
+        return hits;
     }
 
     /** {@inheritDoc} */
     @Override public int misses() {
-        return misses.get();
+        return misses;
     }
 
     /** {@inheritDoc} */
     @Override public int txCommits() {
-        return txCommits.get();
+        return txCommits;
     }
 
     /** {@inheritDoc} */
     @Override public int txRollbacks() {
-        return txRollbacks.get();
+        return txRollbacks;
     }
 
     /**
@@ -151,14 +150,14 @@ public class GridCacheMetricsAdapter implements GridCacheMetrics, Externalizable
      * @param isHit Hit or miss flag.
      */
     public void onRead(boolean isHit) {
-        readTime.set(System.currentTimeMillis());
+        readTime = System.currentTimeMillis();
 
-        reads.incrementAndGet();
+        reads++;
 
         if (isHit)
-            hits.incrementAndGet();
+            hits++;
         else
-            misses.incrementAndGet();
+            misses++;
 
         if (delegate != null)
             delegate.onRead(isHit);
@@ -168,9 +167,9 @@ public class GridCacheMetricsAdapter implements GridCacheMetrics, Externalizable
      * Cache write callback.
      */
     public void onWrite() {
-        writeTime.set(System.currentTimeMillis());
+        writeTime = System.currentTimeMillis();
 
-        writes.incrementAndGet();
+        writes++;
 
         if (delegate != null)
             delegate.onWrite();
@@ -180,7 +179,7 @@ public class GridCacheMetricsAdapter implements GridCacheMetrics, Externalizable
      * Transaction commit callback.
      */
     public void onTxCommit() {
-        txCommits.incrementAndGet();
+        txCommits++;
 
         if (delegate != null)
             delegate.onTxCommit();
@@ -190,7 +189,7 @@ public class GridCacheMetricsAdapter implements GridCacheMetrics, Externalizable
      * Transaction rollback callback.
      */
     public void onTxRollback() {
-        txRollbacks.incrementAndGet();
+        txRollbacks++;
 
         if (delegate != null)
             delegate.onTxRollback();
@@ -247,42 +246,42 @@ public class GridCacheMetricsAdapter implements GridCacheMetrics, Externalizable
      */
     void clear() {
         createTime = System.currentTimeMillis();
-        readTime.set(System.currentTimeMillis());
-        writeTime.set(System.currentTimeMillis());
-        reads.set(0);
-        writes.set(0);
-        hits.set(0);
-        misses.set(0);
-        txCommits.set(0);
-        txRollbacks.set(0);
+        readTime = System.currentTimeMillis();
+        writeTime = System.currentTimeMillis();
+        reads = 0;
+        writes = 0;
+        hits = 0;
+        misses = 0;
+        txCommits = 0;
+        txRollbacks = 0;
     }
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong(createTime);
-        out.writeLong(readTime.get());
-        out.writeLong(writeTime.get());
+        out.writeLong(readTime);
+        out.writeLong(writeTime);
 
-        out.writeInt(reads.get());
-        out.writeInt(writes.get());
-        out.writeInt(hits.get());
-        out.writeInt(misses.get());
-        out.writeInt(txCommits.get());
-        out.writeInt(txRollbacks.get());
+        out.writeInt(reads);
+        out.writeInt(writes);
+        out.writeInt(hits);
+        out.writeInt(misses);
+        out.writeInt(txCommits);
+        out.writeInt(txRollbacks);
     }
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         createTime = in.readLong();
-        readTime.set(in.readLong());
-        writeTime.set(in.readLong());
+        readTime = in.readLong();
+        writeTime = in.readLong();
 
-        reads.set(in.readInt());
-        writes.set(in.readInt());
-        hits.set(in.readInt());
-        misses.set(in.readInt());
-        txCommits.set(in.readInt());
-        txRollbacks.set(in.readInt());
+        reads = in.readInt();
+        writes = in.readInt();
+        hits = in.readInt();
+        misses = in.readInt();
+        txCommits = in.readInt();
+        txRollbacks = in.readInt();
     }
 
     /** {@inheritDoc} */

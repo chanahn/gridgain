@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.*;
  * concise code in cases when readability won't be sacrificed. For more information see {@link GridInClosure}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @param <T> Type of the factory closure.
  * @see GridFunc
  * @see GridInClosure

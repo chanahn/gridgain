@@ -16,16 +16,9 @@ import org.gridgain.grid.typedef.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunctionEitherExample {
-    /**
-     * Ensures singleton.
-     */
-    private GridFunctionEitherExample() {
-        /* No-op. */
-    }
-
     /**
      * Executes example.
      *

@@ -31,7 +31,7 @@ import static org.gridgain.grid.GridEventType.*;
  * {@link GridDeploymentMode#CONTINUOUS} modes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
     /** Shared deployment cache. */
@@ -69,7 +69,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
 
     /** {@inheritDoc} */
     @Override public void stop() {
-        Collection<SharedDeployment> copy = new HashSet<SharedDeployment>();
+        Collection<SharedDeployment> cp = new HashSet<SharedDeployment>();
 
         synchronized (mux) {
             for (List<SharedDeployment> deps : cache.values())
@@ -77,13 +77,13 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
                     // Mark undeployed.
                     dep.undeploy();
 
-                    copy.add(dep);
+                    cp.add(dep);
                 }
 
             cache.clear();
         }
 
-        for (SharedDeployment dep : copy)
+        for (SharedDeployment dep : cp)
             dep.recordUndeployed(null);
 
         if (log.isDebugEnabled())
@@ -731,7 +731,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
                             }
 
                             @Override public void onTimeout() {
-                                boolean removed = false;
+                                boolean rmv = false;
 
                                 // Hot redeployment.
                                 synchronized (mux) {
@@ -742,7 +742,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
 
                                         undep.onRemoved();
 
-                                        removed = true;
+                                        rmv = true;
 
                                         Collection<SharedDeployment> deps = cache.get(undep.userVersion());
 
@@ -762,7 +762,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
                                 }
 
                                 // Outside synchronization.
-                                if (removed)
+                                if (rmv)
                                     undep.recordUndeployed(null);
                             }
                         });
@@ -923,7 +923,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
     /** */
     private class SharedDeployment extends GridDeployment {
         /** Flag indicating whether this deployment was removed from cache. */
-        private boolean removed;
+        private boolean rmv;
 
         /**
          * @param depMode Deployment mode.
@@ -1055,7 +1055,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
         boolean isRemoved() {
             assert Thread.holdsLock(mux);
 
-            return removed;
+            return rmv;
         }
 
         /**
@@ -1064,7 +1064,7 @@ public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
         void onRemoved() {
             assert Thread.holdsLock(mux);
 
-            removed = true;
+            rmv = true;
 
             Collection<GridUuid> deadIds = loader().registeredClassLoaderIds();
 

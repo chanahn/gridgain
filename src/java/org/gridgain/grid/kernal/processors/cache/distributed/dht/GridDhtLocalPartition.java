@@ -13,7 +13,6 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.internal.*;
-import org.gridgain.grid.util.*;
 import org.gridgain.grid.util.future.*;
 import org.gridgain.grid.util.tostring.*;
 
@@ -28,7 +27,7 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * Key partition.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalPartition> {
     /** Static logger to avoid re-creation. */
@@ -42,17 +41,17 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
     private AtomicStampedReference<GridDhtPartitionState> state =
         new AtomicStampedReference<GridDhtPartitionState>(MOVING, 0);
 
-    /**  */
+    /** Rent future. */
     @GridToStringExclude
     private final GridFutureAdapter<?> rent;
 
-    /** */
+    /** Entries map. */
     private final ConcurrentMap<K, GridDhtCacheEntry<K, V>> map = new ConcurrentHashMap<K, GridDhtCacheEntry<K,V>>();
 
-    /** */
+    /** Context. */
     private final GridCacheContext<K, V> cctx;
 
-    /** */
+    /** Logger. */
     private final GridLogger log;
 
     /** Create time. */
@@ -60,10 +59,10 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
     private final long createTime = System.currentTimeMillis();
 
     /** Eviction history. */
-    private final ConcurrentMap<K, GridCacheVersion> evictHist = GridConcurrentFactory.newMap(16, 4);
+    private volatile Map<K, GridCacheVersion> evictHist = new HashMap<K, GridCacheVersion>();
 
     /** Lock. */
-    private final Lock lock = new ReentrantLock();
+    private final ReentrantLock lock = new ReentrantLock();
 
     /**
      * @param cctx Context.
@@ -186,14 +185,21 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
     public void onEntryEvicted(K key, GridCacheVersion ver) {
         assert key != null;
         assert ver != null;
+        assert lock.isHeldByCurrentThread(); // Only one thread can enter this method at a time.
 
-        // Only one thread can enter this method at a time.
-        GridCacheVersion ver0 = evictHist.putIfAbsent(key, ver);
+        if (state() != MOVING)
+            return;
 
-        if (ver0 != null && ver0.isLess(ver)) {
-            boolean r = evictHist.replace(key, ver0, ver);
+        Map<K, GridCacheVersion> evictHist0 = evictHist;
 
-            assert r;
+        if (evictHist0 != null ) {
+            GridCacheVersion ver0 = evictHist0.get(key);
+
+            if (ver0 == null || ver0.isLess(ver)) {
+                GridCacheVersion ver1  = evictHist0.put(key, ver);
+
+                assert ver1 == ver0;
+            }
         }
     }
 
@@ -207,12 +213,22 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
     public boolean preloadingPermitted(K key, GridCacheVersion ver) {
         assert key != null;
         assert ver != null;
+        assert lock.isHeldByCurrentThread(); // Only one thread can enter this method at a time.
 
-        GridCacheVersion ver0 = evictHist.get(key);
+        if (state() != MOVING)
+            return false;
 
-        // Permit preloading if version in history
-        // is missing or less than passed in.
-        return ver0 == null || ver0.isLess(ver);
+        Map<K, GridCacheVersion> evictHist0 = evictHist;
+
+        if (evictHist0 != null)  {
+            GridCacheVersion ver0 = evictHist0.get(key);
+
+            // Permit preloading if version in history
+            // is missing or less than passed in.
+            return ver0 == null || ver0.isLess(ver);
+        }
+
+        return false;
     }
 
     /**
@@ -226,7 +242,7 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
 
             GridDhtPartitionState s = state.getReference();
 
-            if (s == RENTING || s == EVICTED)
+            if (s == EVICTED)
                 return false;
 
             if (state.compareAndSet(s, s, reservations, reservations + 1))
@@ -279,7 +295,7 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
                     log.debug("Owned partition: " + this);
 
                 // No need to keep history any more.
-                evictHist.clear();
+                evictHist = null;
 
                 return true;
             }

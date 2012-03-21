@@ -15,8 +15,6 @@ import org.gridgain.grid.cache.*;
 /**
  * This interface provides a rich API for working with distributed atomic sequence.
  * <p>
- * Note that distributed atomic sequence is only available in <b>Enterprise Edition</b>.
- * <p>
  * <h1 class="header">Functionality</h1>
  * Distributed atomic sequence includes the following main functionality:
  * <ul>
@@ -52,7 +50,7 @@ import org.gridgain.grid.cache.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridCache#atomicSequence(String)
  * @see GridCache#atomicSequence(String, long, boolean)
  */

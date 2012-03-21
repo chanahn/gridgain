@@ -18,6 +18,7 @@ import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.*;
 import org.gridgain.grid.util.tostring.*;
 
 import java.io.*;
@@ -31,10 +32,11 @@ import static org.gridgain.grid.kernal.GridTopic.*;
  * It uses communication manager as a way of sending and receiving requests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"deprecation"})
-@GridToStringExclude class GridDeploymentCommunication {
+@GridToStringExclude
+class GridDeploymentCommunication {
     /** */
     private final GridLogger log;
 
@@ -42,7 +44,13 @@ import static org.gridgain.grid.kernal.GridTopic.*;
     private final GridKernalContext ctx;
 
     /** */
-    private GridMessageListener peerLsnr;
+    private final GridMessageListener peerLsnr;
+
+    /** */
+    private final ThreadLocal<Collection<UUID>> activeReqNodeIds = new ThreadLocal<Collection<UUID>>();
+
+    /** */
+    private final GridBusyLock busyLock = new GridBusyLock();
 
     /**
      * Creates new instance of deployment communication.
@@ -50,183 +58,230 @@ import static org.gridgain.grid.kernal.GridTopic.*;
      * @param ctx Kernal context.
      * @param log Logger.
      */
-    GridDeploymentCommunication(GridKernalContext ctx, GridLogger log) {
+    GridDeploymentCommunication(final GridKernalContext ctx, GridLogger log) {
         assert log != null;
 
         this.ctx = ctx;
         this.log = log.getLogger(getClass());
+
+        peerLsnr = new GridMessageListener() {
+            @Override public void onMessage(UUID nodeId, Object msg) {
+                processDeploymentRequest(nodeId, msg);
+            }
+        };
     }
 
     /**
      * Starts deployment communication.
      */
     void start() {
-        peerLsnr = new GridMessageListener() {
-            @Override
-            public void onMessage(UUID nodeId, Object msg) {
-                assert nodeId != null;
-                assert msg != null;
-
-                GridDeploymentRequest req = (GridDeploymentRequest)msg;
-
-                if (req.isUndeploy())
-                    processUndeployRequest(nodeId, req);
-                else
-                    processResourceRequest(nodeId, req);
-            }
-
-            /**
-             * @param nodeId Sender node ID.
-             * @param req Undeploy request.
-             */
-            private void processUndeployRequest(UUID nodeId, GridDeploymentRequest req) {
-                if (log.isDebugEnabled())
-                    log.debug("Received undeploy request [nodeId=" + nodeId + ", req=" + req + ']');
-
-                ctx.deploy().undeployTask(nodeId, req.getResourceName());
-            }
-
-            /**
-             * Handles classes/resources requests.
-             *
-             * @param nodeId Originating node id.
-             * @param req Request.
-             */
-            private void processResourceRequest(UUID nodeId, GridDeploymentRequest req) {
-                if (log.isDebugEnabled())
-                    log.debug("Received peer class/resource loading request [node=" + nodeId + ", req=" + req + ']');
-
-                GridDeploymentResponse res = new GridDeploymentResponse();
-
-                GridDeployment dep = ctx.deploy().getDeployment(req.getClassLoaderId());
-
-                // Null class loader means failure here.
-                if (dep != null) {
-                    ClassLoader ldr = dep.classLoader();
-
-                    // In case the class loader is ours - skip the check
-                    // since it was already performed before (and was successful).
-                    if (!(ldr instanceof GridDeploymentClassLoader))
-                        // First check for @GridNotPeerDeployable annotation.
-                        try {
-                            String clsName = req.getResourceName().replace('/', '.');
-
-                            int idx = clsName.indexOf(".class");
-
-                            if (idx >= 0)
-                                clsName = clsName.substring(0, idx);
-
-                            Class<?> cls = Class.forName(clsName, true, ldr);
-
-                            if (U.getAnnotation(cls, GridNotPeerDeployable.class) != null) {
-                                String errMsg = "Attempt to peer deploy class that has @GridNotPeerDeployable " +
-                                    "annotation: " + clsName;
-
-                                log.error(errMsg);
-
-                                res.setErrorMessage(errMsg);
-                                res.setSuccess(false);
-
-                                sendResponse(nodeId, req.getResponseTopic(), res);
-
-                                return;
-                            }
-                        }
-                        catch (ClassNotFoundException ignore) {
-                            // Safely ignore it here - resource wasn't a class name.
-                        }
-
-                    InputStream in = ldr.getResourceAsStream(req.getResourceName());
-
-                    if (in == null) {
-                        String errMsg = "Requested resource not found (ignoring locally): " + req.getResourceName();
-
-                        // Java requests the same class with BeanInfo suffix during
-                        // introspection automatically. Usually nobody uses this kind
-                        // of classes. Thus we print it out with DEBUG level.
-                        // Also we print it with DEBUG level because of the
-                        // frameworks which ask some classes just in case - for
-                        // example to identify whether certain framework is available.
-                        // Remote node will throw an exception if needs.
-                        if (log.isDebugEnabled())
-                            log.debug(errMsg);
-
-                        res.setSuccess(false);
-                        res.setErrorMessage(errMsg);
-                    }
-                    else {
-                        try {
-                            GridByteArrayList bytes = new GridByteArrayList(1024);
-
-                            bytes.readAll(in);
-
-                            res.setSuccess(true);
-                            res.setByteSource(bytes);
-                        }
-                        catch (IOException e) {
-                            String errMsg = "Failed to read resource due to IO failure: " + req.getResourceName();
-
-                            log.error(errMsg, e);
-
-                            res.setErrorMessage(errMsg);
-                            res.setSuccess(false);
-                        }
-                        finally {
-                            U.close(in, log);
-                        }
-                    }
-                }
-                else {
-                    String errMsg = "Failed to find local deployment for peer request: " + req;
-
-                    U.warn(log, errMsg);
-
-                    res.setSuccess(false);
-                    res.setErrorMessage(errMsg);
-                }
-
-                sendResponse(nodeId, req.getResponseTopic(), res);
-            }
-
-            /**
-             * @param nodeId Destination node ID.
-             * @param topic Response topic.
-             * @param res Response.
-             */
-            private void sendResponse(UUID nodeId, String topic, Serializable res) {
-                GridNode node = ctx.discovery().node(nodeId);
-
-                if (node != null) {
-                    if (log.isDebugEnabled())
-                        log.debug("Sending peer class loading response [node=" + node.id() + ", res=" + res + ']');
-
-                    try {
-                        ctx.io().send(node, topic, res, GridIoPolicy.P2P_POOL);
-                    }
-                    catch (GridException e) {
-                        if (ctx.discovery().pingNode(nodeId))
-                            U.error(log, "Failed to send peer class loading response to node: " + nodeId, e);
-                        else if (log.isDebugEnabled()) {
-                            log.debug("Failed to send peer class loading response to node " +
-                                "(node does not exist): " + nodeId);
-                        }
-                    }
-                }
-                else if (log.isDebugEnabled())
-                    log.debug("Failed to send peer class loading response to node " +
-                        "(node does not exist): " + nodeId);
-            }
-        };
-
         ctx.io().addMessageListener(TOPIC_CLASSLOAD, peerLsnr);
+
+        if (log.isDebugEnabled())
+            log.debug("Started deployment communication.");
     }
 
     /**
      * Stops deployment communication.
      */
     void stop() {
+        if (log.isDebugEnabled())
+            log.debug("Stopping deployment communication.");
+
+        busyLock.block();
+
         ctx.io().removeMessageListener(TOPIC_CLASSLOAD, peerLsnr);
     }
+
+    /**
+     * @param nodeId Node ID.
+     * @param msg Request.
+     */
+    private void processDeploymentRequest(UUID nodeId, Object msg) {
+        assert nodeId != null;
+        assert msg != null;
+
+        if (!busyLock.enterBusy()) {
+            if (log.isDebugEnabled())
+                log.debug("Ignoring deployment request since grid is stopping " +
+                    "[nodeId=" + nodeId + ", msg=" + msg + ']');
+
+            return;
+        }
+
+        try {
+            GridDeploymentRequest req = (GridDeploymentRequest)msg;
+
+            if (req.isUndeploy())
+                processUndeployRequest(nodeId, req);
+            else {
+                assert activeReqNodeIds.get() == null;
+
+                Collection<UUID> nodeIds = req.nodeIds();
+
+                nodeIds = nodeIds == null ? new HashSet<UUID>() : new HashSet<UUID>(nodeIds);
+
+                boolean b = nodeIds.add(nodeId);
+
+                assert b;
+
+                activeReqNodeIds.set(nodeIds);
+
+                try {
+                    processResourceRequest(nodeId, req);
+                }
+                finally {
+                    activeReqNodeIds.set(null);
+                }
+            }
+        }
+        finally {
+            busyLock.leaveBusy();
+        }
+    }
+
+    /**
+     * @param nodeId Sender node ID.
+     * @param req Undeploy request.
+     */
+    private void processUndeployRequest(UUID nodeId, GridDeploymentRequest req) {
+        if (log.isDebugEnabled())
+            log.debug("Received undeploy request [nodeId=" + nodeId + ", req=" + req + ']');
+
+        ctx.deploy().undeployTask(nodeId, req.resourceName());
+    }
+
+    /**
+     * Handles classes/resources requests.
+     *
+     * @param nodeId Originating node id.
+     * @param req Request.
+     */
+    private void processResourceRequest(UUID nodeId, GridDeploymentRequest req) {
+        if (log.isDebugEnabled())
+            log.debug("Received peer class/resource loading request [node=" + nodeId + ", req=" + req + ']');
+
+        GridDeploymentResponse res = new GridDeploymentResponse();
+
+        GridDeployment dep = ctx.deploy().getDeployment(req.classLoaderId());
+
+        // Null class loader means failure here.
+        if (dep != null) {
+            ClassLoader ldr = dep.classLoader();
+
+            // In case the class loader is ours - skip the check
+            // since it was already performed before (and was successful).
+            if (!(ldr instanceof GridDeploymentClassLoader)) {
+                // First check for @GridNotPeerDeployable annotation.
+                try {
+                    String clsName = req.resourceName().replace('/', '.');
+
+                    int idx = clsName.indexOf(".class");
+
+                    if (idx >= 0)
+                        clsName = clsName.substring(0, idx);
+
+                    Class<?> cls = Class.forName(clsName, true, ldr);
+
+                    if (U.getAnnotation(cls, GridNotPeerDeployable.class) != null) {
+                        String errMsg = "Attempt to peer deploy class that has @GridNotPeerDeployable " +
+                            "annotation: " + clsName;
+
+                        U.error(log, errMsg);
+
+                        res.errorMessage(errMsg);
+                        res.success(false);
+
+                        sendResponse(nodeId, req.responseTopic(), res);
+
+                        return;
+                    }
+                }
+                catch (ClassNotFoundException ignore) {
+                    // Safely ignore it here - resource wasn't a class name.
+                }
+            }
+
+            InputStream in = ldr.getResourceAsStream(req.resourceName());
+
+            if (in == null) {
+                String errMsg = "Requested resource not found (ignoring locally): " + req.resourceName();
+
+                // Java requests the same class with BeanInfo suffix during
+                // introspection automatically. Usually nobody uses this kind
+                // of classes. Thus we print it out with DEBUG level.
+                // Also we print it with DEBUG level because of the
+                // frameworks which ask some classes just in case - for
+                // example to identify whether certain framework is available.
+                // Remote node will throw an exception if needs.
+                if (log.isDebugEnabled())
+                    log.debug(errMsg);
+
+                res.success(false);
+                res.errorMessage(errMsg);
+            }
+            else {
+                try {
+                    GridByteArrayList bytes = new GridByteArrayList(1024);
+
+                    bytes.readAll(in);
+
+                    res.success(true);
+                    res.byteSource(bytes);
+                }
+                catch (IOException e) {
+                    String errMsg = "Failed to read resource due to IO failure: " + req.resourceName();
+
+                    U.error(log, errMsg, e);
+
+                    res.errorMessage(errMsg);
+                    res.success(false);
+                }
+                finally {
+                    U.close(in, log);
+                }
+            }
+        }
+        else {
+            String errMsg = "Failed to find local deployment for peer request: " + req;
+
+            U.warn(log, errMsg);
+
+            res.success(false);
+            res.errorMessage(errMsg);
+        }
+
+        sendResponse(nodeId, req.responseTopic(), res);
+    }
+
+    /**
+     * @param nodeId Destination node ID.
+     * @param topic Response topic.
+     * @param res Response.
+     */
+    private void sendResponse(UUID nodeId, String topic, Serializable res) {
+        GridNode node = ctx.discovery().node(nodeId);
+
+        if (node != null) {
+            try {
+                ctx.io().send(node, topic, res, GridIoPolicy.P2P_POOL);
+
+                if (log.isDebugEnabled())
+                    log.debug("Sent peer class loading response [node=" + node.id() + ", res=" + res + ']');
+            }
+            catch (GridException e) {
+                if (ctx.discovery().pingNode(nodeId))
+                    U.error(log, "Failed to send peer class loading response to node: " + nodeId, e);
+                else if (log.isDebugEnabled())
+                    log.debug("Failed to send peer class loading response to node " +
+                        "(node does not exist): " + nodeId);
+            }
+        }
+        else if (log.isDebugEnabled())
+                log.debug("Failed to send peer class loading response to node " +
+                    "(node does not exist): " + nodeId);
+    }
+
 
     /**
      * @param rsrcName Resource to undeploy.
@@ -267,11 +322,32 @@ import static org.gridgain.grid.kernal.GridTopic.*;
         assert dstNode != null;
         assert clsLdrId != null;
 
+        Collection<UUID> nodeIds = activeReqNodeIds.get();
+
+        if (nodeIds != null && nodeIds.contains(dstNode.id())) {
+            if (log.isDebugEnabled())
+                log.debug("Node attempts to load resource from one of the requesters " +
+                    "[rsrcName=" + rsrcName + ", dstNodeId=" + dstNode.id() +
+                    ", requesters=" + nodeIds + ']');
+
+            GridDeploymentResponse fake = new GridDeploymentResponse();
+
+            fake.success(false);
+            fake.errorMessage("Node attempts to load resource from one of the requesters " +
+                "[rsrcName=" + rsrcName + ", dstNodeId=" + dstNode.id() +
+                ", requesters=" + nodeIds + ']');
+
+            return fake;
+        }
+
         String resTopic = TOPIC_CLASSLOAD.name(GridUuid.randomUuid());
 
         GridDeploymentRequest req = new GridDeploymentRequest(clsLdrId, rsrcName, false);
 
-        req.setResponseTopic(resTopic);
+        req.responseTopic(resTopic);
+
+        // Send node IDs chain with request.
+        req.nodeIds(nodeIds);
 
         final Object qryMux = new Object();
 
@@ -298,8 +374,8 @@ import static org.gridgain.grid.kernal.GridTopic.*;
 
                 U.warn(log, errMsg);
 
-                fake.setSuccess(false);
-                fake.setErrorMessage(errMsg);
+                fake.success(false);
+                fake.errorMessage(errMsg);
 
                 // We put fake result here to interrupt waiting peer-to-peer thread
                 // because originating node has left grid.
@@ -336,12 +412,12 @@ import static org.gridgain.grid.kernal.GridTopic.*;
             // Communication manager will throw the exception while sending message.
             ctx.event().addLocalEventListener(discoLsnr, EVT_NODE_FAILED, EVT_NODE_LEFT);
 
-            if (log.isDebugEnabled())
-                log.debug("Sending peer class loading request [node=" + dstNode.id() + ", req=" + req + ']');
-
             long start = System.currentTimeMillis();
 
             ctx.io().send(dstNode, TOPIC_CLASSLOAD, req, GridIoPolicy.P2P_POOL);
+
+            if (log.isDebugEnabled())
+                log.debug("Sent peer class loading request [node=" + dstNode.id() + ", req=" + req + ']');
 
             synchronized (qryMux) {
                 try {

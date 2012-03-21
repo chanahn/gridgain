@@ -23,7 +23,7 @@ import java.util.*;
  * Internal API for cache entry ({@code 'Ex'} stands for extended).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
     /**
@@ -386,6 +386,19 @@ public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
         throws GridCacheEntryRemovedException, GridCacheFilterFailedException, GridException;
 
     /**
+     * This method overwrites current in-memory value with new value.
+     * <p>
+     * Note that this method is non-transactional and non-distributed and should almost
+     * never be used. It is meant to be used when fixing some heurisitic error state.
+     *
+     * @param val Value to set.
+     * @return Previous value.
+     * @throws GridException If poke operation failed.
+     * @throws GridCacheEntryRemovedException if entry was unexpectedly removed.
+     */
+    public V poke(V val) throws GridCacheEntryRemovedException, GridException;
+
+    /**
      * Sets new value if current version is <tt>0</tt>
      *
      * @param val New value.
@@ -399,8 +412,8 @@ public interface GridCacheEntryEx<K, V> extends GridMetadataAware {
      * @throws GridCacheEntryRemovedException If entry was removed.
      */
     @SuppressWarnings({"unchecked"})
-    public boolean initialValue(V val, byte[] valBytes, GridCacheVersion ver, long ttl, long expireTime,
-        GridCacheMetricsAdapter metrics) throws GridException, GridCacheEntryRemovedException;
+    public boolean initialValue(V val, @Nullable byte[] valBytes, GridCacheVersion ver, long ttl, long expireTime,
+        @Nullable GridCacheMetricsAdapter metrics) throws GridException, GridCacheEntryRemovedException;
 
     /**
      * Sets new value if current version is <tt>0</tt> using swap entry data.

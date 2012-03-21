@@ -64,16 +64,9 @@ import org.gridgain.grid.test.*;
  * configuration file.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridifyJunit3ExampleTestSuite {
-    /**
-     * Enforces singleton.
-     */
-    private GridifyJunit3ExampleTestSuite() {
-        // No-op.
-    }
-
     /**
      * Standard JUnit3 static {@code suite()} method. Note we attach {@link GridifyTest}
      * annotation to it, so it will be grid-enabled.

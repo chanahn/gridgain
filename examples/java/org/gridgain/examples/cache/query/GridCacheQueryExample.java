@@ -23,27 +23,21 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
 
 /**
  * Grid cache queries example. This example demonstrates SQL, TEXT, and FULL SCAN
- * queries over cache. Note that distributed queries work only in <b>Enterprise Edition</b>.
+ * queries over cache.
  * <p>
  * Remote nodes should always be started with configuration file which includes
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheQueryExample {
     /** Cache name. */
     private static final String CACHE_NAME = "partitioned";
     // private static final String CACHE_NAME = "replicated";
 
-    /** Ensure singleton. */
-    private GridCacheQueryExample() { /* No-op. */ }
-
     /** Grid instance. */
     private static Grid grid;
-
-    /** Enterprise or Community edition? */
-    private static boolean isEnt;
 
     /**
      * Put data to cache and then queries them.
@@ -54,20 +48,14 @@ public class GridCacheQueryExample {
     public static void main(String[] args) throws Exception {
         grid = args.length == 0 ? G.start("examples/config/spring-cache.xml") : G.start(args[0]);
 
-        isEnt = grid.isEnterprise();
-
-        if (!isEnt)
-            print("NOTE: in Community Edition all queries will be run local only.");
-
         try {
             print("Query example started.");
 
             // Populate cache.
             initialize();
 
-            // Distributed queries only supported by Enterprise Edition.
-            // In Community Edition we'll use local node projection.
-            GridProjection p = isEnt ? grid : grid.localNode();
+            // Using distributed queries in this example.
+            GridProjection p = grid;
 
             // Example for SQL-based querying employees based on salary ranges.
             querySalaries(p);
@@ -99,9 +87,7 @@ public class GridCacheQueryExample {
      * @return Cache to use.
      */
     private static <K, V> GridCacheProjection<K, V> cache() {
-        // In Community Edition queries work only for 'local' cache.
-        // In other words, distributed queries aren't support in Community Edition.
-        return grid.cache(!isEnt ? "local" : CACHE_NAME);
+        return grid.cache(CACHE_NAME);
     }
 
     /**

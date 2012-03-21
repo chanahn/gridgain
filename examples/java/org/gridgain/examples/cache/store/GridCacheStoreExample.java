@@ -22,24 +22,16 @@ import java.util.*;
  * <p>
  * You can execute this example with or without remote nodes.
  * <p>
- * Remote nodes should always be started with configuration file which includes
- * cache with cache store enabled:
- * <ul>
- *     <li>{@code 'ggstart.sh examples/config/spring-cache-store-jdbc.xml'}</li>
- *     <li>{@code 'ggstart.sh examples/config/spring-cache-store-hibernate.xml'}</li>
- * </ul>
+ * If you run this example from IDE, use support classes {@link GridCacheJdbcNodeStartup}
+ * and {@link GridCacheHibernateNodeStartup} to start remote nodes - you'll have all classes
+ * needed for the example compiled and put to node classpath.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheStoreExample {
     /** Global person ID to use across entire example. */
     private static final UUID PERSON_ID = UUID.randomUUID();
-
-    /**
-     * Ensure singleton.
-     */
-    private GridCacheStoreExample() { /* No-op. */ }
 
     /**
      * Executes example.

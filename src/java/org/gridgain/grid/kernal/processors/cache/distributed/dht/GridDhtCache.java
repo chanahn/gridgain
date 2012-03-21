@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * DHT cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Near cache. */
@@ -250,8 +250,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      *
      * @throws GridDhtInvalidPartitionException If partition for the key is no longer valid.
      */
-    @Override public GridCacheEntryEx<K, V> entryEx(K key) throws GridDhtInvalidPartitionException {
-        return super.entryEx(key);
+    @Override public GridCacheEntryEx<K, V> entryEx(K key, boolean touch) throws GridDhtInvalidPartitionException {
+        return super.entryEx(key, touch);
     }
 
     /**
@@ -282,8 +282,54 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
         return (GridDhtCacheEntry<K, V>)entryEx(key, topVer);
     }
 
+    /** {@inheritDoc} */
+    @Override public void loadCache(final GridPredicate2<K, V> p, final long ttl, Object[] args) throws GridException {
+        // Version for all loaded entries.
+        final GridCacheVersion ver = ctx.versions().next();
+
+        CU.loadCache(ctx, log, new CI2<K, V>() {
+            @Override public void apply(K key, V val) {
+                if (p != null && !p.apply(key, val))
+                    return;
+
+                GridCacheEntryEx<K, V> entry = null;
+
+                try {
+                    GridDhtLocalPartition<K, V> part = top.localPartition(ctx.partition(key), -1, true);
+
+                    // Reserve to make sure that partition does not get unloaded.
+                    if (part.reserve()) {
+                        try {
+                            entry = entryEx(key, true);
+
+                            entry.initialValue(val, null, ver, ttl, -1, null);
+                        }
+                        finally {
+                            part.release();
+                        }
+                    }
+                    else if (log.isDebugEnabled())
+                        log.debug("Will node load entry into cache (partition is invalid): " + part);
+                }
+                catch (GridDhtInvalidPartitionException e) {
+                    if (log.isDebugEnabled())
+                        log.debug("Ignoring entry for partition that does not belong [key=" + key + ", val=" + val +
+                            ", err=" + e + ']');
+                }
+                catch (GridException e) {
+                    throw new GridRuntimeException("Failed to put cache value: " + entry, e);
+                }
+                catch (GridCacheEntryRemovedException ignore) {
+                    if (log.isDebugEnabled())
+                        log.debug("Got removed entry during loadCache (will ignore): " + entry);
+                }
+            }
+        }, args);
+    }
+
     /**
-     * This method is used internally. Use {@link #getDhtAsync(UUID, long, Collection, boolean, long, GridPredicate[])}
+     * This method is used internally. Use
+     * {@link #getDhtAsync(UUID, long, LinkedHashMap, boolean, long, GridPredicate[])}
      * method instead to retrieve DHT value.
      *
      * @param keys {@inheritDoc}
@@ -305,9 +351,9 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      * @return DHT future.
      */
     public GridDhtFuture<Collection<GridCacheEntryInfo<K, V>>> getDhtAsync(UUID reader, long msgId,
-        Collection<? extends K> keys, boolean reload, long topVer,
+        LinkedHashMap<? extends K, Boolean> keys, boolean reload, long topVer,
         GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
-        GridDhtGetFuture<K, V> fut = new GridDhtGetFuture<K, V>(ctx, msgId, reader, keys, reload, /*tx*/ null,
+        GridDhtGetFuture<K, V> fut = new GridDhtGetFuture<K, V>(ctx, msgId, reader, keys, reload, /*tx*/null,
             topVer, filter);
 
         fut.init();
@@ -416,7 +462,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                             else {
                                 return new GridEmbeddedFuture<GridCacheTxEx<K, V>, GridCacheTxEx<K, V>>(txFut,
                                     new C2<GridCacheTxEx<K, V>, Exception, GridFuture<GridCacheTxEx<K, V>>>() {
-                                        @Override public GridFuture<GridCacheTxEx<K, V>> apply(GridCacheTxEx<K, V> tx, Exception e) {
+                                        @Override public GridFuture<GridCacheTxEx<K, V>> apply(GridCacheTxEx<K, V> tx,
+                                            Exception e) {
                                             if (e != null)
                                                 throw new GridClosureException(e);
 
@@ -1570,6 +1617,9 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
         return new GridEmbeddedFuture<GridNearLockResponse<K, V>, Object>(true, keyFut,
             new C2<Object, Exception, GridFuture<GridNearLockResponse<K,V>>>() {
                 @Override public GridFuture<GridNearLockResponse<K, V>> apply(Object o, Exception exx) {
+                    if (exx != null)
+                        return new GridDhtFinishedFuture<GridNearLockResponse<K, V>>(ctx.kernalContext(), exx);
+
                     GridPredicate<? super GridCacheEntry<K, V>>[] filter = filter0;
 
                     // Set message into thread context.
@@ -1634,13 +1684,13 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                                                 if (fut.isDone()) {
                                                     timedout = true;
 
-                                                    break;
+                                                    break; // while
                                                 }
                                             }
 
                                             entries.add(entry);
 
-                                            break;
+                                            break; // while
                                         }
                                         catch (GridCacheEntryRemovedException ignore) {
                                             if (log.isDebugEnabled())
@@ -1709,7 +1759,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                                         req.futureId(),
                                         req.miniId(),
                                         req.threadId(),
-                                        false, // TODO: why not from request.
+                                        req.implicitTx(),
                                         req.implicitSingleTx(),
                                         ctx,
                                         PESSIMISTIC,
@@ -1867,8 +1917,7 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                                     boolean ret = req.returnValue(i) || dhtVer == null || !dhtVer.equals(ver);
 
                                     if (ret)
-                                        // Ignore transaction for DHT reads.
-                                        e.innerGet(/*tx*/null, true/*swap*/, true/*read-through*/, /*fail-fast.*/false,
+                                        e.innerGet(tx, true/*swap*/, true/*read-through*/, /*fail-fast.*/false,
                                             /*update-metrics*/true, /*event notification*/req.returnValue(i),
                                             CU.<K, V>empty());
 

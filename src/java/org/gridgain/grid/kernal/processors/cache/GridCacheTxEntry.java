@@ -29,7 +29,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * equality.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizable {
     /** Owning transaction. */
@@ -473,13 +473,13 @@ public class GridCacheTxEntry<K, V> implements GridPeerDeployAware, Externalizab
         if (op == READ || op == NOOP)
             valBytes = null;
         else if (valBytes == null && val != null)
-            valBytes = CU.marshal(ctx, val).getArray();
+            valBytes = CU.marshal(ctx, val).array();
 
         // Do not serialize filters if they are null.
         if (F.isEmpty(filters))
             filterBytes = null;
         else if (filterBytes == null)
-            filterBytes = CU.marshal(ctx, filterBytes).getArray();
+            filterBytes = CU.marshal(ctx, filterBytes).array();
     }
 
     /** {@inheritDoc} */

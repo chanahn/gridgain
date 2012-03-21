@@ -19,17 +19,10 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * Demonstrates new functional APIs.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridTaskExample2
  */
 public class GridClosureExample2 {
-    /**
-     * Ensures singleton.
-     */
-    private GridClosureExample2() {
-        /* No-op. */
-    }
-
     /**
      * Executes example of calculation of the greatest common divisor (GCD) and
      * the lowest common multiple (LCM) for each generated pair of integers

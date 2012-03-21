@@ -7,19 +7,43 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 3.6.0c.09012012
+# Version: 4.0.0c.21032012
 #
 
 #
 # Starts Scala REPL with GridGain on the classpath.
-# Note that 'scala' must be on PATH.
 #
 
 #
-# Check Scala
+# Check JAVA_HOME.
 #
-if [ ! `which scala` ]; then
-    echo $0", ERROR: 'scala' must be on PATH."
+if [ "$JAVA_HOME" = "" ]; then
+    echo $0", ERROR: JAVA_HOME environment variable is not found."
+    echo $0", ERROR: Please create JAVA_HOME variable pointing to location of JDK 1.6 or JDK 1.7."
+    echo $0", ERROR: You can also download latest JDK at: http://java.sun.com/getjava"
+
+    exit 1
+fi
+
+JAVA=${JAVA_HOME}/bin/java
+
+#
+# Check JDK.
+#
+if [ ! -e "$JAVA" ]; then
+    echo $0", ERROR: The JAVA is not found in $JAVA_HOME."
+    echo $0", ERROR: Please modify your script so that JAVA_HOME would point"
+    echo $0", ERROR: to valid location of Java installation."
+
+    exit 1
+fi
+
+JAVA_VER=`$JAVA -version 2>&1 | egrep "1\.[67]\."`
+
+if [ "$JAVA_VER" == "" ]; then
+    echo $0", ERROR: The version of JAVA installed in $JAVA_HOME is incorrect."
+    echo $0", ERROR: Please install JDK 1.6 or 1.7."
+    echo $0", ERROR: You can also download latest JDK at: http://java.sun.com/getjava"
 
     exit 1
 fi
@@ -27,7 +51,7 @@ fi
 #
 # Set property JAR name during the Ant build.
 #
-ANT_AUGMENTED_GGJAR=gridgain-3.6.0c.jar
+ANT_AUGMENTED_GGJAR=gridgain-4.0.0c.jar
 
 osname=`uname`
 
@@ -86,11 +110,30 @@ do
 done
 
 #
-# Set Java options.
+# Save terminal setting. Used to restore terminal on finish.
 #
-JAVA_OPTS=-Xss2m
+SAVED_STTY=`stty -g 2>/dev/null`
+
+#
+# Restores terminal.
+#
+function restoreSttySettings() {
+    stty ${SAVED_STTY}
+}
+
+#
+# Trap that restores terminal in case script execution is interrupted.
+#
+trap restoreSttySettings INT
 
 #
 # Start REPL.
 #
-env JAVA_OPTS=${JAVA_OPTS} scala -Yrepl-sync ${QUIET}  -DGRIDGAIN_SCRIPT -DGRIDGAIN_HOME="${GRIDGAIN_HOME}" -DGRIDGAIN_PROG_NAME="$0" -cp "${CP}" -i ${GRIDGAIN_HOME}/bin/scalar.scala
+${JAVA_HOME}/bin/java ${QUIET}  -DGRIDGAIN_SCRIPT \
+-DGRIDGAIN_HOME="${GRIDGAIN_HOME}" -DGRIDGAIN_PROG_NAME="$0" -cp "${CP}" \
+scala.tools.nsc.MainGenericRunner -usejavacp -Yrepl-sync -i ${GRIDGAIN_HOME}/bin/scalar.scala
+
+#
+# Restore terminal.
+#
+restoreSttySettings

@@ -20,7 +20,7 @@ import java.util.*;
  * Cache eviction response.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheEvictionResponse<K, V> extends GridCacheMessage<K, V> {
     /** Future ID. */

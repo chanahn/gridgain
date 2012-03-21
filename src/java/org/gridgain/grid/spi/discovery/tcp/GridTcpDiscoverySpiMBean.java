@@ -12,7 +12,6 @@ package org.gridgain.grid.spi.discovery.tcp;
 import org.gridgain.grid.spi.*;
 import org.gridgain.grid.spi.discovery.tcp.ipfinder.*;
 import org.gridgain.grid.spi.discovery.tcp.metricsstore.*;
-import org.gridgain.grid.spi.discovery.tcp.topologystore.*;
 import org.gridgain.grid.util.mbean.*;
 import org.jetbrains.annotations.*;
 
@@ -22,7 +21,7 @@ import java.util.*;
  * Management bean for {@link GridTcpDiscoverySpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
     /**
@@ -121,15 +120,6 @@ public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
      */
     @GridMBeanDescription("Statistics print frequency.")
     public long getStatisticsPrintFrequency();
-
-    /**
-     * Gets {@link GridTcpDiscoveryTopologyStore} (string representation).
-     *
-     * @return Topology store string representation or {@code null} if SPI
-     * does not use topology store.
-     */
-    @GridMBeanDescription("Topology store.")
-    @Nullable public String getTopologyStoreName();
 
     /**
      * Gets message worker queue current size.
@@ -266,4 +256,12 @@ public interface GridTcpDiscoverySpiMBean extends GridSpiManagementMBean {
      */
     @GridMBeanDescription("Join timeout.")
     public long getJoinTimeout();
+
+    /**
+     * Gets fast forward failure detection flag.
+     *
+     * @return Fast forward failure detection flag.
+     */
+    @GridMBeanDescription("Fast forward failure detection.")
+    public boolean isFastForwardFailureDetection();
 }

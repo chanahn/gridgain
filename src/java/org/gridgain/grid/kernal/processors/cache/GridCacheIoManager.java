@@ -31,7 +31,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Cache communication manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
     /** Number of retries using to send messages. */
@@ -483,7 +483,7 @@ public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
      * @return Next ordered message ID.
      */
     public long messageId(String topic, UUID nodeId) {
-        return cctx.gridIO().getNextMessageId(topic, nodeId);
+        return cctx.gridIO().nextMessageId(topic, nodeId);
     }
 
     /**
@@ -700,8 +700,7 @@ public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
         }
 
         /** {@inheritDoc} */
-        @Override
-        public int hashCode() {
+        @Override public int hashCode() {
             return 31 * ((int)(msgId ^ (msgId >>> 32))) + nodeId.hashCode();
         }
 

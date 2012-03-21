@@ -100,7 +100,7 @@ import java.util.concurrent.*;
  * with Gridify annotation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridLoader(description = "Weblogic loader")
 @SuppressWarnings("deprecation")
@@ -130,8 +130,7 @@ public class GridWeblogicStartup implements GridWeblogicStartupMBean {
      * @throws Exception Thrown if error occurred.
      */
     @SuppressWarnings({"unchecked", "CatchGenericClass"})
-    @Override
-    public String startup(String str, Hashtable params) throws Exception {
+    @Override public String startup(String str, Hashtable params) throws Exception {
         GridLogger log = new GridJavaLogger(LoggingHelper.getServerLogger());
 
         cfgFile = (String)params.get(cfgFilePathParam);
@@ -250,8 +249,7 @@ public class GridWeblogicStartup implements GridWeblogicStartupMBean {
      *
      * @param t3ServicesDef Weblogic services accessor.
      */
-    @Override
-    public void setServices(T3ServicesDef t3ServicesDef) {
+    @Override public void setServices(T3ServicesDef t3ServicesDef) {
         // No-op.
     }
 

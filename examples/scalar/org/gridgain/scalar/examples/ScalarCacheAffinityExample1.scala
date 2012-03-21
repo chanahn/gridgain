@@ -29,16 +29,15 @@ import org.jetbrains.annotations.Nullable
  *
  * Remote nodes should always be started with configuration file which includes
  * cache: `'ggstart.sh examples/config/spring-cache.xml'`. Local node can
- * be started with or without cache depending on whether community or enterprise
- * edition is used respectively.
+ * be started with or without cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object ScalarCacheAffinityExample1 {
     /** Configuration file name. */
-    //private val CONFIG = "examples/config/spring-cache-none.xml" // Enterprise Edition.
-    private val CONFIG = "examples/config/spring-cache.xml" // Community Edition.
+    //private val CONFIG = "examples/config/spring-cache-none.xml" // No cache - remote node with cache is required.
+    private val CONFIG = "examples/config/spring-cache.xml" // Cache.
 
     /** Name of cache specified in spring configuration. */
     private val NAME = "partitioned"

@@ -2,6 +2,7 @@ package org.gridgain.grid.marshaller.optimized;
 
 import com.sun.grizzly.util.*;
 import org.gridgain.grid.lang.utils.*;
+import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
@@ -18,9 +19,9 @@ import java.util.concurrent.locks.*;
  * Resolves class names by serialVersionUID.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
-@SuppressWarnings( {"UnnecessaryFullyQualifiedName"})
+@SuppressWarnings({"UnnecessaryFullyQualifiedName"})
 class GridOptimizedClassResolver {
     /** File name to generate. */
     private static final String FILE_NAME = "optimized-classnames.properties";
@@ -32,13 +33,14 @@ class GridOptimizedClassResolver {
     private static final Map<String, Byte> ggxName2id = new HashMap<String, Byte>();
 
     /** */
-    private static final Map<Byte, String> ggxId2name = new HashMap<Byte, String>();
+    private static final Map<Byte, Class<?>> ggxId2name = new HashMap<Byte, Class<?>>();
 
     /** */
     private static final Map<String, Integer> ggName2id = new HashMap<String, Integer>();
 
     /** */
-    private static final Map<Integer, String> ggId2name = new HashMap<Integer, String>();
+    private static final Map<Integer, T2<String, Class<?>>> ggId2name =
+        new HashMap<Integer, T2<String, Class<?>>>();
 
     /** */
     private static final byte HEADER_NAME = (byte)255;
@@ -160,7 +162,7 @@ class GridOptimizedClassResolver {
 
             ggxName2id.put(cls.getName(), (byte)i);
 
-            ggxId2name.put((byte)i, cls.getName());
+            ggxId2name.put((byte)i, cls);
         }
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -175,7 +177,7 @@ class GridOptimizedClassResolver {
                     break;
 
                 ggName2id.put(clsName, i);
-                ggId2name.put(i, clsName);
+                ggId2name.put(i, new T2<String, Class<?>>(clsName, null));
             }
         }
         catch (IOException e) {
@@ -215,45 +217,71 @@ class GridOptimizedClassResolver {
      * @throws IOException If serial version UID failed.
      * @throws ClassNotFoundException If the class cannot be located by the specified class loader.
      */
-    static Class readClass(DataInput in, ClassLoader clsLdr, @Nullable Map<Integer, String> usrId2Name)
+    static Class readClass(DataInput in, ClassLoader clsLdr, @Nullable Map<Integer, T2<String, Class<?>>> usrId2Name)
         throws IOException, ClassNotFoundException {
         assert in != null;
         assert clsLdr != null;
         assert usrId2Name != null;
 
-        byte header = in.readByte();
+        byte hdr = in.readByte();
 
-        String name = ggxId2name.get(header);
+        Class<?> cls = ggxId2name.get(hdr);
 
-        if (name != null)
-            return Class.forName(name, true, clsLdr);
+        if (cls != null)
+            return cls;
 
-        if (header == HEADER_GG_NAME) {
+        String name;
+
+        if (hdr == HEADER_GG_NAME) {
             int id = in.readInt();
 
-            name = ggId2name.get(id);
+            T2<String, Class<?>> t = ggId2name.get(id);
 
-            if (name == null)
+            if (t == null)
                 throw new IOException("Failed to find optimized class ID " +
                     "(is same GridGain version running on all nodes?): " + id);
+
+            cls = t.get2();
+
+            name = t.get1();
+
+            if (cls == null) {
+                cls = Class.forName(name, true, clsLdr);
+
+                // It's OK that tuple is not thread-safe,
+                // worst case - we will call Class.forName(...) more than once.
+                t.set2(cls);
+            }
         }
-        else if (header == HEADER_USER_NAME) {
+        else if (hdr == HEADER_USER_NAME) {
             int id = in.readInt();
 
-            name = usrId2Name.get(id);
+            T2<String, Class<?>> t = usrId2Name.get(id);
 
-            if (name == null)
+            if (t == null)
                 throw new IOException("Failed to find user defined class ID " +
                     "(make sure to register identical classes on all nodes for optimization): " + id);
+
+            cls = t.get2();
+
+            name = t.get1();
+
+            if (cls == null) {
+                cls = Class.forName(name, true, clsLdr);
+
+                // It's OK that tuple is not thread-safe,
+                // worst case - we will call Class.forName(...) more than once.
+                t.set2(cls);
+            }
         }
-        else if (header == HEADER_ARRAY) {
+        else if (hdr == HEADER_ARRAY) {
             name = readClass(in, clsLdr, usrId2Name).getName();
 
             name = name.charAt(0) == '[' ? "[" + name : "[L" + name + ';';
 
             return Class.forName(name, true, clsLdr);
         }
-        else if (header == HEADER_NAME) {
+        else if (hdr == HEADER_NAME) {
             byte[] nameBytes = new byte[in.readShort()];
 
             in.readFully(nameBytes);
@@ -261,20 +289,22 @@ class GridOptimizedClassResolver {
             name = new String(nameBytes, GridOptimizedUtils.UTF_8);
         }
         else
-            throw new IOException("Unexpected optimized stream header: " + header);
+            throw new IOException("Unexpected optimized stream header: " + hdr);
 
         // If we use aop we can receive primitive type name. Why?
-        Class cls = primitive(name);
+        if (cls == null) {
+            cls = primitive(name);
 
-        if (cls == null)
-            cls = Class.forName(name, true, clsLdr);
+            if (cls == null)
+                cls = Class.forName(name, true, clsLdr);
+        }
 
         short actual = shortClassId(cls);
 
-        short expected = in.readShort();
+        short exp = in.readShort();
 
-        if (actual != expected)
-            throw new IOException("Optimized stream class checksum mismatch [expected=" + expected +
+        if (actual != exp)
+            throw new IOException("Optimized stream class checksum mismatch [expected=" + exp +
                 ", actual=" + actual + ", cls=" + cls + ']');
 
         return cls;
@@ -293,10 +323,10 @@ class GridOptimizedClassResolver {
 
         String name = cls.getName();
 
-        Byte superHeader = ggxName2id.get(name);
+        Byte superHdr = ggxName2id.get(name);
 
-        if (superHeader != null) {
-            out.write(superHeader);
+        if (superHdr != null) {
+            out.write(superHdr);
 
             return;
         }

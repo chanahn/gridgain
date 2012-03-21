@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.*;
  * internal UUID.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>, Cloneable, Externalizable {
     /** */
@@ -43,6 +43,19 @@ public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>,
      */
     public GridUuid() {
         // No-op.
+    }
+
+    /**
+     * Constructs {@code GridUuid} from a global and local identifiers.
+     *
+     * @param gid UUID.
+     * @param locId Counter.
+     */
+    public GridUuid(UUID gid, long locId) {
+        assert gid != null;
+
+        this.gid = gid;
+        this.locId = locId;
     }
 
     /**
@@ -74,22 +87,23 @@ public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>,
      * @return {@code GridUuid} instance representing given string.
      */
     public static GridUuid fromString(String s) {
-        int lastDash = s.lastIndexOf('-');
+        int firstDash = s.indexOf('-');
 
-        return new GridUuid(UUID.fromString(s.substring(0, lastDash)), Long.valueOf(s.substring(lastDash + 1), 16));
+        return new GridUuid(
+                UUID.fromString(s.substring(firstDash + 1)),
+                Long.valueOf(new StringBuilder(s.substring(0, firstDash)).reverse().toString(), 16)
+        );
     }
 
-    /**
-     * Constructs {@code GridUuid} from a global and local identifiers.
-     *
-     * @param gid UUID.
-     * @param locId Counter.
-     */
-    public GridUuid(UUID gid, long locId) {
-        assert gid != null;
 
-        this.gid = gid;
-        this.locId = locId;
+    /**
+     * Gets a short string version of this ID. Use it only for UI where full version is
+     * available to the application.
+     *
+     * @return Short string version of this ID.
+     */
+    public String shortString() {
+        return new StringBuilder(Long.toHexString(locId)).reverse().toString();
     }
 
     /**
@@ -165,6 +179,6 @@ public final class GridUuid implements Comparable<GridUuid>, Iterable<GridUuid>,
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return gid.toString() + '-' + Long.toHexString(locId);
+        return shortString() + '-' + gid.toString();
     }
 }

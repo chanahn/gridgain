@@ -19,14 +19,14 @@ import java.util.*;
  * Class provides implementation for job result.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridJobResultImpl implements GridJobResult {
     /** */
     private final GridJob job;
 
     /** */
-    private final GridJobSiblingImpl sibling;
+    private final GridJobSiblingImpl sib;
 
     /** */
     private final GridJobContextImpl jobCtx;
@@ -41,7 +41,7 @@ public class GridJobResultImpl implements GridJobResult {
     private GridException ex;
 
     /** */
-    private boolean hasResponse;
+    private boolean hasRes;
 
     /** */
     private boolean isCancelled;
@@ -53,16 +53,16 @@ public class GridJobResultImpl implements GridJobResult {
      * @param job Job instance.
      * @param jobId ID of the job.
      * @param node Node from where this result was received.
-     * @param sibling Sibling associated with this result.
+     * @param sib Sibling associated with this result.
      */
-    public GridJobResultImpl(GridJob job, GridUuid jobId, GridNode node, GridJobSiblingImpl sibling) {
+    public GridJobResultImpl(GridJob job, GridUuid jobId, GridNode node, GridJobSiblingImpl sib) {
         assert jobId != null;
         assert node != null;
-        assert sibling != null;
+        assert sib != null;
 
         this.job = job;
         this.node = node;
-        this.sibling = sibling;
+        this.sib = sib;
 
         jobCtx = new GridJobContextImpl(null, jobId);
     }
@@ -82,7 +82,7 @@ public class GridJobResultImpl implements GridJobResult {
      * @return Sibling associated with this result.
      */
     public GridJobSiblingImpl getSibling() {
-        return sibling;
+        return sib;
     }
 
     /** {@inheritDoc} */
@@ -129,7 +129,7 @@ public class GridJobResultImpl implements GridJobResult {
             jobCtx.setAttributes(jobAttrs);
         }
 
-        hasResponse = true;
+        hasRes = true;
     }
 
     /**
@@ -158,14 +158,14 @@ public class GridJobResultImpl implements GridJobResult {
         data = null;
         ex = null;
 
-        hasResponse = false;
+        hasRes = false;
     }
 
     /**
      * @return {@code true} if remote job responded.
      */
     public synchronized boolean hasResponse() {
-        return hasResponse;
+        return hasRes;
     }
 
     /** {@inheritDoc} */

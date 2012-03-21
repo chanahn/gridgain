@@ -27,7 +27,7 @@ import java.util.*;
  * Load balancing manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridLoadBalancerManager extends GridManagerAdapter<GridLoadBalancingSpi> {
     /**
@@ -135,18 +135,6 @@ public class GridLoadBalancerManager extends GridManagerAdapter<GridLoadBalancin
         GridNode affNode = null;
 
         if (key != null) {
-            if (!ctx.isEnterprise()) {
-                if (U.hasCache(ctx.discovery().localNode(), cacheName)) {
-                    GridCacheAffinity<Object> aff = ctx.cache().cache(cacheName).configuration().getAffinity();
-
-                    affNode = CU.primary(aff.nodes(aff.partition(key), nodes));
-                }
-                else {
-                    throw new GridEnterpriseFeatureException("Affinity detection on nodes without cache running is " +
-                        " not supported in community edition.");
-                }
-            }
-            else {
                 GridNode node;
 
                 try {
@@ -169,7 +157,6 @@ public class GridLoadBalancerManager extends GridManagerAdapter<GridLoadBalancin
                         break;
                     }
             }
-        }
 
         return affNode;
     }

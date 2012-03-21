@@ -30,16 +30,9 @@ import org.gridgain.grid.test.junit3.*;
  * configuration file.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridJunit3ExampleTestSuite {
-    /**
-     * Enforces singleton.
-     */
-    private GridJunit3ExampleTestSuite() {
-        // No-op.
-    }
-
     /**
      * Standard JUnit3 static suite method.
      *

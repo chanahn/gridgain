@@ -28,7 +28,7 @@ import java.lang.annotation.*;
  * <b>Only one</b> method parameter with {@link GridifyInput} annotation allowed.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridifySetToValue
  * @see GridifySetToSet
  */

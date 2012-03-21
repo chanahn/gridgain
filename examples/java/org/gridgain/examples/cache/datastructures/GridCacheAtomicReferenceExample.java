@@ -18,14 +18,13 @@ import java.util.*;
 import static org.gridgain.grid.GridClosureCallMode.*;
 
 /**
- * Demonstrates a simple usage of distributed atomic reference. Note that atomic reference is
- * only available in <b>Enterprise Edition</b>.
+ * Demonstrates a simple usage of distributed atomic reference.
  * <p>
  * Remote nodes should always be started with configuration file which includes
  * cache configuration, e.g. {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridCacheAtomicReferenceExample {
     /** Cache name. */
@@ -44,12 +43,6 @@ public final class GridCacheAtomicReferenceExample {
         Grid grid = G.start("examples/config/spring-cache.xml");
 
         try {
-            if (!grid.isEnterprise()) {
-                System.err.println("This example works only in Enterprise Edition.");
-
-                return;
-            }
-
             print("Starting atomic reference example on nodes: " + grid.nodes().size());
 
             // Make name of atomic reference.
@@ -113,12 +106,5 @@ public final class GridCacheAtomicReferenceExample {
      */
     private static void print(Object o) {
         X.println(">>> " + o);
-    }
-
-    /**
-     * Ensure singleton.
-     */
-    private GridCacheAtomicReferenceExample() {
-        // No-op.
     }
 }

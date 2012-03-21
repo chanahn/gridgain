@@ -19,12 +19,15 @@ import java.util.*;
  * then sent by coordinator across the ring.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridTcpDiscoveryEnsureDelivery
 public class GridTcpDiscoveryNodeFailedMessage extends GridTcpDiscoveryAbstractMessage {
     /** ID of the failed node. */
     private UUID failedNodeId;
+
+    /** Internal order of the failed node. */
+    private long order;
 
     /**
      * Public default no-arg constructor for {@link Externalizable} interface.
@@ -37,12 +40,17 @@ public class GridTcpDiscoveryNodeFailedMessage extends GridTcpDiscoveryAbstractM
      * Constructor.
      *
      * @param creatorNodeId ID of the node that detects nodes failure.
-     * @param failedNodeId IDs of the failed nodes.
+     * @param failedNodeId ID of the failed nodes.
+     * @param order Order of the failed node.
      */
-    public GridTcpDiscoveryNodeFailedMessage(UUID creatorNodeId, UUID failedNodeId) {
+    public GridTcpDiscoveryNodeFailedMessage(UUID creatorNodeId, UUID failedNodeId, long order) {
         super(creatorNodeId);
 
+        assert failedNodeId != null;
+        assert order > 0;
+
         this.failedNodeId = failedNodeId;
+        this.order = order;
     }
 
     /**
@@ -54,11 +62,19 @@ public class GridTcpDiscoveryNodeFailedMessage extends GridTcpDiscoveryAbstractM
         return failedNodeId;
     }
 
+    /**
+     * @return Internal order of the failed node.
+     */
+    public long order() {
+        return order;
+    }
+
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
 
         U.writeUuid(out, failedNodeId);
+        out.writeLong(order);
     }
 
     /** {@inheritDoc} */
@@ -66,6 +82,7 @@ public class GridTcpDiscoveryNodeFailedMessage extends GridTcpDiscoveryAbstractM
         super.readExternal(in);
 
         failedNodeId = U.readUuid(in);
+        order = in.readLong();
     }
 
     /** {@inheritDoc} */

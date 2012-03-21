@@ -11,10 +11,10 @@ package org.gridgain.grid.kernal;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.editions.*;
-import org.gridgain.grid.kernal.controllers.affinity.*;
+import org.gridgain.grid.kernal.processors.affinity.*;
 import org.gridgain.grid.kernal.controllers.license.*;
-import org.gridgain.grid.kernal.controllers.rest.*;
-import org.gridgain.grid.kernal.controllers.segmentation.*;
+import org.gridgain.grid.kernal.processors.rest.*;
+import org.gridgain.grid.kernal.managers.authentication.*;
 import org.gridgain.grid.kernal.managers.checkpoint.*;
 import org.gridgain.grid.kernal.managers.collision.*;
 import org.gridgain.grid.kernal.managers.communication.*;
@@ -24,6 +24,7 @@ import org.gridgain.grid.kernal.managers.eventstorage.*;
 import org.gridgain.grid.kernal.managers.failover.*;
 import org.gridgain.grid.kernal.managers.loadbalancer.*;
 import org.gridgain.grid.kernal.managers.metrics.*;
+import org.gridgain.grid.kernal.managers.securesession.*;
 import org.gridgain.grid.kernal.managers.swapspace.*;
 import org.gridgain.grid.kernal.managers.topology.*;
 import org.gridgain.grid.kernal.processors.cache.*;
@@ -35,6 +36,7 @@ import org.gridgain.grid.kernal.processors.port.*;
 import org.gridgain.grid.kernal.processors.resource.*;
 import org.gridgain.grid.kernal.processors.rich.*;
 import org.gridgain.grid.kernal.processors.schedule.*;
+import org.gridgain.grid.kernal.processors.segmentation.*;
 import org.gridgain.grid.kernal.processors.session.*;
 import org.gridgain.grid.kernal.processors.task.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
@@ -44,7 +46,7 @@ import java.util.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridToStringExclude
 public interface GridKernalContext extends GridMetadataAware, Iterable<GridComponent> {
@@ -86,6 +88,14 @@ public interface GridKernalContext extends GridMetadataAware, Iterable<GridCompo
      * @see #version()
      */
     public String build();
+
+    /**
+     * Gets release date of this GridGain instance. This method is for information
+     * purpose only.
+     *
+     * @return GridGain release date.
+     */
+    public Date releaseDate();
 
     /**
      * Gets logger.
@@ -154,11 +164,11 @@ public interface GridKernalContext extends GridMetadataAware, Iterable<GridCompo
     public GridLicenseController license();
 
     /**
-     * Gets cache data affinity controller.
+     * Gets cache data affinity processor.
      *
-     * @return Cache data affinity controller.
+     * @return Cache data affinity processor.
      */
-    public GridAffinityController affinity();
+    public GridAffinityProcessor affinity();
 
     /**
      * Gets job processor.
@@ -242,14 +252,14 @@ public interface GridKernalContext extends GridMetadataAware, Iterable<GridCompo
      *
      * @return REST processor.
      */
-    public GridRestController rest();
+    public GridRestProcessor rest();
 
     /**
-     * Gets segmentation controller.
+     * Gets segmentation processor.
      *
-     * @return Segmentation controller.
+     * @return Segmentation processor.
      */
-    public GridSegmentationController segmentation();
+    public GridSegmentationProcessor segmentation();
 
     /**
      * Gets deployment manager.
@@ -313,6 +323,20 @@ public interface GridKernalContext extends GridMetadataAware, Iterable<GridCompo
      * @return Metrics manager.
      */
     public GridLocalMetricsManager localMetric();
+
+    /**
+     * Gets authentication manager.
+     *
+     * @return Authentication manager.
+     */
+    public GridAuthenticationManager auth();
+
+    /**
+     * Gets secure session manager.
+     *
+     * @return Secure session manager.
+     */
+    public GridSecureSessionManager secureSession();
 
     /**
      * Gets load balancing manager.

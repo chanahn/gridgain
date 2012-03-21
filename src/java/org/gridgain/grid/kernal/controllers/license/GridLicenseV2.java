@@ -15,7 +15,7 @@ import java.util.*;
  * GridGain license version 2.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridLicenseV2 {
     /**
@@ -76,6 +76,13 @@ public interface GridLicenseV2 {
      * @return Issue date.
      */
     public Date getIssueDate();
+
+    /**
+     * Gets maintenance time in months. If zero - no restriction.
+     *
+     * @return Maintenance time.
+     */
+    public int getMaintenanceTime();
 
     /**
      * Gets issue organization.

@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * Entry wrapper that never obscures obsolete entries from user.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externalizable {
     /** Cache context. */
@@ -85,30 +85,51 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
     /**
      * @return Cache entry.
      */
-    public GridCacheEntryEx<K, V> unwrap() {
-        GridCacheEntryEx<K, V> unwrap = unwrap(true);
-
-        assert unwrap != null;
-
-        return unwrap;
-    }
-
-    /**
-     * @param create Flag to create entry if it does not exist.
-     * @return Cache entry.
-     */
-    @Nullable public GridCacheEntryEx<K, V> unwrap(boolean create) {
+    public GridCacheEntryEx<K, V> unwrapCreate() {
         GridCacheEntryEx<K, V> cached = this.cached;
 
         if (cached == null)
-            this.cached = cached = create ? entryEx() : peekEx();
+            this.cached = cached = entryEx(true);
+
+        assert cached != null;
 
         return cached;
     }
 
+    /**
+     * @return Cache entry.
+     */
+    @Nullable public GridCacheEntryEx<K, V> unwrapNoCreate() {
+        GridCacheEntryEx<K, V> cached = this.cached;
+
+        if (cached == null)
+            this.cached = cached = peekEx();
+
+        return cached;
+    }
+
+    /**
+     * Unwraps cache entry and returns tuple containing unwrapped entry and boolean flag
+     * indicating whether entry was actually created.
+     *
+     * @param create Flag to create entry if it does not exists.
+     * @return Tuple.
+     */
+    private GridTuple2<GridCacheEntryEx<K, V>, Boolean> unwrapChecked(boolean create) {
+        GridCacheEntryEx<K, V> cached = this.cached;
+
+        if (cached == null) {
+            this.cached = cached = create ? entryEx(false) : peekEx();
+
+            return new GridTuple2<GridCacheEntryEx<K, V>, Boolean>(cached, create);
+        }
+        else
+            return new GridTuple2<GridCacheEntryEx<K, V>, Boolean>(cached, false);
+    }
+
     /** {@inheritDoc} */
-    protected GridCacheEntryEx<K, V> entryEx() {
-        return ctx.cache().entryEx(key);
+    protected GridCacheEntryEx<K, V> entryEx(boolean touch) {
+        return ctx.cache().entryEx(key, touch);
     }
 
     /** {@inheritDoc} */
@@ -153,7 +174,7 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
     @Override public Object version() {
         while (true) {
             try {
-                return unwrap().version();
+                return unwrapCreate().version();
             }
             catch (GridCacheEntryRemovedException ignore) {
                 reset();
@@ -165,7 +186,7 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
     @Override public long expirationTime() {
         while (true) {
             try {
-                return unwrap().expireTime();
+                return unwrapCreate().expireTime();
             }
             catch (GridCacheEntryRemovedException ignore) {
                 reset();
@@ -177,7 +198,7 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
     @Override public GridCacheMetrics metrics() {
         while (true) {
             try {
-                return GridCacheMetricsAdapter.copyOf(unwrap().metrics());
+                return GridCacheMetricsAdapter.copyOf(unwrapCreate().metrics());
             }
             catch (GridCacheEntryRemovedException ignore) {
                 reset();
@@ -200,7 +221,7 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
 
     /** {@inheritDoc} */
     @Override public int partition() {
-        return unwrap().partition();
+        return unwrapCreate().partition();
     }
 
     /** {@inheritDoc} */
@@ -228,6 +249,11 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
     /** {@inheritDoc} */
     @Override public V peek(@Nullable GridCachePeekMode[] modes) throws GridException {
         return peek(F.asList(modes));
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean poke(V val) throws GridException {
+        return prj.poke(key, val);
     }
 
     /** {@inheritDoc} */
@@ -287,11 +313,25 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
         GridCacheProjectionImpl<K, V> prev = ctx.gate().enter(prjPerCall);
 
         try {
-            while (true)
-                try {
-                    GridCacheEntryEx<K, V> e = unwrap(true); // TODO: GG-2011
+            while (true) {
+                boolean created = false;
 
-                    return e != null ? ctx.cloneOnFlag(e.peek0(false, mode, filter, tx)) : null;
+                GridCacheEntryEx<K, V> entry = null;
+
+                try {
+                    if (mode == DB || mode == SWAP) {
+                        GridTuple2<GridCacheEntryEx<K, V>, Boolean> tup = unwrapChecked(true);
+
+                        assert tup.get2() != null;
+
+                        created = tup.get2();
+
+                        entry = tup.get1();
+                    }
+                    else
+                        entry = unwrapNoCreate();
+
+                    return entry != null ? ctx.cloneOnFlag(entry.peek0(false, mode, filter, tx)) : null;
                 }
                 catch (GridCacheEntryRemovedException ignore) {
                     reset();
@@ -303,6 +343,15 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
 
                     return null;
                 }
+                finally {
+                    if (created) {
+                        assert entry != null;
+
+                        if (entry.markObsolete(ctx.versions().next()))
+                            ctx.cache().removeEntry(entry);
+                    }
+                }
+            }
         }
         finally {
             ctx.gate().leave(prev);
@@ -419,7 +468,7 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
     @Override public long timeToLive() {
         while (true) {
             try {
-                return unwrap().ttl();
+                return unwrapCreate().ttl();
             }
             catch (GridCacheEntryRemovedException ignore) {
                 reset();
@@ -431,7 +480,7 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
     @Override public void timeToLive(long ttl) {
         while (true) {
             try {
-                unwrap().ttl(ttl);
+                unwrapCreate().ttl(ttl);
 
                 return;
             }
@@ -518,81 +567,95 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
 
     /** {@inheritDoc} */
     @Override public <V> V addMeta(String name, V val) {
-        return unwrap().addMeta(name, val);
+        return unwrapCreate().addMeta(name, val);
     }
 
     /** {@inheritDoc} */
     @SuppressWarnings({"unchecked"})
     @Override public <V> V meta(String name) {
-        return (V)unwrap().meta(name);
+        GridCacheEntryEx e = unwrapNoCreate();
+
+        return e == null ? null : (V)e.meta(name);
     }
 
     /** {@inheritDoc} */
     @SuppressWarnings({"unchecked"})
     @Override public <V> V removeMeta(String name) {
-        return (V)unwrap().removeMeta(name);
+        GridCacheEntryEx e = unwrapNoCreate();
+
+        return e == null ? null : (V)e.removeMeta(name);
     }
 
     /** {@inheritDoc} */
     @Override public <V> Map<String, V> allMeta() {
-        return unwrap().allMeta();
+        GridCacheEntryEx e = unwrapNoCreate();
+
+        return (Map<String, V>)(e == null ? Collections.emptyMap() : e.allMeta());
     }
 
     /** {@inheritDoc} */
     @Override public boolean hasMeta(String name) {
-        return unwrap().hasMeta(name);
+        GridCacheEntryEx<K, V> e = unwrapNoCreate();
+
+        return e != null && e.hasMeta(name);
     }
 
     /** {@inheritDoc} */
     @Override public boolean hasMeta(String name, Object val) {
-        return unwrap().hasMeta(name, val);
+        GridCacheEntryEx<K, V> e = unwrapNoCreate();
+
+        return e != null && e.hasMeta(name, val);
     }
 
     /** {@inheritDoc} */
     @Override public <V> V putMetaIfAbsent(String name, V val) {
-        return unwrap().putMetaIfAbsent(name, val);
+        return unwrapCreate().putMetaIfAbsent(name, val);
     }
 
     /** {@inheritDoc} */
     @Override public <V> V putMetaIfAbsent(String name, Callable<V> c) {
-        return unwrap().putMetaIfAbsent(name, c);
+        return unwrapCreate().putMetaIfAbsent(name, c);
     }
 
     /** {@inheritDoc} */
     @Override public <V> V addMetaIfAbsent(String name, V val) {
-        return unwrap().addMetaIfAbsent(name, val);
+        return unwrapCreate().addMetaIfAbsent(name, val);
     }
 
     /** {@inheritDoc} */
     @Override public <V> V addMetaIfAbsent(String name, Callable<V> c) {
-        return unwrap().addMetaIfAbsent(name, c);
+        return unwrapCreate().addMetaIfAbsent(name, c);
     }
 
     /** {@inheritDoc} */
     @Override public <V> boolean replaceMeta(String name, V curVal, V newVal) {
-        return unwrap().replaceMeta(name, curVal, newVal);
+        return unwrapCreate().replaceMeta(name, curVal, newVal);
     }
 
     /** {@inheritDoc} */
     @Override public void copyMeta(GridMetadataAware from) {
-        unwrap().copyMeta(from);
+        unwrapCreate().copyMeta(from);
     }
 
     /** {@inheritDoc} */
     @Override public void copyMeta(Map<String, ?> data) {
-        unwrap().copyMeta(data);
+        unwrapCreate().copyMeta(data);
     }
 
     /** {@inheritDoc} */
     @Override public <V> boolean removeMeta(String name, V val) {
-        return unwrap().removeMeta(name, val);
+        GridCacheEntryEx e = unwrapNoCreate();
+
+        return e == null ? null : e.removeMeta(name, val);
     }
 
     /** {@inheritDoc} */
     @Override public boolean isLocked() {
         while (true) {
             try {
-                return unwrap().lockedByAny();
+                GridCacheEntryEx<K, V> e = unwrapNoCreate();
+
+                return e != null && e.lockedByAny();
             }
             catch (GridCacheEntryRemovedException ignore) {
                 reset();
@@ -604,7 +667,10 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
     @Override public boolean isLockedByThread() {
         while (true) {
             try {
-                GridCacheEntryEx<K, V> e = unwrap();
+                GridCacheEntryEx<K, V> e = unwrapNoCreate();
+
+                if (e == null)
+                    return false;
 
                 // Delegate to near if dht.
                 if (e.isDht()) {
@@ -647,6 +713,13 @@ public class GridCacheEntryImpl<K, V> implements GridCacheEntry<K, V>, Externali
     /** {@inheritDoc} */
     @Override public void unlock(GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
         prj.unlock(key, filter);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isCached() {
+        GridCacheEntryEx<K, V> cached = this.cached;
+
+        return cached != null && !cached.obsolete();
     }
 
     /** {@inheritDoc} */

@@ -45,7 +45,7 @@ import org.gridgain.grid.lang.*;
  * cache entries.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridCacheEvictionPolicy<K, V> {
     /**

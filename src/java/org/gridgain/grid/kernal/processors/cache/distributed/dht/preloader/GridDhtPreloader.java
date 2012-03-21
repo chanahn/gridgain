@@ -32,7 +32,7 @@ import static org.gridgain.grid.util.GridConcurrentFactory.*;
  * DHT cache preloader.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
     /** Exchange history size. */
@@ -209,7 +209,7 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
 
         assert startTime > 0;
 
-        long startTopVer = cctx.discovery().startTopologyVersion();
+        long startTopVer = loc.order();
 
         topVer.setIfGreater(startTopVer);
 
@@ -426,11 +426,17 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
                 if (log.isDebugEnabled())
                     log.debug("Received full partition update [node=" + node.id() + ", msg=" + msg + ']');
 
-                if (top.update(null, msg.partitions()) != null)
+                if (top.update(null, msg.partitions()) != null) {
                     demandPool.resendPartitions();
+
+                    cctx.dataStructures().onPartitionsChange();
+                }
             }
-            else
+            else {
                 exchangeFuture(msg.exchangeId(), null).onReceive(node.id(), msg);
+
+                cctx.dataStructures().onPartitionsChange();
+            }
         }
         finally {
             leaveBusy();
@@ -451,11 +457,17 @@ public class GridDhtPreloader<K, V> extends GridCachePreloaderAdapter<K, V> {
                     log.debug("Received local partition update [nodeId=" + node.id() + ", parts=" +
                         msg.partitions().toFullString() + ']');
 
-                if (top.update(null, msg.partitions()) != null)
+                if (top.update(null, msg.partitions()) != null) {
                     demandPool.resendPartitions();
+
+                    cctx.dataStructures().onPartitionsChange();
+                }
             }
-            else
+            else {
                 exchangeFuture(msg.exchangeId(), null).onReceive(node.id(), msg);
+
+                cctx.dataStructures().onPartitionsChange();
+            }
         }
         finally {
             leaveBusy();

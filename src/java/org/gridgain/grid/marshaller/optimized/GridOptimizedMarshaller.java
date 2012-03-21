@@ -3,6 +3,7 @@ package org.gridgain.grid.marshaller.optimized;
 import org.gridgain.grid.*;
 import org.gridgain.grid.marshaller.*;
 import org.gridgain.grid.marshaller.jdk.*;
+import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.*;
 import org.jetbrains.annotations.*;
@@ -81,7 +82,7 @@ import java.util.*;
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridOptimizedMarshaller implements GridMarshaller {
     /** Whether or not to require an object to be serializable in order to be marshalled. */
@@ -91,7 +92,7 @@ public class GridOptimizedMarshaller implements GridMarshaller {
     private final Map<String, Integer> name2id = new HashMap<String, Integer>();
 
     /** */
-    private final Map<Integer, String> id2name = new HashMap<Integer, String>();
+    private final Map<Integer, T2<String, Class<?>>> id2name = new HashMap<Integer, T2<String, Class<?>>>();
 
     /** */
     private final ClassLoader dfltClsLdr = getClass().getClassLoader();
@@ -142,7 +143,7 @@ public class GridOptimizedMarshaller implements GridMarshaller {
 
                 name2id.put(name, id);
 
-                id2name.put(id, name);
+                id2name.put(id, new T2<String, Class<?>>(name, null));
             }
         }
     }

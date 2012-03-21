@@ -13,7 +13,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.lang.utils.*;
-import org.gridgain.grid.lang.utils.GridQueue.*;
+import org.gridgain.grid.lang.utils.GridConcurrentLinkedDeque.*;
 import org.gridgain.grid.typedef.internal.*;
 
 import java.util.*;
@@ -22,12 +22,12 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
 
 /**
  * Eviction policy based on {@code First In First Out (FIFO)} algorithm. This
- * implementation is very efficient since it is lock-free and does not
- * create any additional table-like data structures. The {@code FIFO} ordering
- * information is maintained by attaching ordering metadata to cache entries.
+ * implementation is very efficient since it does not create any additional
+ * table-like data structures. The {@code FIFO} ordering information is
+ * maintained by attaching ordering metadata to cache entries.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,
     GridCacheFifoEvictionPolicyMBean {
@@ -41,10 +41,11 @@ public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolic
     private volatile boolean allowEmptyEntries = true;
 
     /** FIFO queue. */
-    private final GridQueue<GridCacheEntry<K, V>> queue = new GridQueue<GridCacheEntry<K, V>>();
+    private final GridConcurrentLinkedDeque<GridCacheEntry<K, V>> queue =
+        new GridConcurrentLinkedDeque<GridCacheEntry<K, V>>();
 
     /**
-     * Constructs LRU eviction policy with all defaults.
+     * Constructs FIFO eviction policy with all defaults.
      */
     public GridCacheFifoEvictionPolicy() {
         // No-op.
@@ -125,39 +126,103 @@ public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolic
     /** {@inheritDoc} */
     @Override public void onEntryAccessed(boolean rmv, GridCacheEntry<K, V> entry) {
         if (!rmv) {
+            if (!entry.isCached())
+                return;
+
+            boolean shrink = false;
+
             if (!allowEmptyEntries && empty(entry)) {
-                Node<GridCacheEntry<K, V>> node = entry.removeMeta(meta);
+                Node<GridCacheEntry<K, V>> node = entry.meta(meta);
 
                 if (node != null)
-                    queue.unlink(node);
+                    queue.unlinkx(node);
 
-                if (!entry.evict())
-                    touch(entry);
+                if (!entry.evict()) {
+                    entry.removeMeta(meta, node);
+
+                    shrink = touch(entry);
+                }
+                else {
+                    // Entry was evicted, we must remove it from queue if concurrent touch() call added it.
+                    node = entry.meta(meta);
+
+                    if (node != null)
+                        queue.unlinkx(node);
+                }
             }
             else
-                touch(entry);
+                shrink = touch(entry);
+
+            // Shrink only if queue was changed.
+            if (shrink)
+                shrink();
         }
         else {
             Node<GridCacheEntry<K, V>> node = entry.removeMeta(meta);
 
             if (node != null)
-                queue.unlink(node);
+                queue.unlinkx(node);
         }
-
-        shrink();
     }
 
     /**
      * @param entry Entry to touch.
+     * @return {@code True} if queue has been changed by this call.
      */
-    private void touch(GridCacheEntry<K, V> entry) {
-        Node<GridCacheEntry<K, V>> n = entry.meta(meta);
+    private boolean touch(GridCacheEntry<K, V> entry) {
+        Node<GridCacheEntry<K, V>> node = entry.meta(meta);
 
-        // Don't reorder existing entries.
-        if (n == null) {
-            Node<GridCacheEntry<K, V>> old = entry.addMeta(meta, queue.offerx(entry));
+        // Entry has not been enqueued yet.
+        if (node == null) {
+            while (true) {
+                node = queue.offerLastx(entry);
 
-            assert old == null : "Node was enqueued by another thread: " + old;
+                if (entry.putMetaIfAbsent(meta, node) != null) {
+                    // Was concurrently added, need to clear it from queue.
+                    queue.unlinkx(node);
+
+                    // Queue has not been changed.
+                    return false;
+                }
+                else if (node.item() != null) {
+                    if (!entry.isCached()) {
+                        // Was concurrently evicted, need to clear it from queue.
+                        queue.unlinkx(node);
+
+                        return false;
+                    }
+
+                    return true;
+                }
+                // If node was unlinked by concurrent shrink() call, we must repeat the whole cycle.
+                else if (!entry.removeMeta(meta, node))
+                    return false;
+            }
+        }
+
+        // Entry is already in queue.
+        return false;
+    }
+
+    /**
+     * Shrinks FIFO queue to maximum allowed size.
+     */
+    private void shrink() {
+        int max = this.max;
+
+        int startSize = queue.sizex();
+
+        for (int i = 0; i < startSize && queue.sizex() > max; i++) {
+            GridCacheEntry<K, V> entry = queue.poll();
+
+            if (entry == null)
+                break;
+
+            if (!entry.evict()) {
+                entry.removeMeta(meta);
+
+                touch(entry);
+            }
         }
     }
 
@@ -177,28 +242,6 @@ public class GridCacheFifoEvictionPolicy<K, V> implements GridCacheEvictionPolic
             assert false : "Should never happen: " + e;
 
             return false;
-        }
-    }
-
-    /**
-     * Shrinks FIFO queue to maximum allowed size.
-     */
-    private void shrink() {
-        int max = this.max;
-
-        int startSize = queue.size();
-
-        for (int i = 0; i < startSize && queue.size() > max; i++) {
-            GridCacheEntry<K, V> entry = queue.poll();
-
-            assert entry != null;
-
-            Node<GridCacheEntry<K, V>> old = entry.removeMeta(meta);
-
-            assert old != null;
-
-            if (!entry.evict())
-                touch(entry);
         }
     }
 

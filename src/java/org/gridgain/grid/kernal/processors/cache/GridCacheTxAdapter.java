@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Managed transaction adapter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     implements GridCacheTxEx<K, V>, Externalizable {
@@ -54,7 +54,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
 
     /** Local flag. */
     @GridToStringInclude
-    protected boolean local;
+    protected boolean loc;
 
     /** Thread ID. */
     @GridToStringInclude
@@ -142,9 +142,11 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     private volatile boolean timedOut;
 
     /** */
+    @GridToStringExclude
     private AtomicReference<GridFutureAdapter<GridCacheTx>> finFut =
         new AtomicReference<GridFutureAdapter<GridCacheTx>>();
 
+    /** Topology version. */
     private AtomicLong topVer = new AtomicLong(-1);
 
     /** Mutex. */
@@ -165,7 +167,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
      * @param xidVer Transaction ID.
      * @param implicit Implicit flag.
      * @param implicitSingle Implicit with one key flag.
-     * @param local Local flag.
+     * @param loc Local flag.
      * @param concurrency Concurrency.
      * @param isolation Isolation.
      * @param timeout Timeout.
@@ -178,7 +180,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         GridCacheVersion xidVer,
         boolean implicit,
         boolean implicitSingle,
-        boolean local,
+        boolean loc,
         GridCacheTxConcurrency concurrency,
         GridCacheTxIsolation isolation,
         long timeout,
@@ -192,7 +194,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         this.xidVer = xidVer;
         this.implicit = implicit;
         this.implicitSingle = implicitSingle;
-        this.local = local;
+        this.loc = loc;
         this.concurrency = concurrency;
         this.isolation = isolation;
         this.timeout = timeout;
@@ -252,7 +254,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
 
         implicit = false;
         implicitSingle = false;
-        local = false;
+        loc = false;
 
         threadName = Thread.currentThread().getName();
 
@@ -313,6 +315,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         return null;
     }
 
+    /** {@inheritDoc} */
     @Override public long topologyVersion() {
         return topVer.get();
     }
@@ -370,7 +373,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
 
     /** {@inheritDoc} */
     @Override public boolean local() {
-        return local;
+        return loc;
     }
 
     /** {@inheritDoc} */
@@ -671,7 +674,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
         GridFutureAdapter<GridCacheTx> fut = finFut.get();
 
         if (fut == null) {
-            if (!finFut.compareAndSet(null, fut = new GridFutureAdapter<GridCacheTx>()))
+            if (!finFut.compareAndSet(null, fut = new GridFutureAdapter<GridCacheTx>(cctx.kernalContext())))
                 fut = finFut.get();
         }
 
@@ -988,8 +991,8 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return GridToStringBuilder.toString(GridCacheTxAdapter.class, this, "duration",
-            (System.currentTimeMillis() - startTime) + "ms");
+        return GridToStringBuilder.toString(GridCacheTxAdapter.class, this,
+            "duration", (System.currentTimeMillis() - startTime) + "ms");
     }
 
     /**

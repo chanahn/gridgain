@@ -26,7 +26,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichNode, Externalizable {
     /** */
@@ -46,7 +46,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
     private GridPredicate<GridRichNode> p;
 
     /** */
-    private boolean isLocal;
+    private boolean isLoc;
 
     /** */
     private int hash;
@@ -78,7 +78,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
 
         hash = node.hashCode();
 
-        isLocal = node.id().equals(ctx.localNodeId());
+        isLoc = node.id().equals(ctx.localNodeId());
 
         nodes = Collections.<GridRichNode>singletonList(this);
 
@@ -330,7 +330,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
 
     /** {@inheritDoc} */
     @Override public int compareTo(GridRichNode o) {
-        return o == null ? 1 : node.id().compareTo(o.id());
+        return o == null ? 1 : node.order() < o.order() ? -1 : node.order() == o.order() ? 0 : 1;
     }
 
     /** {@inheritDoc} */
@@ -436,7 +436,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
 
         lightCheck();
 
-        return isLocal ? (T)ctx.grid().nodeLocal().put(key, val) : this.<T>nodeLocalPutAsync(key, val).get();
+        return isLoc ? (T)ctx.grid().nodeLocal().put(key, val) : this.<T>nodeLocalPutAsync(key, val).get();
     }
 
     /**
@@ -478,7 +478,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
         guard();
 
         try {
-            return isLocal ? new GridFinishedFuture<T>(ctx, (T)ctx.grid().nodeLocal().put(key, val)) :
+            return isLoc ? new GridFinishedFuture<T>(ctx, (T)ctx.grid().nodeLocal().put(key, val)) :
                 ctx.closure().callAsync(UNICAST, new NodeLocalPutClosure(key, val), nodes);
         }
         finally {
@@ -501,7 +501,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
 
     /** {@inheritDoc} */
     @Override public boolean isLocal() {
-        return isLocal;
+        return isLoc;
     }
 
     /**
@@ -632,7 +632,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
         guard();
 
         try {
-            return isLocal ? (T)ctx.grid().nodeLocal().get(key) : this.<T>nodeLocalGetAsync(key).get();
+            return isLoc ? (T)ctx.grid().nodeLocal().get(key) : this.<T>nodeLocalGetAsync(key).get();
         }
         finally {
             unguard();
@@ -673,7 +673,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
         guard();
 
         try {
-            return isLocal ? new GridFinishedFuture<T>(ctx, (T)ctx.grid().nodeLocal().get(key)) :
+            return isLoc ? new GridFinishedFuture<T>(ctx, (T)ctx.grid().nodeLocal().get(key)) :
                 ctx.closure().callAsync(UNICAST, new NodeLocalGetClosure(key), nodes);
         }
         finally {
@@ -727,7 +727,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
             if (c != null) {
                 Runnable ca = new NodeLocalRunClosure(key, c);
 
-                return isLocal ? ctx.closure().runLocalSafe(ca, false) :
+                return isLoc ? ctx.closure().runLocalSafe(ca, false) :
                     ctx.closure().runAsync(UNICAST, ca, nodes, false);
             }
 
@@ -785,7 +785,7 @@ public class GridRichNodeImpl extends GridProjectionAdapter implements GridRichN
             if (c != null) {
                 Callable<T> co = new NodeLocalCallClosure<T>(key, c);
 
-                return isLocal ? ctx.closure().callLocalSafe(co, false) :
+                return isLoc ? ctx.closure().callLocalSafe(co, false) :
                     ctx.closure().callAsync(UNICAST, co, nodes, false);
             }
 

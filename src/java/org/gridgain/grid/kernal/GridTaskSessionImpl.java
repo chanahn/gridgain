@@ -23,7 +23,7 @@ import java.util.*;
  * Task session.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements GridTaskSessionInternal {
     /** */
@@ -534,11 +534,11 @@ public class GridTaskSessionImpl extends GridMetadataAwareAdapter implements Gri
         synchronized (mux) {
             List<GridTaskSessionAttributeListener> lsnrs = new ArrayList<GridTaskSessionAttributeListener>(this.lsnrs);
 
-            boolean removed = lsnrs.remove(lsnr);
+            boolean rmv = lsnrs.remove(lsnr);
 
             this.lsnrs = Collections.unmodifiableList(lsnrs);
 
-            return removed;
+            return rmv;
         }
     }
 

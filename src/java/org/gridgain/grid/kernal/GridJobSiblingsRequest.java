@@ -18,40 +18,58 @@ import java.io.*;
  * Job siblings request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridJobSiblingsRequest implements Externalizable {
     /** */
     private GridUuid sesId;
 
+    /** */
+    private String topic;
+
     /**
      * Empty constructor required by {@link Externalizable}.
      */
     public GridJobSiblingsRequest() {
-        //No-op.
+        // No-op.
     }
 
     /**
      * @param sesId Session ID.
+     * @param topic Topic.
      */
-    public GridJobSiblingsRequest(GridUuid sesId) {
+    public GridJobSiblingsRequest(GridUuid sesId, String topic) {
         assert sesId != null;
+        assert topic != null && !topic.isEmpty();
 
         this.sesId = sesId;
+        this.topic = topic;
     }
 
-    public GridUuid getSessionId() {
+    /**
+     * @return Session ID.
+     */
+    public GridUuid sessionId() {
         return sesId;
+    }
+
+    /**
+     * @return Topic.
+     */
+    public String topic() {
+        return topic;
     }
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         sesId = U.readGridUuid(in);
+        topic = U.readString(in);
     }
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         U.writeGridUuid(out, sesId);
+        U.writeString(out, topic);
     }
 
     /** {@inheritDoc} */

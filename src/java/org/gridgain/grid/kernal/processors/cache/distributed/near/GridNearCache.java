@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxConcurrency.*;
  * Near cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** DHT cache. */
@@ -137,12 +137,12 @@ public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     }
 
     /** {@inheritDoc} */
-    @Override public GridCacheEntryEx<K, V> entryEx(K key) {
+    @Override public GridCacheEntryEx<K, V> entryEx(K key, boolean touch) {
         GridNearCacheEntry<K, V> entry = null;
 
         while (true) {
             try {
-                entry = (GridNearCacheEntry<K, V>)super.entryEx(key);
+                entry = (GridNearCacheEntry<K, V>)super.entryEx(key, touch);
 
                 entry.initializeFromDht();
 
@@ -169,6 +169,21 @@ public class GridNearCache<K, V> extends GridDistributedCacheAdapter<K, V> {
      */
     @Nullable public GridNearCacheEntry<K, V> peekExx(K key) {
         return (GridNearCacheEntry<K, V>)peekEx(key);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean poke(K key, V val) throws GridException {
+        ctx.denyOnFlag(READ);
+
+        // Use 'unary or' to make sure that both, near and dht caches are called.
+        return super.poke(key, val) | dht.poke(key, val);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void pokeAll(Map<? extends K, ? extends V> m) throws GridException {
+        super.pokeAll(m);
+
+        dht.pokeAll(m);
     }
 
     /** {@inheritDoc} */

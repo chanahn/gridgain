@@ -47,16 +47,9 @@ import org.springframework.context.support.*;
  * output).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridMultipleTopologyExample {
-    /**
-     * Ensure singleton.
-     */
-    private GridMultipleTopologyExample() {
-        // No-op.
-    }
-
     /**
      * Executes {@link GridSegmentATask} and {@link GridSegmentBTask} tasks on the grid.
      *
@@ -68,7 +61,7 @@ public final class GridMultipleTopologyExample {
             new ClassPathXmlApplicationContext("org/gridgain/examples/multispi/master.xml");
 
         // Get configuration from Spring.
-        GridConfiguration cfg = (GridConfiguration)ctx.getBean("grid.cfg", GridConfiguration.class);
+        GridConfiguration cfg = ctx.getBean("grid.cfg", GridConfiguration.class);
 
         G.start(cfg);
 

@@ -101,7 +101,7 @@ import java.util.concurrent.*;
  * with Gridify annotation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridLoader(description = "Websphere loader")
 public class GridWebsphereLoader implements GridWebsphereLoaderMBean, CustomService {
@@ -119,8 +119,7 @@ public class GridWebsphereLoader implements GridWebsphereLoaderMBean, CustomServ
 
     /** {@inheritDoc} */
     @SuppressWarnings("unchecked")
-    @Override
-    public void initialize(Properties properties) throws Exception {
+    @Override public void initialize(Properties properties) throws Exception {
         GridLogger log = new GridJclLogger(LogFactory.getLog("GridGain"));
 
         cfgFile = properties.getProperty(cfgFilePathParam);

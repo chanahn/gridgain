@@ -13,7 +13,6 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.cache.query.*;
 import org.gridgain.grid.cache.store.*;
-import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.lang.*;
 import org.jetbrains.annotations.*;
 
@@ -137,7 +136,7 @@ import java.util.concurrent.*;
  * No explicit deployment step is required.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridCacheProjection<K, V> extends Iterable<GridCacheEntry<K, V>>, GridMetadataAware {
     /**
@@ -1050,6 +1049,37 @@ public interface GridCacheProjection<K, V> extends Iterable<GridCacheEntry<K, V>
      */
     public GridFuture<Map<K, V>> peekAllAsync(@Nullable Collection<? extends K> keys,
         @Nullable Collection<GridCachePeekMode> modes);
+
+    /**
+     * This method overwrites current in-memory value with new value only if entry
+     * is present in cache. If entry is not in cache, then it will not be created
+     * and {@code false} will be returned.
+     * <p>
+     * Note that this method is non-transactional and non-distributed and should almost
+     * never be used. It is meant to be used when fixing some heuristic error state.
+     *
+     * @param key Entry key.
+     * @param val Value to set.
+     * @return {@code true} entry was updated, {@code false} if entry was not
+     *      present in cache.
+     * @throws GridException If poke operation failed.
+     * @throws NullPointerException If key is {@code null}.
+     */
+    public boolean poke(K key, V val) throws GridException;
+
+    /**
+     * This method overwrites current in-memory entries with new values only if they
+     * are currently present in cache. If entry is not in cache at the time of
+     * operation, then it will not be created.
+     * <p>
+     * Note that this method is non-transactional and non-distributed and should almost
+     * never be used. It is meant to be used when fixing some heuristic error state.
+     *
+     * @param m map with values
+     * @throws GridException If any poke operation failed in which case the best
+     *      attempt to update all entries will be made.
+     */
+    public void pokeAll(Map<? extends K, ? extends V> m) throws GridException;
 
     /**
      * Retrieves value mapped to the specified key from cache. Value will only be returned if

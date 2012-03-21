@@ -26,13 +26,13 @@ import scalaz._
  * Companion object.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object ScalarCacheProjectionPimp {
     /**
      * Creates new Scalar cache projection pimp with given Java-side implementation.
      *
-     * @param value Java-side implementation.
+     * @param impl Java-side implementation.
      */
     def apply[K, V](impl: GridCacheProjection[K, V]) = {
         if (impl == null)
@@ -66,7 +66,7 @@ object ScalarCacheProjectionPimp {
  * Scala's side method with `$` suffix.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class ScalarCacheProjectionPimp[@specialized K, @specialized V] extends PimpedType[GridCacheProjection[K, V]]
     with Iterable[GridCacheEntry[K, V]] {
@@ -126,7 +126,7 @@ class ScalarCacheProjectionPimp[@specialized K, @specialized V] extends PimpedTy
     }
 
     /**
-     * Retrieves value mapped to the specified key from cache. The return value of {@code null}
+     * Retrieves value mapped to the specified key from cache. The return value of `null`
      * means entry did not pass the provided filter or cache has no mapping for the key.
      *
      * @param k Key to retrieve the value for.
@@ -134,6 +134,21 @@ class ScalarCacheProjectionPimp[@specialized K, @specialized V] extends PimpedTy
      */
     def apply(k: K): V =
         value.get(k)
+
+    /**
+     * Returns the value associated with a key, or a default value if the key is not contained in the map.
+     *
+     * @param k The key.
+     * @param default A computation that yields a default value in case key is not in cache.
+     * @return The cache value associated with `key` if it exists, otherwise the result
+     *      of the `default` computation.
+     */
+    def getOrElse(k: K, default: => V) = {
+        opt(k) match {
+            case Some(v) => v
+            case None => default
+        }
+    }
 
     /**
      * Retrieves value mapped to the specified key from cache as an option. The return value
@@ -1712,8 +1727,6 @@ class ScalarCacheProjectionPimp[@specialized K, @specialized V] extends PimpedTy
      * cache projection.
      *
      * @param grid Grid projection on which this query will be executed.
-     * @param cls Query values class. Since cache can, in general, contain values of any subtype of `V`
-     *     query needs to know the exact type it should operate on.
      * @param clause Query H2 text clause. See `GridCacheQuery` for more details.
      * @param rmtRdc Reduce function that will be called on each remote node.
      * @param locRdc Reduce function that will be called on local node.
@@ -1765,8 +1778,6 @@ class ScalarCacheProjectionPimp[@specialized K, @specialized V] extends PimpedTy
      * Note that query value class will be taken implicitly as exact type `V` of this
      * cache projection.
      *
-     * @param cls Query values class. Since cache can, in general, contain values of any subtype of `V`
-     *     query needs to know the exact type it should operate on.
      * @param clause Query H2 text clause. See `GridCacheQuery` for more details.
      * @param rmtRdc Reduce function that will be called on each remote node.
      * @param locRdc Reduce function that will be called on local node.
@@ -1880,7 +1891,6 @@ class ScalarCacheProjectionPimp[@specialized K, @specialized V] extends PimpedTy
      * @param kp Key filter. See `GridCacheQuery` for more details.
      * @param vp Value filter. See `GridCacheQuery` for more details.
      * @param rmtRdc Reduce function that will be called on each remote node.
-     * @param locRdc Reduce function that will be called on local node.
      * @return Collection of reduced values.
      */
     def scanReduce[R](kp: KeyPred, vp: ValuePred, rmtRdc: Iterable[(K, V)] => R)
@@ -2144,8 +2154,6 @@ class ScalarCacheProjectionPimp[@specialized K, @specialized V] extends PimpedTy
      * cache projection.
      *
      * @param grid Grid projection on which this query will be executed.
-     * @param cls Query values class. Since cache can, in general, contain values of any subtype of `V`
-     *     query needs to know the exact type it should operate on.
      * @param clause Query H2 text clause. See `GridCacheQuery` for more details.
      * @param rmtRdc Reduce function that will be called on each remote node.
      * @return Collection of reduced values.
@@ -2193,8 +2201,6 @@ class ScalarCacheProjectionPimp[@specialized K, @specialized V] extends PimpedTy
      * Note that query value class will be taken implicitly as exact type `V` of this
      * cache projection.
      *
-     * @param cls Query values class. Since cache can, in general, contain values of any subtype of `V`
-     *     query needs to know the exact type it should operate on.
      * @param clause Query H2 text clause. See `GridCacheQuery` for more details.
      * @param rmtRdc Reduce function that will be called on each remote node.
      * @return Collection of reduced values.

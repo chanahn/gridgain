@@ -74,14 +74,14 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridCheckpointSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.6.0c.09012012")
+    version = "4.0.0c.21032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridCacheCheckpointSpi extends GridSpiAdapter implements GridCheckpointSpi, GridCacheCheckpointSpiMBean {
     /** Default cache name (value is <tt>checkpoints</tt>). */
@@ -146,11 +146,14 @@ public class GridCacheCheckpointSpi extends GridSpiAdapter implements GridCheckp
 
                 GridCacheEvent e = (GridCacheEvent)evt;
 
+                if (!F.eq(e.cacheName(), cacheName))
+                    return;
+
                 if (e.oldValue() != null) {
                     GridCheckpointListener tmp = lsnr;
 
                     if (tmp != null)
-                        tmp.onCheckpointRemoved((String)((GridCacheEvent)evt).key());
+                        tmp.onCheckpointRemoved((String)e.key());
                 }
             }
         }, EVT_CACHE_OBJECT_REMOVED);

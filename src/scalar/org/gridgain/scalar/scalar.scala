@@ -119,17 +119,17 @@ import annotation.target.field
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object scalar extends ScalarConversions {
     /** Visor copyright blurb. */
     private val COPYRIGHT = "2012 Copyright (C) GridGain Systems"
 
     /** Visor version number. */
-    private val VER = "3.6.0c"
+    private val VER = "4.0.0c"
 
     /** Visor build number. */
-    private val BUILD = "09012012"
+    private val BUILD = "21032012"
 
     /** Type alias for `GridCacheQuerySqlField`. */
     type ScalarCacheQuerySqlField = GridCacheQuerySqlField @field
@@ -288,7 +288,7 @@ object scalar extends ScalarConversions {
     /**
      * Executes given closure within automatically managed grid instance.
      *
-     * @param springCfgPath Spring XML configuration file path or URL.
+     * @param cfg Spring XML configuration file path or URL.
      * @param springCtx Optional Spring application context.
      * @param body Closure to execute within automatically managed grid instance.
      */
@@ -518,7 +518,7 @@ object scalar extends ScalarConversions {
     /**
      * Starts grid with given parameter(s).
      *
-     * @param cfg Grid configuration. This cannot be {@code null}.
+     * @param cfg Grid configuration. This cannot be `null`.
      * @return Started grid.
      */
     def start(cfg: GridConfiguration): Grid = {
@@ -528,8 +528,8 @@ object scalar extends ScalarConversions {
     /**
      * Starts grid with given parameter(s).
      *
-     * @param cfg Grid configuration. This cannot be {@code null}.
-     * @param springCtx Optional Spring application context.
+     * @param cfg Grid configuration. This cannot be `null`.
+     * @param ctx Optional Spring application context.
      * @return Started grid.
      */
     def start(cfg: GridConfiguration, @Nullable ctx: ApplicationContext): Grid = {
@@ -540,7 +540,7 @@ object scalar extends ScalarConversions {
      * Starts grid with given parameter(s).
      *
      * @param springCfgPath Spring XML configuration file path or URL.
-     * @param springCtx Optional Spring application context.
+     * @param ctx Optional Spring application context.
      * @return Started grid.
      */
     def start(@Nullable springCfgPath: String = null, @Nullable ctx: ApplicationContext): Grid = {
@@ -550,7 +550,7 @@ object scalar extends ScalarConversions {
     /**
      * Starts grid with given parameter(s).
      *
-     * @param springCtx Optional Spring application context.
+     * @param ctx Optional Spring application context.
      * @return Started grid.
      */
     def start(@Nullable ctx: ApplicationContext): Grid = {
@@ -561,7 +561,7 @@ object scalar extends ScalarConversions {
      * Starts grid with given parameter(s).
      *
      * @param springCfgUrl Spring XML configuration file URL.
-     * @param springCtx Optional Spring application context.
+     * @param ctx Optional Spring application context.
      * @return Started grid.
      */
     def start(springCfgUrl: URL, @Nullable ctx: ApplicationContext): Grid = {

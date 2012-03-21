@@ -29,14 +29,11 @@ import static org.gridgain.grid.GridEventType.*;
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheRichExample {
-    /** Ensure singleton. */
-    private GridCacheRichExample() { /* No-op. */ }
-
     /**
-     * Put data to cache and then queries them.
+     * Put data to cache and then query it.
      *
      * @param args Command line arguments, none required.
      * @throws GridException If example execution failed.

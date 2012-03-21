@@ -22,7 +22,7 @@ import java.io.*;
  * Entry information that gets passed over wire.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheEntryInfo<K, V> implements Externalizable {
     /** Cache key. */
@@ -186,10 +186,10 @@ public class GridCacheEntryInfo<K, V> implements Externalizable {
      */
     public void marshal(GridCacheContext<K, V> ctx) throws GridException {
         if (keyBytes == null)
-            keyBytes = CU.marshal(ctx, key).getArray();
+            keyBytes = CU.marshal(ctx, key).array();
 
         if (valBytes == null && val != null)
-            valBytes = CU.marshal(ctx, val).getArray();
+            valBytes = CU.marshal(ctx, val).array();
     }
 
     /**

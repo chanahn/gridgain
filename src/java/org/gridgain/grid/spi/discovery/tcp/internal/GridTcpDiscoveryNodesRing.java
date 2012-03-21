@@ -22,7 +22,7 @@ import java.util.concurrent.locks.*;
  * Convenient way to represent topology for {@link GridTcpDiscoverySpi}
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridTcpDiscoveryNodesRing {
     /** Local node. */
@@ -59,9 +59,7 @@ public class GridTcpDiscoveryNodesRing {
         try {
             this.locNode = locNode;
 
-            nodesMap.put(locNode.id(), locNode);
-
-            nodes.add(locNode);
+            clear();
         }
         finally {
             rwLock.writeLock().unlock();
@@ -126,7 +124,7 @@ public class GridTcpDiscoveryNodesRing {
      */
     public boolean add(GridTcpDiscoveryNode node) {
         assert node != null;
-        assert node.order() > 0;
+        assert node.internalOrder() > 0;
 
         rwLock.writeLock().lock();
 
@@ -142,7 +140,7 @@ public class GridTcpDiscoveryNodesRing {
 
             nodes.add(node);
 
-            nodeOrder = node.order();
+            nodeOrder = node.internalOrder();
         }
         finally {
             rwLock.writeLock().unlock();
@@ -169,7 +167,7 @@ public class GridTcpDiscoveryNodesRing {
         rwLock.writeLock().lock();
 
         try {
-            locNode.order(topVer);
+            locNode.internalOrder(topVer);
 
             clear();
 
@@ -231,15 +229,15 @@ public class GridTcpDiscoveryNodesRing {
         rwLock.writeLock().lock();
 
         try {
-            GridTcpDiscoveryNode removed = nodesMap.remove(nodeId);
+            GridTcpDiscoveryNode rmv = nodesMap.remove(nodeId);
 
-            if (removed != null) {
+            if (rmv != null) {
                 nodes = new TreeSet<GridTcpDiscoveryNode>(nodes);
 
-                nodes.remove(removed);
+                nodes.remove(rmv);
             }
 
-            return removed;
+            return rmv;
         }
         finally {
             rwLock.writeLock().unlock();
@@ -258,25 +256,25 @@ public class GridTcpDiscoveryNodesRing {
         rwLock.writeLock().lock();
 
         try {
-            boolean firstRemove = true;
+            boolean firstRmv = true;
 
             Collection<GridTcpDiscoveryNode> res = null;
 
             for (UUID id : nodeIds) {
-                GridTcpDiscoveryNode removed = nodesMap.remove(id);
+                GridTcpDiscoveryNode rmv = nodesMap.remove(id);
 
-                if (removed != null) {
-                    if (firstRemove) {
+                if (rmv != null) {
+                    if (firstRmv) {
                         nodes = new TreeSet<GridTcpDiscoveryNode>(nodes);
 
                         res = new ArrayList<GridTcpDiscoveryNode>(nodeIds.size());
 
-                        firstRemove = false;
+                        firstRmv = false;
                     }
 
-                    nodes.remove(removed);
+                    nodes.remove(rmv);
 
-                    res.add(removed);
+                    res.add(rmv);
                 }
             }
 
@@ -297,17 +295,19 @@ public class GridTcpDiscoveryNodesRing {
         rwLock.writeLock().lock();
 
         try {
-            if (nodes.isEmpty())
-                // Nothing to clear.
-                return;
-
             nodes = new TreeSet<GridTcpDiscoveryNode>();
 
-            nodes.add(locNode);
+            if (locNode != null)
+                nodes.add(locNode);
 
             nodesMap = new HashMap<UUID, GridTcpDiscoveryNode>();
 
-            nodesMap.put(locNode.id(), locNode);
+            if (locNode != null)
+                nodesMap.put(locNode.id(), locNode);
+
+            nodeOrder = 0;
+
+            topVer = 0;
         }
         finally {
             rwLock.writeLock().unlock();
@@ -539,7 +539,7 @@ public class GridTcpDiscoveryNodesRing {
 
                 assert last != null;
 
-                nodeOrder = last.order();
+                nodeOrder = last.internalOrder();
             }
 
             return ++nodeOrder;

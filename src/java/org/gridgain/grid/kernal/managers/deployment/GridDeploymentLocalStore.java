@@ -29,7 +29,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Storage for local deployments.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class GridDeploymentLocalStore extends GridDeploymentStoreAdapter {
     /** Sequence. */
@@ -391,7 +391,7 @@ class GridDeploymentLocalStore extends GridDeploymentStoreAdapter {
                 throw (GridException)e.getCause();
             }
 
-            throw new GridException("Failed to deploy class: " + cls.getName(), e);
+            throw new GridDeploymentException("Failed to deploy class: " + cls.getName(), e);
         }
     }
 

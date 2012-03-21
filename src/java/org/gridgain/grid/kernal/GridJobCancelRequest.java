@@ -18,7 +18,7 @@ import java.io.*;
  * This class defines externalizable job cancellation request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridJobCancelRequest implements Externalizable {
     /** */
@@ -28,7 +28,7 @@ public class GridJobCancelRequest implements Externalizable {
     private GridUuid jobId;
 
     /** */
-    private boolean system;
+    private boolean sys;
 
     /**
      * No-op constructor to support {@link Externalizable} interface.
@@ -63,14 +63,14 @@ public class GridJobCancelRequest implements Externalizable {
     /**
      * @param sesId Session ID.
      * @param jobId Job ID.
-     * @param system System flag.
+     * @param sys System flag.
      */
-    public GridJobCancelRequest(GridUuid sesId, GridUuid jobId, boolean system) {
+    public GridJobCancelRequest(GridUuid sesId, GridUuid jobId, boolean sys) {
         assert sesId != null;
 
         this.sesId = sesId;
         this.jobId = jobId;
-        this.system = system;
+        this.sys = sys;
     }
 
     /**
@@ -97,7 +97,7 @@ public class GridJobCancelRequest implements Externalizable {
      *       has already reduced and further results are no longer interesting.
      */
     public boolean isSystem() {
-        return system;
+        return sys;
     }
 
     /** {@inheritDoc} */
@@ -105,7 +105,7 @@ public class GridJobCancelRequest implements Externalizable {
         U.writeGridUuid(out, sesId);
         U.writeGridUuid(out, jobId);
 
-        out.writeBoolean(system);
+        out.writeBoolean(sys);
     }
 
     /** {@inheritDoc} */
@@ -113,7 +113,7 @@ public class GridJobCancelRequest implements Externalizable {
         sesId = U.readGridUuid(in);
         jobId = U.readGridUuid(in);
 
-        system = in.readBoolean();
+        sys = in.readBoolean();
     }
 
     /** {@inheritDoc} */

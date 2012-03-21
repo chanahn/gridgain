@@ -18,7 +18,7 @@ import java.util.*;
  * Ant task fixing known HTML issues for Javadoc.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridJavadocAntTask extends MatchingTask {
     /** I/O buffer size. */
@@ -156,10 +156,10 @@ public class GridJavadocAntTask extends MatchingTask {
 
                     tokBuf.append('>');
 
-                    String value = tokBuf.toString();
+                    String val = tokBuf.toString();
 
-                    toks.add(new GridJavadocToken(value.startsWith("<!--") ? GridJavadocTokenType.TOKEN_COMM :
-                        GridJavadocTokenType.TOKEN_INSTR, value));
+                    toks.add(new GridJavadocToken(val.startsWith("<!--") ? GridJavadocTokenType.TOKEN_COMM :
+                        GridJavadocTokenType.TOKEN_INSTR, val));
 
                     tokBuf.setLength(0);
                 }
@@ -178,10 +178,10 @@ public class GridJavadocAntTask extends MatchingTask {
                     if (tokBuf.length() <= 2)
                         throw new IOException("Invalid HTML in [file=" + file + ", html=" + tokBuf + ']');
 
-                    String value = tokBuf.toString();
+                    String val = tokBuf.toString();
 
-                    toks.add(new GridJavadocToken(value.startsWith("</") ?
-                        GridJavadocTokenType.TOKEN_CLOSE_TAG : GridJavadocTokenType.TOKEN_OPEN_TAG, value));
+                    toks.add(new GridJavadocToken(val.startsWith("</") ?
+                        GridJavadocTokenType.TOKEN_CLOSE_TAG : GridJavadocTokenType.TOKEN_OPEN_TAG, val));
 
                     tokBuf.setLength(0);
                 }
@@ -251,7 +251,7 @@ public class GridJavadocAntTask extends MatchingTask {
                     if ("</head>".equalsIgnoreCase(val))
                         tok.update(
                             "<link type='text/css' rel='stylesheet' href='http://www.gridgain.com/sh3.0/styles/shCore.css'/>\n" +
-                            "<link type='text/css' rel='stylesheet' href='http://www.gridgain.com/sh3.0/styles/shThemeEclipse.css'/>\n" +
+                            "<link type='text/css' rel='stylesheet' href='http://www.gridgain.com/sh3.0/styles/shThemeMidnight.css'/>\n" +
                             "<script type='text/javascript' src='http://www.gridgain.com/sh3.0/src/shCore.js'></script>\n" +
                             "<script type='text/javascript' src='http://www.gridgain.com/sh3.0/src/shLegacy.js'></script>\n" +
                             "<script type='text/javascript' src='http://www.gridgain.com/sh3.0/scripts/shBrushJava.js'></script>\n" +

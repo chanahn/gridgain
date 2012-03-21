@@ -34,7 +34,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Adapter for cache entry.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapter implements GridCacheEntryEx<K, V> {
@@ -108,6 +108,10 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
     /** Wrapper around entry. */
     @GridToStringExclude
     protected volatile GridCacheEntryImpl<K, V> wrapper;
+
+    /** Evict wrapper. */
+    @GridToStringExclude
+    private volatile GridCacheEntry<K, V> evictWrapper;
 
     /**
      * @param cctx Cache context.
@@ -258,8 +262,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
                             // Set unswapped value.
                             update(e.value(), e.valueBytes(), e.expireTime(), e.ttl(), e.version(), e.metrics());
 
-                            cctx.events().addEvent(partition(), key, cctx.nodeId(), (GridUuid)null, null,
-                                EVT_CACHE_OBJECT_UNSWAPPED, null, null);
+                            if (cctx.events().isRecordable(EVT_CACHE_OBJECT_UNSWAPPED))
+                                cctx.events().addEvent(partition(), key, cctx.nodeId(), (GridUuid)null, null,
+                                    EVT_CACHE_OBJECT_UNSWAPPED, null, null);
                         }
                         else
                             clearIndex();
@@ -269,7 +274,6 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
             finally {
                 unlock();
             }
-
         }
     }
 
@@ -285,7 +289,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
                 return;
 
             if (valBytes == null)
-                valBytes = CU.marshal(cctx, val).getEntireArray();
+                valBytes = CU.marshal(cctx, val).entireArray();
 
             GridUuid clsLdrId = null;
 
@@ -294,8 +298,9 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
             cctx.swap().write(key(), getOrMarshalKeyBytes(), valBytes, ver, ttl, expireTime, metrics, clsLdrId);
 
-            cctx.events().addEvent(partition(), key, cctx.nodeId(), (GridUuid)null, null,
-                EVT_CACHE_OBJECT_SWAPPED, null, null);
+            if (cctx.events().isRecordable(EVT_CACHE_OBJECT_SWAPPED))
+                cctx.events().addEvent(partition(), key, cctx.nodeId(), (GridUuid)null, null,
+                    EVT_CACHE_OBJECT_SWAPPED, null, null);
 
             if (log.isDebugEnabled())
                 log.debug("Wrote swap entry: " + this);
@@ -322,11 +327,10 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
     }
 
     /**
-     * @param tx Transaction.
      * @param key Key.
      * @param matchVer Version to match.
      */
-    protected void refreshAhead(final GridCacheTx tx, final K key, final GridCacheVersion matchVer) {
+    protected void refreshAhead(final K key, final GridCacheVersion matchVer) {
         if (log.isDebugEnabled())
             log.debug("Scheduling asynchronous refresh for entry: " + this);
 
@@ -358,7 +362,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
                     V val = null;
 
                     try {
-                        val = (V)CU.loadFromStore(cctx, log, tx, key);
+                        val = (V)CU.loadFromStore(cctx, log, null, key);
                     }
                     catch (GridException e) {
                         U.error(log, "Failed to refresh-ahead entry: " + GridCacheMapEntry.this, e);
@@ -421,16 +425,18 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
     private V innerGet0(GridCacheTx tx, boolean readSwap, boolean readThrough, boolean evt, boolean failFast,
         boolean updateMetrics, GridPredicate<? super GridCacheEntry<K, V>>[] filter)
         throws GridException, GridCacheEntryRemovedException, GridCacheFilterFailedException {
-        // Disable read-through if there is no store.
-        if (readThrough && !cctx.isStoreEnabled())
-            readThrough = false;
-
-        GridCacheMvccCandidate<K> owner = null;
-
-        V old = null;
-        V ret = null;
+        boolean touch = false;
 
         try {
+            // Disable read-through if there is no store.
+            if (readThrough && !cctx.isStoreEnabled())
+                readThrough = false;
+
+            GridCacheMvccCandidate<K> owner = null;
+
+            V old = null;
+            V ret = null;
+
             if (!cctx.isAll(this, filter))
                 return CU.<V>failed(failFast);
 
@@ -526,18 +532,29 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
                     if (asyncRefresh || readThrough)
                         isRefreshing = true;
                 }
+
+                if (evt && expired && cctx.events().isRecordable(EVT_CACHE_OBJECT_EXPIRED)) {
+                    cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_EXPIRED, null, expiredVal);
+
+                    // No more notifications.
+                    evt = false;
+                }
+
+                if (evt && !expired && cctx.events().isRecordable(EVT_CACHE_OBJECT_READ)) {
+                    cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_READ, ret, old);
+
+                    // No more notifications.
+                    evt = false;
+                }
             }
             finally {
                 unlock();
             }
 
-            if (evt && expired)
-                cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_EXPIRED, null, expiredVal);
-
             if (asyncRefresh && !readThrough && cctx.isStoreEnabled()) {
                 assert ret != null;
 
-                refreshAhead(tx, key, startVer);
+                refreshAhead(key, startVer);
             }
 
             // Check before load.
@@ -546,8 +563,11 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
             if (ret != null) {
                 // If return value is consistent, then done.
-                if (F.isEmpty(filter) || version().equals(startVer))
+                if (F.isEmpty(filter) || version().equals(startVer)) {
+                    touch = true;
+
                     return ret;
+                }
 
                 // Try again (recursion).
                 return innerGet0(tx, readSwap, readThrough, false, failFast, updateMetrics, filter);
@@ -580,28 +600,27 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
                             // Update indexes.
                             updateIndex(ret);
                     }
+
+                    if (evt && cctx.events().isRecordable(EVT_CACHE_OBJECT_READ))
+                        cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_READ, ret, old);
                 }
             }
             finally {
                 unlock();
             }
 
-            if (F.isEmpty(filter))
-                return ret;
-            else {
-                if (!match)
-                    // Try again (recursion).
-                    return innerGet0(tx, readSwap, readThrough, false, failFast, updateMetrics, filter);
+            if (F.isEmpty(filter) || match) {
+                touch = true;
 
                 return ret;
             }
+
+            // Try again (recursion).
+            return innerGet0(tx, readSwap, readThrough, false, failFast, updateMetrics, filter);
         }
         finally {
-            if (evt)
-                cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_READ, ret, old);
-
             // Touch entry right away for read-committed mode.
-            if (tx == null || tx.isolation() == READ_COMMITTED)
+            if (touch && (tx == null || (!tx.implicit() && tx.isolation() == READ_COMMITTED)))
                 cctx.evicts().touch(this);
         }
     }
@@ -687,73 +706,61 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
         GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException, GridCacheEntryRemovedException {
         V old = null;
 
-        GridCacheVersion newVer = null;
+        boolean valid = valid();
+
+        // Lock should be held by now.
+        if (!cctx.isAll(this, filter))
+            return new T2<Boolean, V>(false, null);
+
+        lock();
 
         try {
-            boolean valid = valid();
+            checkObsolete();
 
-            // Lock should be held by now.
-            if (!cctx.isAll(this, filter))
-                return new T2<Boolean, V>(false, null);
+            assert tx == null || tx.ownsLock(this) : "Transaction does not own lock for update [entry=" + this +
+                ", tx=" + tx + ']';
 
-            lock();
+            // For EVENTUALLY_CONSISTENT transactions change state only if the
+            // version is higher.
+            if (tx != null && tx.ec() && tx.commitVersion().compareTo(ver) < 0)
+                return new T2<Boolean, V>(true, this.val);
 
-            try {
-                checkObsolete();
+            // Load and remove from swap if it is new.
+            if (isNew())
+                unswap();
 
-                assert tx == null || tx.ownsLock(this) : "Transaction does not own lock for update [entry=" + this +
-                    ", tx=" + tx + ']';
+            old = this.val;
 
-                // For EVENTUALLY_CONSISTENT transactions change state only if the
-                // version is higher.
-                if (tx != null && tx.ec() && tx.commitVersion().compareTo(ver) < 0)
-                    return new T2<Boolean, V>(true, this.val);
+            GridCacheVersion newVer = tx == null ? cctx.versions().next() : tx.commitVersion();
 
-                // Load and remove from swap if it is new.
-                if (isNew())
-                    unswap();
+            update(val, valBytes, expireTime, ttl, newVer, metrics);
 
-                old = this.val;
+            recordNodeId(affNodeId);
 
-                newVer = tx == null ? cctx.versions().next() : tx.commitVersion();
+            metrics.onWrite();
 
-                update(val, valBytes, expireTime, ttl, newVer, metrics);
+            // Update index inside synchronization since it can be updated
+            // in load methods without actually holding entry lock.
+            if (val != null)
+                updateIndex(val);
 
-                recordNodeId(affNodeId);
-
-                metrics.onWrite();
-
-                // Update index inside synchronization since it can be updated
-                // in load methods without actually holding entry lock.
-                if (val != null)
-                    updateIndex(val);
-            }
-            finally {
-                unlock();
-            }
-
-            if (log.isDebugEnabled())
-                log.debug("Updated cache entry [val=" + val + ", old=" + old + ", entry=" + this + ']');
-
-            // Persist outside of synchronization. The correctness of the
-            // value will be handled by current transaction.
-            if (writeThrough)
-                CU.putToStore(cctx, log, tx, key, val);
-
-            return valid ? new T2<Boolean, V>(true, old) : new T2<Boolean, V>(false, null);
+            if (evt && newVer != null && cctx.events().isRecordable(EVT_CACHE_OBJECT_PUT))
+                cctx.events().addEvent(partition(), key, evtNodeId, tx == null ? null : tx.xid(),
+                    newVer.id(), EVT_CACHE_OBJECT_PUT, val, old);
         }
         finally {
-            if (evt && newVer != null)
-                cctx.events().addEvent(
-                    partition(),
-                    key,
-                    evtNodeId,
-                    tx == null ? null : tx.xid(),
-                    newVer.id(),
-                    EVT_CACHE_OBJECT_PUT,
-                    val,
-                    old);
+            unlock();
         }
+
+        if (log.isDebugEnabled())
+            log.debug("Updated cache entry [val=" + val + ", old=" + old + ", entry=" + this + ']');
+
+        // Persist outside of synchronization. The correctness of the
+        // value will be handled by current transaction.
+        if (writeThrough)
+            CU.putToStore(cctx, log, tx, key, val);
+
+        return valid ? new T2<Boolean, V>(true, old) : new T2<Boolean, V>(false, null);
     }
 
     /** {@inheritDoc} */
@@ -764,94 +771,93 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
         GridCacheVersion newVer = null;
 
+        boolean valid = valid();
+
+        // Lock should be held by now.
+        if (!cctx.isAll(this, filter))
+            return new T2<Boolean, V>(false, null);
+
+        GridCacheVersion obsoleteVer = null;
+
+        lock();
+
         try {
-            boolean valid = valid();
+            checkObsolete();
 
-            // Lock should be held by now.
-            if (!cctx.isAll(this, filter))
-                return new T2<Boolean, V>(false, null);
+            assert tx == null || tx.ownsLock(this) : "Transaction does not own lock for remove [entry=" + this +
+                ", tx=" + tx + ']';
 
-            GridCacheVersion obsoleteVer = null;
+            // For EVENTUALLY_CONSISTENT transactions change state only if the
+            // version is higher.
+            if (tx != null && tx.ec() && tx.commitVersion().compareTo(ver) < 0)
+                return new T2<Boolean, V>(true, val);
 
-            lock();
+            // Release swap if needed.
+            if (isNew())
+                releaseSwap();
 
-            try {
-                checkObsolete();
+            // Clear indexes inside of synchronization since indexes
+            // can be updated without actually holding entry lock.
+            clearIndex();
 
-                assert tx == null || tx.ownsLock(this) : "Transaction does not own lock for remove [entry=" + this +
-                    ", tx=" + tx + ']';
+            old = val;
 
-                // For EVENTUALLY_CONSISTENT transactions change state only if the
-                // version is higher.
-                if (tx != null && tx.ec() && tx.commitVersion().compareTo(ver) < 0)
-                    return new T2<Boolean, V>(true, val);
+            newVer = tx == null ? cctx.versions().next() : tx.commitVersion();
 
-                // Release swap if needed.
-                if (isNew())
-                    releaseSwap();
+            // Set current value to null.
+            update(null, null, toExpireTime(ttl), ttl, newVer, metrics);
 
-                // Clear indexes inside of synchronization since indexes
-                // can be updated without actually holding entry lock.
-                clearIndex();
+            metrics.onWrite();
 
-                old = val;
-
-                newVer = tx == null ? cctx.versions().next() : tx.commitVersion();
-
-                // Set current value to null.
-                update(null, null, toExpireTime(ttl), ttl, newVer, metrics);
-
-                metrics.onWrite();
-
-                if (tx == null)
-                    obsoleteVer = newVer;
-                else
-                    // Only delete entry if the lock is not explicit.
-                    if (lockedBy(tx.xidVersion()))
-                        obsoleteVer = tx.xidVersion();
-                    else if (log.isDebugEnabled())
-                        log.debug("Obsolete version was not set because lock was explicit: " + this);
-            }
-            finally {
-                unlock();
+            if (tx == null)
+                obsoleteVer = newVer;
+            else {
+                // Only delete entry if the lock is not explicit.
+                if (lockedBy(tx.xidVersion()))
+                    obsoleteVer = tx.xidVersion();
+                else if (log.isDebugEnabled())
+                    log.debug("Obsolete version was not set because lock was explicit: " + this);
             }
 
-            // Persist outside of synchronization. The correctness of the
-            // value will be handled by current transaction.
-            if (writeThrough)
-                CU.removeFromStore(cctx, log, tx, key);
-
-            lock();
-
-            try {
-                // If entry is still removed.
-                if (newVer == ver)
-                    if (obsoleteVer == null || !markObsolete(obsoleteVer)) {
-                        if (log.isDebugEnabled())
-                            log.debug("Entry could not be marked obsolete (it is still used): " + this);
-                    }
-                    else {
-                        recordNodeId(affNodeId);
-
-                        // If entry was not marked obsolete, then removed lock
-                        // will be registered whenever removeLock is called.
-                        cctx.mvcc().addRemoved(obsoleteVer);
-
-                        if (log.isDebugEnabled())
-                            log.debug("Entry was marked obsolete: " + this);
-                    }
-            }
-            finally {
-                unlock();
-            }
-
-            return valid ? new T2<Boolean, V>(true, old) : new T2<Boolean, V>(false, null);
-        }
-        finally {
-            if (evt && newVer != null)
+            if (evt && newVer != null && cctx.events().isRecordable(EVT_CACHE_OBJECT_REMOVED))
                 cctx.events().addEvent(partition(), key, evtNodeId, tx == null ? null : tx.xid(), newVer.id(),
                     EVT_CACHE_OBJECT_REMOVED, null, old);
         }
+        finally {
+            unlock();
+        }
+
+        // Persist outside of synchronization. The correctness of the
+        // value will be handled by current transaction.
+        if (writeThrough)
+            CU.removeFromStore(cctx, log, tx, key);
+
+        lock();
+
+        try {
+            // If entry is still removed.
+            if (newVer == ver) {
+                if (obsoleteVer == null || !markObsolete(obsoleteVer)) {
+                    if (log.isDebugEnabled())
+                        log.debug("Entry could not be marked obsolete (it is still used): " + this);
+                }
+                else {
+                    recordNodeId(affNodeId);
+
+                    // If entry was not marked obsolete, then removed lock
+                    // will be registered whenever removeLock is called.
+                    cctx.mvcc().addRemoved(obsoleteVer);
+
+                    if (log.isDebugEnabled())
+                        log.debug("Entry was marked obsolete: " + this);
+                }
+            }
+        }
+        finally {
+            unlock();
+        }
+
+        return valid ? new T2<Boolean, V>(true, old) : new T2<Boolean, V>(false, null);
     }
 
     /**
@@ -975,10 +981,10 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
     /** {@inheritDoc} */
     @Override public boolean markObsolete(GridCacheVersion ver, boolean clear) {
-        if (ver != null) {
-            lock();
+        lock();
 
-            try {
+        try {
+            if (ver != null) {
                 // If already obsolete, then do nothing.
                 if (obsoleteVer != null)
                     return true;
@@ -994,19 +1000,11 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
                 return obsoleteVer != null;
             }
-            finally {
-                unlock();
-            }
-        }
-        else {
-            lock();
-
-            try {
+            else
                 return obsoleteVer != null;
-            }
-            finally {
-                unlock();
-            }
+        }
+        finally {
+            unlock();
         }
     }
 
@@ -1167,7 +1165,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
      * @param metrics Metrics.
      */
     protected void update(@Nullable V val, @Nullable byte[] valBytes, long expireTime, long ttl, GridCacheVersion ver,
-        GridCacheMetricsAdapter metrics) {
+        @Nullable GridCacheMetricsAdapter metrics) {
         assert ver != null;
 
         lock();
@@ -1377,6 +1375,38 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
         }
     }
 
+    /** {@inheritDoc} */
+    @Override public V poke(V val) throws GridCacheEntryRemovedException, GridException {
+        assert val != null;
+
+        V old;
+
+        lock();
+
+        try {
+            checkObsolete();
+
+            if (isNew())
+                unswap();
+
+            old = this.val;
+
+            update(val, null, expireTime, ttl, cctx.versions().next(), null);
+
+            // Update index inside synchronization since it can be updated
+            // in load methods without actually holding entry lock.
+            updateIndex(val);
+        }
+        finally {
+            unlock();
+        }
+
+        if (log.isDebugEnabled())
+            log.debug("Poked cache entry [newVal=" + val + ", oldVal=" + old + ", entry=" + this + ']');
+
+        return old;
+    }
+
     /**
      * @param failFast Fail fast flag.
      * @param filter Filter.
@@ -1578,7 +1608,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
             if (isNew()) {
                 // Version does not change for load ops.
-                update(val, valBytes, expireTime, ttl, ver, metrics);
+                update(val, valBytes, expireTime < 0 ? toExpireTime(ttl) : expireTime, ttl, ver, metrics);
 
                 if (val != null)
                     updateIndex(val);
@@ -1869,14 +1899,14 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
     /** {@inheritDoc} */
     @Override public GridCacheMvccCandidate<K> candidate(UUID nodeId, long threadId)
         throws GridCacheEntryRemovedException {
-        boolean local = cctx.nodeId().equals(nodeId);
+        boolean loc = cctx.nodeId().equals(nodeId);
 
         lock();
 
         try {
             checkObsolete();
 
-            return local ? mvcc.localCandidate(threadId) : mvcc.remoteCandidate(nodeId, threadId);
+            return loc ? mvcc.localCandidate(threadId) : mvcc.remoteCandidate(nodeId, threadId);
         }
         finally {
             unlock();
@@ -2032,7 +2062,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
         if (bytes != null)
             return bytes;
 
-        bytes = CU.marshal(cctx, key).getEntireArray();
+        bytes = CU.marshal(cctx, key).entireArray();
 
         lock();
 
@@ -2085,7 +2115,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
         if (valBytes == null) {
             if (val != null)
-                valBytes = CU.marshal(cctx, val).getEntireArray();
+                valBytes = CU.marshal(cctx, val).entireArray();
 
             if (ver != null) {
                 lock();
@@ -2162,7 +2192,12 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
 
     /** {@inheritDoc} */
     @Override public GridCacheEntry<K, V> evictWrap() {
-        return new GridCacheEvictionEntry<K, V>(this);
+        GridCacheEntry<K, V> wrapper = evictWrapper;
+
+        if (wrapper == null)
+            evictWrapper = wrapper = new GridCacheEvictionEntry<K, V>(this);
+
+        return wrapper;
     }
 
     /** {@inheritDoc} */

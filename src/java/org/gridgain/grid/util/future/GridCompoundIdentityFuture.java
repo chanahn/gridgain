@@ -21,7 +21,7 @@ import java.io.*;
  * Future composed of multiple inner futures.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCompoundIdentityFuture<T> extends GridCompoundFuture<T, T> {
     /** Empty constructor required for {@link Externalizable}. */

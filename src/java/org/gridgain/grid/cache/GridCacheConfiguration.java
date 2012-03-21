@@ -34,7 +34,7 @@ import java.util.*;
  * default configuration.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridCacheConfiguration {
     /** Default query log name. */
@@ -156,7 +156,7 @@ public interface GridCacheConfiguration {
     public static final float DFLT_MAX_EVICTION_OVERFLOW_RATIO = 10;
 
     /** Default eviction synchronized flag. */
-    public static final boolean DFLT_EVICT_SYNCHRONIZED = true;
+    public static final boolean DFLT_EVICT_SYNCHRONIZED = false;
 
     /** Default near nodes eviction synchronized flag. */
     public static final boolean DFLT_EVICT_NEAR_SYNCHRONIZED = true;
@@ -165,10 +165,10 @@ public interface GridCacheConfiguration {
     public static final int DFLT_EVICT_KEY_BUFFER_SIZE = 1024;
 
     /** Default synchronous eviction timeout in milliseconds. */
-    public static final long DFLT_EVICT_SYNCHRONOUS_TIMEOUT = 10000;
+    public static final long DFLT_EVICT_SYNCHRONIZED_TIMEOUT = 10000;
 
     /** Default synchronous eviction concurrency level. */
-    public static final int DFLT_EVICT_SYNCHRONOUS_CONCURRENCY_LEVEL = 4;
+    public static final int DFLT_EVICT_SYNCHRONIZED_CONCURRENCY_LEVEL = 4;
 
     /** Default value for 'synchronousCommit' flag. */
     public static final boolean DFLT_SYNC_COMMIT = false;
@@ -265,7 +265,9 @@ public interface GridCacheConfiguration {
      * variations will involve all nodes where an entry is kept. For replicated
      * cache this is a group of nodes responsible for partition to which
      * corresponding key belongs. If this property is set to {@code false} then
-     * eviction is done independently on cache nodes. Default value is {@code false}.
+     * eviction is done independently on cache nodes.
+     * <p>
+     * Default value is defined by {@link #DFLT_EVICT_SYNCHRONIZED}.
      * <p>
      * Note that it's not recommended to set this value to {@code true} if cache
      * store is configured since it will allow to significantly improve cache
@@ -278,7 +280,8 @@ public interface GridCacheConfiguration {
 
     /**
      * Gets flag indicating whether eviction on primary node is synchronized with
-     * near nodes where entry is kept. Default value is {@code true}.
+     * near nodes where entry is kept. Default value is {@code true} and
+     * is defined by {@link #DFLT_EVICT_NEAR_SYNCHRONIZED}.
      * <p>
      * Note that in most cases this property should be set to {@code true} to keep
      * cache consistency. But there may be the cases when user may use some
@@ -291,41 +294,41 @@ public interface GridCacheConfiguration {
     public boolean isEvictNearSynchronized();
 
     /**
-     * Gets size of the key buffer for synchronous evictions.
+     * Gets size of the key buffer for synchronized evictions.
      * <p>
      * Default value is defined by {@link #DFLT_EVICT_KEY_BUFFER_SIZE}.
      *
      * @return Eviction key buffer size.
      */
-    public int getEvictSynchronisedKeyBufferSize();
+    public int getEvictSynchronizedKeyBufferSize();
 
     /**
-     * Gets synchronous eviction timeout.
+     * Gets timeout for synchronized evictions.
      * <p>
      * Node that initiates eviction waits for responses
      * from remote nodes within this timeout.
      * <p>
-     * Default value is defined by {@link #DFLT_EVICT_SYNCHRONOUS_TIMEOUT}.
+     * Default value is defined by {@link #DFLT_EVICT_SYNCHRONIZED_TIMEOUT}.
      *
      * @return Synchronous eviction timeout.
      */
     public long getEvictSynchronizedTimeout();
 
     /**
-     * Gets synchronous eviction concurrency level. This flag only makes sense
+     * Gets concurrency level for synchronized evictions. This flag only makes sense
      * with {@link #isEvictNearSynchronized()} or {@link #isEvictSynchronized()} set
-     * to {@code true}. When synchronous evictions are enabled, it is possible that
-     * eviction policy will try to evict entries faster than they can be synchronized
-     * with backup or near nodes. This value specifies how many concurrent synchronous
-     * eviction sessions should be allowed before the system is forced to wait and let
-     * synchronous evictions catch up with the eviction policy.
+     * to {@code true}. When synchronized evictions are enabled, it is possible that
+     * local eviction policy will try to evict entries faster than evictions can be
+     * synchronized with backup or near nodes. This value specifies how many concurrent
+     * synchronous eviction sessions should be allowed before the system is forced to
+     * wait and let synchronous evictions catch up with the eviction policy.
      * <p>
      * Note that if synchronous evictions start lagging, it is possible that you have either
      * too big or too small eviction key buffer size or small eviction timeout. In that case
-     * you will need to adjust {@link #getEvictSynchronisedKeyBufferSize()} or {@link #getEvictSynchronizedTimeout()}
-     * values as well.
+     * you will need to adjust {@link #getEvictSynchronizedKeyBufferSize} or
+     * {@link #getEvictSynchronizedTimeout()} values as well.
      * <p>
-     * Default value is defined by {@link #DFLT_EVICT_SYNCHRONOUS_CONCURRENCY_LEVEL}.
+     * Default value is defined by {@link #DFLT_EVICT_SYNCHRONIZED_CONCURRENCY_LEVEL}.
      *
      * @return Synchronous eviction concurrency level.
      */
@@ -752,10 +755,10 @@ public interface GridCacheConfiguration {
      * Frequency with which write-from-behind cache is flushed to the cache store in milliseconds.
      * This value defines the maximum time interval between object insertion/deletion from the cache
      * ant the moment when corresponding operation is applied to the cache store.
-     * </p>
+     * <p>
      * If not provided, default value is {@link #DFLT_WRITE_FROM_BEHIND_FLUSH_FREQUENCY}.
      * If this value is {@code 0}, then flush is performed according to the flush size.
-     * <p/>
+     * <p>
      * Note that you cannot set both, {@code flush} size and {@code flush frequency}, to {@code 0}.
      *
      * @return Write-from-behind flush frequency in milliseconds.

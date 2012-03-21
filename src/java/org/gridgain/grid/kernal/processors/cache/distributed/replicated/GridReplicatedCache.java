@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Fully replicated cache implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Preloader. */
@@ -594,10 +594,10 @@ public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V>
             return;
         }
 
-        GridReplicatedTxPrepareFuture<K, V> future = (GridReplicatedTxPrepareFuture<K, V>)tx.future();
+        GridReplicatedTxPrepareFuture<K, V> fut = (GridReplicatedTxPrepareFuture<K, V>)tx.future();
 
-        if (future != null)
-            future.onResult(nodeId, msg);
+        if (fut != null)
+            fut.onResult(nodeId, msg);
         else
             U.error(log, "Received prepare response for transaction with no future [res=" + msg + ", tx=" + tx + ']');
     }

@@ -16,16 +16,9 @@ import java.util.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunctionRetainExample1 {
-    /**
-     * Ensures singleton.
-     */
-    private GridFunctionRetainExample1() {
-        /* No-op. */
-    }
-
     /**
      * Executes example.
      *
@@ -39,7 +32,7 @@ public class GridFunctionRetainExample1 {
         // CO -> GridOutClosure
         // CA -> GridAbsClosure
         // F -> GridFunc
-        
+
         // Data initialisation.
         Random rand = new Random();
 

@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 3.6.0c.09012012
+:: Version: 4.0.0c.21032012
 ::
 
 ::
@@ -56,7 +56,7 @@ goto error_finish
 :run
 
 :: This is Ant-augmented variable.
-set ANT_AUGMENTED_GGJAR=gridgain-3.6.0c.jar
+set ANT_AUGMENTED_GGJAR=gridgain-4.0.0c.jar
 
 ::
 :: Set GRIDGAIN_LIBS

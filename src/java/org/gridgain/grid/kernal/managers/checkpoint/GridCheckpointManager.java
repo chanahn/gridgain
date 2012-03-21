@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.GridTopic.*;
  * This class defines a checkpoint manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter", "deprecation"})
 public class GridCheckpointManager extends GridManagerAdapter<GridCheckpointSpi> {
@@ -116,7 +116,7 @@ public class GridCheckpointManager extends GridManagerAdapter<GridCheckpointSpi>
         try {
             switch (scope) {
                 case GLOBAL_SCOPE: {
-                    byte[] data = state == null ? null : U.marshal(marshaller, state).getArray();
+                    byte[] data = state == null ? null : U.marshal(marshaller, state).array();
 
                     saved = getSpi(ses.getCheckpointSpi()).saveCheckpoint(key, data, timeout, override);
 
@@ -139,7 +139,7 @@ public class GridCheckpointManager extends GridManagerAdapter<GridCheckpointSpi>
                         timeout = ses.getEndTime() - now;
 
                     // Save it first to avoid getting null value on another node.
-                    byte[] data = state == null ? null : U.marshal(marshaller, state).getArray();
+                    byte[] data = state == null ? null : U.marshal(marshaller, state).array();
 
                     Set<String> keys = keyMap.get(ses.getId());
 
@@ -150,21 +150,22 @@ public class GridCheckpointManager extends GridManagerAdapter<GridCheckpointSpi>
                     // Note: Check that keys exists because session may be invalidated during saving
                     // checkpoint from GridFuture.
                     if (keys != null) {
+                        // Notify master node.
+                        if (ses.getJobId() != null) {
+                            GridNode node = ctx.discovery().node(ses.getTaskNodeId());
+
+                            if (node != null)
+                                ctx.io().send(
+                                    node,
+                                    TOPIC_CHECKPOINT,
+                                    new GridCheckpointRequest(ses.getId(), key, ses.getCheckpointSpi()),
+                                    GridIoPolicy.PUBLIC_POOL);
+                        }
+
                         saved = getSpi(ses.getCheckpointSpi()).saveCheckpoint(key, data, timeout, override);
 
                         if (saved) {
                             keys.add(key);
-
-                            if (ses.getJobId() != null) {
-                                GridNode node = ctx.discovery().node(ses.getTaskNodeId());
-
-                                if (node != null)
-                                    ctx.io().send(
-                                        node,
-                                        TOPIC_CHECKPOINT,
-                                        new GridCheckpointRequest(ses.getId(), key, ses.getCheckpointSpi()),
-                                        GridIoPolicy.PUBLIC_POOL);
-                            }
 
                             record(EVT_CHECKPOINT_SAVED, key);
                         }
@@ -198,7 +199,7 @@ public class GridCheckpointManager extends GridManagerAdapter<GridCheckpointSpi>
 
         boolean rmv = false;
 
-        for (GridCheckpointSpi spi : getSpis())
+        for (GridCheckpointSpi spi : getProxies())
             if (spi.removeCheckpoint(key))
                 rmv = true;
 
@@ -295,16 +296,8 @@ public class GridCheckpointManager extends GridManagerAdapter<GridCheckpointSpi>
 
             // Make sure that we don't remove checkpoint set that
             // was created by newly created session.
-            if (keys != null && keys.session() == ses.session()) {
-                if (!keyMap.remove(ses.getId(), keys))
-                    keys = null;
-            }
-            else
-                keys = null;
-
-            if (keys != null)
-                for (String key : keys)
-                    getSpi(ses.getCheckpointSpi()).removeCheckpoint(key);
+            if (keys != null && keys.session() == ses.session())
+                keyMap.remove(ses.getId(), keys);
         }
     }
 

@@ -26,13 +26,14 @@ import java.util.concurrent.*;
 
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.kernal.GridTopic.*;
+import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
 import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.*;
 
 /**
  * This class defines task processor.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridTaskProcessor extends GridProcessorAdapter {
     /** Wait for 5 seconds to allow discovery to take effect (best effort). */
@@ -76,6 +77,12 @@ public class GridTaskProcessor extends GridProcessorAdapter {
 
     /** {@inheritDoc} */
     @Override public void start() {
+        ctx.event().addLocalEventListener(discoLsnr,
+            EVT_NODE_FAILED,
+            EVT_NODE_LEFT);
+
+        ctx.io().addMessageListener(TOPIC_JOB_SIBLINGS, new JobSiblingsMessageHandler());
+
         if (log.isDebugEnabled())
             log.debug("Started task processor.");
     }
@@ -84,36 +91,6 @@ public class GridTaskProcessor extends GridProcessorAdapter {
     @Override public void stop(boolean cancel, boolean wait) {
         if (log.isDebugEnabled())
             log.debug("Stopped task processor.");
-    }
-
-    /**
-     * Registers listener with discovery SPI. Note that discovery listener
-     * registration cannot be done during start because task executor
-     * starts before discovery manager.
-     */
-    @Override public void onKernalStart() {
-        ctx.event().addLocalEventListener(discoLsnr,
-            EVT_NODE_FAILED,
-            EVT_NODE_LEFT);
-
-        ctx.io().addSyncMessageHandler(TOPIC_JOB_SIBLINGS, new JobSiblingsMessageHandler());
-
-        Collection<GridNode> allNodes = ctx.discovery().allNodes();
-
-        List<GridTaskWorker<?, ?>> tasks;
-
-        synchronized (mux) {
-            tasks = new ArrayList<GridTaskWorker<?, ?>>(this.tasks.values());
-        }
-
-        // Outside of synchronization.
-        for (GridTaskWorker<?, ?> task : tasks)
-            // Synchronize nodes with discovery SPI just in case if
-            // some node left before listener was registered.
-            task.synchronizeNodes(allNodes);
-
-        if (log.isDebugEnabled())
-            log.debug("Added discovery listener and synchronized nodes.");
     }
 
     /** {@inheritDoc} */
@@ -475,7 +452,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
                 dep = ctx.deploy().getDeployment(taskName);
 
                 if (dep == null)
-                    throw new GridException("Unknown task name or failed to auto-deploy " +
+                    throw new GridDeploymentException("Unknown task name or failed to auto-deploy " +
                         "task (was task (re|un)deployed?): " + taskName);
 
                 taskCls = dep.deployedClass(taskName);
@@ -497,20 +474,10 @@ public class GridTaskProcessor extends GridProcessorAdapter {
                 dep = ctx.deploy().deploy(taskCls, U.detectClassLoader(taskCls));
 
                 if (dep == null)
-                    throw new GridException("Failed to auto-deploy task (was task (re|un)deployed?): " + taskCls);
+                    throw new GridDeploymentException("Failed to auto-deploy task" +
+                            " (was task (re|un)deployed?): " + taskCls);
 
-                GridTaskName ann = dep.annotation(taskCls, GridTaskName.class);
-
-                if (ann != null) {
-                    taskName = ann.value();
-
-                    if (F.isEmpty(taskName))
-                        throw new GridException("Task name specified by @GridTaskName annotation cannot be " +
-                            "empty for class: " + taskCls);
-                }
-                else {
-                    taskName = taskCls.getName();
-                }
+                taskName = taskName(dep, taskCls, map);
             }
             catch (GridException e) {
                 taskName = taskCls.getName();
@@ -534,10 +501,10 @@ public class GridTaskProcessor extends GridProcessorAdapter {
                     // Set proper class name to make peer-loading possible.
                     taskCls = cls;
 
-                    taskName = map.containsKey(TC_TASK_NAME) ? (String)map.get(TC_TASK_NAME) : cls.getName();
-
                     // Implicit deploy.
                     dep = ctx.deploy().deploy(cls, ldr);
+
+                    taskName = taskName(dep, taskCls, map);
                 }
                 else {
                     taskCls = task.getClass();
@@ -550,21 +517,16 @@ public class GridTaskProcessor extends GridProcessorAdapter {
                     // Implicit deploy.
                     dep = ctx.deploy().deploy(cls, ldr);
 
-                    GridTaskName ann = dep.annotation(taskCls, GridTaskName.class);
+                    if (dep == null)
+                        throw new GridDeploymentException("Failed to auto-deploy task" +
+                                " (was task (re|un)deployed?): " + cls);
 
-                    if (ann != null) {
-                        taskName = ann.value();
-
-                        if (F.isEmpty(taskName))
-                            throw new GridException("Task name specified by @GridTaskName annotation cannot be empty " +
-                                "for class: " + taskCls);
-                    }
-                    else
-                        taskName = map.containsKey(TC_TASK_NAME) ? (String)map.get(TC_TASK_NAME) : cls.getName();
+                    taskName = taskName(dep, taskCls, map);
                 }
 
                 if (dep == null)
-                    throw new GridException("Failed to auto-deploy task (was task (re|un)deployed?): " + taskCls);
+                    throw new GridDeploymentException("Failed to auto-deploy task" +
+                        " (was task (re|un)deployed?): " + taskCls);
             }
             catch (GridException e) {
                 taskName = task.getClass().getName();
@@ -599,7 +561,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
 
         if (deployEx == null) {
             if (dep == null || !dep.acquire())
-                handleException(lsnr, new GridException("Task not deployed: " + ses.getTaskName()), fut);
+                handleException(lsnr, new GridDeploymentException("Task not deployed: " + ses.getTaskName()), fut);
             else {
                 Collection<? extends GridNode> subgrid = (Collection<? extends GridNode>)map.get(TC_SUBGRID);
 
@@ -674,6 +636,41 @@ public class GridTaskProcessor extends GridProcessorAdapter {
             handleException(lsnr, deployEx, fut);
 
         return fut;
+    }
+
+    /**
+     * Gets task name for a task class. It firstly checks
+     * {@link @GridTaskName} annotation, then thread context
+     * map. If both are empty, class name is returned.
+     *
+     * @param dep Deployment.
+     * @param cls Class.
+     * @param map Thread context map.
+     * @return Task name.
+     * @throws GridException If {@link @GridTaskName} annotation
+     *         is found, but has empty value.
+     */
+    private String taskName(GridDeployment dep, Class<?> cls,
+        Map<GridTaskThreadContextKey, Object> map) throws GridException {
+        assert dep != null;
+        assert cls != null;
+        assert map != null;
+
+        String taskName;
+
+        GridTaskName ann = dep.annotation(cls, GridTaskName.class);
+
+        if (ann != null) {
+            taskName = ann.value();
+
+            if (F.isEmpty(taskName))
+                throw new GridException("Task name specified by @GridTaskName annotation" +
+                    " cannot be empty for class: " + cls);
+        }
+        else
+            taskName = map.containsKey(TC_TASK_NAME) ? (String)map.get(TC_TASK_NAME) : cls.getName();
+
+        return taskName;
     }
 
     /**
@@ -775,12 +772,12 @@ public class GridTaskProcessor extends GridProcessorAdapter {
             // Do this inside of synchronization block, so every message
             // ID will be associated with a certain session state.
             for (GridJobSibling s : siblings) {
-                GridJobSiblingImpl sibling = (GridJobSiblingImpl)s;
+                GridJobSiblingImpl sib = (GridJobSiblingImpl)s;
 
-                UUID nodeId = sibling.nodeId();
+                UUID nodeId = sib.nodeId();
 
-                if (!nodeId.equals(locNodeId) && !sibling.isJobDone() && !msgIds.containsKey(nodeId))
-                    msgIds.put(nodeId, commMgr.getNextMessageId(sibling.jobTopic(), nodeId));
+                if (!nodeId.equals(locNodeId) && !sib.isJobDone() && !msgIds.containsKey(nodeId))
+                    msgIds.put(nodeId, commMgr.nextMessageId(sib.jobTopic(), nodeId));
             }
         }
 
@@ -800,9 +797,9 @@ public class GridTaskProcessor extends GridProcessorAdapter {
 
         // Every job gets an individual message to keep track of ghost requests.
         for (GridJobSibling s : ses.getJobSiblings()) {
-            GridJobSiblingImpl sibling = (GridJobSiblingImpl)s;
+            GridJobSiblingImpl sib = (GridJobSiblingImpl)s;
 
-            UUID nodeId = sibling.nodeId();
+            UUID nodeId = sib.nodeId();
 
             Long msgId = msgIds.remove(nodeId);
 
@@ -819,10 +816,10 @@ public class GridTaskProcessor extends GridProcessorAdapter {
                     try {
                         commMgr.sendOrderedMessage(
                             node,
-                            sibling.jobTopic(),
+                            sib.jobTopic(),
                             msgId,
                             req,
-                            GridIoPolicy.SYSTEM_POOL,
+                            SYSTEM_POOL,
                             timeout);
                     }
                     catch (GridException e) {
@@ -891,34 +888,34 @@ public class GridTaskProcessor extends GridProcessorAdapter {
         }
 
         /** {@inheritDoc} */
-        @Override public void onJobSend(GridTaskWorker<?, ?> worker, GridJobSiblingImpl sibling) {
+        @Override public void onJobSend(GridTaskWorker<?, ?> worker, GridJobSiblingImpl sib) {
             // Listener is stateless, so same listener can be reused for all jobs.
-            ctx.io().addMessageListener(sibling.taskTopic(), msgLsnr);
+            ctx.io().addMessageListener(sib.taskTopic(), msgLsnr);
         }
 
         /** {@inheritDoc} */
-        @Override public void onJobFailover(GridTaskWorker<?, ?> worker, GridJobSiblingImpl sibling, UUID nodeId) {
+        @Override public void onJobFailover(GridTaskWorker<?, ?> worker, GridJobSiblingImpl sib, UUID nodeId) {
             GridIoManager ioMgr = ctx.io();
 
             // Remove message ID registration and old listener.
-            ioMgr.removeMessageId(sibling.jobTopic());
-            ioMgr.removeMessageListener(sibling.taskTopic(), msgLsnr);
+            ioMgr.removeMessageId(sib.jobTopic());
+            ioMgr.removeMessageListener(sib.taskTopic(), msgLsnr);
 
             synchronized (worker.getSession()) {
                 // Reset ID on sibling prior to sending request.
-                sibling.nodeId(nodeId);
+                sib.nodeId(nodeId);
             }
 
             // Register new listener on new topic.
-            ioMgr.addMessageListener(sibling.taskTopic(), msgLsnr);
+            ioMgr.addMessageListener(sib.taskTopic(), msgLsnr);
         }
 
         /** {@inheritDoc} */
-        @Override public void onJobFinished(GridTaskWorker<?, ?> worker, GridJobSiblingImpl sibling) {
+        @Override public void onJobFinished(GridTaskWorker<?, ?> worker, GridJobSiblingImpl sib) {
             // Mark sibling finished for the purpose of
             // setting session attributes.
             synchronized (worker.getSession()) {
-                sibling.onJobDone();
+                sib.onJobDone();
             }
         }
 
@@ -1059,7 +1056,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
      * Listener to node discovery events.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private class TaskDiscoveryListener implements GridLocalEventListener {
         /** {@inheritDoc} */
@@ -1101,12 +1098,23 @@ public class GridTaskProcessor extends GridProcessorAdapter {
         }
     }
 
-    /** */
-    private class JobSiblingsMessageHandler implements
-        GridIoSyncMessageHandler<GridJobSiblingsRequest, Collection<GridJobSibling>> {
+    /**
+     *
+     */
+    @SuppressWarnings("deprecation")
+    private class JobSiblingsMessageHandler implements GridMessageListener {
         /** {@inheritDoc} */
-        @Nullable @Override public Collection<GridJobSibling> handleMessage(UUID nodeId, GridJobSiblingsRequest msg) {
-            GridUuid sesId = msg.getSessionId();
+        @Override public void onMessage(UUID nodeId, Object msg) {
+            if (!(msg instanceof GridJobSiblingsRequest)) {
+                U.warn(log, "Received unexpected message instead of siblings request: " + msg);
+
+                return;
+            }
+
+            GridJobSiblingsRequest req = (GridJobSiblingsRequest)msg;
+
+            GridUuid sesId = req.sessionId();
+            String topic = req.topic();
 
             GridTaskWorker<?, ?> worker;
 
@@ -1114,20 +1122,32 @@ public class GridTaskProcessor extends GridProcessorAdapter {
                 worker = tasks.get(sesId);
             }
 
-            if (worker != null)
+            Collection<GridJobSibling> siblings;
+
+            if (worker != null) {
                 try {
-                    return worker.getSession().getJobSiblings();
+                    siblings = worker.getSession().getJobSiblings();
                 }
                 catch (GridException e) {
-                    U.error(log, "Failed to get job siblings [request=" + msg + ", ses=" + worker.getSession() + ']', e);
+                    U.error(log, "Failed to get job siblings [request=" + msg +
+                        ", ses=" + worker.getSession() + ']', e);
 
-                    return null;
+                    siblings = null;
                 }
+            }
+            else {
+                if (log.isDebugEnabled())
+                    log.debug("Received job siblings request for unknown or finished task (will ignore): " + msg);
 
-            if (log.isDebugEnabled())
-                log.debug("Received job siblings request for unknown or finished task (will ignore): " + msg);
+                siblings = null;
+            }
 
-            return null;
+            try {
+                ctx.io().send(nodeId, topic, new GridJobSiblingsResponse(siblings), SYSTEM_POOL);
+            }
+            catch (GridException e) {
+                U.error(log, "Failed to send job sibling response.", e);
+            }
         }
     }
 }

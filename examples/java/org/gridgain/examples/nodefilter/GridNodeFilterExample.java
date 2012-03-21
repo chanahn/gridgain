@@ -29,16 +29,9 @@ import java.util.*;
  * refer to {@link GridMultipleTopologyExample} documentation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridNodeFilterExample {
-    /**
-     * Ensure singleton.
-     */
-    private GridNodeFilterExample() {
-        // No-op.
-    }
-
     /**
      * Execute {@code Node Filter} example on the grid.
      *

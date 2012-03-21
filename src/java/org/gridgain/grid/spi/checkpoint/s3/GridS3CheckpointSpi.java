@@ -92,14 +92,14 @@ import java.util.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridCheckpointSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.6.0c.09012012")
+    version = "4.0.0c.21032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridS3CheckpointSpi extends GridSpiAdapter implements GridCheckpointSpi, GridS3CheckpointSpiMBean {
     /** Logger. */
@@ -491,7 +491,7 @@ public class GridS3CheckpointSpi extends GridSpiAdapter implements GridCheckpoin
         if (log.isDebugEnabled())
             log.debug("Writing data to S3 [bucket=" + bucketName + ", key=" + data.getKey() + ']');
 
-        byte[] buf = U.marshal(marsh, data).getInternalArray();
+        byte[] buf = U.marshal(marsh, data).internalArray();
 
         ObjectMetadata meta = new ObjectMetadata();
 

@@ -18,7 +18,7 @@ import org.gridgain.grid.typedef.*;
  * {@code "spring-bean.xml"} Spring configuration file.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridifySpringBeanHelloWorld {
     /** Example state. */

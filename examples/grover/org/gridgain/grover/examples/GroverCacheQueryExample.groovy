@@ -23,7 +23,7 @@ import org.gridgain.grover.lang.*
  * Demonstrates cache ad-hoc queries with Grover.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @Typed
 @Use(GroverCacheProjectionCategory)
@@ -46,18 +46,14 @@ class GroverCacheQueryExample {
      * @param g Grid instance to use.
      */
     private static void example(Grid g) {
-        if (!g.isEnterprise())
-            println(">>> NOTE: in Community Edition all queries will be run localy.");
-
         // Populate cache.
         initialize()
 
         // Cache instance shortcut.
         def cache = this.<GridCacheAffinityKey<UUID>, Person>mkCache()
 
-        // Distributed queries only supported by Enterprise Edition.
-        // In Community Edition we'll use local node projection.
-        def prj = g.isEnterprise() ? g : g.localNode()
+        // In this example we'll use distributed queries.
+        def prj = g
 
         // Example for SQL-based querying employees based on salary ranges.
         // Gets all persons with 'salary > 1000'.
@@ -108,9 +104,8 @@ class GroverCacheQueryExample {
      * @return Cache to use.
      */
     private static <K, V> GridCacheProjection<K, V> mkCache() {
-        // In Community Edition queries work only for 'local' cache.
-        // Distributed queries aren't support in Community Edition.
-        cache$(grid$.isEnterprise() ? CACHE_NAME : "local").flagsOn(GridCacheFlag.SYNC_COMMIT)
+        // We're using distributed queries in this example.
+        cache$(CACHE_NAME).flagsOn(GridCacheFlag.SYNC_COMMIT)
     }
 
     /**
@@ -170,7 +165,7 @@ class GroverCacheQueryExample {
      * Organization class.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class Organization {
         @GridCacheQuerySqlField
@@ -189,7 +184,7 @@ class GroverCacheQueryExample {
      * Person class.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class Person {
         final Organization org

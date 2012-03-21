@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.*;
  * typedef.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunc {
     /** */
@@ -82,6 +82,59 @@ public class GridFunc {
 
         @Override public String toString() {
             return "Always false predicate.";
+        }
+    };
+
+    /** */
+    private static final GridOutClosure<?> DEQUE_FACTORY = new CO<GridConcurrentLinkedDeque>() {
+        @Override public GridConcurrentLinkedDeque apply() {
+            return new GridConcurrentLinkedDeque();
+        }
+
+        @Override public String toString() {
+            return "Deque factory.";
+        }
+    };
+
+    /** */
+    public static final GridPredicate<Object> IS_NULLL = new P1<Object>() {
+        @Override public boolean apply(Object o) {
+            return o == null;
+        }
+    };
+
+    /** */
+    public static final GridPredicate<Object> IS_NOT_NULLL = new P1<Object>() {
+        @Override public boolean apply(Object o) {
+            return o != null;
+        }
+    };
+
+    /** */
+    public static final GridPredicate<String> EMPTY_STRING = new P1<String>() {
+        @Override public boolean apply(String s) {
+            return isEmpty(s);
+        }
+    };
+
+    /** */
+    public static final GridPredicate<String> NOT_EMPTY_STRING = new P1<String>() {
+        @Override public boolean apply(String s) {
+            return !isEmpty(s);
+        }
+    };
+
+    /** */
+    public static final GridPredicate EMPTY_COLLECTION = new P1<Collection>() {
+        @Override public boolean apply(Collection c) {
+            return isEmpty(c);
+        }
+    };
+
+    /** */
+    public static final GridPredicate NOT_EMPTY_COLLECTION = new P1<Collection>() {
+        @Override public boolean apply(Collection c) {
+            return !isEmpty(c);
         }
     };
 
@@ -483,15 +536,14 @@ public class GridFunc {
     /**
      * Gets predicate that evaluates to {@code true} only for given local node ID.
      *
-     * @param localNodeId Local node ID.
+     * @param locNodeId Local node ID.
      * @param <T> Type of the node.
      * @return Return {@code true} only for the node with given local node ID.
      */
-    public static <T extends GridNode> GridPredicate<T> localNode(final UUID localNodeId) {
+    public static <T extends GridNode> GridPredicate<T> localNode(final UUID locNodeId) {
         return new P1<T>() {
-            @SuppressWarnings("deprecation")
             @Override public boolean apply(T n) {
-                return n.id().equals(localNodeId);
+                return n.id().equals(locNodeId);
             }
         };
     }
@@ -503,8 +555,12 @@ public class GridFunc {
      * @param <T> Type of the node.
      * @return Return {@code false} for the given local node ID.
      */
-    public static <T extends GridNode> GridPredicate<T> remoteNodes(UUID locNodeId) {
-        return not(GridFunc.<T>localNode(locNodeId));
+    public static <T extends GridNode> GridPredicate<T> remoteNodes(final UUID locNodeId) {
+        return new P1<T>() {
+            @Override public boolean apply(T n) {
+                return !n.id().equals(locNodeId);
+            }
+        };
     }
 
     /**
@@ -1759,14 +1815,14 @@ public class GridFunc {
      * flag is {@code false}, then a read-only view will be created over the element and given
      * collections and no copying will happen.
      *
-     * @param copy Copy flag.
+     * @param cp Copy flag.
      * @param t First element.
      * @param c Second collection.
      * @param <T> Element type.
      * @return Concatenated collection.
      */
-    public static <T> Collection<T> concat(boolean copy, @Nullable final T t, @Nullable final Collection<T> c) {
-        if (copy) {
+    public static <T> Collection<T> concat(boolean cp, @Nullable final T t, @Nullable final Collection<T> c) {
+        if (cp) {
             if (isEmpty(c)) {
                 Collection<T> l = new ArrayList<T>(1);
 
@@ -1833,15 +1889,15 @@ public class GridFunc {
      * {@code false}, then a read-only view will be created over given collections
      * and no copying will happen.
      *
-     * @param copy Copy flag.
+     * @param cp Copy flag.
      * @param c1 First collection.
      * @param c2 Second collection.
      * @param <T> Element type.
      * @return Concatenated {@code non-null} collection.
      */
-    public static <T> Collection<T> concat(boolean copy, @Nullable final Collection<T> c1,
+    public static <T> Collection<T> concat(boolean cp, @Nullable final Collection<T> c1,
         @Nullable final Collection<T> c2) {
-        if (copy) {
+        if (cp) {
             if (isEmpty(c1) && isEmpty(c2))
                 return new ArrayList<T>(0);
 
@@ -1936,18 +1992,18 @@ public class GridFunc {
      * Loses all elements in input collection that are contained in {@code filter} collection.
      *
      * @param c Input collection.
-     * @param copy If {@code true} method creates new collection not modifying input,
+     * @param cp If {@code true} method creates new collection not modifying input,
      *      otherwise does <tt>in-place</tt> modifications.
      * @param filter Filter collection. If {@code filter} collection is empty or
      *      {@code null} - no elements are lost.
      * @param <T> Type of collections.
      * @return Collection of remaining elements
      */
-    public static <T0, T extends T0> Collection<T> lose(Collection<T> c, boolean copy,
+    public static <T0, T extends T0> Collection<T> lose(Collection<T> c, boolean cp,
         @Nullable Collection<T0> filter) {
         A.notNull(c, "c");
 
-        return lose(c, copy, in(filter));
+        return lose(c, cp, in(filter));
     }
 
     /**
@@ -1955,18 +2011,18 @@ public class GridFunc {
      * all given predicates.
      *
      * @param c Input collection.
-     * @param copy If {@code true} method creates new collection without modifying the input one,
+     * @param cp If {@code true} method creates new collection without modifying the input one,
      *      otherwise does <tt>in-place</tt> modifications.
      * @param p Predicates to filter by. If no predicates provided - no elements are lost.
      * @param <T> Type of collections.
      * @return Collection of remaining elements.
      */
-    public static <T> Collection<T> lose(Collection<T> c, boolean copy, @Nullable GridPredicate<? super T>... p) {
+    public static <T> Collection<T> lose(Collection<T> c, boolean cp, @Nullable GridPredicate<? super T>... p) {
         A.notNull(c, "c");
 
         Collection<T> res;
 
-        if (!copy) {
+        if (!cp) {
             res = c;
 
             if (!isEmpty(p) && !isAlwaysFalse(p))
@@ -1990,7 +2046,7 @@ public class GridFunc {
      * Loses up to first {@code num} elements of the input collection.
      *
      * @param c Input collection.
-     * @param copy If {@code true} method creates new collection not modifying input,
+     * @param cp If {@code true} method creates new collection not modifying input,
      *      otherwise does <tt>in-place</tt> modifications.
      * @param num Maximum number of elements to lose (the actual number can be
      *      less if the input collection contains less elements).
@@ -1998,13 +2054,13 @@ public class GridFunc {
      * @return Collection of remaining elements.
      */
     @SuppressWarnings({"unchecked"})
-    public static <T> Collection<T> lose(Collection<? extends T> c, boolean copy, int num) {
+    public static <T> Collection<T> lose(Collection<? extends T> c, boolean cp, int num) {
         A.notNull(c, "c");
         A.ensure(num >= 0, "num >= 0");
 
         Collection<T> res;
 
-        if (!copy) {
+        if (!cp) {
             res = (Collection<T>)c;
 
             if (num >= c.size()) {
@@ -2048,7 +2104,7 @@ public class GridFunc {
      * Loses all entries in input map that are evaluated to {@code true} by all given predicates.
      *
      * @param m Map to filter.
-     * @param copy If {@code true} method creates new map not modifying input, otherwise does
+     * @param cp If {@code true} method creates new map not modifying input, otherwise does
      *      <tt>in-place</tt> modifications.
      * @param p Optional set of predicates to use for filtration. If none provided - original map
      *  will (or its copy) be returned.
@@ -2057,13 +2113,13 @@ public class GridFunc {
      * @return Filtered map.
      */
     @SuppressWarnings({"unchecked"})
-    public static <K, V> Map<K, V> lose(Map<K, V> m, boolean copy,
+    public static <K, V> Map<K, V> lose(Map<K, V> m, boolean cp,
         @Nullable GridPredicate<? super Map.Entry<K, V>>... p) {
         A.notNull(m, "m");
 
         Map<K, V> res;
 
-        if (!copy) {
+        if (!cp) {
             res = m;
 
             if (!isEmpty(p) && !isAlwaysFalse(p)) {
@@ -2094,7 +2150,7 @@ public class GridFunc {
      * given predicates.
      *
      * @param m Map to filter.
-     * @param copy If {@code true} method creates new map not modifying input, otherwise does
+     * @param cp If {@code true} method creates new map not modifying input, otherwise does
      *      <tt>in-place</tt> modifications.
      * @param p Optional set of predicates to use for filtration. If none provided - original
      *      map (or its copy) will be returned.
@@ -2102,9 +2158,9 @@ public class GridFunc {
      * @param <V> Type of map's values.
      * @return Filtered map.
      */
-    public static <K, V> Map<K, V> loseKeys(Map<K, V> m, boolean copy,
+    public static <K, V> Map<K, V> loseKeys(Map<K, V> m, boolean cp,
         @Nullable final GridPredicate<? super K>... p) {
-        return lose(m, copy, new P1<Map.Entry<K, V>>() {
+        return lose(m, cp, new P1<Map.Entry<K, V>>() {
             @Override public boolean apply(Map.Entry<K, V> e) {
                 return isAll(e.getKey(), p);
             }
@@ -2116,7 +2172,7 @@ public class GridFunc {
      * given predicates.
      *
      * @param m Map to filter.
-     * @param copy If {@code true} method creates new map not modifying input, otherwise does
+     * @param cp If {@code true} method creates new map not modifying input, otherwise does
      *      <tt>in-place</tt> modifications.
      * @param p Optional set of predicates to use for filtration. If none provided - original
      *      map (or its copy) will be returned.
@@ -2124,9 +2180,9 @@ public class GridFunc {
      * @param <V> Type of map's values.
      * @return Filtered map.
      */
-    public static <K, V> Map<K, V> loseValues(Map<K, V> m, boolean copy,
+    public static <K, V> Map<K, V> loseValues(Map<K, V> m, boolean cp,
         @Nullable final GridPredicate<? super V>... p) {
-        return lose(m, copy, new P1<Map.Entry<K, V>>() {
+        return lose(m, cp, new P1<Map.Entry<K, V>>() {
             @Override public boolean apply(Map.Entry<K, V> e) {
                 return isAll(e.getValue(), p);
             }
@@ -2137,19 +2193,19 @@ public class GridFunc {
      * Loses all elements in input list that are contained in {@code filter} collection.
      *
      * @param c Input list.
-     * @param copy If {@code true} method creates new list not modifying input,
+     * @param cp If {@code true} method creates new list not modifying input,
      *      otherwise does <tt>in-place</tt> modifications.
      * @param filter Filter collection. If {@code filter} collection is empty or
      *      {@code null} - no elements are lost.
      * @param <T> Type of list.
      * @return List of remaining elements
      */
-    public static <T> List<T> loseList(List<T> c, boolean copy, @Nullable Collection<? super T> filter) {
+    public static <T> List<T> loseList(List<T> c, boolean cp, @Nullable Collection<? super T> filter) {
         A.notNull(c, "c");
 
         List<T> res;
 
-        if (!copy) {
+        if (!cp) {
             res = c;
 
             if (filter != null) {
@@ -2170,22 +2226,56 @@ public class GridFunc {
     }
 
     /**
+     * Loses all elements in input list for which any of the predicates evaluate to {@code true}.
+     *
+     * @param c Input list.
+     * @param cp If {@code true} method creates new list not modifying input,
+     *      otherwise does <tt>in-place</tt> modifications.
+     * @param p Looses all elements for which any of the predicates evaluate to {@code true}.
+     * @param <T> Type of list.
+     * @return List of remaining elements
+     */
+    public static <T> List<T> filterList(List<T> c, boolean cp, @Nullable GridPredicate<T>... p) {
+        A.notNull(c, "c");
+
+        List<T> res;
+
+        if (!cp) {
+            res = c;
+
+            if (p != null)
+                for (Iterator<T> it = c.iterator(); it.hasNext();)
+                    if (isAny(it.next(), p))
+                        it.remove();
+        }
+        else {
+            res = new LinkedList<T>();
+
+            for (T t : c)
+                if (!isAny(t, p))
+                    res.add(t);
+        }
+
+        return res;
+    }
+
+    /**
      * Loses all elements in input set that are contained in {@code filter} collection.
      *
      * @param c Input set.
-     * @param copy If {@code true} method creates new list not modifying input,
+     * @param cp If {@code true} method creates new list not modifying input,
      *      otherwise does <tt>in-place</tt> modifications.
      * @param filter Filter collection. If {@code filter} collection is empty or
      *      {@code null} - no elements are lost.
      * @param <T> Type of set.
      * @return Set of remaining elements
      */
-    public static <T> Set<T> loseSet(Set<T> c, boolean copy, @Nullable Collection<? super T> filter) {
+    public static <T> Set<T> loseSet(Set<T> c, boolean cp, @Nullable Collection<? super T> filter) {
         A.notNull(c, "c");
 
         Set<T> res;
 
-        if (!copy) {
+        if (!cp) {
             res = c;
 
             if (filter != null) {
@@ -2427,18 +2517,18 @@ public class GridFunc {
      * Retains all elements in input collection that are contained in {@code filter}.
      *
      * @param c Input collection.
-     * @param copy If {@code true} method creates collection not modifying input, otherwise does
+     * @param cp If {@code true} method creates collection not modifying input, otherwise does
      *      <tt>in-place</tt> modifications.
      * @param filter Filter collection. If filter collection is {@code null} or empty -
      *      an empty collection will be returned.
      * @param <T> Type of collections.
      * @return Collection of retain elements.
      */
-    public static <T0, T extends T0> Collection<T> retain(Collection<T> c, boolean copy,
+    public static <T0, T extends T0> Collection<T> retain(Collection<T> c, boolean cp,
         @Nullable Collection<? extends T0> filter) {
         A.notNull(c, "c");
 
-        return retain(c, copy, in(filter));
+        return retain(c, cp, in(filter));
     }
 
     /**
@@ -2446,37 +2536,37 @@ public class GridFunc {
      * by all given predicates.
      *
      * @param c Input collection.
-     * @param copy If {@code true} method creates collection not modifying input, otherwise does
+     * @param cp If {@code true} method creates collection not modifying input, otherwise does
      *      <tt>in-place</tt> modifications.
      * @param p Predicates to filter by. If no predicates provides - all elements
      *      will be retained.
      * @param <T> Type of collections.
      * @return Collection of retain elements.
      */
-    public static <T> Collection<T> retain(Collection<T> c, boolean copy, @Nullable GridPredicate<? super T>... p) {
+    public static <T> Collection<T> retain(Collection<T> c, boolean cp, @Nullable GridPredicate<? super T>... p) {
         A.notNull(c, "c");
 
-        return lose(c, copy, not(p));
+        return lose(c, cp, not(p));
     }
 
     /**
      * Retains only up to first {@code num} elements in the input collection.
      *
      * @param c Input collection.
-     * @param copy If {@code true} method creates collection not modifying input, otherwise does
+     * @param cp If {@code true} method creates collection not modifying input, otherwise does
      *      <tt>in-place</tt> modifications.
      * @param num Maximum number of elements to retain (the actual number can be
      *      less if the input collection contains less elements).
      * @param <T> Type of the collections.
      * @return Collection contains up to {@code num} first elements from the input collection.
      */
-    public static <T> Collection<T> retain(Collection<T> c, boolean copy, int num) {
+    public static <T> Collection<T> retain(Collection<T> c, boolean cp, int num) {
         A.notNull(c, "c");
         A.ensure(num >= 0, "num >= 0");
 
         Collection<T> res;
 
-        if (!copy) {
+        if (!cp) {
             res = c;
 
             if (num < res.size()) {
@@ -2507,7 +2597,7 @@ public class GridFunc {
      * no predicates provided - all entries will be retain.
      *
      * @param m Map to retain entries from.
-     * @param copy If {@code true} method creates new map not modifying input, otherwise does
+     * @param cp If {@code true} method creates new map not modifying input, otherwise does
      *      <tt>in-place</tt> modifications.
      * @param p Optional set of predicate to use for filtration. If none provided - original
      *      map (or its copy) will be returned.
@@ -2515,9 +2605,9 @@ public class GridFunc {
      * @param <V> Type of map's values.
      * @return Filtered map.
      */
-    public static <K, V> Map<K, V> retain(Map<K, V> m, boolean copy,
+    public static <K, V> Map<K, V> retain(Map<K, V> m, boolean cp,
         @Nullable GridPredicate<? super Map.Entry<K, V>>... p) {
-        return lose(m, copy, F.not(p));
+        return lose(m, cp, F.not(p));
     }
 
     /**
@@ -2525,7 +2615,7 @@ public class GridFunc {
      * no predicates provided - all entries will be retain.
      *
      * @param m Map to retain entries from.
-     * @param copy If {@code true} method creates new map not modifying input, otherwise does
+     * @param cp If {@code true} method creates new map not modifying input, otherwise does
      *      <tt>in-place</tt> modifications.
      * @param p Optional set of predicate to use for filtration. If none provided - original
      *      map (or its copy) will be returned.
@@ -2533,8 +2623,8 @@ public class GridFunc {
      * @param <V> Type of map's values.
      * @return Filtered map.
      */
-    public static <K, V> Map<K, V> retainKeys(Map<K, V> m, boolean copy, @Nullable GridPredicate<? super K>... p) {
-        return loseKeys(m, copy, F.not(p));
+    public static <K, V> Map<K, V> retainKeys(Map<K, V> m, boolean cp, @Nullable GridPredicate<? super K>... p) {
+        return loseKeys(m, cp, F.not(p));
     }
 
     /**
@@ -2542,7 +2632,7 @@ public class GridFunc {
      * If no predicates provided - all entries will be retain and the same map will be returned.
      *
      * @param m Map to retain entries from.
-     * @param copy If {@code true} method creates new map not modifying input, otherwise does
+     * @param cp If {@code true} method creates new map not modifying input, otherwise does
      *      <tt>in-place</tt> modifications.
      * @param p Optional set of predicate to use for filtration. If none provided - original
      *      map (or its copy) will be returned.
@@ -2550,8 +2640,8 @@ public class GridFunc {
      * @param <V> Type of map's values.
      * @return Filtered map.
      */
-    public static <K, V> Map<K, V> retainValues(Map<K, V> m, boolean copy, @Nullable GridPredicate<? super V>... p) {
-        return loseValues(m, copy, F.not(p));
+    public static <K, V> Map<K, V> retainValues(Map<K, V> m, boolean cp, @Nullable GridPredicate<? super V>... p) {
+        return loseValues(m, cp, F.not(p));
     }
 
     /**
@@ -2563,8 +2653,7 @@ public class GridFunc {
      */
     public static <T extends Callable<?>> Collection<GridJob> outJobs(@Nullable Collection<? extends T> c) {
         return isEmpty(c) ? Collections.<GridJob>emptyList() : viewReadOnly(c, new C1<T, GridJob>() {
-            @Override
-            public GridJob apply(T e) {
+            @Override public GridJob apply(T e) {
                 return job(e);
             }
         });
@@ -2579,8 +2668,7 @@ public class GridFunc {
      */
     public static <T extends Runnable> Collection<GridJob> absJobs(@Nullable Collection<? extends T> c) {
         return isEmpty(c) ? Collections.<GridJob>emptyList() : viewReadOnly(c, new C1<T, GridJob>() {
-            @Override
-            public GridJob apply(T e) {
+            @Override public GridJob apply(T e) {
                 return job(e);
             }
         });
@@ -2922,8 +3010,7 @@ public class GridFunc {
         A.notNull(c, "c", f, "f");
 
         return viewReadOnly(c, new C1<T, GridOutClosure<R>>() {
-            @Override
-            public GridOutClosure<R> apply(T e) {
+            @Override public GridOutClosure<R> apply(T e) {
                 return f.curry(e);
             }
         });
@@ -3201,8 +3288,7 @@ public class GridFunc {
                 peerDeployLike(U.peerDeployAware(c));
             }
 
-            @Override
-            public R apply() {
+            @Override public R apply() {
                 try {
                     return c.call();
                 }
@@ -3564,7 +3650,7 @@ public class GridFunc {
                                         return trans.apply(e.getValue());
                                     }
 
-                                    @Override public V1 setValue(V1 value) {
+                                    @Override public V1 setValue(V1 val) {
                                         throw new UnsupportedOperationException("Put is not supported for readonly map view.");
                                     }
                                 };
@@ -3720,6 +3806,19 @@ public class GridFunc {
         catch (Exception e) {
             throw wrap(e);
         }
+    }
+
+    /**
+     * Returns a factory closure that creates new {@link GridConcurrentLinkedDeque} instance.
+     * Note that this method does not create a new closure but returns a static one.
+     *
+     * @param <T> Type parameters for the created {@link List}.
+     * @return Factory closure that creates new {@link List} instance every
+     *      time its {@link GridOutClosure#apply()} method is called.
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> GridOutClosure<GridConcurrentLinkedDeque<T>> newDeque() {
+        return (GridOutClosure<GridConcurrentLinkedDeque<T>>)DEQUE_FACTORY;
     }
 
     /**
@@ -4181,11 +4280,7 @@ public class GridFunc {
      * @return Predicate that evaluates to {@code true} if its free variable is {@code null}.
      */
     public static <T> GridPredicate<T> isNull() {
-        return new P1<T>() {
-            @Override public boolean apply(T t) {
-                return t == null;
-            }
-        };
+        return (GridPredicate<T>)IS_NULLL;
     }
 
     /**
@@ -4195,11 +4290,45 @@ public class GridFunc {
      * @return Predicate that evaluates to {@code true} if its free variable is not {@code null}.
      */
     public static <T> GridPredicate<T> notNull() {
-        return new P1<T>() {
-            @Override public boolean apply(T t) {
-                return t != null;
-            }
-        };
+        return (GridPredicate<T>)IS_NOT_NULLL;
+    }
+
+    /**
+     * Gets predicate which checks if string is {@code null} or empty.
+     *
+     * @return Predicate which checks if string is {@code null} or empty.
+     */
+    public static GridPredicate<String> isEmptyString() {
+        return EMPTY_STRING;
+    }
+
+    /**
+     * Gets predicate which checks if string is not {@code null} or empty.
+     *
+     * @return Predicate which checks if string is not {@code null} or empty.
+     */
+    public static GridPredicate<String> isNotEmptyString() {
+        return NOT_EMPTY_STRING;
+    }
+
+    /**
+     * Gets predicate which checks if collection is {@code null} or empty.
+     *
+     * @param <T> Type of collection element.
+     * @return Predicate which checks if collection is empty.
+     */
+    public static <T> GridPredicate<Collection<T>> isEmptyCollection() {
+        return (GridPredicate<Collection<T>>)EMPTY_COLLECTION;
+    }
+
+    /**
+     * Gets predicate which checks if collection is not {@code null} or empty.
+     *
+     * @param <T> Type of collection element.
+     * @return Predicate which checks if collection is not {@code null} or empty.
+     */
+    public static <T> GridPredicate<Collection<T>> isNotEmptyCollection() {
+        return (GridPredicate<Collection<T>>)NOT_EMPTY_COLLECTION;
     }
 
     /**

@@ -9,6 +9,8 @@
 
 package org.gridgain.grid.cache;
 
+import java.io.*;
+
 /**
  * Cache metrics used to obtain statistics on cache itself or any of its entries.
  * Use {@link GridCache#metrics()} to obtain metrics on cache and
@@ -16,9 +18,9 @@ package org.gridgain.grid.cache;
  * entries.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
-public interface GridCacheMetrics {
+public interface GridCacheMetrics extends Serializable {
     /**
      * Gets create time of the owning entity (either cache or entry).
      *

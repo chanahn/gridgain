@@ -34,7 +34,7 @@ import static org.gridgain.grid.cache.GridCacheConfiguration.*;
  * Distributed Garbage Collector for cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
     /** Flag to log trace enabled/disabled message. */
@@ -65,7 +65,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
     private GridLogger traceLog;
 
     /** */
-    private CI2<UUID, GridCacheDgcRequest<K, V>> reqHandler = new CI2<UUID, GridCacheDgcRequest<K, V>>() {
+    private CI2<UUID, GridCacheDgcRequest<K, V>> reqHnd = new CI2<UUID, GridCacheDgcRequest<K, V>>() {
         @Override public void apply(UUID nodeId, GridCacheDgcRequest<K, V> req) {
             if (log.isDebugEnabled())
                 log.debug("Received DGC request [rmtNodeId=" + nodeId + ", req=" + req + ']');
@@ -75,7 +75,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
     };
 
     /** */
-    private CI2<UUID, GridCacheDgcResponse<K, V>> resHandler = new CI2<UUID, GridCacheDgcResponse<K, V>>() {
+    private CI2<UUID, GridCacheDgcResponse<K, V>> resHnd = new CI2<UUID, GridCacheDgcResponse<K, V>>() {
         @Override public void apply(UUID nodeId, GridCacheDgcResponse<K, V> res) {
             if (log.isDebugEnabled())
                 log.debug("Received DGC response [rmtNodeId=" + nodeId + ", res=" + res + ']');
@@ -124,8 +124,8 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
 
         resThread.start();
 
-        cctx.io().addHandler(GridCacheDgcRequest.class, reqHandler);
-        cctx.io().addHandler(GridCacheDgcResponse.class, resHandler);
+        cctx.io().addHandler(GridCacheDgcRequest.class, reqHnd);
+        cctx.io().addHandler(GridCacheDgcResponse.class, resHnd);
 
         if (log.isDebugEnabled())
             log.debug("Started DGC manager " +
@@ -149,8 +149,8 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
             // No-op for local cache.
             return;
 
-        cctx.io().removeHandler(GridCacheDgcRequest.class, reqHandler);
-        cctx.io().removeHandler(GridCacheDgcResponse.class, resHandler);
+        cctx.io().removeHandler(GridCacheDgcRequest.class, reqHnd);
+        cctx.io().removeHandler(GridCacheDgcResponse.class, resHnd);
 
         if (reqThread != null) {
             U.interrupt(reqThread);
@@ -482,7 +482,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
             while (!isCancelled()) {
                 GridTuple2<UUID, GridCacheDgcRequest<K, V>> tup = queue.take();
 
-                UUID senderId = tup.get1();
+                UUID sndId = tup.get1();
                 GridCacheDgcRequest<K, V> req = tup.get2();
 
                 GridCacheDgcResponse<K, V> res = new GridCacheDgcResponse<K, V>();
@@ -508,7 +508,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
                                 if (cached == null || !cached.hasLockCandidate(ver)) {
                                     if (traceLog.isDebugEnabled()) {
                                         traceLog.debug("Failed to find main lock for remote candidate [cand=" + cand +
-                                            ", entry=" + cached + ", rmtNodeId=" + senderId + ']');
+                                            ", entry=" + cached + ", rmtNodeId=" + sndId + ']');
                                     }
 
                                     res.addCandidate(key, new BadLock(
@@ -533,7 +533,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
                     traceLog.debug("DGC trace data: " + U.nl() + traceData());
 
                 if (!res.candidatesMap().isEmpty())
-                    sendMessage(senderId, res);
+                    sendMessage(sndId, res);
             }
         }
     }
@@ -884,7 +884,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
         private final long suspectLockTimeout;
 
         /** */
-        private final boolean removeLocks;
+        private final boolean rmvLocks;
 
         /** */
         @GridInstanceResource
@@ -893,17 +893,17 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
         /**
          * @param cacheName Cache name.
          * @param suspectLockTimeout Suspect lock timeout.
-         * @param removeLocks Remove locks flag.
+         * @param rmvLocks Remove locks flag.
          */
-        private DgcCallable(String cacheName, long suspectLockTimeout, boolean removeLocks) {
+        private DgcCallable(String cacheName, long suspectLockTimeout, boolean rmvLocks) {
             this.cacheName = cacheName;
             this.suspectLockTimeout = suspectLockTimeout;
-            this.removeLocks = removeLocks;
+            this.rmvLocks = rmvLocks;
         }
 
         /** {@inheritDoc} */
         @Nullable @Override public Object call() throws Exception {
-            grid.cache(cacheName).dgc(suspectLockTimeout, false, removeLocks);
+            grid.cache(cacheName).dgc(suspectLockTimeout, false, rmvLocks);
 
             return null;
         }
@@ -913,7 +913,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
      * DGC request.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class GridCacheDgcRequest<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable {
         /** */
@@ -942,7 +942,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
                 for (K key : map.keySet())
                     prepareObject(key, ctx);
 
-                mapBytes = CU.marshal(ctx, map).getEntireArray();
+                mapBytes = CU.marshal(ctx, map).entireArray();
             }
         }
 
@@ -1020,7 +1020,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
      * DGC response.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class GridCacheDgcResponse<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable {
         /** */
@@ -1032,7 +1032,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
         private byte[] mapBytes;
 
         /** */
-        private boolean removeLocks;
+        private boolean rmvLocks;
 
         /**
          * Constructor.
@@ -1049,7 +1049,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
                 for (K key : map.keySet())
                     prepareObject(key, ctx);
 
-                mapBytes = CU.marshal(ctx, map).getEntireArray();
+                mapBytes = CU.marshal(ctx, map).entireArray();
             }
         }
 
@@ -1086,14 +1086,14 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
          * @return Remove locks flag for this DGC iteration.
          */
         public boolean removeLocks() {
-            return removeLocks;
+            return rmvLocks;
         }
 
         /**
-         * @param removeLocks Remove locks flag for this DGC iteration.
+         * @param rmvLocks Remove locks flag for this DGC iteration.
          */
-        public void removeLocks(boolean removeLocks) {
-            this.removeLocks = removeLocks;
+        public void removeLocks(boolean rmvLocks) {
+            this.rmvLocks = rmvLocks;
         }
 
         /** {@inheritDoc} */
@@ -1102,7 +1102,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
 
             mapBytes = U.readByteArray(in);
 
-            removeLocks = in.readBoolean();
+            rmvLocks = in.readBoolean();
         }
 
         /** {@inheritDoc} */
@@ -1111,7 +1111,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
 
             U.writeByteArray(out, mapBytes);
 
-            out.writeBoolean(removeLocks);
+            out.writeBoolean(rmvLocks);
         }
 
         /** {@inheritDoc} */

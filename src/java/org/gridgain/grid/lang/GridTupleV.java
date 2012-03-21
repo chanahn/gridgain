@@ -25,7 +25,7 @@ import java.util.*;
  * synchronization, if needed.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridFunc#tv(Object...)
  */
 public class GridTupleV extends GridMetadataAwareAdapter implements GridProduct, GridPeerDeployAware, Externalizable {
@@ -187,14 +187,12 @@ public class GridTupleV extends GridMetadataAwareAdapter implements GridProduct,
     }
 
     /** {@inheritDoc} */
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
         return Arrays.hashCode(vals);
     }
 
     /** {@inheritDoc} */
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
         return this == o || o instanceof GridTupleV && Arrays.equals(vals, ((GridTupleV)o).vals);
     }
 

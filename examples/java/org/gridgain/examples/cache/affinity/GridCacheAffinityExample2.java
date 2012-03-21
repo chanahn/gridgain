@@ -19,23 +19,19 @@ import java.util.*;
 import static org.gridgain.grid.GridClosureCallMode.*;
 
 /**
- * This example works only on <b>Enterprise Edition.</b>
- * <p>
  * Demonstrates how to collocate computations and data in GridGain using
  * direct API calls as opposed to {@link GridCacheAffinityMapped} annotation. This
  * example will first populate cache on some nodes where cache is available, and then
  * will send jobs to the nodes where keys reside and print out values for those keys.
  * <p>
- * Note that for Enterprise Edition affinity routing is enabled for all caches. In
- * Community Edition affinity routing works only if the cache is configured locally.
+ * Affinity routing is enabled for all caches.
  * <p>
  * Remote nodes should always be started with configuration file which includes
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}. Local node can
- * be started with or without cache depending on whether community or enterprise
- * edition is used respectively.
+ * be started with or without cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheAffinityExample2 {
     /**
@@ -45,13 +41,6 @@ public class GridCacheAffinityExample2 {
 
     /** Name of cache specified in spring configuration. */
     private static final String NAME = "partitioned";
-
-    /**
-     * Ensure singleton.
-     */
-    private GridCacheAffinityExample2() {
-        // No-op.
-    }
 
     /**
      * Executes cache affinity example.
@@ -65,10 +54,6 @@ public class GridCacheAffinityExample2 {
     public static void main(String[] args) throws Exception {
         G.in(args.length == 0 ? CONFIG : args[0], new CIX1<Grid>() {
             @Override public void applyx(final Grid g) throws GridException {
-                if (!g.isEnterprise() && g.cache(NAME) == null)
-                    throw new GridException("This example without having cache '" + NAME + "' started locally " +
-                        "works only in Enterprise Edition.");
-
                 Collection<String> keys = new ArrayList<String>('Z' - 'A' + 1);
 
                 // Create collection of capital letters of English alphabet.
@@ -78,10 +63,7 @@ public class GridCacheAffinityExample2 {
                 // Populate cache with keys.
                 populateCache(g, keys);
 
-                // Map all keys to nodes. Note that community edition requires that
-                // cache with given name is started on this node. Otherwise, use
-                // enterprise edition to find out mapping on nodes that don't have
-                // cache running.
+                // Map all keys to nodes.
                 Map<GridRichNode, Collection<String>> mappings = g.mapKeysToNodes(NAME, keys);
 
                 // If on community edition, we have to get mappings from GridCache

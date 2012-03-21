@@ -20,11 +20,11 @@ import java.util.concurrent.atomic.*;
  * Grid client for NIO server.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridNioClient {
     /** Socket. */
-    private final Socket sock = new Socket();
+    private final Socket sock;
 
     /** Time when this client was last used. */
     private volatile long lastUsed = System.currentTimeMillis();
@@ -33,32 +33,29 @@ public class GridNioClient {
     private final AtomicInteger reserves = new AtomicInteger();
 
     /**
+     *
      * @param addr Address.
      * @param port Port.
-     * @param localHost Local address.
-     * @throws GridException If failed.
-     */
-    public GridNioClient(InetAddress addr, int port, InetAddress localHost) throws GridException {
-        this(addr, port, localHost, 0);
-    }
-
-    /**
-     * @param addr Address.
-     * @param port Port.
-     * @param localHost Local address.
+     * @param locHost Local address.
      * @param connTimeout Connect timeout.
+     * @param tcpNoDelay Value for {@code TCP_NODELAY} socket option.
      * @throws GridException If failed.
      */
-    public GridNioClient(InetAddress addr, int port, InetAddress localHost, int connTimeout) throws GridException {
+    public GridNioClient(InetAddress addr, int port, InetAddress locHost, int connTimeout, boolean tcpNoDelay)
+        throws GridException {
         assert addr != null;
         assert port > 0 && port < 0xffff;
-        assert localHost != null;
+        assert locHost != null;
         assert connTimeout >= 0;
+
+        sock = new Socket();
 
         boolean success = false;
 
         try {
-            sock.bind(new InetSocketAddress(localHost, 0));
+            sock.bind(new InetSocketAddress(locHost, 0));
+
+            sock.setTcpNoDelay(tcpNoDelay);
 
             sock.connect(new InetSocketAddress(addr, port), connTimeout);
 
@@ -66,7 +63,7 @@ public class GridNioClient {
         }
         catch (IOException e) {
             throw new GridException("Failed to connect to remote host [addr=" + addr + ", port=" + port +
-                ", localHost=" + localHost + ']', e);
+                ", localHost=" + locHost + ']', e);
         }
         finally {
             if (!success)

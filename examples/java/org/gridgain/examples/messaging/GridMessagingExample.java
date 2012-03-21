@@ -27,16 +27,9 @@ import java.util.*;
  * task session.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridMessagingExample {
-    /**
-     * Ensure singleton.
-     */
-    private GridMessagingExample() {
-        // No-op.
-    }
-
     /**
      * Sends a sample message to local node and receives it via listener.
      *

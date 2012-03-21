@@ -24,7 +24,7 @@ import java.util.*;
  * Base for all messages in replicated cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public abstract class GridDistributedBaseMessage<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable,
     GridCacheVersionable {
@@ -96,7 +96,7 @@ public abstract class GridDistributedBaseMessage<K, V> extends GridCacheMessage<
             for (K key : candsByKey.keySet())
                 prepareObject(key, ctx);
 
-            candsByKeyBytes = CU.marshal(ctx, candsByKey).getEntireArray();
+            candsByKeyBytes = CU.marshal(ctx, candsByKey).entireArray();
         }
     }
 

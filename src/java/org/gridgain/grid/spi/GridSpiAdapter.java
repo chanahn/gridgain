@@ -12,7 +12,6 @@ package org.gridgain.grid.spi;
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.kernal.*;
-import org.gridgain.grid.kernal.processors.port.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.typedef.*;
@@ -30,7 +29,7 @@ import static org.gridgain.grid.GridEventType.*;
  * This class provides convenient adapter for SPI implementations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean, GridSpiJsonConfigurable {
     /** System line separator. */
@@ -64,8 +63,15 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
     /** SPI name. */
     private String name;
 
+    /** Authenticator. */
+    private volatile Authenticator auth = new Authenticator() {
+        @Override public boolean authenticateNode(UUID nodeId, Map<String, Object> attrs) {
+            return false;
+        }
+    };
+
     /** Grid SPI context. */
-    private GridSpiContext spiCtx = new GridDummySpiContext(null);
+    private GridSpiContext spiCtx = new GridDummySpiContext(null, auth);
 
     /** Discovery listener. */
     private GridLocalEventListener paramsLsnr;
@@ -161,9 +167,15 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
     @Override public void onContextInitialized(final GridSpiContext spiCtx) throws GridSpiException {
         assert spiCtx != null;
 
+        auth = new Authenticator() {
+            @Override public boolean authenticateNode(UUID nodeId, Map<String, Object> attrs) throws GridException {
+                return spiCtx.authenticateNode(nodeId, attrs);
+            }
+        };
+
         this.spiCtx = spiCtx;
 
-        getSpiContext().addLocalEventListener(paramsLsnr = new GridLocalEventListener() {
+        spiCtx.addLocalEventListener(paramsLsnr = new GridLocalEventListener() {
             @Override public void onEvent(GridEvent evt) {
                 assert evt instanceof GridDiscoveryEvent : "Invalid event [expected=" + EVT_NODE_JOINED +
                     ", actual=" + evt.type() + ", evt=" + evt + ']';
@@ -171,12 +183,12 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
                 GridNode node = spiCtx.node(((GridDiscoveryEvent)evt).eventNodeId());
 
                 if (node != null)
-                    checkConfigurationConsistency(node, false);
+                    checkConfigurationConsistency(spiCtx, node, false);
             }
         }, EVT_NODE_JOINED);
 
-        for (GridNode node : getSpiContext().remoteNodes())
-            checkConfigurationConsistency(node, true);
+        for (GridNode node : spiCtx.remoteNodes())
+            checkConfigurationConsistency(spiCtx, node, true);
     }
 
     /** {@inheritDoc} */
@@ -187,7 +199,7 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
         GridNode locNode = spiCtx == null ? null : spiCtx.localNode();
 
         // Set dummy no-op context.
-        spiCtx = new GridDummySpiContext(locNode);
+        spiCtx = new GridDummySpiContext(locNode, auth);
     }
 
     /**
@@ -265,13 +277,13 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
      * Gets uniformed string for configuration parameter.
      *
      * @param name Parameter name.
-     * @param value Parameter value.
+     * @param val Parameter value.
      * @return Uniformed string for configuration parameter.
      */
-    protected final String configInfo(String name, Object value) {
+    protected final String configInfo(String name, Object val) {
         assert name != null;
 
-        return "Using parameter [" + name + '=' + value + ']';
+        return "Using parameter [" + name + '=' + val + ']';
     }
 
     /**
@@ -337,17 +349,18 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
     /**
      * Checks remote node SPI configuration and prints warnings if necessary.
      *
+     * @param spiCtx SPI context.
      * @param node Remote node.
      * @param starting Flag indicating whether this method is called during SPI start or
-     *      during node joined event.
      */
     @SuppressWarnings("IfMayBeConditional")
-    protected void checkConfigurationConsistency(GridNode node, boolean starting) {
+    protected void checkConfigurationConsistency(GridSpiContext spiCtx, GridNode node, boolean starting) {
+        assert spiCtx != null;
         assert node != null;
 
         /*** Don't compare SPIs from different virtual grids. ***/
 
-        String locGridName = getSpiContext().localNode().attribute(GridNodeAttributes.ATTR_GRID_NAME);
+        String locGridName = spiCtx.localNode().attribute(GridNodeAttributes.ATTR_GRID_NAME);
         String rmtGridName = node.attribute(GridNodeAttributes.ATTR_GRID_NAME);
 
         if (!F.eq(locGridName, rmtGridName)) {
@@ -380,10 +393,10 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
          */
         if (!attrs.isEmpty()) {
             /* Check SPI class and version. */
-            String locCls = getSpiContext().localNode().attribute(clsAttr);
+            String locCls = spiCtx.localNode().attribute(clsAttr);
             String rmtCls = node.attribute(clsAttr);
 
-            String locVer = getSpiContext().localNode().attribute(verAttr);
+            String locVer = spiCtx.localNode().attribute(verAttr);
             String rmtVer = node.attribute(verAttr);
 
             assert locCls != null: "Local SPI class name attribute not found: " + clsAttr;
@@ -408,14 +421,14 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
         }
 
         // It makes no sense to compare inconsistent SPIs attributes.
-        if (isSpiConsistent)
+        if (isSpiConsistent) {
             // Process all SPI specific attributes.
             for (String attr: attrs) {
                 // Ignore class and version attributes processed above.
                 if (!attr.equals(clsAttr) && !attr.equals(verAttr)) {
                     // This check is considered as optional if no attributes
                     Object rmtVal = node.attribute(attr);
-                    Object locVal = getSpiContext().localNode().attribute(attr);
+                    Object locVal = spiCtx.localNode().attribute(attr);
 
                     if (locVal == null && rmtVal == null)
                         continue;
@@ -424,6 +437,7 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
                         sb.a(format(">>> Remote node has different " + getName() + " SPI attribute " +
                             attr, locVal, rmtVal));
                 }
+            }
         }
 
         if (sb.length() > 0) {
@@ -444,7 +458,7 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
                     ">>> +-------------------------------------------------------------------+" + NL +
                     ">>> Remote Node ID: " + node.id().toString().toUpperCase() + NL + sb;
 
-            U.warn(log, msg);
+            U.courtesy(log, msg);
         }
     }
 
@@ -487,19 +501,24 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
      * Temporarily SPI context.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class GridDummySpiContext implements GridSpiContext {
         /** */
         private final GridNode locNode;
 
+        /** */
+        private final Authenticator auth;
+
         /**
          * Create temp SPI context.
          *
          * @param locNode Local node.
+         * @param auth Authenticator.
          */
-        GridDummySpiContext(GridNode locNode) {
+        GridDummySpiContext(GridNode locNode, Authenticator auth) {
             this.locNode = locNode;
+            this.auth = auth;
         }
 
         /** {@inheritDoc} */
@@ -519,12 +538,12 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
         }
 
         /** {@inheritDoc} */
-        @Override public void registerPort(int port, GridPortProtocol protocol) {
+        @Override public void registerPort(int port, GridPortProtocol proto) {
             /* No-op. */
         }
 
         /** {@inheritDoc} */
-        @Override public void deregisterPort(int port, GridPortProtocol protocol) {
+        @Override public void deregisterPort(int port, GridPortProtocol proto) {
             /* No-op. */
         }
 
@@ -632,5 +651,25 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
         @Override public void send(Collection<? extends GridNode> nodes, Serializable msg, String topic) {
             /* No-op. */
         }
+
+        /** {@inheritDoc} */
+        @Override public boolean authenticateNode(UUID nodeId, Map<String, Object> attrs) throws GridException {
+            return auth.authenticateNode(nodeId, attrs);
+        }
+    }
+
+    /**
+     *
+     */
+    private interface Authenticator {
+        /**
+         * Delegates to real implementation whenever possible.
+         *
+         * @param nodeId Node ID.
+         * @param attrs Attributes.
+         * @return {@code True} if passed authentication.
+         * @throws GridException If failed.
+         */
+        public boolean authenticateNode(UUID nodeId, Map<String, Object> attrs) throws GridException;
     }
 }

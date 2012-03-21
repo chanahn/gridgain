@@ -26,7 +26,7 @@ import java.util.*;
  * when this typedef <b>does not sacrifice</b> the code readability.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class X {
     /** Time span dividers. */
@@ -85,7 +85,7 @@ public final class X {
 
         if (rest != null && rest.length > 0)
             for (Object obj : rest)
-                System.err.println( obj);
+                System.err.println(obj);
     }
 
     /**
@@ -420,5 +420,39 @@ public final class X {
 
         for (GridFuture fut : futs)
             fut.get();
+    }
+
+    /**
+     * Pretty-formatting for minutes.
+     *
+     * @param mins Minutes to format.
+     * @return Formatted presentation of minutes.
+     */
+    public static String formatMins(long mins) {
+        assert mins >= 0;
+
+        if (mins == 0)
+            return "< 1 min";
+
+        SB sb = new SB();
+
+        long dd = mins / 1440; // 1440 mins = 60 mins * 24 hours
+
+        if (dd > 0)
+            sb.a(dd).a(dd == 1 ? " day " : " days ");
+
+        mins %= 1440;
+
+        long hh = mins / 60;
+
+        if (hh > 0)
+            sb.a(hh).a(hh == 1 ? " hour " : " hours ");
+
+        mins %= 60;
+
+        if (mins > 0)
+            sb.a(mins).a(mins == 1 ? " min " : " mins ");
+
+        return sb.toString().trim();
     }
 }

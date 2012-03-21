@@ -41,7 +41,7 @@ import java.util.concurrent.*;
  * in {@link NullPointerException} and may be harder to catch.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAware {
     /**
@@ -192,7 +192,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @see GridJobContext#affinityKey()
      */
     public void affinityRun(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Object affKey,
         @Nullable Runnable job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException;
@@ -241,7 +241,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @see GridJobContext#affinityKey()
      */
     public void affinityRun(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Collection<?> affKeys,
         @Nullable Runnable job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException;
@@ -295,7 +295,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @see GridJobContext#affinityKey()
      */
     public GridFuture<?> affinityRunAsync(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Object affKey,
         @Nullable Runnable job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException;
@@ -352,7 +352,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @see GridJobContext#affinityKey()
      */
     public GridFuture<?> affinityRunAsync(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Collection<?> affKeys,
         @Nullable Runnable job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException;
@@ -399,7 +399,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @see GridJobContext#affinityKey()
      */
     public <R> R affinityCall(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Object affKey,
         @Nullable Callable<R> job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException;
@@ -449,7 +449,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @see GridJobContext#affinityKey()
      */
     public <R> Collection<R> affinityCall(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Collection<?> affKeys,
         @Nullable Callable<R> job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException;
@@ -496,7 +496,7 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @see GridJobContext#affinityKey()
      */
     public <R> GridFuture<R> affinityCallAsync(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Object affKey,
         @Nullable Callable<R> job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException;
@@ -547,7 +547,8 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @see GridJobContext#affinityKey()
      */
     public <R> GridFuture<Collection<R>> affinityCallAsync(
-        String cacheName, @Nullable Collection<?> affKeys,
+        @Nullable String cacheName,
+        @Nullable Collection<?> affKeys,
         @Nullable Callable<R> job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException;
 
@@ -3924,7 +3925,6 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @return Map of nodes to cache keys.
      * @throws GridException If failed to map cache keys.
      */
-    @GridEnterpriseFeature("Data affinity outside of GridCache is enterprise-only feature.")
     public <K> Map<GridRichNode, Collection<K>> mapKeysToNodes(@Nullable Collection<? extends K> keys)
         throws GridException;
 
@@ -3948,7 +3948,6 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @return Map of node IDs to cache keys.
      * @throws GridException If failed to map cache keys.
      */
-    @GridEnterpriseFeature("Data affinity outside of GridCache is enterprise-only feature.")
     public <K> Map<GridRichNode, Collection<K>> mapKeysToNodes(@Nullable String cacheName,
         @Nullable Collection<? extends K> keys) throws GridException;
 
@@ -3972,7 +3971,6 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      is not present in the grid.
      * @throws GridException If failed to map key.
      */
-    @GridEnterpriseFeature("Data affinity outside of GridCache is enterprise-only feature.")
     @Nullable public <K> GridRichNode mapKeyToNode(K key) throws GridException;
 
     /**
@@ -3996,7 +3994,6 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      *      is not present in the grid.
      * @throws GridException If failed to map key.
      */
-    @GridEnterpriseFeature("Data affinity outside of GridCache is enterprise-only feature.")
     @Nullable public <K> GridRichNode mapKeyToNode(@Nullable String cacheName, K key) throws GridException;
 
     /**

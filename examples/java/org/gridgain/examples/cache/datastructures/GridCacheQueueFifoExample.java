@@ -20,13 +20,13 @@ import static org.gridgain.grid.cache.datastructures.GridCacheQueueType.*;
 
 /**
  * Grid cache distributed queue example. This example demonstrates {@code FIFO} unbounded
- * cache queue. Note that distributed queue is only available in <b>Enterprise Edition</b>.
+ * cache queue.
  * <p>
  * Remote nodes should always be started with configuration file which includes
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheQueueFifoExample {
     /** Cache name. */
@@ -42,9 +42,6 @@ public class GridCacheQueueFifoExample {
     /** Queue instance. */
     private static GridCacheQueue<String> queue;
 
-    /** Ensure singleton. */
-    private GridCacheQueueFifoExample() { /* No-op. */ }
-
     /**
      * Executes this example on the grid.
      *
@@ -55,12 +52,6 @@ public class GridCacheQueueFifoExample {
         grid = G.start("examples/config/spring-cache.xml");
 
         try {
-            if (!grid.isEnterprise()) {
-                System.err.println("This example works only in Enterprise Edition.");
-
-                return;
-            }
-
             print("FIFO queue example started on nodes: " + grid.nodes().size());
 
             // Make queue name.

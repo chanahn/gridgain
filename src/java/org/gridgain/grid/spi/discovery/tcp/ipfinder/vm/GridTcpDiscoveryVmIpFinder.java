@@ -35,7 +35,7 @@ import java.util.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridTcpDiscoveryVmIpFinder extends GridTcpDiscoveryIpFinderAdapter {
     /** Grid logger. */
@@ -47,16 +47,16 @@ public class GridTcpDiscoveryVmIpFinder extends GridTcpDiscoveryIpFinderAdapter 
     private Collection<InetSocketAddress> addrs = new LinkedHashSet<InetSocketAddress>();
 
     /**
-     * Constructs new ip finder.
+     * Constructs new IP finder.
      */
     public GridTcpDiscoveryVmIpFinder() {
         // No-op.
     }
 
     /**
-     * Constructs new ip finder.
+     * Constructs new IP finder.
      *
-     * @param shared {@code true} if ip finder is shared.
+     * @param shared {@code true} if IP finder is shared.
      * @see #setShared(boolean)
      */
     public GridTcpDiscoveryVmIpFinder(boolean shared) {

@@ -11,7 +11,7 @@ package org.gridgain.grid.spi;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.editions.*;
-import org.gridgain.grid.kernal.processors.port.*;
+import org.gridgain.grid.spi.authentication.*;
 import org.gridgain.grid.spi.communication.*;
 import org.gridgain.grid.spi.discovery.*;
 import org.jetbrains.annotations.*;
@@ -23,7 +23,7 @@ import java.util.*;
  * SPI context provides common functionality for all SPI implementations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridSpiContext {
     /**
@@ -291,4 +291,15 @@ public interface GridSpiContext {
      * @throws GridException If any exception occurs.
      */
     public void removeFromSwap(String spaceName, Object key, @Nullable ClassLoader ldr) throws GridException;
+
+    /**
+     * Authenticate grid node via underlying {@link GridAuthenticationSpi} implementation.
+     *
+     * @param nodeId Node id to authenticate.
+     * @param attrs Node attributes.
+     * @return {@code true} if authentication passes, {@code false} if authentication fails.
+     * @throws GridException If any exception occurs.
+     * @see GridAuthenticationSpi
+     */
+    public boolean authenticateNode(UUID nodeId, Map<String, Object> attrs) throws GridException;
 }

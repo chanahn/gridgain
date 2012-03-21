@@ -35,7 +35,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Cache lock future.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<Boolean>
     implements GridCacheMvccFuture<K, V, Boolean> {
@@ -670,10 +670,12 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
 
                 Collection<GridRichNode> nodes = F.view(CU.allNodes(cctx, topVer), F.notIn(leftNodes));
 
-                ConcurrentMap<GridRichNode, Collection<K>> mappings =
-                    new ConcurrentHashMap<GridRichNode, Collection<K>>(nodes.size(), 0.75f, 1);
+                int nodesSize = nodes.size();
 
-                reqMap = new HashMap<GridRichNode, T2<GridNearLockRequest<K, V>, Collection<K>>>(nodes.size());
+                ConcurrentMap<GridRichNode, Collection<K>> mappings =
+                    new ConcurrentHashMap<GridRichNode, Collection<K>>(nodesSize, 0.75f, 1);
+
+                reqMap = new HashMap<GridRichNode, T2<GridNearLockRequest<K, V>, Collection<K>>>(nodesSize);
 
                 // Assign keys to primary nodes.
                 for (K key : keys)
@@ -828,7 +830,8 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
                         fut,
                         new C2<GridNearLockResponse<K, V>, Exception, Boolean>() {
                             @Override public Boolean apply(GridNearLockResponse<K, V> res, Exception e) {
-                                if (CU.isLockTimeout(e) || (res != null && CU.isLockTimeout(res.error())))
+                                if (CU.isLockTimeoutOrCancelled(e) ||
+                                    (res != null && CU.isLockTimeoutOrCancelled(res.error())))
                                     return false;
 
                                 if (e != null) {
@@ -895,8 +898,9 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
                                                     res.rolledbackVersions());
 
                                                 if (record) {
-                                                    cctx.events().addEvent(entry.partition(), entry.key(), tx, null,
-                                                        EVT_CACHE_OBJECT_READ, newVal, oldVal);
+                                                    if (cctx.events().isRecordable(EVT_CACHE_OBJECT_READ))
+                                                        cctx.events().addEvent(entry.partition(), entry.key(), tx, null,
+                                                            EVT_CACHE_OBJECT_READ, newVal, oldVal);
 
                                                     ((GridCacheMetricsAdapter)entry.metrics()).onRead(oldVal != null);
                                                 }
@@ -1184,8 +1188,9 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
                                 res.committedVersions(), res.rolledbackVersions());
 
                             if (retval) {
-                                cctx.events().addEvent(entry.partition(), entry.key(), tx, null, EVT_CACHE_OBJECT_READ,
-                                    newVal, oldVal);
+                                if (cctx.events().isRecordable(EVT_CACHE_OBJECT_READ))
+                                    cctx.events().addEvent(entry.partition(), entry.key(), tx, null,
+                                        EVT_CACHE_OBJECT_READ, newVal, oldVal);
 
                                 ((GridCacheMetricsAdapter)entry.metrics()).onRead(oldVal != null);
                             }

@@ -17,16 +17,9 @@ import java.util.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunctionTransformExample {
-    /**
-     * Ensures singleton.
-     */
-    private GridFunctionTransformExample() {
-        /* No-op. */
-    }
-
     /**
      * Executes example.
      *
@@ -40,7 +33,7 @@ public class GridFunctionTransformExample {
         // CO -> GridOutClosure
         // CA -> GridAbsClosure
         // F -> GridFunc
-        
+
         // Initialisation array of random formatted dates.
         Collection<String> dates = Arrays.asList("20091013153610", "20091109030023", "20091203115347",
             "20110101134929", "2011/02/02 12:59:05", "20110316153632", "20110408201519");

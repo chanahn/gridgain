@@ -30,7 +30,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * Entry wrapper that never obscures obsolete entries from user.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheEvictionEntry<K, V> implements GridCacheEntry<K, V>, Externalizable {
     /** Static logger to avoid re-creation. */
@@ -243,6 +243,11 @@ public class GridCacheEvictionEntry<K, V> implements GridCacheEntry<K, V>, Exter
         }
 
         return null;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean poke(V val) {
+        throw unsupported();
     }
 
     /**
@@ -536,6 +541,11 @@ public class GridCacheEvictionEntry<K, V> implements GridCacheEntry<K, V>, Exter
     /** {@inheritDoc} */
     @Override public void unlock(GridPredicate<? super GridCacheEntry<K, V>>[] filter) throws GridException {
         throw unsupported();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isCached() {
+        return !cached.obsolete();
     }
 
     /** {@inheritDoc} */

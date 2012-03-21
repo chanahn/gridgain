@@ -20,17 +20,10 @@ import java.util.*;
  * example code to see the difference in coding approach.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridClosureExample4
  */
 public class GridTaskExample4 {
-    /**
-     * Ensures singleton.
-     */
-    private GridTaskExample4() {
-        /* No-op. */
-    }
-
     /**
      * Executes information gathering example without using closures and functional API.
      *
@@ -70,7 +63,7 @@ public class GridTaskExample4 {
      * node for information gathering about it.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class GridNodeInformationGatheringTask extends GridTaskAdapter<Void, String> {
         /** Execution nodes. */
@@ -82,7 +75,7 @@ public class GridTaskExample4 {
          * @param nodes Nodes for execution.
          */
         GridNodeInformationGatheringTask(Iterable<GridRichNode> nodes) {
-            this.nodes = nodes; 
+            this.nodes = nodes;
         }
 
         /** {@inheritDoc} */

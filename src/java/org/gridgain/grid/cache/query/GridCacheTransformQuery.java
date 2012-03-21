@@ -52,8 +52,11 @@ import java.util.*;
  * Collection&lt;String&gt; gridgainEmployeeNames = qry.with("GridGain").execute(G.grid()).get());
  * </pre>
  *
+ * @param <K> Key type.
+ * @param <V> Value type.
+ * @param <T> Transformed value type.
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridCacheTransformQuery<K, V, T> extends GridCacheQueryBase<K, V> {
     /**
@@ -103,8 +106,6 @@ public interface GridCacheTransformQuery<K, V, T> extends GridCacheQueryBase<K, 
      * @param grid Optional subgrid projection to execute this query on (if not provided, then the whole grid is used).
      * @return Future for the single query result.
      */
-    @GridEnterpriseFeature("Distributed queries are enterprise-only feature " +
-        "(local queries are available in community edition)")
     public GridFuture<Map.Entry<K, T>> executeSingle(GridProjection... grid);
 
     /**
@@ -125,7 +126,5 @@ public interface GridCacheTransformQuery<K, V, T> extends GridCacheQueryBase<K, 
      * @param grid Optional subgrid projection to execute this query on (if not provided, then the whole grid is used).
      * @return Future for the query result.
      */
-    @GridEnterpriseFeature("Distributed queries are enterprise-only feature " +
-        "(local queries are available in community edition)")
     public GridCacheQueryFuture<Map.Entry<K, T>> execute(GridProjection... grid);
 }

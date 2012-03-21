@@ -172,7 +172,7 @@ import java.util.*;
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridCacheQuery<K, V> extends GridCacheQueryBase<K, V> {
     /**
@@ -206,8 +206,6 @@ public interface GridCacheQuery<K, V> extends GridCacheQueryBase<K, V> {
      *      (if not provided, then the whole grid is used).
      * @return Future for the single query result.
      */
-    @GridEnterpriseFeature("Distributed queries are enterprise-only feature " +
-        "(local queries are available in community edition)")
     public GridFuture<Map.Entry<K, V>> executeSingle(GridProjection... grid);
 
     /**
@@ -229,8 +227,6 @@ public interface GridCacheQuery<K, V> extends GridCacheQueryBase<K, V> {
      *      (if not provided, then the whole grid is used).
      * @return Future for the query result.
      */
-    @GridEnterpriseFeature("Distributed queries are enterprise-only feature " +
-        "(local queries are available in community edition)")
     public GridCacheQueryFuture<Map.Entry<K, V>> execute(GridProjection... grid);
 
     /**
@@ -249,7 +245,5 @@ public interface GridCacheQuery<K, V> extends GridCacheQueryBase<K, V> {
      *      (if not provided, then the whole grid is used).
      * @return Future which will complete whenever visiting on all remote nodes completes or fails.
      */
-    @GridEnterpriseFeature("Distributed queries are enterprise-only feature " +
-        "(local queries are available in community edition)")
     public GridFuture<?> visit(GridPredicate<Map.Entry<K, V>> vis, GridProjection... grid);
 }

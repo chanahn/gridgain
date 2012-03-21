@@ -16,16 +16,9 @@ import java.util.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunctionForEachExample {
-    /**
-     * Ensures singleton.
-     */
-    private GridFunctionForEachExample() {
-        /* No-op. */
-    }
-
     /**
      * Executes example.
      *
@@ -39,7 +32,7 @@ public class GridFunctionForEachExample {
         // CO -> GridOutClosure
         // CA -> GridAbsClosure
         // F -> GridFunc
-        
+
         // Create sample menu.
         Map<String, Item> menu = F.asMap(
             "Juice", new Item("Juice", 15, 10),
@@ -63,7 +56,7 @@ public class GridFunctionForEachExample {
      * This class represents a sample menu item.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class Item {
         /** Menu item name. */

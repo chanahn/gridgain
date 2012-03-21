@@ -45,16 +45,9 @@ import java.util.concurrent.*;
  * folder.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridMessagingPingPongExample {
-    /**
-     * Enforces singleton.
-     */
-    private GridMessagingPingPongExample() {
-        // No-op.
-    }
-
     /**
      * This example demonstrates simple protocol-based exchange in playing a ping-pong between
      * two nodes.

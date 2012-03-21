@@ -110,16 +110,9 @@ import org.springframework.core.io.*;
  * with Spring AOP refer to {@link GridifySpringHelloWorldExample} example.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridifySpringBeanHelloWorldExample {
-    /**
-     * Ensure singleton.
-     */
-    private GridifySpringBeanHelloWorldExample() {
-        // No-op.
-    }
-
     /**
      * Execute {@code HelloWorld} example grid-enabled with {@code Gridify} annotation.
      *

@@ -16,7 +16,6 @@ import org.gridgain.grid.spi.*;
 import org.gridgain.grid.spi.discovery.*;
 import org.gridgain.grid.spi.discovery.tcp.*;
 import org.gridgain.grid.spi.discovery.tcp.metricsstore.*;
-import org.gridgain.grid.spi.discovery.tcp.topologystore.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.tostring.*;
@@ -33,10 +32,10 @@ import java.util.*;
  * <tt>public</tt> due to certain limitations of Java technology.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridTcpDiscoveryNode extends GridMetadataAwareAdapter implements GridNode,
-    GridTcpDiscoveryTopologyStoreNode, Comparable<GridNode>, Externalizable {
+    Comparable<GridTcpDiscoveryNode>, Externalizable {
     /** Node ID. */
     private UUID id;
 
@@ -57,6 +56,10 @@ public class GridTcpDiscoveryNode extends GridMetadataAwareAdapter implements Gr
     /** Node order in the topology. */
     private long order;
 
+    /** Node order in the topology (internal). */
+    @GridToStringExclude
+    private long intOrder;
+
     /** The most recent time when heartbeat message was received from the node. */
     @GridToStringExclude
     private volatile long lastUpdateTime = System.currentTimeMillis();
@@ -73,15 +76,7 @@ public class GridTcpDiscoveryNode extends GridMetadataAwareAdapter implements Gr
     @GridToStringExclude
     private GridLogger log;
 
-    /** Node state (if topology store is used). */
-    @GridToStringExclude
-    private GridTcpDiscoveryTopologyStoreNodeState state;
-
-    /** Topology version of the node (if topology store is used). */
-    @GridToStringExclude
-    private long topVer;
-
-    /** Visible flag. */
+    /** Visible flag (transient). */
     @GridToStringExclude
     private boolean visible;
 
@@ -187,18 +182,34 @@ public class GridTcpDiscoveryNode extends GridMetadataAwareAdapter implements Gr
         this.metrics = metrics;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * @return Internal order.
+     */
+    public long internalOrder() {
+        return intOrder;
+    }
+
+    /**
+     * @param intOrder Internal order of the node.
+     */
+    public void internalOrder(long intOrder) {
+        assert intOrder >= 0;
+
+        this.intOrder = intOrder;
+    }
+
+    /**
+     * @return Order.
+     */
     @Override public long order() {
         return order;
     }
 
     /**
-     * Sets order of the node in the topology.
-     *
      * @param order Order of the node.
      */
     public void order(long order) {
-        assert order >= 0;
+        assert order > 0 : "Order is invalid: " + this;
 
         this.order = order;
     }
@@ -260,62 +271,40 @@ public class GridTcpDiscoveryNode extends GridMetadataAwareAdapter implements Gr
         this.visible = visible;
     }
 
-    /** {@inheritDoc} */
-    @Override public GridTcpDiscoveryTopologyStoreNodeState state() {
-        return state;
-    }
-
-    /**
-     * Sets node state.
-     * <p>
-     * This method and the underlying field is used only if topology store is used.
-     *
-     * @param state Node state.
-     */
-    public void state(GridTcpDiscoveryTopologyStoreNodeState state) {
-        this.state = state;
-    }
 
     /** {@inheritDoc} */
-    @Override public long topologyVersion() {
-        return topVer;
-    }
-
-    /** {@inheritDoc} */
-    @Override public void topologyVersion(long topVer) {
-        this.topVer = topVer;
-    }
-
-    /** {@inheritDoc} */
-    @Override public int compareTo(@Nullable GridNode node) {
+    @Override public int compareTo(@Nullable GridTcpDiscoveryNode node) {
         if (node == null)
             return 1;
 
-        if (order() == node.order())
-            assert id().equals(node.id()) : "Duplicate order [node1=" + this + ", node2=" + node + ']';
+        if (internalOrder() == node.internalOrder())
+            assert id().equals(node.id()) : "Duplicate order [this=" + this + ", other=" + node + ']';
 
-        return order() < node.order() ? -1 : order() > node.order() ? 1 : id().compareTo(node.id());
+        return internalOrder() < node.internalOrder() ? -1 : internalOrder() > node.internalOrder() ? 1 :
+            id().compareTo(node.id());
     }
 
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         U.writeUuid(out, id);
         U.writeMap(out, attrs);
-        U.writeString(out, addr.getAddress().getHostAddress() + ":" + addr.getPort());
+
+        // Address.
+        U.writeByteArray(out, addr.getAddress().getAddress());
+        out.writeInt(addr.getPort());
 
         byte[] mtr = null;
 
         if (metrics != null) {
             mtr = new byte[GridDiscoveryMetricsHelper.METRICS_SIZE];
 
-            GridDiscoveryMetricsHelper.serialize(mtr, 0, metrics());
+            GridDiscoveryMetricsHelper.serialize(mtr, 0, metrics);
         }
 
         U.writeByteArray(out, mtr);
 
         out.writeLong(order);
-        U.writeEnum(out, state);
-        out.writeLong(topVer);
+        out.writeLong(intOrder);
     }
 
     /** {@inheritDoc} */
@@ -324,7 +313,11 @@ public class GridTcpDiscoveryNode extends GridMetadataAwareAdapter implements Gr
 
         attrs = U.sealMap(U.<String, Object>readMap(in));
 
-        addr = parseAddress(U.readString(in));
+        // Parse address.
+        InetAddress addrBytes = InetAddress.getByAddress(U.readByteArray(in));
+        int port = in.readInt();
+
+        addr = new InetSocketAddress(addrBytes, port);
 
         byte[] mtr = U.readByteArray(in);
 
@@ -332,29 +325,9 @@ public class GridTcpDiscoveryNode extends GridMetadataAwareAdapter implements Gr
             metrics = GridDiscoveryMetricsHelper.deserialize(mtr, 0);
 
         order = in.readLong();
-
-        state = U.readEnum(in, GridTcpDiscoveryTopologyStoreNodeState.class);
-
-        topVer = in.readLong();
+        intOrder = in.readLong();
 
         strIntAddrs = Arrays.asList(addr.getAddress().getHostAddress());
-    }
-
-    /**
-     * Parses address from string.
-     *
-     * @param addrStr Address in {@code hostAddress:port} format.
-     * @return Inet socket address.
-     * @throws UnknownHostException If unable to resolve host.
-     */
-    private InetSocketAddress parseAddress(String addrStr) throws UnknownHostException {
-        assert !F.isEmpty(addrStr);
-
-        StringTokenizer st = new StringTokenizer(addrStr, ":");
-
-        assert st.countTokens() == 2;
-
-        return new InetSocketAddress(InetAddress.getByName(st.nextToken()), Integer.parseInt(st.nextToken()));
     }
 
     /** {@inheritDoc} */

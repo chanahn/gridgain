@@ -10,7 +10,6 @@
 package org.gridgain.grid.cache;
 
 import org.gridgain.grid.*;
-import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.lang.*;
 import org.jetbrains.annotations.*;
 
@@ -89,7 +88,7 @@ import java.util.*;
  * No explicit deployment step is required.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @param <K> Key type.
  * @param <V> Value type.
  */
@@ -142,6 +141,19 @@ public interface GridCacheEntry<K, V> extends Map.Entry<K, V>, GridMetadataAware
      * @return See {@link GridCacheProjection#peek(Object)}.
      */
     @Nullable public V peek();
+
+    /**
+     * This method overwrites current in-memory value with new value.
+     * <p>
+     * Note that this method is non-transactional and non-distributed and should almost
+     * never be used. It is meant to be used when fixing some heuristic error state.
+     *
+     * @param val Value to set.
+     * @return {@code True} if poke operation succeeded, {@code false} if entry was not
+     *      in cache.
+     * @throws GridException If poke operation failed.
+     */
+    public boolean poke(V val) throws GridException;
 
     /**
      * This method has the same semantic as {@link GridCacheProjection#peek(Object, GridPredicate[])} method.
@@ -685,4 +697,13 @@ public interface GridCacheEntry<K, V> extends Map.Entry<K, V>, GridMetadataAware
      * @throws GridCacheFlagException If flags validation failed.
      */
     public void unlock(GridPredicate<? super GridCacheEntry<K, V>>... filter) throws GridException;
+
+    /**
+     * Checks whether entry is currently present in cache or not. If entry is not in
+     * cache (e.g. has been removed) {@code false} is returned. In this case all
+     * operations on this entry will cause creation of a new entry in cache.
+     *
+     * @return {@code True} if entry is in cache, {@code false} otherwise.
+     */
+    public boolean isCached();
 }

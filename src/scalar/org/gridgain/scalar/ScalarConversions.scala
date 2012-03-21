@@ -32,7 +32,7 @@ import java.util.concurrent._
  * trait and therefore brings with it all implicits into the scope.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 trait ScalarConversions {
     /**
@@ -108,7 +108,7 @@ trait ScalarConversions {
     /**
      * Helper converter from Java collection to Scala sequence.
      *
-     * @param i Java collection to convert.
+     * @param c Java collection to convert.
      */
     def toScalaSeq[A](@Nullable c: java.util.Collection[A]): Seq[A] =
         toScalaSeq(c, (e: A) => e)
@@ -229,7 +229,7 @@ trait ScalarConversions {
 
     /**
      * Implicit converter from cache KV-pair predicate to cache entry predicate. Note that predicate
-     * will use `peek()
+     * will use peek()
      *
      * @param p Cache KV-pair predicate to convert.
      */
@@ -281,7 +281,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side reducer to pimp.
+      * @param r Java-side reducer to pimp.
       */
     implicit def reducerDotScala[E, R](r: GridReducer[E, R]) = new {
         def scala: Seq[E] => R =
@@ -307,7 +307,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side reducer to pimp.
+      * @param r Java-side reducer to pimp.
       */
     implicit def reducer2DotScala[E1, E2, R](r: GridReducer2[E1, E2, R]) = new {
         def scala: (Seq[E1], Seq[E2]) => R =
@@ -333,7 +333,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side reducer to pimp.
+      * @param r Java-side reducer to pimp.
       */
     implicit def reducer3DotScala[E1, E2, E3, R](r: GridReducer3[E1, E2, E3, R]) = new {
         def scala: (Seq[E1], Seq[E2], Seq[E3]) => R =
@@ -343,7 +343,7 @@ trait ScalarConversions {
     /**
      * Implicit converter from `GridRichNode` to `ScalarRichNodePimp` "pimp".
      *
-     * @param value Rich node to convert.
+     * @param impl Rich node to convert.
      */
     implicit def toScalarRichNode(impl: GridRichNode): ScalarRichNodePimp =
         ScalarRichNodePimp(impl)
@@ -351,7 +351,7 @@ trait ScalarConversions {
     /**
      * Implicit converter from `Grid` to `ScalarGridPimp` "pimp".
      *
-     * @param value Grid to convert.
+     * @param impl Grid to convert.
      */
     implicit def toScalarGrid(impl: Grid): ScalarGridPimp =
         ScalarGridPimp(impl)
@@ -359,7 +359,7 @@ trait ScalarConversions {
     /**
      * Implicit converter from `GridProjection` to `ScalarProjectionPimp` "pimp".
      *
-     * @param value Grid projection to convert.
+     * @param impl Grid projection to convert.
      */
     implicit def toScalarProjection(impl: GridProjection): ScalarProjectionPimp[GridProjection] =
         ScalarProjectionPimp(impl)
@@ -367,7 +367,7 @@ trait ScalarConversions {
     /**
      * Implicit converter from `GridCache` to `ScalarCachePimp` "pimp".
      *
-     * @param value Grid cache to convert.
+     * @param impl Grid cache to convert.
      */
     implicit def toScalarCache[K, V](impl: GridCache[K, V]): ScalarCachePimp[K, V] =
         ScalarCachePimp[K, V](impl)
@@ -375,7 +375,7 @@ trait ScalarConversions {
     /**
      * Implicit converter from `GridCacheProjection` to `ScalarCacheProjectionPimp` "pimp".
      *
-     * @param value Grid cache projection to convert.
+     * @param impl Grid cache projection to convert.
      */
     implicit def toScalarCacheProjection[K, V](impl: GridCacheProjection[K, V]): ScalarCacheProjectionPimp[K, V] =
         ScalarCacheProjectionPimp[K, V](impl)
@@ -407,7 +407,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side tuple to pimp.
+      * @param t Java-side tuple to pimp.
       */
     implicit def tuple2DotScala[A, B](t: GridTuple2[A, B]) = new {
         def scala: (A, B) =
@@ -433,7 +433,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side tuple to pimp.
+      * @param t Java-side tuple to pimp.
       */
     implicit def tuple3DotScala[A, B, C](t: GridTuple3[A, B, C]) = new {
         def scala: (A, B, C) =
@@ -459,7 +459,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side tuple to pimp.
+      * @param t Java-side tuple to pimp.
       */
     implicit def tuple4DotScala[A, B, C, D](t: GridTuple4[A, B, C, D]) = new {
         def scala: (A, B, C, D) =
@@ -485,7 +485,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side tuple to pimp.
+      * @param t Java-side tuple to pimp.
       */
     implicit def tuple5DotScala[A, B, C, D, E](t: GridTuple5[A, B, C, D, E]) = new {
         def scala: (A, B, C, D, E) =
@@ -867,7 +867,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side predicate to pimp.
+      * @param p Java-side predicate to pimp.
       */
     implicit def absPredicateDotScala(p: GridAbsPredicate) = new {
         def scala: () => Boolean =
@@ -877,7 +877,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side predicate to pimp.
+      * @param p Java-side predicate to pimp.
       */
     implicit def absPredicateXDotScala(p: GridAbsPredicateX) = new {
         def scala: () => Boolean =
@@ -941,7 +941,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side predicate to pimp.
+      * @param p Java-side predicate to pimp.
       */
     implicit def predicateDotScala[T](p: GridPredicate[T]) = new {
         def scala: T => Boolean =
@@ -951,7 +951,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side predicate to pimp.
+      * @param p Java-side predicate to pimp.
       */
     implicit def predicateXDotScala[T](p: GridPredicateX[T]) = new {
         def scala: T => Boolean =
@@ -999,7 +999,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side predicate to pimp.
+      * @param p Java-side predicate to pimp.
       */
     implicit def predicate2DotScala[T1, T2](p: GridPredicate2[T1, T2]) = new {
         def scala: (T1, T2) => Boolean =
@@ -1009,7 +1009,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side predicate to pimp.
+      * @param p Java-side predicate to pimp.
       */
     implicit def predicate2XDotScala[T1, T2](p: GridPredicate2X[T1, T2]) = new {
         def scala: (T1, T2) => Boolean =
@@ -1057,7 +1057,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side predicate to pimp.
+      * @param p Java-side predicate to pimp.
       */
     implicit def predicate3DotScala[T1, T2, T3](p: GridPredicate3[T1, T2, T3]) = new {
         def scala: (T1, T2, T3) => Boolean =
@@ -1067,7 +1067,7 @@ trait ScalarConversions {
     /**
       * Pimp for adding explicit conversion method `scala`.
       *
-      * @param f Java-side predicate to pimp.
+      * @param p Java-side predicate to pimp.
       */
     implicit def predicate3XDotScala[T1, T2, T3](p: GridPredicate3X[T1, T2, T3]) = new {
         def scala: (T1, T2, T3) => Boolean =

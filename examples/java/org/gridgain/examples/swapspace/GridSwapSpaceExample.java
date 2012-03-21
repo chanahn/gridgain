@@ -18,13 +18,6 @@ import org.gridgain.grid.typedef.*;
  */
 public final class GridSwapSpaceExample {
     /**
-     * Ensure singleton.
-     */
-    private GridSwapSpaceExample() {
-        /* No-op. */
-    }
-
-    /**
      * Execute <tt>SwapSpace</tt> example on the grid.
      *
      * @param args Command line arguments, none required but if provided

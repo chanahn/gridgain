@@ -18,6 +18,7 @@ import org.gridgain.grid.kernal.managers.deployment.*;
 import org.gridgain.grid.kernal.managers.discovery.*;
 import org.gridgain.grid.kernal.processors.*;
 import org.gridgain.grid.kernal.processors.jobmetrics.*;
+import org.gridgain.grid.lang.*;
 import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.marshaller.*;
 import org.gridgain.grid.spi.collision.*;
@@ -29,7 +30,9 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
 
+import static java.util.concurrent.TimeUnit.*;
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.kernal.GridTopic.*;
 import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
@@ -38,10 +41,13 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Responsible for all grid job execution and communication.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"deprecation"})
 public class GridJobProcessor extends GridProcessorAdapter {
+    /** */
+    public static final String CANCELLED_ATTR_KEY = "gridgain.job.cancelled";
+
     /** */
     private static final int CANCEL_REQS_NUM = 1024;
 
@@ -98,6 +104,9 @@ public class GridJobProcessor extends GridProcessorAdapter {
 
     /** */
     private final Object mux = new Object();
+
+    /** Topic ID generator. */
+    private final AtomicLong topicIdGen = new AtomicLong();
 
     /**
      * @param ctx Kernal context.
@@ -311,20 +320,20 @@ public class GridJobProcessor extends GridProcessorAdapter {
 
     /**
      * @param job Canceled job.
-     * @param system System flag.
+     * @param sys System flag.
      */
-    private static void cancelJob(GridJobWorker job, boolean system) {
-        job.cancel(system);
+    private static void cancelJob(GridJobWorker job, boolean sys) {
+        job.cancel(sys);
     }
 
     /**
      * @param job Finished job.
      * @param res Job's result.
      * @param ex Optional exception.
-     * @param sendReply Send reply flag.
+     * @param sndReply Send reply flag.
      */
-    private static void finishJob(GridJobWorker job, @Nullable Serializable res, GridException ex, boolean sendReply) {
-        job.finishJob(res, ex, sendReply);
+    private static void finishJob(GridJobWorker job, @Nullable Serializable res, GridException ex, boolean sndReply) {
+        job.finishJob(res, ex, sndReply);
     }
 
     /**
@@ -367,7 +376,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
         ctx.io().sendOrderedMessage(
             taskNode,
             topic, // Job topic.
-            ctx.io().getNextMessageId(topic, taskNode.id()),
+            ctx.io().nextMessageId(topic, taskNode.id()),
             new GridTaskSessionRequest(ses.getId(), ses.getJobId(), serAttrs),
             SYSTEM_POOL,
             timeout);
@@ -378,33 +387,125 @@ public class GridJobProcessor extends GridProcessorAdapter {
      * @return Siblings.
      * @throws GridException If failed.
      */
-    public Collection<GridJobSibling> requestJobSiblings(GridTaskSession ses) throws GridException {
+    public Collection<GridJobSibling> requestJobSiblings(final GridTaskSession ses) throws GridException {
         assert ses != null;
 
-        GridNode taskNode = ctx.discovery().node(ses.getTaskNodeId());
+        final UUID taskNodeId = ses.getTaskNodeId();
+
+        GridNode taskNode = ctx.discovery().node(taskNodeId);
 
         if (taskNode == null)
-            throw new GridException("Node that originated task execution has left grid: " +
-                ses.getTaskNodeId());
+            throw new GridException("Node that originated task execution has left grid: " + taskNodeId);
 
-        GridIoFuture fut = ctx.io().sendSync(taskNode,
-            TOPIC_JOB_SIBLINGS, new GridJobSiblingsRequest(ses.getId()), ctx.config().getNetworkTimeout(),
-            SYSTEM_POOL, null);
+        // Tuple: error message-response.
+        final GridTuple2<String, GridJobSiblingsResponse> t = F.t2();
 
-        GridIoResult res;
+        final Lock lock = new ReentrantLock();
+        final Condition cond = lock.newCondition();
+
+        GridMessageListener msgLsnr = new GridMessageListener() {
+            @Override public void onMessage(UUID nodeId, Object msg) {
+                String err = null;
+                GridJobSiblingsResponse res = null;
+
+                if (!(msg instanceof GridJobSiblingsResponse))
+                    err = "Received unexpected message: " + msg;
+                else if (!nodeId.equals(taskNodeId))
+                    err = "Received job siblings response from unexpected node [taskNodeId=" + taskNodeId +
+                        ", nodeId=" + nodeId + ']';
+                else
+                    // Sender and message type are fine.
+                    res = (GridJobSiblingsResponse)msg;
+
+                lock.lock();
+
+                try {
+                    if (t.isEmpty()) {
+                        t.set(err, res);
+
+                        cond.signalAll();
+                    }
+                }
+                finally {
+                    lock.unlock();
+                }
+            }
+        };
+
+        GridLocalEventListener discoLsnr = new GridLocalEventListener() {
+            @Override public void onEvent(GridEvent evt) {
+                assert evt instanceof GridDiscoveryEvent &&
+                    (evt.type() == EVT_NODE_FAILED || evt.type() == EVT_NODE_LEFT) : "Unexpected event: " + evt;
+
+                GridDiscoveryEvent discoEvt = (GridDiscoveryEvent)evt;
+
+                if (taskNodeId.equals(discoEvt.eventNodeId())) {
+                    lock.lock();
+
+                    try {
+                        if (t.isEmpty()) {
+                            t.set("Node that originated task execution has left grid: " + taskNodeId, null);
+
+                            cond.signalAll();
+                        }
+                    }
+                    finally {
+                        lock.unlock();
+                    }
+                }
+            }
+        };
+
+        // 1. Create unique topic name and register listener.
+        String topic = TOPIC_JOB_SIBLINGS.name("sesId#" + ses.getId().toString(),
+            "idx#" + Long.toString(topicIdGen.getAndIncrement()));
 
         try {
-            res = fut.getFirstResult();
-        }
-        catch (InterruptedException e) {
-            throw new GridException("Interrupted while job siblings response waiting: " + ses, e);
-        }
+            ctx.io().addMessageListener(topic, msgLsnr);
 
-        if (res.isSuccess())
-            return res.getResult();
-        else
-            throw new GridException("Failed to get job siblings (task node threw exception): " + ses,
-                res.getException());
+            // 2. Send message.
+            ctx.io().send(taskNode, TOPIC_JOB_SIBLINGS, new GridJobSiblingsRequest(ses.getId(), topic), SYSTEM_POOL);
+
+            // 3. Listen to discovery events.
+            ctx.event().addLocalEventListener(discoLsnr, EVT_NODE_FAILED, EVT_NODE_LEFT);
+
+            // 4. Check whether node has left before disco listener has been installed.
+            taskNode = ctx.discovery().node(taskNodeId);
+
+            if (taskNode == null)
+                throw new GridException("Node that originated task execution has left grid: " + taskNodeId);
+
+            // 5. Wait for result.
+            lock.lock();
+
+            try {
+                long netTimeout = ctx.config().getNetworkTimeout();
+
+                if (t.isEmpty())
+                    cond.await(netTimeout, MILLISECONDS);
+
+                if (t.isEmpty())
+                    throw new GridException("Timed out waiting for job siblings (consider increasing" +
+                        "'networkTimeout' configuration property) [ses=" + ses + ", netTimeout=" + netTimeout + ']');
+
+                // Error is set?
+                if (t.get1() != null)
+                    throw new GridException(t.get1());
+                else
+                    // Return result
+                    return t.get2().jobSiblings();
+            }
+            catch (InterruptedException e) {
+                throw new GridException("Interrupted while waiting for job siblings response: " + ses, e);
+            }
+            finally {
+                lock.unlock();
+            }
+        }
+        finally {
+            ctx.io().removeMessageListener(topic, msgLsnr);
+            ctx.event().removeLocalEventListener(discoLsnr);
+        }
     }
 
     /** */
@@ -456,6 +557,16 @@ public class GridJobProcessor extends GridProcessorAdapter {
             if (callCnt == 0)
                 mux.notifyAll();
         }
+    }
+
+    /**
+     * {@code True} if task is internal.
+     *
+     * @param worker Job worker.
+     * @return {@code True} if task is internal.
+     */
+    private boolean isInternal(GridJobWorker worker) {
+        return U.isVisorTask(worker.getSession());
     }
 
     /** {@inheritDoc} */
@@ -565,19 +676,22 @@ public class GridJobProcessor extends GridProcessorAdapter {
                 if (jobCtx.isCancelled()) {
                     rejectJob(jobCtx.getJobWorker());
 
-                    rejectCtr++;
+                    if (!isInternal(jobCtx.getJobWorker()))
+                        rejectCtr++;
                 }
                 else {
                     if (jobCtx.isActivated()) {
-                        totalWaitTime += jobCtx.getJobWorker().getQueuedTime();
+                        if (!isInternal(jobCtx.getJobWorker()))
+                            totalWaitTime += jobCtx.getJobWorker().getQueuedTime();
 
                         try {
                             // Execute in a different thread.
                             ctx.config().getExecutorService().execute(jobCtx.getJobWorker());
 
-                            startedCtr++;
-
-                            activeCtr++;
+                            if (!isInternal(jobCtx.getJobWorker())) {
+                                startedCtr++;
+                                activeCtr++;
+                            }
                         }
                         catch (RejectedExecutionException e) {
                             synchronized (mux) {
@@ -593,11 +707,12 @@ public class GridJobProcessor extends GridProcessorAdapter {
                     }
                     // Job remains on passive list.
                     else {
-                        passiveCtr++;
+                        if (!isInternal(jobCtx.getJobWorker()))
+                            passiveCtr++;
                     }
 
                     // Since jobs are ordered, first job is the oldest passive job.
-                    if (oldestPassive == null)
+                    if (!isInternal(jobCtx.getJobWorker()) && oldestPassive == null)
                         oldestPassive = jobCtx;
                 }
             }
@@ -614,15 +729,16 @@ public class GridJobProcessor extends GridProcessorAdapter {
 
                     // But we don't increment number of cancelled jobs if it
                     // was already cancelled.
-                    if (!isCancelled)
+                    if (!isInternal(ctx.getJobWorker()) && !isCancelled)
                         cancelCtr++;
                 }
                 // Job remains on active list.
                 else {
-                    if (oldestActive == null)
+                    if (!isInternal(ctx.getJobWorker()) && oldestActive == null)
                         oldestActive = ctx;
 
-                    activeCtr++;
+                    if (!isInternal(ctx.getJobWorker()))
+                        activeCtr++;
                 }
             }
 
@@ -825,13 +941,15 @@ public class GridJobProcessor extends GridProcessorAdapter {
             }
 
             try {
-                // Increment job execution counter. This counter gets
-                // reset once this job will be accounted for in metrics.
-                finishedJobsCnt.incrementAndGet();
+                if (!isInternal(worker)) {
+                    // Increment job execution counter. This counter gets
+                    // reset once this job will be accounted for in metrics.
+                    finishedJobsCnt.incrementAndGet();
 
-                // Increment job execution time. This counter gets
-                // reset once this job will be accounted for in metrics.
-                finishedJobsTime.addAndGet(worker.getExecuteTime());
+                    // Increment job execution time. This counter gets
+                    // reset once this job will be accounted for in metrics.
+                    finishedJobsTime.addAndGet(worker.getExecuteTime());
+                }
 
                 handleCollisions();
             }
@@ -931,11 +1049,17 @@ public class GridJobProcessor extends GridProcessorAdapter {
             }
 
             try {
-                for (GridJobWorker job : jobsToReject)
-                    rejectJob(job);
+                for (GridJobWorker job : jobsToReject) {
+                    job.getJobContext().setAttribute(CANCELLED_ATTR_KEY, true);
 
-                for (GridJobWorker job : jobsToCancel)
+                    rejectJob(job);
+                }
+
+                for (GridJobWorker job : jobsToCancel) {
+                    job.getJobContext().setAttribute(CANCELLED_ATTR_KEY, true);
+
                     cancelJob(job, cancelMsg.isSystem());
+                }
 
                 handleCollisions();
             }
@@ -949,7 +1073,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
      * Handles job execution requests.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private class JobExecutionListener implements GridMessageListener {
         @SuppressWarnings({"unchecked", "ThrowableInstanceNeverThrown"})
@@ -1078,6 +1202,10 @@ public class GridJobProcessor extends GridProcessorAdapter {
                                         ", sesId=" + req.getSessionId() + ']');
                                 }
 
+                                job.getJobContext().setAttribute(CANCELLED_ATTR_KEY, true);
+
+                                rejectJob(job);
+
                                 return;
                             }
                             else if (passiveJobs.containsKey(job.getJobId()) ||
@@ -1108,8 +1236,8 @@ public class GridJobProcessor extends GridProcessorAdapter {
                 }
                 // If deployment is null.
                 else {
-                    GridException ex = new GridException("Task was not deployed or was redeployed since task " +
-                        "execution [taskName=" + req.getTaskName() + ", taskClsName=" + req.getTaskClassName() +
+                    GridException ex = new GridDeploymentException("Task was not deployed or was redeployed since " +
+                        "task execution [taskName=" + req.getTaskName() + ", taskClsName=" + req.getTaskClassName() +
                         ", codeVer=" + req.getUserVersion() + ", clsLdrId=" + req.getClassLoaderId() + ", seqNum=" +
                         req.getSequenceNumber() + ", depMode=" + req.getDeploymentMode() + ", dep=" + dep + ']');
 
@@ -1133,7 +1261,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
         private void handleException(GridJobExecuteRequest req, GridException ex, long endTime) {
             UUID locNodeId = ctx.localNodeId();
 
-            GridNode senderNode = ctx.discovery().node(req.getTaskNodeId());
+            GridNode sndNode = ctx.discovery().node(req.getTaskNodeId());
 
             try {
                 GridJobExecuteResponse jobRes = new GridJobExecuteResponse(
@@ -1154,7 +1282,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
                     // Ignore the actual timeout and send response anyway.
                     timeout = 1;
 
-                if (senderNode == null) {
+                if (sndNode == null) {
                     U.error(log, "Failed to reply to sender node because it left grid [nodeId=" + req.getTaskNodeId() +
                         ", jobId=" + req.getJobId() + ']');
 
@@ -1176,9 +1304,9 @@ public class GridJobProcessor extends GridProcessorAdapter {
                 else {
                     // Send response to designated job topic.
                     ctx.io().sendOrderedMessage(
-                        senderNode,
+                        sndNode,
                         topic,
-                        ctx.io().getNextMessageId(topic, senderNode.id()),
+                        ctx.io().nextMessageId(topic, sndNode.id()),
                         jobRes,
                         SYSTEM_POOL,
                         timeout);
@@ -1191,9 +1319,9 @@ public class GridJobProcessor extends GridProcessorAdapter {
                     U.error(log, "Failed to reply to sender node because it left grid [nodeId=" + req.getTaskNodeId() +
                         ", jobId=" + req.getJobId() + ']');
                 else {
-                    assert senderNode != null;
+                    assert sndNode != null;
 
-                    U.error(log, "Error sending reply for job [nodeId=" + senderNode.id() + ", jobId=" +
+                    U.error(log, "Error sending reply for job [nodeId=" + sndNode.id() + ", jobId=" +
                         req.getJobId() + ']', e);
                 }
 
@@ -1288,7 +1416,7 @@ public class GridJobProcessor extends GridProcessorAdapter {
      * Listener to node discovery events.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private class JobDiscoveryListener implements GridLocalEventListener {
         /**

@@ -14,6 +14,7 @@ import org.gridgain.grid.cache.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.*;
+import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
@@ -22,7 +23,7 @@ import java.util.*;
  * Cache event manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheEventManager<K, V> extends GridCacheManager<K, V> {
     /** Local node ID. */
@@ -113,6 +114,9 @@ public class GridCacheEventManager<K, V> extends GridCacheManager<K, V> {
         @Nullable V newVal, @Nullable V oldVal) {
         assert key != null;
 
+        if (!cctx.events().isRecordable(type))
+            LT.warn(log, null, "Added event without checking if event is recordable: " + U.gridEventName(type));
+
         // Events are not made for internal entry.
         if (!(key instanceof GridCacheInternal))
             cctx.gridEvents().record(new GridCacheEvent(cctx.name(), cctx.nodeId(), evtNodeId,
@@ -126,16 +130,27 @@ public class GridCacheEventManager<K, V> extends GridCacheManager<K, V> {
      * @param type Event type.
      * @param discoNode Discovery node.
      * @param discoType Discovery event type.
-     * @param discoTimestamp Discovery event timestamp.
+     * @param discoTs Discovery event timestamp.
      */
-    public void addPreloadEvent(int part, int type, GridNodeShadow discoNode, int discoType, long discoTimestamp) {
+    public void addPreloadEvent(int part, int type, GridNodeShadow discoNode, int discoType, long discoTs) {
         assert discoNode != null;
         assert type > 0;
         assert discoType > 0;
-        assert discoTimestamp > 0;
+        assert discoTs > 0;
+
+        if (!cctx.events().isRecordable(type))
+            LT.warn(log, null, "Added event without checking if event is recordable: " + U.gridEventName(type));
 
         cctx.gridEvents().record(new GridCachePreloadEvent(cctx.name(), locNodeId, "Cache preloading event.",
-            type, part, discoNode, discoType, discoTimestamp));
+            type, part, discoNode, discoType, discoTs));
+    }
+
+    /**
+     * @param type Event type.
+     * @return {@code True} if event is recordable.
+     */
+    public boolean isRecordable(int type) {
+        return cctx.gridEvents().isRecordable(type);
     }
 
     /** {@inheritDoc} */

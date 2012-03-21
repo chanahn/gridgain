@@ -34,7 +34,7 @@ import java.util.*;
  * The new job will simply print out the argument passed in.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridifyHelloWorldFailoverTask extends GridifyTaskSplitAdapter<Integer> {
     /** Grid task session is injected here. */

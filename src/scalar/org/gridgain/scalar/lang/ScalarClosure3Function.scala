@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.GridClosure3
  * Wrapping Scala function for `GridClosure3`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class ScalarClosure3Function[T1, T2, T3, R](val inner: GridClosure3[T1, T2, T3, R]) extends ((T1, T2, T3) => R) {
     assert(inner != null)

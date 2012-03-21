@@ -12,6 +12,7 @@ package org.gridgain.grid.kernal.processors.cache;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.store.*;
+import org.gridgain.grid.kernal.processors.cache.distributed.*;
 import org.gridgain.grid.kernal.processors.cache.distributed.dht.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.lang.utils.*;
@@ -27,13 +28,14 @@ import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.cache.GridCacheMode.*;
 import static org.gridgain.grid.cache.GridCachePeekMode.*;
+import static org.gridgain.grid.kernal.GridNodeAttributes.*;
 import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
 
 /**
  * Cache utility methods.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheUtils {
     /** Flag to turn off DHT cache for debugging purposes. */
@@ -406,8 +408,8 @@ public class GridCacheUtils {
      * @throws GridException If data loading failed.
      */
     @SuppressWarnings({"unchecked"})
-    @Nullable public static <K, V> V loadFromStore(GridCacheContext ctx, GridLogger log, GridCacheTx tx, K key)
-        throws GridException {
+    @Nullable public static <K, V> V loadFromStore(GridCacheContext ctx, GridLogger log, @Nullable GridCacheTx tx,
+        K key) throws GridException {
         if (ctx.cacheStore() != null) {
             if (log.isDebugEnabled())
                 log.debug("Loading value from store for key: " + key);
@@ -787,6 +789,28 @@ public class GridCacheUtils {
 
         return U.hasCache(node, ctx.namex());
     }
+
+    /**
+     * Checks if given node has specified cache started.
+     *
+     * @param ctx Cache context.
+     * @param s Node shadow to check.
+     * @return {@code True} if given node has specified cache started.
+     */
+    public static boolean cacheNode(GridCacheContext ctx, GridNodeShadow s) {
+        assert ctx != null;
+        assert s != null;
+
+        GridCacheAttributes[] caches = s.attribute(ATTR_CACHE);
+
+        if (caches != null)
+            for (GridCacheAttributes attrs : caches)
+                if (F.eq(ctx.namex(), attrs.cacheName()))
+                    return true;
+
+        return false;
+    }
+
 
     /**
      * @param nodes Nodes.
@@ -1240,6 +1264,20 @@ public class GridCacheUtils {
             t = t.getCause();
 
         return t instanceof GridCacheLockTimeoutException;
+    }
+
+    /**
+     * @param t Exception to check.
+     * @return {@code true} if caused by lock timeout or cancellation.
+     */
+    public static boolean isLockTimeoutOrCancelled(Throwable t) {
+        if (t == null)
+            return false;
+
+        while (t instanceof GridException || t instanceof GridRuntimeException)
+            t = t.getCause();
+
+        return t instanceof GridCacheLockTimeoutException || t instanceof GridDistributedLockCancelledException;
     }
 
     /**

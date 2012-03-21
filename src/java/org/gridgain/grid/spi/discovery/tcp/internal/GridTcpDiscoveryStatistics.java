@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.*;
  * Statistics for {@link GridTcpDiscoverySpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridTcpDiscoveryStatistics {
     /** Join started timestamp. */
@@ -45,6 +45,12 @@ public class GridTcpDiscoveryStatistics {
     /** Left nodes count. */
     private int leftNodesCnt;
 
+    /** Ack timeouts count. */
+    private int ackTimeoutsCnt;
+
+    /** Socket timeouts count. */
+    private int sockTimeoutsCnt;
+
     /** Received messages. */
     @GridToStringInclude
     private final Map<String, Integer> rcvdMsgs = new HashMap<String, Integer>();
@@ -55,11 +61,11 @@ public class GridTcpDiscoveryStatistics {
 
     /** Average time taken to serialize messages. */
     @GridToStringInclude
-    private final Map<String, Long> avgMsgsSendTimes = new HashMap<String, Long>();
+    private final Map<String, Long> avgMsgsSndTimes = new HashMap<String, Long>();
 
     /** Average time taken to serialize messages. */
     @GridToStringInclude
-    private final Map<String, Long> maxMsgsSendTimes = new HashMap<String, Long>();
+    private final Map<String, Long> maxMsgsSndTimes = new HashMap<String, Long>();
 
     /** Sent messages. */
     @GridToStringInclude
@@ -72,7 +78,7 @@ public class GridTcpDiscoveryStatistics {
     private final Map<GridUuid, Long> msgsProcStartTs = new GridBoundedLinkedHashMap<GridUuid, Long>(1024);
 
     /** Ring messages sent timestamps. */
-    private final Map<GridUuid, Long> ringMsgsSendTs = new GridBoundedLinkedHashMap<GridUuid, Long>(1024);
+    private final Map<GridUuid, Long> ringMsgsSndTs = new GridBoundedLinkedHashMap<GridUuid, Long>(1024);
 
     /** Average time messages is in queue. */
     private long avgMsgQueueTime;
@@ -105,7 +111,7 @@ public class GridTcpDiscoveryStatistics {
     private int sockReadersCreated;
 
     /** Socket readers removed count. */
-    private int sockReadersRemoved;
+    private int sockReadersRmv;
 
     /** Average time it takes to initialize connection from another node. */
     private long avgServerSockInitTime;
@@ -128,42 +134,6 @@ public class GridTcpDiscoveryStatistics {
     /** Pending messages discarded count. */
     private int pendingMsgsDiscarded;
 
-    /** Average put to topology store time. */
-    private long avgTopStorePutTime;
-
-    /** Max put to topology store time. */
-    private long maxTopStorePutTime;
-
-    /** Topology store put count. */
-    private int topStorePutCnt;
-
-    /** Average topology store evict time. */
-    private long avgTopStoreEvictTime;
-
-    /** Max topology store evict time. */
-    private long maxTopStoreEvictTime;
-
-    /** Topology store evict count. */
-    private int topStoreEvictCnt;
-
-    /** Average topology store get nodes time. */
-    private long avgTopStoreGetNodesTime;
-
-    /** Max topology store get nodes time. */
-    private long maxTopStoreGetNodesTime;
-
-    /** Topology store get nodes count. */
-    private int topStoreGetNodesCnt;
-
-    /** Average topology store get node state time. */
-    private long avgTopStoreGetNodeStateTime;
-
-    /** Max topology store get node state time. */
-    private long maxTopStoreGetNodeStateTime;
-
-    /** Topology store get node state count. */
-    private int topStoreGetNodeStateCnt;
-
     /**
      * Increments joined nodes count.
      */
@@ -183,6 +153,20 @@ public class GridTcpDiscoveryStatistics {
      */
     public synchronized void onNodeFailed() {
         failedNodesCnt++;
+    }
+
+    /**
+     * Increments ack timeouts count.
+     */
+    public synchronized void onAckTimeout() {
+        ackTimeoutsCnt++;
+    }
+
+    /**
+     * Increments socket timeouts count.
+     */
+    public synchronized void onSocketTimeout() {
+        sockTimeoutsCnt++;
     }
 
     /**
@@ -312,7 +296,7 @@ public class GridTcpDiscoveryStatistics {
             (msg instanceof GridTcpDiscoveryNodeAddedMessage) ||
             (msg instanceof GridTcpDiscoveryNodeLeftMessage) ||
             (msg instanceof GridTcpDiscoveryNodeFailedMessage)) {
-            ringMsgsSendTs.put(msg.id(), System.currentTimeMillis());
+            ringMsgsSndTs.put(msg.id(), System.currentTimeMillis());
 
             ringMsgsSent++;
         }
@@ -327,7 +311,7 @@ public class GridTcpDiscoveryStatistics {
 
         sentMsgs.put(msg.getClass().getSimpleName(), ++cnt);
 
-        Long avgTime = F.addIfAbsent(avgMsgsSendTimes, msg.getClass().getSimpleName(), new Callable<Long>() {
+        Long avgTime = F.addIfAbsent(avgMsgsSndTimes, msg.getClass().getSimpleName(), new Callable<Long>() {
             @Override public Long call() {
                 return 0L;
             }
@@ -337,9 +321,9 @@ public class GridTcpDiscoveryStatistics {
 
         avgTime = (avgTime * (cnt - 1) + time) / cnt;
 
-        avgMsgsSendTimes.put(msg.getClass().getSimpleName(), avgTime);
+        avgMsgsSndTimes.put(msg.getClass().getSimpleName(), avgTime);
 
-        Long maxTime = F.addIfAbsent(maxMsgsSendTimes, msg.getClass().getSimpleName(), new Callable<Long>() {
+        Long maxTime = F.addIfAbsent(maxMsgsSndTimes, msg.getClass().getSimpleName(), new Callable<Long>() {
             @Override public Long call() {
                 return 0L;
             }
@@ -348,7 +332,7 @@ public class GridTcpDiscoveryStatistics {
         assert maxTime != null;
 
         if (time > maxTime)
-            maxMsgsSendTimes.put(msg.getClass().getSimpleName(), time);
+            maxMsgsSndTimes.put(msg.getClass().getSimpleName(), time);
     }
 
     /**
@@ -359,7 +343,7 @@ public class GridTcpDiscoveryStatistics {
     public synchronized void onRingMessageReceived(GridTcpDiscoveryAbstractMessage msg) {
         assert msg != null;
 
-        Long sentTs = ringMsgsSendTs.get(msg.id());
+        Long sentTs = ringMsgsSndTs.get(msg.id());
 
         if (sentTs != null) {
             long duration  = System.currentTimeMillis() - sentTs;
@@ -453,65 +437,7 @@ public class GridTcpDiscoveryStatistics {
      * Increments socket readers removed count.
      */
     public synchronized void onSocketReaderRemoved() {
-        sockReadersRemoved++;
-    }
-
-    /**
-     * @param time Time taken to put node.
-     */
-    public synchronized void onTopologyStoreNodePut(long time) {
-        assert time >= 0;
-
-        topStorePutCnt++;
-
-        if (time > maxTopStorePutTime)
-            maxTopStorePutTime = time;
-
-        avgTopStorePutTime = (avgTopStorePutTime * (topStorePutCnt - 1) + time) / topStorePutCnt;
-    }
-
-    /**
-     * @param time Time taken to evict nodes.
-     */
-    public synchronized void onTopologyStoreEvict(long time) {
-        assert time >= 0;
-
-        topStoreEvictCnt++;
-
-        if (time > maxTopStoreEvictTime)
-            maxTopStoreEvictTime = time;
-
-        avgTopStoreEvictTime = (avgTopStoreEvictTime * (topStoreEvictCnt - 1) + time) / topStoreEvictCnt;
-    }
-
-    /**
-     * @param time Time taken to get node state.
-     */
-    public synchronized void onTopologyStoreGetNodeState(long time) {
-        assert time >= 0;
-
-        topStoreGetNodeStateCnt++;
-
-        if (time > maxTopStoreGetNodeStateTime)
-            maxTopStoreGetNodeStateTime = time;
-
-        avgTopStoreGetNodeStateTime = (avgTopStoreGetNodeStateTime * (topStoreGetNodeStateCnt - 1) + time) /
-            topStoreGetNodeStateCnt;
-    }
-
-    /**
-     * @param time Time taken to get nodes.
-     */
-    public synchronized void onTopologyStoreGetNodes(long time) {
-        assert time >= 0;
-
-        topStoreGetNodesCnt++;
-
-        if (time > maxTopStoreGetNodesTime)
-            maxTopStoreGetNodesTime = time;
-
-        avgTopStoreGetNodesTime = (avgTopStoreGetNodesTime * (topStoreGetNodesCnt - 1) + time) /
-            topStoreGetNodesCnt;
+        sockReadersRmv++;
     }
 
     /**
@@ -538,7 +464,7 @@ public class GridTcpDiscoveryStatistics {
      * @return Map containing messages types and max send times.
      */
     public synchronized Map<String, Long> maxMessagesSendTimes() {
-        return new HashMap<String, Long>(maxMsgsSendTimes);
+        return new HashMap<String, Long>(maxMsgsSndTimes);
     }
 
     /**
@@ -547,7 +473,7 @@ public class GridTcpDiscoveryStatistics {
      * @return Map containing messages types and average send times.
      */
     public synchronized Map<String, Long> avgMessagesSendTimes() {
-        return new HashMap<String, Long>(avgMsgsSendTimes);
+        return new HashMap<String, Long>(avgMsgsSndTimes);
     }
 
     /**
@@ -632,6 +558,20 @@ public class GridTcpDiscoveryStatistics {
     }
 
     /**
+     * @return Ack timeouts count.
+     */
+    public synchronized int ackTimeoutsCount() {
+        return ackTimeoutsCnt;
+    }
+
+    /**
+     * @return Socket timeouts count.
+     */
+    public synchronized int socketTimeoutsCount() {
+        return sockTimeoutsCnt;
+    }
+
+    /**
      * Gets socket readers created count.
      *
      * @return Socket readers created count.
@@ -646,7 +586,7 @@ public class GridTcpDiscoveryStatistics {
      * @return Socket readers removed count.
      */
     public synchronized int socketReadersRemoved() {
-        return sockReadersRemoved;
+        return sockReadersRmv;
     }
 
     /**
@@ -656,6 +596,43 @@ public class GridTcpDiscoveryStatistics {
      */
     public long coordinatorSinceTimestamp() {
         return crdSinceTs.get();
+    }
+
+    /**
+     * Clears statistics.
+     */
+    public synchronized void clear() {
+        ackTimeoutsCnt = 0;
+        avgClientSockInitTime = 0;
+        avgMsgProcTime = 0;
+        avgMsgQueueTime = 0;
+        avgMsgsSndTimes.clear();
+        avgRingMsgTime = 0;
+        avgServerSockInitTime = 0;
+        clientSockCreatedCnt = 0;
+        crdSinceTs.set(0);
+        failedNodesCnt = 0;
+        joinedNodesCnt = 0;
+        joinFinishedTs = 0;
+        joinStartedTs = 0;
+        leftNodesCnt = 0;
+        maxClientSockInitTime = 0;
+        maxMsgProcTime = 0;
+        maxMsgQueueTime = 0;
+        maxMsgsSndTimes.clear();
+        maxProcTimeMsgCls = null;
+        maxRingMsgTime = 0;
+        maxRingTimeMsgCls = null;
+        maxServerSockInitTime = 0;
+        pendingMsgsDiscarded = 0;
+        pendingMsgsRegistered = 0;
+        procMsgs.clear();
+        rcvdMsgs.clear();
+        ringMsgsSent = 0;
+        sentMsgs.clear();
+        sockReadersCreated = 0;
+        sockReadersRmv = 0;
+        sockTimeoutsCnt = 0;
     }
 
     /** {@inheritDoc} */

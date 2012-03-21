@@ -17,16 +17,9 @@ import java.util.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunctionPartitionExample {
-    /**
-     * Ensures singleton.
-     */
-    private GridFunctionPartitionExample() {
-        /* No-op. */
-    }
-
     /**
      * Executes example.
      *
@@ -40,7 +33,7 @@ public class GridFunctionPartitionExample {
         // CO -> GridOutClosure
         // CA -> GridAbsClosure
         // F -> GridFunc
-        
+
         // Create sample list of persons.
         Collection<Person> persons = Arrays.asList(
             new Person("Joel", 35),
@@ -73,7 +66,7 @@ public class GridFunctionPartitionExample {
      * This class represents a person information.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class Person {
         /** Person name. */

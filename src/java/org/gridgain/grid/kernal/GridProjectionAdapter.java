@@ -36,7 +36,7 @@ import static org.gridgain.grid.util.nodestart.GridNodeStartUtils.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements GridProjection {
     /** Log reference. */
@@ -149,7 +149,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
 
     /** {@inheritDoc} */
     @Override public void affinityRun(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Object affKey,
         @Nullable Runnable job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
@@ -158,11 +158,10 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
 
     /** {@inheritDoc} */
     @Override public GridFuture<?> affinityRunAsync(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Object affKey,
         @Nullable Runnable job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
-        A.notNull(cacheName, "cacheName");
 
         guard();
 
@@ -183,7 +182,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
      * @param run Run to wrap.
      * @return Wrapped call.
      */
-    private CA wrapRun(final String cacheName, final Object affKey, final Runnable run) {
+    private CA wrapRun(@Nullable final String cacheName, final Object affKey, final Runnable run) {
         return new CA() {
             @GridCacheName
             private final String cn = cacheName;
@@ -205,7 +204,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
      * @param <R> Type of the {@code call} return value.
      * @return Wrapped call.
      */
-    private <R> CO<R> wrapCall(final String cacheName, final Object affKey, final Callable<R> call) {
+    private <R> CO<R> wrapCall(@Nullable final String cacheName, final Object affKey, final Callable<R> call) {
         return new CO<R>() {
             @GridCacheName
             private final String cn = cacheName;
@@ -226,11 +225,10 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
 
     /** {@inheritDoc} */
     @Override public <R> GridFuture<Collection<R>> affinityCallAsync(
-        final String cacheName,
+        @Nullable final String cacheName,
         @Nullable Collection<?> affKeys,
         @Nullable final Callable<R> job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
-        A.notNull(cacheName, "cacheName");
 
         guard();
 
@@ -257,11 +255,10 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
 
     /** {@inheritDoc} */
     @Override public <R> GridFuture<R> affinityCallAsync(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Object affKey,
         @Nullable Callable<R> job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
-        A.notNull(cacheName, "cacheName");
 
         guard();
 
@@ -277,7 +274,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
 
     /** {@inheritDoc} */
     @Override public <R> Collection<R> affinityCall(
-        String cacheName,
+        @Nullable String cacheName,
         @Nullable Collection<?> affKeys,
         @Nullable Callable<R> job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
@@ -286,7 +283,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
 
     /** {@inheritDoc} */
     @Override public <R> R affinityCall(
-        String cacheName,
+        @Nullable String cacheName,
         Object affKey,
         @Nullable Callable<R> job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
@@ -295,7 +292,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
 
     /** {@inheritDoc} */
     @Override public GridFuture<?> affinityRunAsync(
-        final String cacheName,
+        @Nullable final String cacheName,
         @Nullable Collection<?> affKeys,
         @Nullable final Runnable job,
         @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
@@ -324,8 +321,8 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
     }
 
     /** {@inheritDoc} */
-    @Override public void affinityRun(String cacheName, @Nullable Collection<?> affKeys, @Nullable Runnable job,
-        @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
+    @Override public void affinityRun(@Nullable String cacheName, @Nullable Collection<?> affKeys,
+        @Nullable Runnable job, @Nullable GridPredicate<? super GridRichNode>... p) throws GridException {
         affinityRunAsync(cacheName, affKeys, job, p).get();
     }
 
@@ -335,7 +332,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
 
         try {
             if (nodes().isEmpty())
-                throw U.makeException();
+                throw U.emptyTopologyException();
 
             return new GridProjectionMetricsImpl(this);
         }
@@ -872,9 +869,9 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
             for (GridProjection prj : neighborhood()) {
                 GridRichNode first = F.first(prj.nodes());
 
-                assert first != null;
-
-                cpus += first.metrics().getTotalCpus();
+                // Projection can be empty if all nodes in it failed.
+                if (first != null)
+                    cpus += first.metrics().getTotalCpus();
             }
 
             return cpus;
@@ -993,7 +990,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
         if (n != null)
             return n;
         else
-            throw U.makeException();
+            throw U.emptyTopologyException();
     }
 
     /** {@inheritDoc} */
@@ -1003,7 +1000,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
         if (n != null)
             return n;
         else
-            throw U.makeException();
+            throw U.emptyTopologyException();
     }
 
     /** {@inheritDoc} */
@@ -1013,7 +1010,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
         if (n != null)
             return n;
         else
-            throw U.makeException();
+            throw U.emptyTopologyException();
     }
 
     /** {@inheritDoc} */
@@ -1768,7 +1765,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
                 Collection<GridRichNode> snapshot = nodes(p);
 
                 if (snapshot.isEmpty())
-                    throw U.makeException();
+                    throw U.emptyTopologyException();
 
                 ctx.io().sendUserMessage(snapshot, msg);
             }
@@ -1790,7 +1787,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
                 Collection<GridRichNode> snapshot = nodes(p);
 
                 if (snapshot.isEmpty())
-                    throw U.makeException();
+                    throw U.emptyTopologyException();
 
                 for (Object msg : msgs)
                     ctx.io().sendUserMessage(snapshot, msg);

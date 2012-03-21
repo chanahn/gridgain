@@ -27,7 +27,7 @@ import java.util.*;
  * GridGain license generator.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridLicenseGeneratorV2 {
     /** Property key-value separator. */
@@ -85,6 +85,7 @@ public class GridLicenseGeneratorV2 {
         params.put("version-regexp", "versionRegexp");
         params.put("type", "type");
         params.put("expire-date", "expireDate");
+        params.put("maintenance-time", "maintenanceTime"); // In months.
         params.put("issue-date", "issueDate");
         params.put("license-note", "licenseNote");
         params.put("max-nodes", "maxNodes");
@@ -239,7 +240,7 @@ public class GridLicenseGeneratorV2 {
             ks = KeyStore.getInstance(KeyStore.getDefaultType());
         }
         catch (Exception e) {
-            throw new GridException("Failed to get key store instance.", e);    
+            throw new GridException("Failed to get key store instance.", e);
         }
 
         File ksFile = new File(U.getGridGainHome() + FS + "keystore", KEY_STORE);
@@ -287,7 +288,8 @@ public class GridLicenseGeneratorV2 {
         map.put("issue-org", "GridGain Systems");
         map.put("user-org", "GridGain Evaluation");
         map.put("license-note", "Internal Evaluation Only");
-        map.put("issue-date", DateFormat.getDateInstance(DateFormat.SHORT).format(new Date()));
+        map.put("issue-date", DateFormat.getDateInstance(DateFormat.SHORT, Locale.US).format(new Date()));
+        map.put("maintenance-time", "12");
         map.put("max-nodes", "3");
         map.put("max-cpus", "12");
 

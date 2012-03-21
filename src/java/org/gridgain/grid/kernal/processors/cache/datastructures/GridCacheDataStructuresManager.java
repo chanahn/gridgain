@@ -18,7 +18,7 @@ import org.jetbrains.annotations.*;
  * Manager of data structures.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public abstract class GridCacheDataStructuresManager<K, V> extends GridCacheManager<K, V> {
     /**
@@ -141,7 +141,6 @@ public abstract class GridCacheDataStructuresManager<K, V> extends GridCacheMana
      * Gets or creates count down latch. If count down latch is not found in cache,
      * it is created using provided name and count parameter.
      * <p>
-     * Note that count down latch is only available in Enterprise Edition.
      *
      * @param name Name of the latch.
      * @param cnt Initial count.
@@ -180,4 +179,9 @@ public abstract class GridCacheDataStructuresManager<K, V> extends GridCacheMana
      * @return Cache of methods and fields annotated by {@link GridCacheQueuePriority}.
      */
     public abstract GridCacheAnnotationHelper<GridCacheQueuePriority> priorityAnnotations();
+
+    /**
+     * Callback for partition map changes.
+     */
+    public abstract void onPartitionsChange();
 }

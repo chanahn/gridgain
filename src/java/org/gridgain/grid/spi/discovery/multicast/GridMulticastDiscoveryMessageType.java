@@ -16,7 +16,7 @@ import java.util.*;
  * This enumeration defines types for multicast discovery messages.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 enum GridMulticastDiscoveryMessageType {
     /** Ping request is sent when {@link GridDiscoverySpi#pingNode(UUID)} is called. */
@@ -37,5 +37,8 @@ enum GridMulticastDiscoveryMessageType {
     ATTRS_RESPONSE,
 
     /** Final confirmation that attributes response was processed. */
-    ATTRS_CONFIRMED
+    ATTRS_CONFIRMED,
+
+    /** Request processing failed due to authentication restrictions. */
+    AUTH_FAILED
 }

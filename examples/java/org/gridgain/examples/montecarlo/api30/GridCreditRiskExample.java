@@ -48,16 +48,9 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * folder.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridCreditRiskExample {
-    /**
-     * Ensure singleton.
-     */
-    private GridCreditRiskExample() {
-        // No-op.
-    }
-
     /**
      * @param args Command arguments.
      * @throws GridException If failed.
@@ -106,19 +99,19 @@ public final class GridCreditRiskExample {
                     private double sum;
 
                     /** Collected values count. */
-                    private int count;
+                    private int cnt;
 
                     /** {@inheritDoc} */
                     @Override public boolean collect(Double e) {
                         sum += e;
-                        count++;
+                        cnt++;
 
                         return true;
                     }
 
                     /** {@inheritDoc} */
                     @Override public Double apply() {
-                        return sum / count;
+                        return sum / cnt;
                     }
                 }
             );

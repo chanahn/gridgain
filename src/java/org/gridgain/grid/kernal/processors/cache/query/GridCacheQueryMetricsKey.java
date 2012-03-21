@@ -18,7 +18,7 @@ import java.io.*;
  * Immutable query metrics key used to group metrics.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class GridCacheQueryMetricsKey implements Externalizable {
     /** */

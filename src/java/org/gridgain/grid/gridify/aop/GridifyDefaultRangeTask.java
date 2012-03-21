@@ -24,7 +24,7 @@ import static org.gridgain.grid.util.gridify.GridifyUtils.*;
  * See {@link Gridify} documentation for more information about execution of {@code gridified} methods.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridifySetToSet
  * @see GridifySetToValue
  */

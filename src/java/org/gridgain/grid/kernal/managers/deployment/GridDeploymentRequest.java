@@ -11,14 +11,16 @@ package org.gridgain.grid.kernal.managers.deployment;
 
 import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.tostring.*;
 
 import java.io.*;
+import java.util.*;
 
 /**
- * TODO: add file description.
+ * Deployment request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class GridDeploymentRequest implements Externalizable {
     /** Response topic name. Response should be sent back to this topic. */
@@ -32,6 +34,10 @@ class GridDeploymentRequest implements Externalizable {
 
     /** Undeploy flag. */
     private boolean isUndeploy;
+
+    /** Nodes participating in request (chain). */
+    @GridToStringInclude
+    private Collection<UUID> nodeIds;
 
     /**
      * No-op constructor to support {@link Externalizable} interface.
@@ -62,7 +68,7 @@ class GridDeploymentRequest implements Externalizable {
      *
      * @param resTopic New response topic.
      */
-    void setResponseTopic(String resTopic) {
+    void responseTopic(String resTopic) {
         this.resTopic = resTopic;
     }
 
@@ -71,7 +77,7 @@ class GridDeploymentRequest implements Externalizable {
      *
      * @return Response topic name.
      */
-    String getResponseTopic() {
+    String responseTopic() {
         return resTopic;
     }
 
@@ -80,7 +86,7 @@ class GridDeploymentRequest implements Externalizable {
      *
      * @return Resource or class name.
      */
-    String getResourceName() {
+    String resourceName() {
         return rsrcName;
     }
 
@@ -89,7 +95,7 @@ class GridDeploymentRequest implements Externalizable {
      *
      * @return Property ldrId.
      */
-    GridUuid getClassLoaderId() {
+    GridUuid classLoaderId() {
         return ldrId;
     }
 
@@ -102,12 +108,29 @@ class GridDeploymentRequest implements Externalizable {
         return isUndeploy;
     }
 
+    /**
+     * @return Node IDs chain which is updated as request jumps
+     *      from node to node.
+     */
+    public Collection<UUID> nodeIds() {
+        return nodeIds;
+    }
+
+    /**
+     * @param nodeIds Node IDs chain which is updated as request jumps
+     *      from node to node.
+     */
+    public void nodeIds(Collection<UUID> nodeIds) {
+        this.nodeIds = nodeIds;
+    }
+
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(isUndeploy);
         U.writeString(out, resTopic);
         U.writeString(out, rsrcName);
         U.writeGridUuid(out, ldrId);
+        U.writeCollection(out, nodeIds);
     }
 
     /** {@inheritDoc} */
@@ -116,6 +139,7 @@ class GridDeploymentRequest implements Externalizable {
         resTopic = U.readString(in);
         rsrcName = U.readString(in);
         ldrId = U.readGridUuid(in);
+        nodeIds = U.readCollection(in);
     }
 
     /** {@inheritDoc} */

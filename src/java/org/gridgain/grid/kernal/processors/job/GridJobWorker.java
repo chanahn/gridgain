@@ -36,10 +36,10 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Job worker.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridJobWorker extends GridWorker implements GridTimeoutObject {
-    /** Per-thread halted flag. */
+    /** Per-thread held flag. */
     private static final ThreadLocal<Boolean> HOLD = new ThreadLocal<Boolean>() {
         @Override protected Boolean initialValue() {
             return false;
@@ -418,7 +418,7 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
     public void execute() {
         unhold();
 
-        boolean sendRes = true;
+        boolean sndRes = true;
 
         Object res = null;
 
@@ -428,7 +428,7 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
             // If job has timed out, then
             // avoid computation altogether.
             if (isTimedOut()) {
-                sendRes = false;
+                sndRes = false;
             }
             else {
                 res = U.wrapThreadLoader(dep.classLoader(), new Callable<Object>() {
@@ -461,9 +461,9 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
             assert ex != null;
         }
         finally {
-            // Finish here only if was halted by this thread.
+            // Finish here only if not held by this thread.
             if (!HOLD.get()) {
-                finishJob(res, ex, sendRes);
+                finishJob(res, ex, sndRes);
             }
         }
     }
@@ -527,15 +527,15 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
     }
 
     /**
-     * @param system System flag.
+     * @param sys System flag.
      */
-    public void cancel(boolean system) {
+    public void cancel(boolean sys) {
         try {
             super.cancel();
 
             final GridJob job = this.job.get();
 
-            sysCancelled.set(system);
+            sysCancelled.set(sys);
 
             if (job != null) {
                 if (log.isDebugEnabled()) {
@@ -581,16 +581,15 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
     /**
      * @param res Result.
      * @param ex Error.
-     * @param sendReply If {@code true}, reply will be sent.
+     * @param sndReply If {@code true}, reply will be sent.
      */
     @SuppressWarnings({"CatchGenericClass"})
-    void finishJob(@Nullable Object res, GridException ex, boolean sendReply) {
+    void finishJob(@Nullable Object res, @Nullable GridException ex, boolean sndReply) {
         // Avoid finishing a job more than once from
         // different threads.
         synchronized (mux) {
-            if (isFinishing) {
+            if (isFinishing)
                 return;
-            }
 
             isFinishing = true;
         }
@@ -600,10 +599,10 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
         try {
             // Send response back only if job has not timed out.
             if (!isTimedOut()) {
-                if (sendReply) {
-                    GridNode senderNode = ctx.discovery().node(taskNodeId);
+                if (sndReply) {
+                    GridNode sndNode = ctx.discovery().node(taskNodeId);
 
-                    if (senderNode == null) {
+                    if (sndNode == null) {
                         U.error(log, "Failed to reply to sender node because it left grid [nodeId=" + taskNodeId +
                             ", ses=" + ses + ", jobId=" + ses.getJobId() + ", job=" + job + ']');
 
@@ -614,27 +613,24 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
                     else {
                         try {
                             if (ex != null) {
-                                if (isStarted) {
+                                if (isStarted)
                                     // Job failed.
                                     evts.add(F.t(EVT_JOB_FAILED, "Job failed due to exception [ex=" +
                                         ex + ", job=" + job.get() + ']'));
-                                }
-                                else {
+                                else
                                     // Job has been rejected.
                                     evts.add(F.t(EVT_JOB_REJECTED, "Job has been rejected before " +
                                         "exception [ex=" + ex + ", job=" + job.get() + ']'));
-                                }
                             }
-                            else {
+                            else
                                 evts.add(F.t(EVT_JOB_FINISHED, /*no message for success. */(String)null));
-                            }
 
                             Serializable jobRes = new GridJobExecuteResponse(
                                 ctx.localNodeId(),
                                 ses.getId(),
                                 ses.getJobId(),
                                 U.marshal(marshaller, ex),
-                                U.marshal(marshaller,res),
+                                U.marshal(marshaller, res),
                                 U.marshal(marshaller, jobCtx.getAttributes()),
                                 isCancelled());
 
@@ -650,9 +646,9 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
 
                             // Send response to designated job topic.
                             ctx.io().sendOrderedMessage(
-                                senderNode,
+                                sndNode,
                                 topic,
-                                ctx.io().getNextMessageId(topic, senderNode.id()),
+                                ctx.io().nextMessageId(topic, sndNode.id()),
                                 jobRes,
                                 SYSTEM_POOL,
                                 timeout);
@@ -669,7 +665,7 @@ public class GridJobWorker extends GridWorker implements GridTimeoutObject {
                                     ", ses=" + ses + ", job=" + job.get() + ']');
                             }
                             else {
-                                U.error(log, "Error sending reply for job [nodeId=" + senderNode.id() + ", jobId=" +
+                                U.error(log, "Error sending reply for job [nodeId=" + sndNode.id() + ", jobId=" +
                                     ses.getJobId() + ", ses=" + ses + ", job=" + job.get() + ']', e);
                             }
 

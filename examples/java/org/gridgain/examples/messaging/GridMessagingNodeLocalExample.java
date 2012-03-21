@@ -48,16 +48,9 @@ import java.util.zip.*;
  * folder.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridMessagingNodeLocalExample {
-    /**
-     * Enforces singleton.
-     */
-    private GridMessagingNodeLocalExample() {
-        // No-op.
-    }
-
     /**
      * This example demonstrates a bit contrived but useful example of how to
      * combine node locals and closure for powerful distributed processing pattern.

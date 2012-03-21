@@ -22,7 +22,7 @@ import GridClosureCallMode._
  * ten times with initial scheduling delay equal to five seconds.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object ScalarScheduleRunnableExample {
     /**

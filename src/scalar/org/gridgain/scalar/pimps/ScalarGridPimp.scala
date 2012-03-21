@@ -12,20 +12,19 @@
 package org.gridgain.scalar.pimps
 
 import org.gridgain.grid._
-import scalaz._
 import org.jetbrains.annotations.Nullable
 
 /**
  * Companion object.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object ScalarGridPimp {
     /**
      * Creates new Scalar grid pimp with given Java-side implementation.
      *
-     * @param value Java-side implementation.
+     * @param impl Java-side implementation.
      */
     def apply(impl: Grid) = {
         if (impl == null)
@@ -59,7 +58,7 @@ object ScalarGridPimp {
  * Scala's side method with `$` suffix.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class ScalarGridPimp extends ScalarProjectionPimp[Grid] with ScalarTaskThreadContext[Grid] {
     /**

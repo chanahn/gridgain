@@ -32,13 +32,9 @@ import java.util.*;
  * <p>
  * If topology uses metrics store then message makes only one pass and metrics map
  * is always empty. Nodes exchange their metrics using metrics store.
- * <p>
- * if topology uses topology store, {@link #topologyVersion()} will return the
- * least version of the topology used by the nodes. Each node should update this
- * field in message, if it uses topology with less version.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridTcpDiscoveryHeartbeatMessage extends GridTcpDiscoveryAbstractMessage {
     /** Map to store nodes metrics. */
@@ -92,37 +88,6 @@ public class GridTcpDiscoveryHeartbeatMessage extends GridTcpDiscoveryAbstractMe
      */
     public Map<UUID, GridNodeMetrics> metrics() {
         return metrics;
-    }
-
-    /**
-     * Sets metrics map.
-     *
-     * @param metrics Metrics map (unmodifiable).
-     */
-    public void metrics(Map<UUID, GridNodeMetrics> metrics) {
-        this.metrics = metrics;
-    }
-
-    /**
-     * Gets the least topology version used from all nodes in topology.
-     * <p>
-     * This method and the underlying field is used only if topology store is used.
-     *
-     * @return Topology version.
-     */
-    @Override public long topologyVersion() {
-        return super.topologyVersion();
-    }
-
-    /**
-     * Sets the least topology version used from all nodes in topology.
-     * <p>
-     * This method and the underlying field is used only if topology store is used.
-     *
-     * @param topVer Topology version.
-     */
-    @Override public void topologyVersion(long topVer) {
-        super.topologyVersion(topVer);
     }
 
     /** {@inheritDoc} */

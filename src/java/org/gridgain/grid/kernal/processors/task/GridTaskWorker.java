@@ -30,13 +30,14 @@ import java.util.concurrent.atomic.*;
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.kernal.GridTopic.*;
 import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
+import static org.gridgain.grid.kernal.processors.job.GridJobProcessor.*;
 import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.*;
 
 /**
  * Grid task worker. Handles full task life cycle.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @param <T> Task argument type.
  * @param <R> Task return value type.
  */
@@ -626,9 +627,9 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
                 results = getRemoteResults();
             }
 
-            GridJobResultPolicy policy = result(jobRes, results);
+            GridJobResultPolicy plc = result(jobRes, results);
 
-            if (policy == null) {
+            if (plc == null) {
                 String errMsg = "Failed to obtain remote job result policy for result from GridTask.result(..) " +
                     "method that returned null (will fail the whole task): " + jobRes;
 
@@ -656,7 +657,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
                     return;
                 }
 
-                switch (policy) {
+                switch (plc) {
                     // Start reducing all results received so far.
                     case REDUCE: {
                         state = State.REDUCING;
@@ -671,7 +672,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
 
                         // If there are more results to wait for.
                         if (results.size() == this.jobRes.size()) {
-                            policy = GridJobResultPolicy.REDUCE;
+                            plc = GridJobResultPolicy.REDUCE;
 
                             // All results are received, proceed to reduce method.
                             state = State.REDUCING;
@@ -681,9 +682,21 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
                     }
 
                     case FAILOVER: {
-                        // Make sure that fail-over SPI provided a new node.
-                        if (!failover(res, jobRes, top))
-                            policy = null;
+                        boolean cancelled = jobRes.getJobContext().getAttribute(CANCELLED_ATTR_KEY) != null;
+
+                        if (cancelled) {
+                            if (results.size() == this.jobRes.size()) {
+                                plc = GridJobResultPolicy.REDUCE;
+
+                                // All results are received, proceed to reduce method.
+                                state = State.REDUCING;
+                            }
+                            else
+                                plc = null;
+                        }
+                        // Make sure that job was not rejected fail-over SPI provided a new node.
+                        else if (!failover(res, jobRes, top))
+                            plc = null;
 
                         break;
                     }
@@ -691,14 +704,14 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
             }
 
             // Outside of synchronization.
-            if (policy != null) {
+            if (plc != null) {
                 // Handle failover.
-                if (policy == GridJobResultPolicy.FAILOVER)
+                if (plc == GridJobResultPolicy.FAILOVER)
                     sendFailoverRequest(jobRes);
                 else {
                     evtLsnr.onJobFinished(this, jobRes.getSibling());
 
-                    if (policy == GridJobResultPolicy.REDUCE)
+                    if (plc == GridJobResultPolicy.REDUCE)
                         reduce(results);
                 }
             }
@@ -738,20 +751,20 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
             @Nullable @Override public GridJobResultPolicy apply() {
                 try {
                     // Obtain job result policy.
-                    GridJobResultPolicy policy = null;
+                    GridJobResultPolicy plc = null;
 
                     try {
-                        policy = getTask().result(jobRes, results);
+                        plc = getTask().result(jobRes, results);
                     }
                     finally {
                         recordJobEvent(EVT_JOB_RESULTED, jobRes.getJobContext().getJobId(),
-                            jobRes.getNode().id(), "Job got resulted with: " + policy);
+                            jobRes.getNode().id(), "Job got resulted with: " + plc);
                     }
 
                     if (log.isDebugEnabled())
-                        log.debug("Obtained job result policy [policy=" + policy + ", ses=" + ses + ']');
+                        log.debug("Obtained job result policy [policy=" + plc + ", ses=" + ses + ']');
 
-                    return policy;
+                    return plc;
                 }
                 catch (GridException e) {
                     U.error(log, "Failed to obtain remote job result policy for result from GridTask.result(..) method " +

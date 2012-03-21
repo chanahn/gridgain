@@ -17,7 +17,7 @@ import java.util.*;
  * This interface defines task execution listener.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @Deprecated
 public interface GridTaskListener extends EventListener {

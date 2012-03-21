@@ -31,7 +31,7 @@ import java.util.concurrent.*;
  * remote node this class will throw exception.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"CustomClassloader"})
 class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInfo {
@@ -49,14 +49,13 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
     @GridToStringExclude
     private final GridLogger log;
 
-    /**
-     * Node ID -> Loader ID + seqNum.
-     * <p>
-     * This map is ordered by access order to make sure that P2P requests
-     * are sent to the last accessed node first.
-     */
+    /** Registered nodes. */
+    @GridToStringExclude
+    private LinkedList<UUID> nodeList;
+
+    /** Node ID -> Loader ID + seqNum. */
     @GridToStringInclude
-    private final Map<UUID, GridTuple2<GridUuid, Long>> nodeLdrMap;
+    private Map<UUID, GridTuple2<GridUuid, Long>> nodeLdrMap;
 
     /** */
     @GridToStringExclude
@@ -148,7 +147,11 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
         this.log = log;
         this.p2pExclude = p2pExclude;
 
-        Map<UUID, GridTuple2<GridUuid, Long>> map = new LinkedHashMap<UUID, GridTuple2<GridUuid, Long>>(1, 0.75f, true);
+        nodeList = new LinkedList<UUID>();
+
+        nodeList.add(nodeId);
+
+        Map<UUID, GridTuple2<GridUuid, Long>> map = new HashMap<UUID, GridTuple2<GridUuid, Long>>(1);
 
         map.put(nodeId, F.t(clsLdrId, seqNum));
 
@@ -221,9 +224,9 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
         this.log = log;
         this.p2pExclude = p2pExclude;
 
-        nodeLdrMap = new LinkedHashMap<UUID, GridTuple2<GridUuid, Long>>(1, 0.75f, true);
+        nodeList = new LinkedList<UUID>(participants.keySet());
 
-        nodeLdrMap.putAll(participants);
+        nodeLdrMap = new HashMap<UUID, GridTuple2<GridUuid, Long>>(participants);
 
         missedRsrcs = missedResourcesCacheSize > 0 ?
             new GridBoundedLinkedHashSet<String>(missedResourcesCacheSize) : null;
@@ -265,20 +268,31 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
     void register(UUID nodeId, GridUuid ldrId, long seqNum) {
         assert nodeId != null;
         assert ldrId != null;
+        assert !singleNode;
 
         synchronized (mux) {
-            // Make sure to do get in order to change iteration order,
-            // i.e. put this node first.
-            if (nodeLdrMap.get(nodeId) == null)
-                nodeLdrMap.put(nodeId, F.t(ldrId, seqNum));
+            if (missedRsrcs != null)
+                missedRsrcs.clear();
+
+            /*
+             * We need to put passed in node into the
+             * first position in the list.
+             */
+
+            // 1. Remove passed in node if any.
+            nodeList.remove(nodeId);
+
+            // 2. Add passed in node to the first position.
+            nodeList.addFirst(nodeId);
+
+            // 3. Put to map.
+            nodeLdrMap.put(nodeId, F.t(ldrId, seqNum));
         }
     }
 
     /**
      * Remove remote node and remote class loader id associated with it from
      * internal map.
-     *
-     *
      *
      * @param nodeId Participating node ID.
      * @return Removed class loader ID.
@@ -287,6 +301,8 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
         assert nodeId != null;
 
         synchronized (mux) {
+            nodeList.remove(nodeId);
+
             GridTuple2<GridUuid, Long> rmvd = nodeLdrMap.remove(nodeId);
 
             return rmvd == null ? null : rmvd.get1();
@@ -298,7 +314,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      */
     Collection<UUID> registeredNodeIds() {
         synchronized (mux) {
-            return new ArrayList<UUID>(nodeLdrMap.keySet());
+            return new ArrayList<UUID>(nodeList);
         }
     }
 
@@ -353,7 +369,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      */
     boolean hasRegisteredNodes() {
         synchronized (mux) {
-            return !nodeLdrMap.isEmpty();
+            return !nodeList.isEmpty();
         }
     }
 
@@ -468,9 +484,9 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
 
             if (cls == null) {
                 if (byteMap != null)
-                    byteMap.put(path, byteSrc.getArray());
+                    byteMap.put(path, byteSrc.array());
 
-                cls = defineClass(name, byteSrc.getInternalArray(), 0, byteSrc.getSize());
+                cls = defineClass(name, byteSrc.internalArray(), 0, byteSrc.size());
 
                 /* Define package in classloader. See URLClassLoader.defineClass(). */
                 int i = name.lastIndexOf('.');
@@ -521,7 +537,8 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
 
         long endTime = computeEndTime(p2pTimeout);
 
-        Collection<Map.Entry<UUID, GridTuple2<GridUuid, Long>>> entries;
+        Collection<UUID> nodeListCp;
+        Map<UUID, GridTuple2<GridUuid, Long>> nodeLdrMapCp;
 
         synchronized (mux) {
             // Skip requests for the previously missed classes.
@@ -529,34 +546,32 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
                 throw new ClassNotFoundException("Failed to peer load class [class=" + name + ", nodeClsLdrIds=" +
                     nodeLdrMap + ", parentClsLoader=" + getParent() + ']');
 
-            // If single-node mode, then node cannot change and we simply reuse the entry set.
-            // Otherwise, copy and preserve order for iteration.
-            entries = singleNode ? nodeLdrMap.entrySet() :
-                new ArrayList<Map.Entry<UUID, GridTuple2<GridUuid, Long>>>(nodeLdrMap.entrySet());
+            // If single-node mode, then node cannot change and we simply reuse list and map.
+            // Otherwise, make copies that can be used outside synchronization.
+            nodeListCp = singleNode ? nodeList : new LinkedList<UUID>(nodeList);
+            nodeLdrMapCp = singleNode ? nodeLdrMap : new HashMap<UUID, GridTuple2<GridUuid, Long>>(nodeLdrMap);
         }
 
         GridException err = null;
 
-        for (Map.Entry<UUID, GridTuple2<GridUuid, Long>> entry : entries) {
-            UUID nodeId = entry.getKey();
-
+        for (UUID nodeId : nodeListCp) {
             if (nodeId.equals(ctx.discovery().localNode().id()))
                 // Skip local node as it is already used as parent class loader.
                 continue;
 
-            GridUuid ldrId = entry.getValue().get1();
+            GridTuple2<GridUuid, Long> ldrId = nodeLdrMapCp.get(nodeId);
 
             GridNode node = ctx.discovery().node(nodeId);
 
             if (node == null) {
                 if (log.isDebugEnabled())
-                    log.debug("Found inactive node is class loader (will skip): " + nodeId);
+                    log.debug("Found inactive node in class loader (will skip): " + nodeId);
 
                 continue;
             }
 
             try {
-                GridDeploymentResponse res = comm.sendResourceRequest(path, ldrId, node, endTime);
+                GridDeploymentResponse res = comm.sendResourceRequest(path, ldrId.get1(), node, endTime);
 
                 if (res == null) {
                     String msg = "Failed to send class-loading node request to node (is node alive?) [node=" +
@@ -570,13 +585,13 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
                     continue;
                 }
 
-                if (res.isSuccess())
-                    return res.getByteSource();
+                if (res.success())
+                    return res.byteSource();
 
                 // In case of shared resources/classes all nodes should have it.
                 if (log.isDebugEnabled())
                     log.debug("Failed to find class on remote node [class=" + name + ", nodeId=" + node.id() +
-                        ", clsLdrId=" + entry.getValue() + ", reason=" + res.getErrorMessage() + ']');
+                        ", clsLdrId=" + ldrId + ", reason=" + res.errorMessage() + ']');
 
                 synchronized (mux) {
                     if (missedRsrcs != null)
@@ -584,7 +599,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
                 }
 
                 throw new ClassNotFoundException("Failed to peer load class [class=" + name + ", nodeClsLdrs=" +
-                    entries + ", parentClsLoader=" + getParent() + ", reason=" + res.getErrorMessage() + ']');
+                    nodeLdrMapCp + ", parentClsLoader=" + getParent() + ", reason=" + res.errorMessage() + ']');
             }
             catch (GridException e) {
                 // This thread should be interrupted again in communication if it
@@ -603,7 +618,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
         }
 
         throw new ClassNotFoundException("Failed to peer load class [class=" + name + ", nodeClsLdrs=" +
-            entries + ", parentClsLoader=" + getParent() + ']', err);
+            nodeLdrMapCp + ", parentClsLoader=" + getParent() + ']', err);
     }
 
     /** {@inheritDoc} */
@@ -639,54 +654,51 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      * @param name Resource name.
      * @return InputStream for resource or {@code null} if resource could not be found.
      */
-    @SuppressWarnings({"CallToNativeMethodWhileLocked"})
-    @Nullable
-    private InputStream sendResourceRequest(String name) {
+    @Nullable private InputStream sendResourceRequest(String name) {
         assert !Thread.holdsLock(mux);
 
         long endTime = computeEndTime(p2pTimeout);
 
-        Collection<Map.Entry<UUID, GridTuple2<GridUuid, Long>>> entries;
+        Collection<UUID> nodeListCp;
+        Map<UUID, GridTuple2<GridUuid, Long>> nodeLdrMapCp;
 
         synchronized (mux) {
             // Skip requests for the previously missed classes.
             if (missedRsrcs != null && missedRsrcs.contains(name))
                 return null;
 
-            // If single-node mode, then node cannot change and we simply reuse the entry set.
-            // Otherwise, copy and preserve order for iteration.
-            entries = singleNode ? nodeLdrMap.entrySet() :
-                new ArrayList<Map.Entry<UUID, GridTuple2<GridUuid, Long>>>(nodeLdrMap.entrySet());
+            // If single-node mode, then node cannot change and we simply reuse list and map.
+                        // Otherwise, make copies that can be used outside synchronization.
+            nodeListCp = singleNode ? nodeList : new LinkedList<UUID>(nodeList);
+            nodeLdrMapCp = singleNode ? nodeLdrMap : new HashMap<UUID, GridTuple2<GridUuid, Long>>(nodeLdrMap);
         }
 
-        for (Map.Entry<UUID, GridTuple2<GridUuid, Long>> entry : entries) {
-            UUID nodeId = entry.getKey();
-
+        for (UUID nodeId : nodeListCp) {
             if (nodeId.equals(ctx.discovery().localNode().id()))
                 // Skip local node as it is already used as parent class loader.
                 continue;
 
-            GridUuid ldrId = entry.getValue().get1();
+            GridTuple2<GridUuid, Long> ldrId = nodeLdrMapCp.get(nodeId);
 
             GridNode node = ctx.discovery().node(nodeId);
 
             if (node == null) {
                 if (log.isDebugEnabled())
-                    log.debug("Found inactive node is class loader (will skip): " + nodeId);
+                    log.debug("Found inactive node in class loader (will skip): " + nodeId);
 
                 continue;
             }
 
             try {
                 // Request is sent with timeout that is why we can use synchronization here.
-                GridDeploymentResponse res = comm.sendResourceRequest(name, ldrId, node, endTime);
+                GridDeploymentResponse res = comm.sendResourceRequest(name, ldrId.get1(), node, endTime);
 
                 if (res == null) {
                     U.warn(log, "Failed to get resource from node (is node alive?) [nodeId=" +
-                        node.id() + ", clsLdrId=" + entry.getValue() + ", resName=" +
+                        node.id() + ", clsLdrId=" + ldrId + ", resName=" +
                         name + ", parentClsLdr=" + getParent() + ']');
                 }
-                else if (!res.isSuccess()) {
+                else if (!res.success()) {
                     synchronized (mux) {
                         // Cache unsuccessfully loaded resource.
                         if (missedRsrcs != null)
@@ -698,15 +710,15 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
                     // resources. So we print out INFO level message.
                     if (log.isInfoEnabled())
                         log.info("Failed to get resource from node [nodeId=" +
-                            node.id() + ", clsLdrId=" + entry.getValue() + ", resName=" +
-                            name + ", parentClsLdr=" + getParent() + ", msg=" + res.getErrorMessage() + ']');
+                            node.id() + ", clsLdrId=" + ldrId + ", resName=" +
+                            name + ", parentClsLdr=" + getParent() + ", msg=" + res.errorMessage() + ']');
 
                     // Do not ask other nodes in case of shared mode all of them should have the resource.
                     return null;
                 }
                 else {
-                    return new ByteArrayInputStream(res.getByteSource().getInternalArray(), 0,
-                        res.getByteSource().getSize());
+                    return new ByteArrayInputStream(res.byteSource().internalArray(), 0,
+                        res.byteSource().size());
                 }
             }
             catch (GridException e) {
@@ -718,7 +730,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
                 }
                 else {
                     U.warn(log, "Failed to get resource from node (is node alive?) [nodeId=" +
-                        node.id() + ", clsLdrId=" + entry.getValue() + ", resName=" +
+                        node.id() + ", clsLdrId=" + ldrId + ", resName=" +
                         name + ", parentClsLdr=" + getParent() + ", err=" + e + ']');
                 }
             }
@@ -729,6 +741,8 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(GridDeploymentClassLoader.class, this);
+        synchronized (mux) {
+            return S.toString(GridDeploymentClassLoader.class, this);
+        }
     }
 }

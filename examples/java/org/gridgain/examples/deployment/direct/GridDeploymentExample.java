@@ -29,18 +29,11 @@ import java.util.*;
  * in system classpath, so even in this case the deployment step is unnecessary.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridDeploymentExample {
     /** Name of the deployed task. */
     static final String TASK_NAME = "GridDeploymentExampleTask";
-
-    /**
-     * Ensure singleton.
-     */
-    private GridDeploymentExample() {
-        // No-op.
-    }
 
     /**
      * Deploys, executes and undeploys example task on the grid.

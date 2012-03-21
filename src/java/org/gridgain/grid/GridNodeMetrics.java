@@ -31,7 +31,7 @@ import java.io.*;
  * as a graph.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridProjectionMetrics
  */
 public interface GridNodeMetrics extends Serializable {
@@ -439,7 +439,7 @@ public interface GridNodeMetrics extends Serializable {
     public double getAverageCpuLoad();
 
     /**
-     * Returns the amount of heap memory in bytes that the Java virtual machine
+     * Returns the amount of heap memory in bytes that the JVM
      * initially requests from the operating system for memory management.
      * This method returns {@code -1} if the initial memory size is undefined.
      * <p>
@@ -473,8 +473,8 @@ public interface GridNodeMetrics extends Serializable {
 
     /**
      * Returns the amount of heap memory in bytes that is committed for
-     * the Java virtual machine to use. This amount of memory is
-     * guaranteed for the Java virtual machine to use.
+     * the JVM to use. This amount of memory is
+     * guaranteed for the JVM to use.
      * The heap consists of one or more memory pools. This value is
      * the sum of {@code committed} heap memory values of all heap memory pools.
      * <p>
@@ -493,7 +493,7 @@ public interface GridNodeMetrics extends Serializable {
      * <p>
      * This amount of memory is not guaranteed to be available
      * for memory management if it is greater than the amount of
-     * committed memory. The Java virtual machine may fail to allocate
+     * committed memory. The JVM may fail to allocate
      * memory even if the amount of used memory does not exceed this
      * maximum size.
      * <p>
@@ -509,7 +509,7 @@ public interface GridNodeMetrics extends Serializable {
     public long getHeapMemoryMaximum();
 
     /**
-     * Returns the amount of non-heap memory in bytes that the Java virtual machine
+     * Returns the amount of non-heap memory in bytes that the JVM
      * initially requests from the operating system for memory management.
      * This method returns {@code -1} if the initial memory size is undefined.
      * <p>
@@ -542,8 +542,8 @@ public interface GridNodeMetrics extends Serializable {
 
     /**
      * Returns the amount of non-heap memory in bytes that is committed for
-     * the Java virtual machine to use. This amount of memory is
-     * guaranteed for the Java virtual machine to use.
+     * the JVM to use. This amount of memory is
+     * guaranteed for the JVM to use.
      * The non-heap memory consists of one or more memory pools. This value is
      * the sum of {@code committed} non-heap memory values of all non-heap memory pools.
      * <p>
@@ -552,7 +552,7 @@ public interface GridNodeMetrics extends Serializable {
      *
      * @return The amount of committed memory in bytes.
      */
-    @GridMBeanDescription("Amount of non-heap memory in bytes that is committed for the Java virtual machine to use.")
+    @GridMBeanDescription("Amount of non-heap memory in bytes that is committed for the JVM to use.")
     public long getNonHeapMemoryCommitted();
 
     /**
@@ -562,7 +562,7 @@ public interface GridNodeMetrics extends Serializable {
      * <p>
      * This amount of memory is not guaranteed to be available
      * for memory management if it is greater than the amount of
-     * committed memory.  The Java virtual machine may fail to allocate
+     * committed memory.  The JVM may fail to allocate
      * memory even if the amount of used memory does not exceed this
      * maximum size.
      * <p>
@@ -579,21 +579,21 @@ public interface GridNodeMetrics extends Serializable {
     public long getNonHeapMemoryMaximum();
 
     /**
-     * Returns the uptime of the Java virtual machine in milliseconds.
+     * Returns the uptime of the JVM in milliseconds.
      *
-     * @return Uptime of the Java virtual machine in milliseconds.
+     * @return Uptime of the JVM in milliseconds.
      */
-    @GridMBeanDescription("Uptime of the Java virtual machine in milliseconds.")
+    @GridMBeanDescription("Uptime of the JVM in milliseconds.")
     public long getUpTime();
 
     /**
-     * Returns the start time of the Java virtual machine in milliseconds.
+     * Returns the start time of the JVM in milliseconds.
      * This method returns the approximate time when the Java virtual
      * machine started.
      *
-     * @return Start time of the Java virtual machine in milliseconds.
+     * @return Start time of the JVM in milliseconds.
      */
-    @GridMBeanDescription("Start time of the Java virtual machine in milliseconds.")
+    @GridMBeanDescription("Start time of the JVM in milliseconds.")
     public long getStartTime();
 
     /**
@@ -615,7 +615,7 @@ public interface GridNodeMetrics extends Serializable {
     public int getCurrentThreadCount();
 
     /**
-     * Returns the maximum live thread count since the Java virtual machine
+     * Returns the maximum live thread count since the JVM
      * started or peak was reset.
      * <p>
      * <b>Note:</b> this is <b>not</b> an aggregated metric and it's calculated
@@ -628,7 +628,7 @@ public interface GridNodeMetrics extends Serializable {
 
     /**
      * Returns the total number of threads created and also started
-     * since the Java virtual machine started.
+     * since the JVM started.
      * <p>
      * <b>Note:</b> this is <b>not</b> an aggregated metric and it's calculated
      * from the time of the node's startup.

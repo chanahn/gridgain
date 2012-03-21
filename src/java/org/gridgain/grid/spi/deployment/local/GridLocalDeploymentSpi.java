@@ -43,14 +43,14 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.ATTR_SPI_VER;
  * configuration parameters.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridDeploymentSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.6.0c.09012012")
+    version = "4.0.0c.21032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridLocalDeploymentSpi extends GridSpiAdapter implements GridDeploymentSpi, GridLocalDeploymentSpiMBean {
     /** */

@@ -17,10 +17,12 @@ import org.gridgain.grid.GridClosureCallMode._
 import org.gridgain.grid.Grid
 
 /**
-  * This example calculates Pi number in parallel on the grid.
+  * This example calculates Pi number in parallel on the grid. Note that these few
+  * lines of code work on one node, two nodes or hundreds of nodes without any changes
+  * or any explicit deployment.
   *
   * @author 2012 Copyright (C) GridGain Systems
-  * @version 3.6.0c.09012012
+  * @version 4.0.0c.21032012
   */
 object ScalarPiCalculationExample {
     /** Number of calculations per node. */
@@ -31,14 +33,17 @@ object ScalarPiCalculationExample {
       *
       * @param args Command line arguments - none required.
       */
-    def main(args: Array[String]) = scalar { g: Grid =>
-        println("Pi estimate: " +
-            g.@<[Double, Double](SPREAD, for (i <- 0 until g.size()) yield () => calcPi(i * N), _.sum)
+    def main(args: Array[String]) {
+        scalar {
+            g: Grid =>
+                println("Pi estimate: " +
+                    g.@<[Double, Double](SPREAD, for (i <- 0 until g.size()) yield () => calcPi(i * N), _.sum)
 
-            // Just another way w/o for-expression.
-            // Note that map's parameter type inference doesn't work in 2.9.0.
-            // g.@<[Double, Double](SPREAD, 0 until g.size() map ((i: Int) => () => calcPi(i * N)), _.sum)
-        )
+                    // Just another way w/o for-expression.
+                    // Note that map's parameter type inference doesn't work in 2.9.0.
+                    // g.@<[Double, Double](SPREAD, 0 until g.size() map ((i: Int) => () => calcPi(i * N)), _.sum)
+                )
+        }
     }
 
     /**
@@ -48,5 +53,5 @@ object ScalarPiCalculationExample {
       * @return Range calculation.
       */
     def calcPi(start: Int): Double =
-        (start until (start + N)) map (i => 4.0 * (1 - (i % 2) * 2) / (2 * i + 1)) sum
+        ((start until (start + N)) map (i => 4.0 * (1 - (i % 2) * 2) / (2 * i + 1))).sum
 }

@@ -15,7 +15,7 @@ import org.gridgain.grid.util.mbean.*;
  * MBean for {@code LIRS} eviction policy.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridMBeanDescription("MBean for LIRS cache eviction policy.")
 public interface GridCacheLirsEvictionPolicyMBean {
@@ -102,4 +102,12 @@ public interface GridCacheLirsEvictionPolicyMBean {
      */
     @GridMBeanDescription("Current HIRS queue size.")
     public int getCurrentQueueSize();
+
+    /**
+     * Gets lock count to synchronize operations.
+     *
+     * @return Locks count.
+     */
+    @GridMBeanDescription("Locks count.")
+    public int getLocksCount();
 }

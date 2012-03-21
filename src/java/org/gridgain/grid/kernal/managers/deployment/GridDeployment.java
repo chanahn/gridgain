@@ -27,11 +27,11 @@ import java.util.concurrent.atomic.*;
  * Represents single class deployment.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridDeployment extends GridMetadataAwareAdapter implements GridDeploymentInfo {
     /** Timestamp. */
-    private final long timestamp = System.currentTimeMillis();
+    private final long ts = System.currentTimeMillis();
 
     /** Deployment mode. */
     private final GridDeploymentMode depMode;
@@ -49,7 +49,7 @@ public class GridDeployment extends GridMetadataAwareAdapter implements GridDepl
     private final long seqNum;
 
     /** Flag indicating local (non-p2p) deployment. */
-    private final boolean local;
+    private final boolean loc;
 
     /** */
     private final AtomicReference<Class<?>> sampleCls = new AtomicReference<Class<?>>();
@@ -96,10 +96,10 @@ public class GridDeployment extends GridMetadataAwareAdapter implements GridDepl
      * @param seqNum Sequence number.
      * @param userVer User version.
      * @param sampleClsName Sample class name.
-     * @param local {@code True} if local deployment.
+     * @param loc {@code True} if local deployment.
      */
     GridDeployment(GridDeploymentMode depMode, ClassLoader clsLdr, GridUuid clsLdrId, long seqNum, String userVer,
-        String sampleClsName, boolean local) {
+        String sampleClsName, boolean loc) {
         assert depMode != null;
         assert clsLdr != null;
         assert clsLdrId != null;
@@ -112,7 +112,7 @@ public class GridDeployment extends GridMetadataAwareAdapter implements GridDepl
         this.userVer = userVer;
         this.depMode = depMode;
         this.sampleClsName = sampleClsName;
-        this.local = local;
+        this.loc = loc;
     }
 
     /**
@@ -121,7 +121,7 @@ public class GridDeployment extends GridMetadataAwareAdapter implements GridDepl
      * @return Timestamp.
      */
     public long timestamp() {
-        return timestamp;
+        return ts;
     }
 
     /**
@@ -199,7 +199,7 @@ public class GridDeployment extends GridMetadataAwareAdapter implements GridDepl
      * @return Property local.
      */
     public boolean isLocal() {
-        return local;
+        return loc;
     }
 
     /**

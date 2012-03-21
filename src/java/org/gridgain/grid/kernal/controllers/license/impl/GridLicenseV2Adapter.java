@@ -19,13 +19,14 @@ import java.util.*;
  * GridGain license version 2 bean.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @XmlRootElement(name = "gridgain-license")
 @XmlAccessorType(XmlAccessType.NONE)
 @XmlType(propOrder={
     "id",
     "issueDate",
+    "maintenanceTime",
     "issueOrganization",
     "userOrganization",
     "licenseNote",
@@ -68,6 +69,9 @@ public class GridLicenseV2Adapter implements GridLicenseV2 {
 
     /** The date the license was generated/issued. */
     private Date issueDate;
+
+    /** Maintenance time in months. */
+    private int maintenanceTime;
 
     /** Organization that issued the license. */
     private String issueOrg;
@@ -224,6 +228,21 @@ public class GridLicenseV2Adapter implements GridLicenseV2 {
     @XmlJavaTypeAdapter(GridLicenseDateAdapter.class)
     @Override public Date getIssueDate() {
         return issueDate;
+    }
+
+    /**
+     * Sets maintenance time in months.
+     *
+     * @param maintenanceTime Maintenance time in months.
+     */
+    public void setMaintenanceTime(int maintenanceTime) {
+        this.maintenanceTime = maintenanceTime;
+    }
+
+    /** {@inheritDoc} */
+    @XmlElement(name = "maintenance-time")
+    @Override public int getMaintenanceTime() {
+        return maintenanceTime;
     }
 
     /**

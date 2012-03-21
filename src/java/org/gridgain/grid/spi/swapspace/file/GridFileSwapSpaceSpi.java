@@ -108,14 +108,14 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridSwapSpaceSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "3.6.0c.09012012")
+    version = "4.0.0c.21032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpaceSpi, GridFileSwapSpaceSpiMBean {
     /*
@@ -189,7 +189,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
     /** Default task queue capacity. */
     public static final int DFLT_TASK_QUEUE_CAP = 10000;
-    
+
     /** Default task queue flush frequency. */
     public static final int DFLT_TASK_QUEUE_FLUSH_FREQ = 60 * 1000;
 
@@ -866,12 +866,28 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
     /** {@inheritDoc} */
     @Override public long getTotalSize() {
-        return totalSize();
+        return totalSize.get();
     }
 
     /** {@inheritDoc} */
     @Override public long getTotalCount() {
-        return totalCount();
+        return totalCnt.get();
+    }
+
+    /**
+     * Returns total data size.
+     * @return Total data size.
+     */
+    public long totalSize() {
+        return totalSize.get();
+    }
+
+    /**
+     * Returns total entries count.
+     * @return Total entries count.
+     */
+    public long totalCount() {
+        return totalCnt.get();
     }
 
     /** {@inheritDoc} */
@@ -1015,7 +1031,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
         // Now wake up all worker threads for faster shutdown.
         wakeUpLock.lock();
-        
+
         try {
             wakeUpCond.signalAll();
         }
@@ -1322,6 +1338,16 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
     }
 
     /** {@inheritDoc} */
+    @Override public long getSize(@Nullable String spaceName) {
+        try {
+            return size(spaceName);
+        }
+        catch(GridSpiException ignored)  {
+            return 0;
+        }
+    }
+
+    /** {@inheritDoc} */
     @Override public long size(@Nullable String spaceName) throws GridSpiException {
         Space space = space(spaceName, false);
 
@@ -1329,10 +1355,13 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
     }
 
     /** {@inheritDoc} */
-    @Nullable @Override public Collection<Integer> partitions(@Nullable String spaceName) throws GridSpiException {
-        Space space = space(spaceName, false);
-
-        return space == null ? null : space.partitions();
+    @Override public long getCount(@Nullable String spaceName) {
+        try {
+            return count(spaceName);
+        }
+        catch(GridSpiException ignored) {
+            return 0;
+        }
     }
 
     /** {@inheritDoc} */
@@ -1343,13 +1372,10 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
     }
 
     /** {@inheritDoc} */
-    @Override public long totalSize() {
-        return totalSize.get();
-    }
+    @Nullable @Override public Collection<Integer> partitions(@Nullable String spaceName) throws GridSpiException {
+        Space space = space(spaceName, false);
 
-    /** {@inheritDoc} */
-    @Override public long totalCount() {
-        return totalCnt.get();
+        return space == null ? null : space.partitions();
     }
 
     /** {@inheritDoc} */
@@ -1484,6 +1510,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
     }
 
      /** {@inheritDoc} */
+    @SuppressWarnings("TooBroadScope")
     @Override public void remove(@Nullable String spaceName, GridSwapKey key,
         @Nullable GridInClosure<byte[]> c, GridSwapContext ctx) throws GridSpiException {
         assert key != null;
@@ -1648,7 +1675,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
         if (sleepingCnt > 0) {
             if (taskCnt >= taskQueueFlushThreshold) {
                 wakeUpLock.lock();
-                
+
                 try {
                     if (sleepingCnt > 0)
                         wakeUpCond.signalAll();
@@ -3006,42 +3033,47 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
                     randAccessFile = new RandomAccessFile(file, "rw");
 
-                    randAccessFile.seek(pos);
+                    try {
+                        randAccessFile.seek(pos);
 
-                    while (readCnt < idxReadBatchSize && randAccessFile.getFilePointer() < randAccessFile.length()) {
-                        String s = randAccessFile.readLine();
-
-                        if (log.isDebugEnabled())
-                            log.debug("Read line from index [file=" + idx + ", s=" + s + ']');
-
-                        IndexEntry e = parseIndexEntry(s);
-
-                        if (e == null) {
+                        while (readCnt < idxReadBatchSize && randAccessFile.getFilePointer() < randAccessFile.length()) {
+                            String s = randAccessFile.readLine();
+    
                             if (log.isDebugEnabled())
-                                log.debug("Failed to parse string: " + s);
-
-                            continue;
+                                log.debug("Read line from index [file=" + idx + ", s=" + s + ']');
+    
+                            IndexEntry e = parseIndexEntry(s);
+    
+                            if (e == null) {
+                                if (log.isDebugEnabled())
+                                    log.debug("Failed to parse string: " + s);
+    
+                                continue;
+                            }
+    
+                            if (log.isDebugEnabled())
+                                log.debug("Parsed index entry: " + e);
+    
+                            if (res == null)
+                                res = new LinkedList<IndexEntry>();
+    
+                            res.add(e);
+    
+                            readCnt++;
                         }
 
-                        if (log.isDebugEnabled())
-                            log.debug("Parsed index entry: " + e);
+                        long ptr = randAccessFile.getFilePointer();
 
-                        if (res == null)
-                            res = new LinkedList<IndexEntry>();
+                        long readLen = ptr - pos;
 
-                        res.add(e);
-
-                        readCnt++;
+                        if (readLen > 0) {
+                            startIdxFilePos = ptr;
+    
+                            totalIdxSize.addAndGet(-readLen);
+                        }
                     }
-
-                    long ptr = randAccessFile.getFilePointer();
-
-                    long readLen = ptr - pos;
-
-                    if (readLen > 0) {
-                        startIdxFilePos = ptr;
-
-                        totalIdxSize.addAndGet(-readLen);
+                    finally {
+                        U.closeQuiet(randAccessFile);
                     }
                 }
 
@@ -3319,7 +3351,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
                 }
                 catch (IOException e) {
                     throw new GridSpiException("Failed to find file [space=" + k.space() +
-                        ", key=" + k.swapKey() + ']');
+                        ", key=" + k.swapKey() + ']', e);
                 }
                 finally {
                     if (tmp != null)
@@ -3358,7 +3390,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
             }
             catch (IOException e) {
                 throw new GridSpiException("Failed to remove swap entry [space=" + name  +
-                    ", key=" + key.swapKey() + ']');
+                    ", key=" + key.swapKey() + ']', e);
             }
             finally {
                 busyLock.leaveBusy();
@@ -3461,7 +3493,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
             }
             catch (IOException e) {
                 throw new GridSpiException("Failed to store read entry [space=" + name  +
-                        ", key=" + key.swapKey() + ']');
+                        ", key=" + key.swapKey() + ']', e);
             }
             finally {
                 busyLock.leaveBusy();
@@ -4423,7 +4455,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
             byte[] arr = swapEntry.spaceKey().swapKey().keyBytes();
 
             if (arr == null) {
-                arr = U.marshal(marsh, swapEntry.spaceKey().swapKey().key()).getArray();
+                arr = U.marshal(marsh, swapEntry.spaceKey().swapKey().key()).array();
 
                 swapEntry.spaceKey().swapKey().keyBytes(arr);
             }
@@ -4632,25 +4664,6 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
         }
 
         /** {@inheritDoc} */
-        @Override public boolean equals(Object o) {
-            if (this == o)
-                return true;
-
-            if (o instanceof SwapEntry) {
-                SwapEntry e = (SwapEntry)o;
-
-                return spaceKey.equals(e.spaceKey) && val.equals(e.val);
-            }
-
-            return false;
-        }
-
-        /** {@inheritDoc} */
-        @Override public int hashCode() {
-            return 31 * spaceKey.hashCode() + val.hashCode();
-        }
-
-        /** {@inheritDoc} */
         @Override public String toString() {
             return S.toString(SwapEntry.class, this);
         }
@@ -4770,6 +4783,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
         }
 
         /** {@inheritDoc} */
+        @SuppressWarnings("TooBroadScope")
         @Override public void body(boolean async) {
             assert async;
 
@@ -4902,7 +4916,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
                 if (!spiStopping.get())
                     ses.space().evict();
             }
-            catch (InterruptedException e) {
+            catch (InterruptedException ignored) {
                 assert false : "Worker thread has been interrupted."; // This should never happen.
             }
             catch (GridSpiException e) {

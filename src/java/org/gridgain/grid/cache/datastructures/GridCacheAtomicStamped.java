@@ -16,8 +16,6 @@ import org.gridgain.grid.lang.*;
 /**
  * This interface provides a rich API for working with distributed atomic stamped value.
  * <p>
- * Note that distributed atomic stamped is only available in <b>Enterprise Edition</b>.
- * <p>
  * <h1 class="header">Functionality</h1>
  * Distributed atomic stamped includes the following main functionality:
  * <ul>
@@ -53,7 +51,7 @@ import org.gridgain.grid.lang.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridCache#atomicStamped(String)
  * @see GridCache#atomicStamped(String, Object, Object)
  */

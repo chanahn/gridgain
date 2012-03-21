@@ -11,7 +11,6 @@ package org.gridgain.grid;
 
 import org.apache.commons.logging.*;
 import org.gridgain.grid.cache.*;
-import org.gridgain.grid.editions.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.loaders.cmdline.*;
@@ -22,6 +21,8 @@ import org.gridgain.grid.marshaller.*;
 import org.gridgain.grid.marshaller.optimized.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.spi.*;
+import org.gridgain.grid.spi.authentication.*;
+import org.gridgain.grid.spi.authentication.noop.*;
 import org.gridgain.grid.spi.checkpoint.*;
 import org.gridgain.grid.spi.checkpoint.sharedfs.*;
 import org.gridgain.grid.spi.collision.*;
@@ -40,6 +41,8 @@ import org.gridgain.grid.spi.loadbalancing.*;
 import org.gridgain.grid.spi.loadbalancing.roundrobin.*;
 import org.gridgain.grid.spi.metrics.*;
 import org.gridgain.grid.spi.metrics.jdk.*;
+import org.gridgain.grid.spi.securesession.*;
+import org.gridgain.grid.spi.securesession.noop.*;
 import org.gridgain.grid.spi.swapspace.*;
 import org.gridgain.grid.spi.swapspace.file.*;
 import org.gridgain.grid.spi.topology.*;
@@ -131,7 +134,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * For more information refer to {@link GridSpringBean} documentation.
 
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFactory {
     /**
@@ -268,7 +271,7 @@ public class GridFactory {
     }
 
     /**
-     * Stops default grid. This method is identical to {@code G.stop(null,cancel)} apply.
+     * Stops default grid. This method is identical to {@code G.stop(null, cancel)} apply.
      * Note that method does not wait for all tasks to be completed.
      *
      * @param cancel If {@code true} then all jobs currently executing on
@@ -283,7 +286,7 @@ public class GridFactory {
     }
 
     /**
-     * Stops default grid. This method is identical to {@code G.stop(null,cancel,wait)} apply.
+     * Stops default grid. This method is identical to {@code G.stop(null, cancel, wait)} apply.
      * If wait parameter is set to {@code true} then it will wait for all
      * tasks to be finished.
      *
@@ -418,17 +421,17 @@ public class GridFactory {
      *      executed until they finish their execution.
      */
     public static void stopAll(boolean cancel, boolean wait) {
-        Collection<GridNamedInstance> copy = new ArrayList<GridNamedInstance>();
+        Collection<GridNamedInstance> cp = new ArrayList<GridNamedInstance>();
 
         synchronized (mux) {
             if (dfltGrid != null)
-                copy.add(dfltGrid);
+                cp.add(dfltGrid);
 
-            copy.addAll(grids.values());
+            cp.addAll(grids.values());
         }
 
         // Stop the rest and clear grids map.
-        for (GridNamedInstance grid : copy) {
+        for (GridNamedInstance grid : cp) {
             grid.stop(cancel, wait);
 
             boolean fireEvt;
@@ -967,22 +970,22 @@ public class GridFactory {
 
         boolean isLog4jUsed = GridFactory.class.getClassLoader().getResource("org/apache/log4j/Appender.class") != null;
 
-        Object rootLogger = null;
+        Object rootLog = null;
 
         Object nullApp = null;
 
         if (isLog4jUsed)
             try {
                 // Add no-op logger to remove no-appender warning.
-                Class loggerCls = Class.forName("org.apache.log4j.Logger");
+                Class logCls = Class.forName("org.apache.log4j.Logger");
 
-                rootLogger = loggerCls.getMethod("getRootLogger").invoke(loggerCls);
+                rootLog = logCls.getMethod("getRootLogger").invoke(logCls);
 
                 nullApp = Class.forName("org.apache.log4j.varia.NullAppender").newInstance();
 
                 Class appCls = Class.forName("org.apache.log4j.Appender");
 
-                rootLogger.getClass().getMethod("addAppender", appCls).invoke(rootLogger, nullApp);
+                rootLog.getClass().getMethod("addAppender", appCls).invoke(rootLog, nullApp);
             }
             catch (Exception e) {
                 throw new GridException("Failed to add no-op logger for Log4j.", e);
@@ -1022,7 +1025,7 @@ public class GridFactory {
                 // Remove previously added no-op logger.
                 Class appenderCls = Class.forName("org.apache.log4j.Appender");
 
-                rootLogger.getClass().getMethod("removeAppender", appenderCls).invoke(rootLogger, nullApp);
+                rootLog.getClass().getMethod("removeAppender", appenderCls).invoke(rootLog, nullApp);
             }
             catch (Exception e) {
                 throw new GridException("Failed to remove previously added no-op logger for Log4j.", e);
@@ -1091,7 +1094,7 @@ public class GridFactory {
                 grid = dfltGrid = new GridNamedInstance(null);
             }
             else {
-                if (name.length() == 0)
+                if (name.isEmpty())
                     throw new GridException("Non default grid instances cannot have empty string name.");
 
                 if (grids.containsKey(name))
@@ -1182,33 +1185,33 @@ public class GridFactory {
      * both grid instance and its node belong. Note also that caller of this method
      * should not assume that it will return the same instance every time.
      *
-     * @param localNodeId ID of local node the requested grid instance is managing.
+     * @param locNodeId ID of local node the requested grid instance is managing.
      * @return An instance of named grid. This method never returns
      *      {@code null}.
      * @throws IllegalStateException Thrown if grid was not properly
      *      initialized or grid instance was stopped or was not started.
      */
-    public static Grid grid(UUID localNodeId) throws IllegalStateException {
-        A.notNull(localNodeId, "localNodeId");
+    public static Grid grid(UUID locNodeId) throws IllegalStateException {
+        A.notNull(locNodeId, "locNodeId");
 
         synchronized (mux) {
             if (dfltGrid != null) {
                 GridKernal g = dfltGrid.grid();
 
-                if(g != null && g.getLocalNodeId().equals(localNodeId))
+                if (g != null && g.getLocalNodeId().equals(locNodeId))
                     return g;
             }
 
             for (GridNamedInstance grid : grids.values()) {
                 GridKernal g = grid.grid();
 
-                if (g != null && g.getLocalNodeId().equals(localNodeId))
+                if (g != null && g.getLocalNodeId().equals(locNodeId))
                     return g;
             }
         }
 
         throw new IllegalStateException("Grid instance with given local node ID was not properly " +
-            "started or was stopped: " + localNodeId);
+            "started or was stopped: " + locNodeId);
     }
 
     /**
@@ -1282,17 +1285,17 @@ public class GridFactory {
      * @param state Factory state.
      */
     private static void notifyStateChange(String gridName, GridFactoryState state) {
-        Collection<GridFactoryListener> localCopy;
+        Collection<GridFactoryListener> locCp;
 
         synchronized (lsnrs) {
-            localCopy = new ArrayList<GridFactoryListener>(lsnrs);
+            locCp = new ArrayList<GridFactoryListener>(lsnrs);
         }
 
         synchronized (mux) {
             gridStates.put(gridName, state);
         }
 
-        for (GridFactoryListener lsnr : localCopy)
+        for (GridFactoryListener lsnr : locCp)
             lsnr.onStateChange(gridName, state);
     }
 
@@ -1300,7 +1303,7 @@ public class GridFactory {
      * Grid data container.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
@@ -1362,6 +1365,7 @@ public class GridFactory {
         private final CountDownLatch startLatch = new CountDownLatch(1);
 
         /** Thread that starts this named instance. This field can be non-volatile. */
+        @SuppressWarnings("FieldAccessedSynchronizedAndUnsynchronized")
         private Thread starterThread;
 
         /**
@@ -1531,7 +1535,7 @@ public class GridFactory {
 
                     if (url != null)
                         try {
-                           licUrl = url.toURI().toASCIIString();
+                            licUrl = url.toURI().toASCIIString();
                         }
                         catch (URISyntaxException ignore) {
                             // Ignore here.
@@ -1610,6 +1614,8 @@ public class GridFactory {
             GridEventStorageSpi evtSpi = cfg.getEventStorageSpi();
             GridCollisionSpi colSpi = cfg.getCollisionSpi();
             GridLocalMetricsSpi metricsSpi = cfg.getMetricsSpi();
+            GridAuthenticationSpi authSpi = cfg.getAuthenticationSpi();
+            GridSecureSessionSpi sesSpi = cfg.getSecureSessionSpi();
             GridDeploymentSpi deploySpi = cfg.getDeploymentSpi();
             GridCheckpointSpi[] cpSpi = cfg.getCheckpointSpi();
             GridTopologySpi[] topSpi = cfg.getTopologySpi();
@@ -1694,6 +1700,12 @@ public class GridFactory {
             if (metricsSpi == null)
                 metricsSpi = new GridJdkLocalMetricsSpi();
 
+            if (authSpi == null)
+                authSpi = new GridNoopAuthenticationSpi();
+
+            if (sesSpi == null)
+                sesSpi = new GridNoopSecureSessionSpi();
+
             if (deploySpi == null)
                 deploySpi = new GridLocalDeploymentSpi();
 
@@ -1717,6 +1729,8 @@ public class GridFactory {
             myCfg.setCheckpointSpi(cpSpi);
             myCfg.setEventStorageSpi(evtSpi);
             myCfg.setMetricsSpi(metricsSpi);
+            myCfg.setAuthenticationSpi(authSpi);
+            myCfg.setSecureSessionSpi(sesSpi);
             myCfg.setDeploymentSpi(deploySpi);
             myCfg.setTopologySpi(topSpi);
             myCfg.setFailoverSpi(failSpi);
@@ -1737,13 +1751,18 @@ public class GridFactory {
             myCfg.setRestEnabled(cfg.isRestEnabled());
             myCfg.setRestJettyPath(cfg.getRestJettyPath());
             myCfg.setRestSecretKey(cfg.getRestSecretKey());
+            myCfg.setRestAccessibleFolders(cfg.getRestAccessibleFolders());
+            myCfg.setRestJettyPort(cfg.getRestJettyPort());
+            myCfg.setRestTcpHost(cfg.getRestTcpHost());
+            myCfg.setRestTcpNoDelay(cfg.isRestTcpNoDelay());
+            myCfg.setRestTcpPort(cfg.getRestTcpPort());
+            myCfg.setRestTcpSslClientAuth(cfg.isRestTcpSslClientAuth());
+            myCfg.setRestTcpSslContextFactory(cfg.getRestTcpSslContextFactory());
+            myCfg.setRestTcpSslEnabled(cfg.isRestTcpSslEnabled());
 
             // Validate segmentation configuration.
             if (!F.isEmpty(cfg.getSegmentationResolvers())) {
                 // Segment check enabled, validate configuration.
-                if (!U.isEnterprise())
-                    throw new GridEnterpriseFeatureException("Network Segmentation Check");
-
                 GridDiscoverySpiReconnectSupport ann =
                     U.getAnnotation(discoSpi.getClass(), GridDiscoverySpiReconnectSupport.class);
 
@@ -1866,6 +1885,8 @@ public class GridFactory {
                 ensureMultiInstanceSupport(colSpi);
                 ensureMultiInstanceSupport(failSpi);
                 ensureMultiInstanceSupport(metricsSpi);
+                ensureMultiInstanceSupport(authSpi);
+                ensureMultiInstanceSupport(sesSpi);
                 ensureMultiInstanceSupport(loadBalancingSpi);
                 ensureMultiInstanceSupport(swapspaceSpi);
             }
@@ -2105,12 +2126,12 @@ public class GridFactory {
         /**
          * Registers delegate Mbean instance for {@link GridFactory}.
          *
-         * @param server MBeanServer where mbean should be registered.
+         * @param srv MBeanServer where mbean should be registered.
          * @throws GridException If registration failed.
          */
-        private void registerFactoryMbean(MBeanServer server) throws GridException {
+        private void registerFactoryMbean(MBeanServer srv) throws GridException {
             synchronized (mbeans) {
-                GridMBeanServerData data = mbeans.get(server);
+                GridMBeanServerData data = mbeans.get(srv);
 
                 if (data == null) {
                     try {
@@ -2123,11 +2144,11 @@ public class GridFactory {
                         );
 
                         // Make check if MBean was already registered.
-                        if (!server.queryMBeans(objName, null).isEmpty())
+                        if (!srv.queryMBeans(objName, null).isEmpty())
                             throw new GridException("MBean was already registered: " + objName);
                         else {
                             objName = U.registerMBean(
-                                server,
+                                srv,
                                 null,
                                 "Kernal",
                                 GridFactory.class.getSimpleName(),
@@ -2137,7 +2158,7 @@ public class GridFactory {
 
                             data = new GridMBeanServerData(objName);
 
-                            mbeans.put(server, data);
+                            mbeans.put(srv, data);
 
                             if (log.isDebugEnabled())
                                 log.debug("Registered MBean: " + objName);
@@ -2199,7 +2220,7 @@ public class GridFactory {
          * Contains necessary data for selected MBeanServer.
          *
          * @author 2012 Copyright (C) GridGain Systems
-         * @version 3.6.0c.09012012
+         * @version 4.0.0c.21032012
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

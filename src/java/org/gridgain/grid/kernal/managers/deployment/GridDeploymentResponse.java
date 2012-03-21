@@ -17,9 +17,9 @@ import java.io.*;
  * Grid deployment response containing requested resource bytes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
-public class GridDeploymentResponse implements Externalizable {
+class GridDeploymentResponse implements Externalizable {
     /** Result state. */
     private boolean success;
 
@@ -43,7 +43,7 @@ public class GridDeploymentResponse implements Externalizable {
      *
      * @param byteSrc Class/resource/task source.
      */
-    void setByteSource(GridByteArrayList byteSrc) {
+    void byteSource(GridByteArrayList byteSrc) {
         this.byteSrc = byteSrc;
     }
 
@@ -51,7 +51,7 @@ public class GridDeploymentResponse implements Externalizable {
      * Gets raw class/resource or serialized task source as bytes array.
      * @return Class/resource/task source.
      */
-    GridByteArrayList getByteSource() {
+    GridByteArrayList byteSource() {
         return byteSrc;
     }
 
@@ -61,7 +61,7 @@ public class GridDeploymentResponse implements Externalizable {
      * @return {@code true} if request for the source processed
      *      successfully and {@code false} if not.
      */
-    boolean isSuccess() {
+    boolean success() {
         return success;
     }
 
@@ -71,7 +71,7 @@ public class GridDeploymentResponse implements Externalizable {
      * @param success {@code true} if request processed successfully and
      *      response keeps source inside and {@code false} otherwise.
      */
-    void setSuccess(boolean success) {
+    void success(boolean success) {
         this.success = success;
     }
 
@@ -81,7 +81,7 @@ public class GridDeploymentResponse implements Externalizable {
      *
      * @return  Request processing error message.
      */
-    String getErrorMessage() {
+    String errorMessage() {
         return errMsg;
     }
 
@@ -90,7 +90,7 @@ public class GridDeploymentResponse implements Externalizable {
      *
      * @param errMsg Request processing error message.
      */
-    void setErrorMessage(String errMsg) {
+    void errorMessage(String errMsg) {
         this.errMsg = errMsg;
     }
 

@@ -17,8 +17,6 @@ import java.util.concurrent.*;
 /**
  * This interface provides a rich API for working with distributed count down latch.
  * <p>
- * Note that distributed count down latch is only available in <b>Enterprise Edition</b>.
- * <p>
  * <h1 class="header">Functionality</h1>
  * Distributed count down latch provides functionality similar to {@code java.util.CountDownLatch}.
  * Note that you cannot remove count down latch having count greater that zero. It should be
@@ -28,7 +26,7 @@ import java.util.concurrent.*;
  * {@link GridCache#countDownLatch(String, int, boolean)}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridCache#countDownLatch(String, int, boolean)
  * @see GridCache#countDownLatch(String)
  * @see GridCache#removeCountDownLatch(String)

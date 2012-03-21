@@ -12,7 +12,6 @@ package org.gridgain.grid.kernal.processors.cache;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.query.*;
-import org.gridgain.grid.editions.*;
 import org.gridgain.grid.kernal.processors.cache.query.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.logger.*;
@@ -33,7 +32,7 @@ import static org.gridgain.grid.cache.GridCacheFlag.*;
  * Cache projection.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter implements GridCacheProjection<K, V>,
     Externalizable {
@@ -50,11 +49,11 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
 
     /** Constant array to avoid recreation. */
     @GridToStringExclude
-    private GridPredicate2<K, V>[] withNullKvFilterArray;
+    private GridPredicate2<K, V>[] withNullKvFilterArr;
 
     /** Constant array to avoid recreation. */
     @GridToStringExclude
-    private GridPredicate2<K, V>[] noNullKvFilterArray;
+    private GridPredicate2<K, V>[] noNullKvFilterArr;
 
     /** Entry filter built with {@link #withNullKvFilter}. */
     @GridToStringExclude
@@ -66,11 +65,11 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
 
     /** Constant array to avoid recreation. */
     @GridToStringExclude
-    private GridPredicate<GridCacheEntry<K, V>>[] withNullEntryFilterArray;
+    private GridPredicate<GridCacheEntry<K, V>>[] withNullEntryFilterArr;
 
     /** Constant array to avoid recreation. */
     @GridToStringExclude
-    private GridPredicate<GridCacheEntry<K, V>>[] noNullEntryFilterArray;
+    private GridPredicate<GridCacheEntry<K, V>>[] noNullEntryFilterArr;
 
     /** Base cache. */
     private GridCache<K, V> cache;
@@ -135,16 +134,16 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
         boolean strictFlag = this.flags.contains(STRICT);
 
         withNullKvFilter = new KeyValueFilter<K, V>(kvFilter, false, strictFlag);
-        withNullKvFilterArray = new GridPredicate2[] {withNullKvFilter};
+        withNullKvFilterArr = new GridPredicate2[] {withNullKvFilter};
 
         noNullKvFilter = new KeyValueFilter<K, V>(kvFilter, true, strictFlag);
-        noNullKvFilterArray = new GridPredicate2[] {noNullKvFilter};
+        noNullKvFilterArr = new GridPredicate2[] {noNullKvFilter};
 
-        withNullEntryFilter = new FullFilter<K, V>(withNullKvFilterArray, entryFilter);
-        withNullEntryFilterArray = cctx.vararg(withNullEntryFilter);
+        withNullEntryFilter = new FullFilter<K, V>(withNullKvFilterArr, entryFilter);
+        withNullEntryFilterArr = cctx.vararg(withNullEntryFilter);
 
-        noNullEntryFilter = new FullFilter<K, V>(noNullKvFilterArray, entryFilter);
-        noNullEntryFilterArray = cctx.vararg(noNullEntryFilter);
+        noNullEntryFilter = new FullFilter<K, V>(noNullKvFilterArr, entryFilter);
+        noNullEntryFilterArr = cctx.vararg(noNullEntryFilter);
 
         cache = new GridCacheProxyImpl<K, V>(cctx, this);
     }
@@ -154,7 +153,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
      * @return Entry filter for the flag.
      */
     GridPredicate<GridCacheEntry<K, V>>[] entryFilter(boolean noNulls) {
-        return noNulls ? noNullEntryFilterArray : withNullEntryFilterArray;
+        return noNulls ? noNullEntryFilterArr : withNullEntryFilterArr;
     }
 
     /**
@@ -162,7 +161,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
      * @return Key-value filter for the flag.
      */
     GridPredicate2<K, V>[] kvFilter(boolean noNulls) {
-        return noNulls ? noNullKvFilterArray : withNullKvFilterArray;
+        return noNulls ? noNullKvFilterArr : withNullKvFilterArr;
     }
 
     /**
@@ -745,6 +744,16 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
     /** {@inheritDoc} */
     @Override public Map<K, V> peekAll(@Nullable GridPredicate<? super GridCacheEntry<K, V>>[] filter) {
         return cache.peekAll(and(filter, true));
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean poke(K key, V val) throws GridException {
+        return cache.poke(key, val);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void pokeAll(Map<? extends K, ? extends V> m) throws GridException {
+        cache.pokeAll(m);
     }
 
     /** {@inheritDoc} */
@@ -1381,14 +1390,20 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
             try {
                 V val = get(key, filter);
 
-                if (!isAll(key, val, true)) {
+                if (!isAll(key, val, true))
                     return new GridFinishedFuture<Boolean>(cctx.kernalContext(), false);
-                }
+            }
+            catch (GridInterruptedException e) {
+                if (log.isDebugEnabled())
+                    log.debug("Unable to get value from cache to pass to key-value filter (got interrupted while " +
+                        "waiting for value): " + e.getMessage());
+
+                return new GridFinishedFuture<Boolean>(cctx.kernalContext(), e);
             }
             catch (GridException e) {
                 U.error(log, "Unable to get value from cache to pass to key-value filter", e);
 
-                return new GridFinishedFuture<Boolean>(cctx.kernalContext(), false);
+                return new GridFinishedFuture<Boolean>(cctx.kernalContext(), e);
             }
         }
 
@@ -1750,8 +1765,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
     @Override public GridCacheQuery<K, V> createQuery(GridCacheQueryType type) {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createQuery(type, noNullEntryFilter, flags);
     }
@@ -1761,8 +1775,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
         @Nullable Class<?> cls, @Nullable String clause) {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createQuery(type, cls, clause, noNullEntryFilter, flags);
     }
@@ -1772,8 +1785,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
         @Nullable String clause) {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createQuery(type, clsName, clause, noNullEntryFilter, flags);
     }
@@ -1782,8 +1794,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
     @Override public <T> GridCacheTransformQuery<K, V, T> createTransformQuery() {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createTransformQuery(noNullEntryFilter, flags);
     }
@@ -1792,8 +1803,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
     @Override public <T> GridCacheTransformQuery<K, V, T> createTransformQuery(GridCacheQueryType type) {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createTransformQuery(type, noNullEntryFilter, flags);
     }
@@ -1803,8 +1813,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
         @Nullable Class<?> cls, @Nullable String clause) {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createTransformQuery(type, cls, clause, noNullEntryFilter, flags);
     }
@@ -1814,8 +1823,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
         @Nullable String clsName, @Nullable String clause) {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createTransformQuery(type, clsName, clause, noNullEntryFilter, flags);
     }
@@ -1824,8 +1832,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
     @Override public <R1, R2> GridCacheReduceQuery<K, V, R1, R2> createReduceQuery() {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createReduceQuery(noNullEntryFilter, flags);
     }
@@ -1834,8 +1841,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
     @Override public <R1, R2> GridCacheReduceQuery<K, V, R1, R2> createReduceQuery(GridCacheQueryType type) {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createReduceQuery(type, noNullEntryFilter, flags);
     }
@@ -1845,8 +1851,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
         @Nullable Class<?> cls, @Nullable String clause) {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createReduceQuery(type, cls, clause, noNullEntryFilter, flags);
     }
@@ -1856,8 +1861,7 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
         @Nullable String clsName, @Nullable String clause) {
         GridCacheQueryManager<K,V> qryMgr = cctx.queries();
 
-        if (qryMgr == null)
-            throw new GridEnterpriseFeatureException("Distributed Cache Queries");
+        assert qryMgr != null;
 
         return qryMgr.createReduceQuery(type, clsName, clause, noNullEntryFilter, flags);
     }
@@ -1962,14 +1966,14 @@ public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter impl
         noNullEntryFilter = (FullFilter<K, V>)in.readObject();
         withNullEntryFilter = (FullFilter<K, V>)in.readObject();
 
-        noNullEntryFilterArray = new GridPredicate[] {noNullEntryFilter};
-        withNullEntryFilterArray = new GridPredicate[] {withNullEntryFilter};
+        noNullEntryFilterArr = new GridPredicate[] {noNullEntryFilter};
+        withNullEntryFilterArr = new GridPredicate[] {withNullEntryFilter};
 
         noNullKvFilter = (KeyValueFilter<K, V>)in.readObject();
         withNullKvFilter = (KeyValueFilter<K, V>)in.readObject();
 
-        noNullKvFilterArray = new GridPredicate2[] {noNullKvFilter};
-        withNullKvFilterArray = new GridPredicate2[] {withNullKvFilter};
+        noNullKvFilterArr = new GridPredicate2[] {noNullKvFilter};
+        withNullKvFilterArr = new GridPredicate2[] {withNullKvFilter};
 
         cache = cctx.cache();
     }

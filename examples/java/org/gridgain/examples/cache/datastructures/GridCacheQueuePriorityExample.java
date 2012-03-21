@@ -22,13 +22,13 @@ import static org.gridgain.grid.cache.datastructures.GridCacheQueueType.*;
 
 /**
  * Grid cache distributed queue example. This example demonstrates {@code PRIORITY}
- * unbounded cache queue. Note that distributed queue is only available in <b>Enterprise Edition</b>.
+ * unbounded cache queue.
  * <p>
  * Remote nodes should always be started with configuration file which includes
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheQueuePriorityExample {
     /** Cache name. */
@@ -44,9 +44,6 @@ public class GridCacheQueuePriorityExample {
     /** Queue instance. */
     private static GridCacheQueue<SampleItem> queue;
 
-    /** Ensure singleton. */
-    private GridCacheQueuePriorityExample() { /* No-op. */ }
-
     /**
      * Executes this example on the grid.
      *
@@ -57,12 +54,6 @@ public class GridCacheQueuePriorityExample {
         grid = G.start("examples/config/spring-cache.xml");
 
         try {
-            if (!grid.isEnterprise()) {
-                System.err.println("This example works only in Enterprise Edition.");
-
-                return;
-            }
-
             print("Priority queue example started on nodes: " + grid.nodes().size());
 
             // Make queue name.
@@ -203,7 +194,7 @@ public class GridCacheQueuePriorityExample {
      * Queue item class with priority field.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class SampleItem implements Serializable {
         /** Priority field*/

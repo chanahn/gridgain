@@ -24,14 +24,13 @@ import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 /**
  *
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Map<K, V>>
     implements GridCacheFuture<Map<K, V>> {
@@ -103,7 +102,7 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
      * Initializes future.
      */
     void init() {
-        map(keys, Collections.<GridRichNode, Collection<K>>emptyMap());
+        map(keys, Collections.<GridRichNode, LinkedHashMap<K, Boolean>>emptyMap());
 
         markInitialized();
     }
@@ -205,13 +204,13 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
      * @param keys Keys.
      * @param mapped Mappings to check for duplicates.
      */
-    private void map(Collection<? extends K> keys, Map<GridRichNode, Collection<K>> mapped) {
+    private void map(Collection<? extends K> keys, Map<GridRichNode, LinkedHashMap<K, Boolean>> mapped) {
         long topVer = tx == null ? -1 : tx.topologyVersion();
 
         Collection<GridRichNode> nodes = CU.allNodes(cctx, topVer);
 
-        ConcurrentMap<GridRichNode, Collection<K>> mappings =
-            new ConcurrentHashMap<GridRichNode, Collection<K>>(nodes.size());
+        Map<GridRichNode, LinkedHashMap<K, Boolean>> mappings =
+            new HashMap<GridRichNode, LinkedHashMap<K, Boolean>>(nodes.size());
 
         // Assign keys to primary nodes.
         for (K key : keys)
@@ -221,10 +220,10 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
             return;
 
         // Create mini futures.
-        for (Map.Entry<GridRichNode, Collection<K>> entry : mappings.entrySet()) {
+        for (Map.Entry<GridRichNode, LinkedHashMap<K, Boolean>> entry : mappings.entrySet()) {
             final GridRichNode n = entry.getKey();
 
-            final Collection<K> mappedKeys = entry.getValue();
+            final LinkedHashMap<K, Boolean> mappedKeys = entry.getValue();
 
             assert !mappedKeys.isEmpty();
 
@@ -236,12 +235,14 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
                 final Collection<Integer> invalidParts = fut.invalidPartitions();
 
                 if (!F.isEmpty(invalidParts)) {
-                    // Remap.
-                    map(F.view(keys, new P1<K>() {
+                    Collection<K> remapKeys = new LinkedList<K>(F.view(keys, new P1<K>() {
                         @Override public boolean apply(K key) {
                             return invalidParts.contains(cctx.partition(key));
                         }
-                    }), mappings);
+                    }));
+
+                    // Remap recursively.
+                    map(remapKeys, mappings);
                 }
 
                 // Add new future.
@@ -258,7 +259,7 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
                                 return Collections.emptyMap();
                             }
 
-                            return loadEntries(n.id(), mappedKeys, infos);
+                            return loadEntries(n.id(), mappedKeys.keySet(), infos);
                         }
                     })
                 );
@@ -291,8 +292,8 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
      * @param nodes Nodes.
      * @param mapped Previously mapped.
      */
-    private void map(K key, ConcurrentMap<GridRichNode, Collection<K>> mappings, Collection<GridRichNode> nodes,
-        Map<GridRichNode, Collection<K>> mapped) {
+    private void map(K key, Map<GridRichNode, LinkedHashMap<K, Boolean>> mappings,
+        Collection<GridRichNode> nodes, Map<GridRichNode, LinkedHashMap<K, Boolean>> mapped) {
         GridCacheEntryEx<K, V> entry = cache().peekEx(key);
 
         while (true) {
@@ -332,9 +333,9 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
                 else {
                     GridRichNode node = CU.primary0(cctx.affinity(key, nodes));
 
-                    Collection<K> keys = mapped.get(node);
+                    LinkedHashMap<K, Boolean> keys = mapped.get(node);
 
-                    if (keys != null && keys.contains(key)) {
+                    if (keys != null && keys.containsKey(key)) {
                         onDone(new GridException("Failed to remap key to a new node (key got remapped to the " +
                             "same node) [key=" + key + ", node=" + U.toShortString(node) + ", mappings=" +
                             mapped + ']'));
@@ -342,7 +343,18 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
                         return;
                     }
 
-                    CU.getOrSet(mappings, node).add(key);
+                    // Don't add reader if transaction acquires lock anyway to avoid deadlock.
+                    boolean addRdr = tx == null || tx.optimistic();
+
+                    if (!addRdr && tx.readCommitted() && !tx.writeSet().contains(key))
+                        addRdr = true;
+
+                    LinkedHashMap<K, Boolean> old = mappings.get(node);
+
+                    if (old == null)
+                        mappings.put(node, old = new LinkedHashMap<K, Boolean>(3, 1f));
+
+                    old.put(key, addRdr);
                 }
 
                 break;
@@ -438,7 +450,7 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
 
         /** Keys. */
         @GridToStringInclude
-        private Collection<K> keys;
+        private LinkedHashMap<K, Boolean> keys;
 
         /**
          * Empty constructor required for {@link Externalizable}.
@@ -451,7 +463,7 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
          * @param node Node.
          * @param keys Keys.
          */
-        MiniFuture(GridRichNode node, Collection<K> keys) {
+        MiniFuture(GridRichNode node, LinkedHashMap<K, Boolean> keys) {
             super(cctx.kernalContext());
 
             this.node = node;
@@ -476,7 +488,7 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
          * @return Keys.
          */
         public Collection<K> keys() {
-            return keys;
+            return keys.keySet();
         }
 
         /**
@@ -495,7 +507,7 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
                 log.debug("Remote node left grid while sending or waiting for reply (will retry): " + this);
 
             // Remap.
-            map(keys, F.t(node, keys));
+            map(keys.keySet(), F.t(node, keys));
 
             onDone(Collections.<K, V>emptyMap());
         }
@@ -512,14 +524,14 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
                     log.debug("Remapping mini get future [invalidParts=" + invalidParts + ", fut=" + this + ']');
 
                 // This will append new futures to compound list.
-                map(F.view(keys,  new P1<K>() {
+                map(F.view(keys.keySet(),  new P1<K>() {
                     @Override public boolean apply(K key) {
                         return invalidParts.contains(cctx.partition(key));
                     }
                 }), F.t(node, keys));
             }
 
-            onDone(loadEntries(node.id(), keys, res.entries()));
+            onDone(loadEntries(node.id(), keys.keySet(), res.entries()));
         }
 
         /** {@inheritDoc} */

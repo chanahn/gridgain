@@ -32,7 +32,7 @@ import java.util.*;
  * should only change what they need.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** Cache name. */
@@ -48,10 +48,10 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     private long ttl = DFLT_TIME_TO_LIVE;
 
     /** Cache expiration policy. */
-    private GridCacheEvictionPolicy evictPolicy;
+    private GridCacheEvictionPolicy evictPlc;
 
     /** Near cache eviction policy. */
-    private GridCacheEvictionPolicy nearEvictPolicy;
+    private GridCacheEvictionPolicy nearEvictPlc;
 
     /** Flag indicating whether eviction is synchronized. */
     private boolean evictSync = DFLT_EVICT_SYNCHRONIZED;
@@ -60,13 +60,13 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     private boolean evictNearSync = DFLT_EVICT_NEAR_SYNCHRONIZED;
 
     /** Eviction key buffer size. */
-    private int evictKeyBufferSize = DFLT_EVICT_KEY_BUFFER_SIZE;
+    private int evictKeyBufSize = DFLT_EVICT_KEY_BUFFER_SIZE;
 
     /** Synchronous eviction timeout. */
-    private int evictSyncConcurrencyLvl = DFLT_EVICT_SYNCHRONOUS_CONCURRENCY_LEVEL;
+    private int evictSyncConcurrencyLvl = DFLT_EVICT_SYNCHRONIZED_CONCURRENCY_LEVEL;
 
     /** Synchronous eviction timeout. */
-    private long evictSyncTimeout = DFLT_EVICT_SYNCHRONOUS_TIMEOUT;
+    private long evictSyncTimeout = DFLT_EVICT_SYNCHRONIZED_TIMEOUT;
 
     /** Eviction filter. */
     private GridCacheEvictionFilter<?, ?> evictFilter;
@@ -123,7 +123,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     private boolean invalidate = DFLT_INVALIDATE;
 
     /** Flag indicating if cached values should be additionally stored in serialized form. */
-    private boolean storeValueBytes = DFLT_STORE_VALUE_BYTES;
+    private boolean storeValBytes = DFLT_STORE_VALUE_BYTES;
 
     /** Refresh-ahead ratio. */
     private double refreshAheadRatio;
@@ -138,13 +138,13 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     private int preloadBatchSize = DFLT_PRELOAD_BATCH_SIZE;
 
     /** */
-    private Collection<GridCacheQueryType> autoIndexTypes;
+    private Collection<GridCacheQueryType> autoIdxTypes;
 
     /** Path to index database, default will be used if null. */
     private String idxPath;
 
     /** Use full class names for index tables or short. */
-    private boolean idxFullClassName;
+    private boolean idxFullClsName;
 
     /** Mark that all keys will be the same type to make possible to store them as native database type. */
     private boolean idxFixedTyping = DFLT_IDX_FIXED_TYPING;
@@ -192,7 +192,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     private int writeFromBehindFlushSize = DFLT_WRITE_FROM_BEHIND_FLUSH_SIZE;
 
     /** Write from behind flush frequency in milliseconds. */
-    private long writeFromBehindFlushFrequency = DFLT_WRITE_FROM_BEHIND_FLUSH_FREQUENCY;
+    private long writeFromBehindFlushFreq = DFLT_WRITE_FROM_BEHIND_FLUSH_FREQUENCY;
 
     /** Flush thread count for write from behind cache store. */
     private int writeFromBehindFlushThreadCnt = DFLT_WRITE_FROM_BEHIND_FLUSH_THREAD_CNT;
@@ -234,7 +234,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
          */
         aff = cc.getAffinity();
         affMapper = cc.getAffinityMapper();
-        autoIndexTypes = cc.getAutoIndexQueryTypes();
+        autoIdxTypes = cc.getAutoIndexQueryTypes();
         cacheMode = cc.getCacheMode();
         cloner = cc.getCloner();
         dfltConcurrency = cc.getDefaultTxConcurrency();
@@ -247,9 +247,9 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
         dgcSuspectLockTimeout = cc.getDgcSuspectLockTimeout();
         evictEnabled = cc.isEvictionEnabled();
         evictFilter = cc.getEvictionFilter();
-        evictKeyBufferSize = cc.getEvictSynchronisedKeyBufferSize();
+        evictKeyBufSize = cc.getEvictSynchronizedKeyBufferSize();
         evictNearSync = cc.isEvictNearSynchronized();
-        evictPolicy = cc.getEvictionPolicy();
+        evictPlc = cc.getEvictionPolicy();
         evictSync = cc.isEvictSynchronized();
         evictSyncConcurrencyLvl = cc.getEvictSynchronizedConcurrencyLevel();
         evictSyncTimeout = cc.getEvictSynchronizedTimeout();
@@ -258,21 +258,21 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
         idxAnalyzeSampleSize = cc.getIndexAnalyzeSampleSize();
         idxCleanup = cc.isIndexCleanup();
         idxFixedTyping = cc.isIndexFixedTyping();
-        idxFullClassName = cc.isIndexFullClassName();
+        idxFullClsName = cc.isIndexFullClassName();
         idxMaxOperationMem = cc.getIndexMaxOperationMemory();
         idxMemOnly = cc.isIndexMemoryOnly();
         idxPath = cc.getIndexPath();
         idxPswd = cc.getIndexPassword();
         idxUser = cc.getIndexUsername();
         invalidate = cc.isInvalidate();
-        storeValueBytes = cc.isStoreValueBytes();
+        storeValBytes = cc.isStoreValueBytes();
         txBatchUpdate = cc.isBatchUpdateOnCommit();
         txSerEnabled = cc.isTxSerializableEnabled();
         name = cc.getName();
         nearStartSize = cc.getNearStartSize();
         nearEnabled = cc.isNearEnabled();
         nearEvictEnabled = cc.isNearEvictionEnabled();
-        nearEvictPolicy = cc.getNearEvictionPolicy();
+        nearEvictPlc = cc.getNearEvictionPolicy();
         evictMaxOverflowRatio = cc.getEvictMaxOverflowRatio();
         preloadMode = cc.getPreloadMode();
         preloadBatchSize = cc.getPreloadBatchSize();
@@ -289,7 +289,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
         ttl = cc.getDefaultTimeToLive();
         writeFromBehindBatchSize = cc.getWriteFromBehindBatchSize();
         writeFromBehindEnabled = cc.isWriteFromBehindEnabled();
-        writeFromBehindFlushFrequency = cc.getWriteFromBehindFlushFrequency();
+        writeFromBehindFlushFreq = cc.getWriteFromBehindFlushFrequency();
         writeFromBehindFlushSize = cc.getWriteFromBehindFlushSize();
         writeFromBehindFlushThreadCnt = cc.getWriteFromBehindFlushThreadCount();
     }
@@ -326,16 +326,16 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** {@inheritDoc} */
     @SuppressWarnings({"unchecked"})
     @Override public <K, V> GridCacheEvictionPolicy<K, V> getEvictionPolicy() {
-        return evictPolicy;
+        return evictPlc;
     }
 
     /**
      * Sets cache eviction policy.
      *
-     * @param evictPolicy Cache expiration policy.
+     * @param evictPlc Cache expiration policy.
      */
-    public void setEvictionPolicy(GridCacheEvictionPolicy evictPolicy) {
-        this.evictPolicy = evictPolicy;
+    public void setEvictionPolicy(GridCacheEvictionPolicy evictPlc) {
+        this.evictPlc = evictPlc;
     }
 
     /** {@inheritDoc} */
@@ -356,17 +356,17 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** {@inheritDoc} */
     @SuppressWarnings({"unchecked"})
     @Override public <K, V> GridCacheEvictionPolicy<K, V> getNearEvictionPolicy() {
-        return nearEvictPolicy;
+        return nearEvictPlc;
     }
 
     /**
      * Sets eviction policy for near cache. This property is only used for
      * {@link GridCacheMode#PARTITIONED} caching mode.
      *
-     * @param nearEvictPolicy Eviction policy for near cache.
+     * @param nearEvictPlc Eviction policy for near cache.
      */
-    public void setNearEvictionPolicy(GridCacheEvictionPolicy nearEvictPolicy) {
-        this.nearEvictPolicy = nearEvictPolicy;
+    public void setNearEvictionPolicy(GridCacheEvictionPolicy nearEvictPlc) {
+        this.nearEvictPlc = nearEvictPlc;
     }
 
     /** {@inheritDoc} */
@@ -414,17 +414,17 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     }
 
     /** {@inheritDoc} */
-    @Override public int getEvictSynchronisedKeyBufferSize() {
-        return evictKeyBufferSize;
+    @Override public int getEvictSynchronizedKeyBufferSize() {
+        return evictKeyBufSize;
     }
 
     /**
      * Sets eviction key buffer size.
      *
-     * @param evictKeyBufferSize Eviction key buffer size.
+     * @param evictKeyBufSize Eviction key buffer size.
      */
-    public void setEvictSynchronizedKeyBufferSize(int evictKeyBufferSize) {
-        this.evictKeyBufferSize = evictKeyBufferSize;
+    public void setEvictSynchronizedKeyBufferSize(int evictKeyBufSize) {
+        this.evictKeyBufSize = evictKeyBufSize;
     }
 
     /** {@inheritDoc} */
@@ -433,9 +433,9 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     }
 
     /**
-     * Sets concurrency level for synchronous evictions
+     * Sets concurrency level for synchronized evictions.
      *
-     * @param evictSyncConcurrencyLvl Synchronous eviction concurrency level.
+     * @param evictSyncConcurrencyLvl Concurrency level for synchronized evictions.
      */
     public void setEvictSynchronizedConcurrencyLevel(int evictSyncConcurrencyLvl) {
         this.evictSyncConcurrencyLvl = evictSyncConcurrencyLvl;
@@ -447,9 +447,9 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     }
 
     /**
-     * Sets synchronous eviction timeout.
+     * Sets timeout for synchronized evictions.
      *
-     * @param evictSyncTimeout Synchronous eviction timeout.
+     * @param evictSyncTimeout Timeout for synchronized evictions.
      */
     public void setEvictSynchronizedTimeout(long evictSyncTimeout) {
         this.evictSyncTimeout = evictSyncTimeout;
@@ -696,16 +696,16 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      * Flag indicating if cached values should be additionally stored in serialized
      * form. It's set to true by default.
      *
-     * @param storeValueBytes {@code true} if cached values should be additionally
+     * @param storeValBytes {@code true} if cached values should be additionally
      *      stored in serialized form, {@code false} otherwise.
      */
-    public void setStoreValueBytes(boolean storeValueBytes) {
-        this.storeValueBytes = storeValueBytes;
+    public void setStoreValueBytes(boolean storeValBytes) {
+        this.storeValBytes = storeValBytes;
     }
 
     /** {@inheritDoc} */
     @Override public boolean isStoreValueBytes() {
-        return storeValueBytes;
+        return storeValBytes;
     }
 
     /** {@inheritDoc} */
@@ -783,7 +783,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
 
     /** {@inheritDoc} */
     @Override public boolean isIndexFullClassName() {
-        return idxFullClassName;
+        return idxFullClsName;
     }
 
     /**
@@ -792,15 +792,15 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      * Default is {@code false}. This property must be set to {@code true} whenever
      * simple class names are not unique.
      *
-     * @param idxFullClassName Flag indicating weather full or simple class names should be used for querying.
+     * @param idxFullClsName Flag indicating weather full or simple class names should be used for querying.
      */
-    public void setIndexFullClassName(boolean idxFullClassName) {
-        this.idxFullClassName = idxFullClassName;
+    public void setIndexFullClassName(boolean idxFullClsName) {
+        this.idxFullClsName = idxFullClsName;
     }
 
     /** {@inheritDoc} */
     @Override public Collection<GridCacheQueryType> getAutoIndexQueryTypes() {
-        return autoIndexTypes;
+        return autoIdxTypes;
     }
 
     /**
@@ -808,10 +808,10 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      * then all encountered primitive or boxed types will be auto-indexed at all times
      * for specified query types.
      *
-     * @param autoIndexTypes Query types to use to auto index values of primitive types.
+     * @param autoIdxTypes Query types to use to auto index values of primitive types.
      */
-    public void setAutoIndexQueryTypes(Collection<GridCacheQueryType> autoIndexTypes) {
-        this.autoIndexTypes = autoIndexTypes;
+    public void setAutoIndexQueryTypes(Collection<GridCacheQueryType> autoIdxTypes) {
+        this.autoIdxTypes = autoIdxTypes;
     }
 
     /** {@inheritDoc} */
@@ -1081,17 +1081,17 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
 
     /** {@inheritDoc} */
     @Override public long getWriteFromBehindFlushFrequency() {
-        return writeFromBehindFlushFrequency;
+        return writeFromBehindFlushFreq;
     }
 
     /**
      * Sets write-from-behind flush frequency.
      *
-     * @param writeFromBehindFlushFrequency Write-from-behind flush frequency in milliseconds.
+     * @param writeFromBehindFlushFreq Write-from-behind flush frequency in milliseconds.
      * @see #getWriteFromBehindFlushFrequency()
      */
-    public void setWriteFromBehindFlushFrequency(long writeFromBehindFlushFrequency) {
-        this.writeFromBehindFlushFrequency = writeFromBehindFlushFrequency;
+    public void setWriteFromBehindFlushFrequency(long writeFromBehindFlushFreq) {
+        this.writeFromBehindFlushFreq = writeFromBehindFlushFreq;
     }
 
     /** {@inheritDoc} */

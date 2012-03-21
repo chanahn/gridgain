@@ -18,7 +18,7 @@ import org.jetbrains.annotations.*;
  * Cache gateway.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridToStringExclude
 public class GridCacheGateway<K, V> {
@@ -40,17 +40,49 @@ public class GridCacheGateway<K, V> {
     public void enter() {
         ctx.deploy().onEnter();
 
-        ctx.kernalContext().gateway().readLock();
+        // Must unlock in case of unexpected errors to avoid
+        // deadlocks during kernal stop.
+        try {
+            ctx.kernalContext().gateway().readLock();
+        }
+        catch (IllegalStateException e) {
+            // This exception is thrown only in case if grid has already been stopped
+            // and we must not call readUnlock.
+            throw e;
+        }
+        catch (RuntimeException e) {
+            try {
+                ctx.kernalContext().gateway().readUnlock();
+            }
+            catch (IllegalMonitorStateException ignore) {
+                // No-op.
+            }
+
+            throw e;
+        }
+        catch (Error e) {
+            try {
+                ctx.kernalContext().gateway().readUnlock();
+            }
+            catch (IllegalMonitorStateException ignore) {
+                // No-op.
+            }
+
+            throw e;
+        }
     }
 
     /**
      * Leave a cache call entered by {@link #enter()} method.
      */
     public void leave() {
-        // Unwind eviction notifications.
-        CU.unwindEvicts(ctx);
-
-        ctx.kernalContext().gateway().readUnlock();
+        try {
+            // Unwind eviction notifications.
+            CU.unwindEvicts(ctx);
+        }
+        finally {
+            ctx.kernalContext().gateway().readUnlock();
+        }
     }
 
     /**
@@ -68,27 +100,54 @@ public class GridCacheGateway<K, V> {
 
         ctx.deploy().onEnter();
 
-        ctx.kernalContext().gateway().readLock();
+        // Must unlock in case of unexpected errors to avoid
+        // deadlocks during kernal stop.
+        try {
+            ctx.kernalContext().gateway().readLock();
 
-        // Set thread local projection per call.
-        GridCacheProjectionImpl<K, V> prev = ctx.projectionPerCall();
+            // Set thread local projection per call.
+            GridCacheProjectionImpl<K, V> prev = ctx.projectionPerCall();
 
-        if (prev != null || prj != null)
-            ctx.projectionPerCall(prj);
+            if (prev != null || prj != null)
+                ctx.projectionPerCall(prj);
 
-        return prev;
+            return prev;
+        }
+        catch (RuntimeException e) {
+            try {
+                ctx.kernalContext().gateway().readUnlock();
+            }
+            catch (IllegalMonitorStateException ignore) {
+                // No-op.
+            }
+
+            throw e;
+        }
+        catch (Error e) {
+            try {
+                ctx.kernalContext().gateway().readUnlock();
+            }
+            catch (IllegalMonitorStateException ignore) {
+                // No-op.
+            }
+
+            throw e;
+        }
     }
 
     /**
      * @param prev Previous.
      */
     public void leave(GridCacheProjectionImpl<K, V> prev) {
-        // Unwind eviction notifications.
-        CU.unwindEvicts(ctx);
+        try {
+            // Unwind eviction notifications.
+            CU.unwindEvicts(ctx);
 
-        // Return back previous thread local projection per call.
-        ctx.projectionPerCall(prev);
-
-        ctx.kernalContext().gateway().readUnlock();
+            // Return back previous thread local projection per call.
+            ctx.projectionPerCall(prev);
+        }
+        finally {
+            ctx.kernalContext().gateway().readUnlock();
+        }
     }
 }

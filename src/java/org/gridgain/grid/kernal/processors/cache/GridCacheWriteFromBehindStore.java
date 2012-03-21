@@ -44,7 +44,7 @@ import java.util.concurrent.locks.*;
  * transaction objects are passed to the underlying store.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheWriteFromBehindStore<K, V> implements GridCacheStore<K, V> {
     /** Default write cache initial capacity. */
@@ -57,7 +57,7 @@ public class GridCacheWriteFromBehindStore<K, V> implements GridCacheStore<K, V>
     public static final int DFLT_CONCUR_LVL = 64;
 
     /** Write cache initial capacity. */
-    private int initialCap = DFLT_INITIAL_CAPACITY;
+    private int initCap = DFLT_INITIAL_CAPACITY;
 
     /** Concurrency level for write cache access. */
     private int concurLvl = DFLT_CONCUR_LVL;
@@ -116,10 +116,10 @@ public class GridCacheWriteFromBehindStore<K, V> implements GridCacheStore<K, V>
     /**
      * Sets initial capacity for the write cache.
      *
-     * @param initialCap Initial capacity.
+     * @param initCap Initial capacity.
      */
-    public void setInitialCapacity(int initialCap) {
-        this.initialCap = initialCap;
+    public void setInitialCapacity(int initCap) {
+        this.initCap = initCap;
     }
 
     /**
@@ -260,7 +260,7 @@ public class GridCacheWriteFromBehindStore<K, V> implements GridCacheStore<K, V>
 
             flushThreads = new GridWorker[flushThreadCnt];
 
-            writeCache = new GridConcurrentLinkedHashMap<K, StatefulValue<V>>(initialCap, 0.75f, concurLvl);
+            writeCache = new GridConcurrentLinkedHashMap<K, StatefulValue<V>>(initCap, 0.75f, concurLvl);
 
             for (int i = 0; i < flushThreads.length; i++) {
                 flushThreads[i] = new Flusher(gridName, "flusher-" + i, log);
@@ -655,7 +655,7 @@ public class GridCacheWriteFromBehindStore<K, V> implements GridCacheStore<K, V>
                 for (Map.Entry<K, V> entry : vals.entrySet())
                     log.warning("Failed to update store (value will be lost as current buffer size is greater " +
                         "than 'cacheCriticalSize' or node has been stopped before store was repaired) [key=" +
-                        entry.getKey() + ", val=" + entry.getValue() + "]");
+                        entry.getKey() + ", val=" + entry.getValue() + ", op=" + operation + "]");
 
                 return true;
             }
@@ -934,8 +934,7 @@ public class GridCacheWriteFromBehindStore<K, V> implements GridCacheStore<K, V>
         }
 
         /** {@inheritDoc} */
-        @Override
-        public boolean equals(Object o) {
+        @Override public boolean equals(Object o) {
             if (this == o)
                 return true;
 
@@ -948,8 +947,7 @@ public class GridCacheWriteFromBehindStore<K, V> implements GridCacheStore<K, V>
         }
 
         /** {@inheritDoc} */
-        @Override
-        public int hashCode() {
+        @Override public int hashCode() {
             int result = val != null ? val.hashCode() : 0;
 
             result = 31 * result + valStatus.hashCode();

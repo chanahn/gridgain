@@ -7,7 +7,7 @@
  *  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
  */
 
-    package org.gridgain.examples.helloworld.api30;
+package org.gridgain.examples.helloworld.api30;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.lang.*;
@@ -48,9 +48,9 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * folder.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
-public final class      GridHelloWorldExample {
+public final class GridHelloWorldExample {
     /**
      * Execute {@code HelloWorld} example on the grid.
      *
@@ -314,12 +314,5 @@ public final class      GridHelloWorldExample {
         X.println(">>> You should see individual words printed out on different nodes.");
         X.println(">>> Check all nodes for output (this node is also part of the grid).");
         X.println(">>>");
-    }
-
-    /**
-     * Ensure singleton.
-     */
-    private GridHelloWorldExample() {
-        // No-op.
     }
 }

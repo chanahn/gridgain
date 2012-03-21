@@ -21,12 +21,9 @@ import java.util.*;
  * Partitioned cache preload batch.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridDhtPreloadBatchRequest<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable {
-    /** Number of bytes taking by fields of request excluding list of entries. */
-    public static final int OVERHEAD_BYTES = 10;
-
     /** Session id. */
     private UUID sesId;
 
@@ -191,7 +188,7 @@ public class GridDhtPreloadBatchRequest<K, V> extends GridCacheMessage<K, V> imp
 
         marshalInfo(info, ctx);
 
-        return CU.marshal(ctx, info).getEntireArray();
+        return CU.marshal(ctx, info).entireArray();
     }
 
     /**

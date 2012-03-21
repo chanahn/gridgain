@@ -52,7 +52,7 @@ import static org.gridgain.grid.cache.GridCachePreloadMode.*;
  * Cache context.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridToStringExclude
 public class GridCacheContext<K, V> implements Externalizable {
@@ -136,7 +136,7 @@ public class GridCacheContext<K, V> implements Externalizable {
     private GridPredicate<GridCacheEntry<K, V>>[] trueArr;
 
     /** Cached local rich node. */
-    private final AtomicReference<GridRichNode> localNode = new AtomicReference<GridRichNode>();
+    private final AtomicReference<GridRichNode> locNode = new AtomicReference<GridRichNode>();
 
     /**
      * Thread local projection. If it's set it means that method call was initiated
@@ -422,10 +422,10 @@ public class GridCacheContext<K, V> implements Externalizable {
      * @return Local node.
      */
     public GridRichNode localNode() {
-        GridRichNode loc = localNode.get();
+        GridRichNode loc = locNode.get();
 
         if (loc == null)
-            localNode.compareAndSet(null, loc = ctx.rich().rich(ctx.discovery().localNode()));
+            locNode.compareAndSet(null, loc = ctx.rich().rich(ctx.discovery().localNode()));
 
         assert loc != null;
 
@@ -1451,7 +1451,7 @@ public class GridCacheContext<K, V> implements Externalizable {
         Collection<GridNode> nearNodes = null;
 
         if (!F.isEmpty(readers)) {
-            nearNodes = discovery().nodes(readers, F.<UUID>not(F.idForNodeId(nearNodeId)));
+            nearNodes = discovery().nodes(readers, F.notEqualTo(nearNodeId));
 
             if (log.isDebugEnabled())
                 log.debug("Mapping entry to near nodes [nodes=" + U.nodeIds(nearNodes) + ", entry=" + entry + ']');
@@ -1461,7 +1461,8 @@ public class GridCacheContext<K, V> implements Externalizable {
 
         boolean ret = map(entry, F.view(dhtNodes, F.remoteNodes(nodeId())), dhtMap); // Exclude local node.
 
-        ret |= map(entry, F.view(nearNodes, F.notIn(dhtMap.keySet())), nearMap); // Exclude DHT nodes.
+        if (nearNodes != null && !nearNodes.isEmpty())
+            ret |= map(entry, F.view(nearNodes, F.notIn(dhtMap.keySet())), nearMap); // Exclude DHT nodes.
 
         return ret;
     }

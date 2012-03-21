@@ -44,7 +44,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Cache processor.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheProcessor extends GridProcessorAdapter {
     /** Null cache name. */
@@ -57,14 +57,6 @@ public class GridCacheProcessor extends GridProcessorAdapter {
     /** */
     private static final String LOC_QUERY_MGR_CLS =
         "org.gridgain.grid.kernal.processors.cache.query.GridCacheLocalQueryManager";
-
-    /** */
-    private static final String ENT_DATA_STRUCTURES_MGR_CLS =
-        "org.gridgain.grid.kernal.processors.cache.datastructures.GridCacheEnterpriseDataStructuresManager";
-
-    /** */
-    private static final String CMN_DATA_STRUCTURES_MGR_CLS =
-        "org.gridgain.grid.kernal.processors.cache.datastructures.GridCacheCommunityDataStructuresManager";
 
     /** */
     private final Map<String, GridCacheAdapter<?, ?>> caches;
@@ -139,9 +131,9 @@ public class GridCacheProcessor extends GridProcessorAdapter {
                 cfg.setNearEvictionPolicy(new GridCacheAlwaysEvictionPolicy());
             }
             else {
-                GridCacheEvictionPolicy policy = cfg.getNearEvictionPolicy();
+                GridCacheEvictionPolicy plc = cfg.getNearEvictionPolicy();
 
-                if (policy == null)
+                if (plc == null)
                     cfg.setNearEvictionPolicy(new GridCacheLruEvictionPolicy((DFLT_NEAR_SIZE)));
             }
         }
@@ -461,10 +453,10 @@ public class GridCacheProcessor extends GridProcessorAdapter {
      * @throws GridException If check failed.
      */
     private void checkCache(GridNode rmt) throws GridException {
-        GridCacheAttributes[] localAttrs = U.cacheAttributes(ctx.discovery().localNode());
+        GridCacheAttributes[] locAttrs = U.cacheAttributes(ctx.discovery().localNode());
 
         for (GridCacheAttributes a1 : U.cacheAttributes(rmt)) {
-            for (GridCacheAttributes a2 : localAttrs) {
+            for (GridCacheAttributes a2 : locAttrs) {
                 if (F.eq(a1.cacheName(), a2.cacheName())) {
                     if (a1.cacheMode() != a2.cacheMode())
                         throw new GridException("Cache mode mismatch (fix cache mode in configuration or specify " +
@@ -495,6 +487,7 @@ public class GridCacheProcessor extends GridProcessorAdapter {
      * @param cache Cache.
      * @throws GridException If failed.
      */
+    @SuppressWarnings("unchecked")
     private void onKernalStart(GridCacheAdapter<?, ?> cache) throws GridException {
         GridCacheContext<?, ?> ctx = cache.context();
 
@@ -692,22 +685,9 @@ public class GridCacheProcessor extends GridProcessorAdapter {
 
     /**
      * @return Data structures manager.
-     * @throws GridException In case of error.
      */
-    private GridCacheDataStructuresManager dataStructuresManager() throws GridException {
-        String clsName = U.isEnterprise() ? ENT_DATA_STRUCTURES_MGR_CLS : CMN_DATA_STRUCTURES_MGR_CLS;
-
-        try {
-            Class cls = Class.forName(clsName);
-
-            if (log.isDebugEnabled())
-                log.debug("Data structures manager found." + cls);
-
-            return (GridCacheDataStructuresManager)cls.newInstance();
-        }
-        catch (Exception ex) {
-            throw new GridException("Failed to find data structures manager.", ex);
-        }
+    private GridCacheDataStructuresManager dataStructuresManager() {
+        return new GridCacheEnterpriseDataStructuresManager();
     }
 
     /**

@@ -20,23 +20,19 @@ import collection.JavaConversions._
 import scala.util.control.Breaks._
 
 /**
- * This example works only on <b>Enterprise Edition.</b>
- *
- * Note that for Enterprise Edition affinity routing is enabled for all caches. In
- * Community Edition affinity routing works only if the cache is configured locally.
+ * Note that affinity routing is enabled for all caches.
  *
  * Remote nodes should always be started with configuration file which includes
  * cache: `'ggstart.sh examples/config/spring-cache.xml'`. Local node can
- * be started with or without cache depending on whether community or enterprise
- * edition is used respectively.
+ * be started with or without cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object ScalarCacheAffinityExample2 {
     /** Configuration file name. */
-    //private val CONFIG = "examples/config/spring-cache-none.xml" // Enterprise Edition.
-    private val CONFIG = "examples/config/spring-cache.xml" // Community Edition.
+    //private val CONFIG = "examples/config/spring-cache-none.xml" // No cache - remote node with cache is required.
+    private val CONFIG = "examples/config/spring-cache.xml" // Cache.
 
     /** Name of cache specified in spring configuration. */
     private val NAME = "partitioned"
@@ -55,10 +51,7 @@ object ScalarCacheAffinityExample2 {
 
             populateCache(grid$, keys)
 
-            // Map all keys to nodes. Note that community edition requires that
-            // cache with given name is started on this node. Otherwise, use
-            // enterprise edition to find out mapping on nodes that don't have
-            // cache running.
+            // Map all keys to nodes.
             var mappings = grid$.mapKeysToNodes(NAME, keys);
 
             // If on community edition, we have to get mappings from GridCache

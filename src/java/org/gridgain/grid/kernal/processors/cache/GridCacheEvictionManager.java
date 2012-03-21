@@ -14,6 +14,7 @@ import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.events.*;
+import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.cache.distributed.dht.*;
 import org.gridgain.grid.kernal.processors.cache.distributed.replicated.preloader.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
@@ -35,54 +36,28 @@ import java.util.concurrent.locks.*;
 
 import static java.util.concurrent.TimeUnit.*;
 import static org.gridgain.grid.GridEventType.*;
-import static org.gridgain.grid.GridSystemProperties.*;
 import static org.gridgain.grid.cache.GridCacheMode.*;
+import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtPartitionState.*;
 import static org.gridgain.grid.lang.utils.GridConcurrentLinkedDeque.*;
 
 /**
  * Cache eviction manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
-    /** Number of entries in the queue before unwinding happens. */
-    private static final int ENTRY_UNWIND_THRESHOLD = Integer.getInteger(GG_EVICT_UNWIND_THRESHOLD, 100);
-
-    /** How much are queues allowed to outgrow their maximums before they are forced to downsize. */
-    private static final int QUEUE_OUTGROW_RATIO = 3;
-
     /** Eviction policy. */
-    private GridCacheEvictionPolicy<K, V> policy;
+    private GridCacheEvictionPolicy<K, V> plc;
 
     /** Eviction filter. */
     private GridCacheEvictionFilter<K, V> filter;
-
-    /** Entries queue. */
-    private final GridConcurrentLinkedDeque<GridCacheEntryEx<K, V>> entries =
-        new GridConcurrentLinkedDeque<GridCacheEntryEx<K, V>>();
-
-    /** Transactions queue. */
-    private final GridConcurrentLinkedDeque<GridCacheTxEx<K, V>> txs =
-        new GridConcurrentLinkedDeque<GridCacheTxEx<K, V>>();
-
-    /** Entries queue size (including transaction entries). */
-    private final AtomicInteger entryCnt = new AtomicInteger();
-
-    /** Controlling lock for unwinding entries. */
-    private final ReadWriteLock unwindLock = new ReentrantReadWriteLock();
-
-    /** Unwinding flag. */
-    private final AtomicBoolean unwinding = new AtomicBoolean(false);
 
     /** Eviction buffer. */
     private final GridConcurrentLinkedDeque<EvictionInfo> bufEvictQ = new GridConcurrentLinkedDeque<EvictionInfo>();
 
     /** Attribute name used to queue node in entry metadata. */
     private final String meta = UUID.randomUUID().toString();
-
-    /** Evicting flag to make sure that only one thread processes eviction queue. */
-    private final AtomicBoolean buffEvicting = new AtomicBoolean(false);
 
     /** Active eviction futures. */
     private final Map<Long, EvictionFuture> futs = new ConcurrentHashMap<Long, EvictionFuture>();
@@ -102,14 +77,17 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /** Generator of future IDs. */
     private final AtomicLong idGen = new AtomicLong();
 
-    /** Entry unwind threshold. */
-    private int entryUnwindThreshold = ENTRY_UNWIND_THRESHOLD;
-
     /** Evict backup synchronized flag. */
     private boolean evictSync;
 
     /** Evict near synchronized flag. */
     private boolean nearSync;
+
+    /** Flag to hold {@code evictSync || nearSync} result. */
+    private boolean evictSyncAgr;
+
+    /** Policy enabled. */
+    private boolean plcEnabled;
 
     /** Backup entries worker. */
     private BackupWorker backupWorker;
@@ -123,13 +101,48 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /** Stopping flag. */
     private final AtomicBoolean stopping = new AtomicBoolean();
 
+    /** Current future. */
+    private final AtomicReference<EvictionFuture> curEvictFut = new AtomicReference<EvictionFuture>();
+
+    /** Tx listener. */
+    private CI1<GridFuture<GridCacheTx>> txLsnr = new CI1<GridFuture<GridCacheTx>>() {
+        @Override public void apply(GridFuture<GridCacheTx> t) {
+            GridCacheTxEx<K, V> tx;
+
+            try {
+                tx = (GridCacheTxEx<K, V>)t.get();
+            }
+            catch (GridException e) {
+                U.error(log, "Tx finished with error.", e);
+
+                return;
+            }
+
+            assert tx.done();
+
+            if (log.isDebugEnabled())
+                log.debug("Unwinding tx (in listener): " + CU.txString(tx));
+
+            Collection<GridCacheTxEntry<K, V>> txEntries = tx.allEntries();
+
+            for (GridCacheTxEntry<K, V> txe : txEntries) {
+                GridCacheEntryEx<K, V> e = txe.cached();
+
+                notifyPolicy(e);
+
+                if (evictSyncAgr)
+                    waitForEvictionFutures();
+            }
+        }
+    };
+
     /** {@inheritDoc} */
     @Override public void start0() throws GridException {
         GridCacheConfigurationAdapter cfg = cctx.config();
 
-        policy = cctx.isNear() ? cfg.<K, V>getNearEvictionPolicy() : cfg.<K, V>getEvictionPolicy();
+        plc = cctx.isNear() ? cfg.<K, V>getNearEvictionPolicy() : cfg.<K, V>getEvictionPolicy();
 
-        if (policy == null) {
+        if (plc == null) {
             if (cctx.isNear())
                 throw new GridException("Configuration parameter 'nearEvictionPolicy' cannot be null.");
             else
@@ -139,18 +152,27 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         filter = cfg.getEvictionFilter();
 
         if (cfg.getEvictMaxOverflowRatio() < 0)
-            throw new GridException("Configuration parameter 'maxEvictionOverflowRatio' cannot be negative.");
+            throw new GridException("Configuration parameter 'maxEvictOverflowRatio' cannot be negative.");
 
-        if (cfg.getEvictSynchronisedKeyBufferSize() < 0)
-            throw new GridException("Configuration parameter 'evictionKeyBufferSize' cannot be negative.");
+        if (cfg.getEvictSynchronizedKeyBufferSize() < 0)
+            throw new GridException("Configuration parameter 'evictSynchronizedKeyBufferSize' cannot be negative.");
 
         evictSync = cfg.isEvictSynchronized() && (cctx.isReplicated() || cctx.isDht()) && !cctx.isSwapEnabled();
 
-        nearSync = cfg.isEvictNearSynchronized() && cctx.isDht();
+        nearSync = cfg.isEvictNearSynchronized() && cctx.isDht() && cctx.config().isNearEnabled();
+
+        if (cctx.isDht() && !nearSync && evictSync && cctx.config().isNearEnabled())
+            throw new GridException("Illegal configuration (may lead to data inconsistency) " +
+                "[evictSync=true, evictNearSync=false]");
 
         reportConfigurationProblems();
 
-        if (evictSync && cctx.isDht()) {
+        evictSyncAgr = evictSync || nearSync;
+
+        plcEnabled = cctx.isNear() && cctx.config().isNearEvictionEnabled() ||
+            !cctx.isNear() && cctx.config().isEvictionEnabled();
+
+        if (evictSync && cctx.isDht() && plcEnabled) {
             backupWorker = new BackupWorker();
 
             cctx.events().addListener(
@@ -162,13 +184,14 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                         GridDiscoveryEvent discoEvt = (GridDiscoveryEvent)evt;
 
                         // Notify backup worker on each topology change.
-                        backupWorker.addEvent(discoEvt);
+                        if (CU.cacheNode(cctx, discoEvt.shadow()))
+                            backupWorker.addEvent(discoEvt);
                     }
                 },
                 EVT_NODE_FAILED, EVT_NODE_LEFT, EVT_NODE_JOINED);
         }
 
-        if (evictSync || nearSync) {
+        if (evictSyncAgr) {
             if (cfg.getEvictSynchronizedTimeout() <= 0)
                 throw new GridException("Configuration parameter 'evictSynchronousTimeout' should be positive.");
 
@@ -209,14 +232,6 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
-     * @return {@code True} if eviction policy tracking is enabled.
-     */
-    private boolean policyEnabled() {
-        return cctx.isNear() && cctx.config().isNearEvictionEnabled() ||
-            !cctx.isNear() && cctx.config().isEvictionEnabled();
-    }
-
-    /**
      * Outputs warnings if potential configuration problems are detected.
      */
     private void reportConfigurationProblems() {
@@ -230,7 +245,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                     "Evictions are not synchronized for cache: " + cctx.namexx());
             }
 
-            if (mode == PARTITIONED && !nearSync) {
+            if (mode == PARTITIONED && !nearSync && cctx.config().isNearEnabled()) {
                 U.warn(log, "Evictions on primary node are not synchronized with near nodes " +
                     "which which may cause some entries not to be evicted (consider changing " +
                     "'nearEvictSynchronized' configuration property).",
@@ -275,24 +290,6 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
 
         if (log.isDebugEnabled())
             log.debug("Eviction manager stopped on node: " + cctx.nodeId());
-    }
-
-    /**
-     * This method is meant to be used for testing and potentially for management as well.
-     *
-     * @param entryUnwindThreshold Entry unwind threshold.
-     */
-    public void setEntryUnwindThreshold(int entryUnwindThreshold) {
-        assert entryUnwindThreshold > 0;
-
-        this.entryUnwindThreshold = entryUnwindThreshold;
-    }
-
-    /**
-     * Resets unwind thresholds back to default values.
-     */
-    public void resetEntryUnwindThreshold() {
-        entryUnwindThreshold = ENTRY_UNWIND_THRESHOLD;
     }
 
     /**
@@ -418,7 +415,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         for (Map.Entry<Integer, Collection<GridTuple3<K, GridCacheVersion, Boolean>>> e : dhtEntries.entrySet()) {
             int part = e.getKey();
 
-            boolean locked = lockPartition(part);
+            boolean locked = lockPartition(part); // Will return false if preloading is disabled.
 
             try {
                 for (GridTuple3<K, GridCacheVersion, Boolean> t : e.getValue()) {
@@ -544,6 +541,14 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                 if (part != null && part.reserve()) {
                     part.lock();
 
+                    if (part.state() != MOVING) {
+                        part.unlock();
+
+                        part.release();
+
+                        return false;
+                    }
+
                     return true;
                 }
             }
@@ -620,12 +625,11 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
      * @param obsoleteVer Obsolete version.
      * @return {@code true} if evicted successfully, {@code false} if could not be evicted.
      */
-    @SuppressWarnings({"TypeMayBeWeakened"})
     private boolean evictLocally(K key, final GridCacheVersion ver, boolean near, GridCacheVersion obsoleteVer) {
         assert key != null;
         assert ver != null;
         assert obsoleteVer != null;
-        assert evictSync || nearSync;
+        assert evictSyncAgr;
         assert cctx.isDht() || cctx.isReplicated();
 
         if (log.isDebugEnabled())
@@ -692,8 +696,9 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         if (evicted) {
             cache.removeEntry(entry);
 
-            cctx.events().addEvent(entry.partition(), entry.key(), cctx.nodeId(), (GridUuid)null, null,
-                EVT_CACHE_ENTRY_EVICTED, null, null);
+            if (cctx.events().isRecordable(EVT_CACHE_ENTRY_EVICTED))
+                cctx.events().addEvent(entry.partition(), entry.key(), cctx.nodeId(), (GridUuid)null, null,
+                    EVT_CACHE_ENTRY_EVICTED, null, null);
 
             if (log.isDebugEnabled())
                 log.debug("Entry was evicted [entry=" + entry + ", localNode=" + cctx.nodeId() + ']');
@@ -707,44 +712,26 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /**
      * @param tx Transaction to register for eviction policy notifications.
      */
-    public void touch(GridCacheTxEx<K, V> tx) {
+    public void touch(final GridCacheTxEx<K, V> tx) {
         if (!busyLock.enterBusy())
             return;
 
         try {
-            if (!policyEnabled())
+            if (!plcEnabled || tx.internal())
                 return;
 
             if (!tx.local()) {
                 if (cctx.isNear())
                     return;
 
-                if (cctx.isDht() && (evictSync || nearSync))
+                if (cctx.isDht() && evictSync)
                     return;
             }
 
             if (log.isDebugEnabled())
                 log.debug("Touching transaction [tx=" + CU.txString(tx) + ", localNode=" + cctx.nodeId() + ']');
 
-            unwindLock.readLock().lock();
-
-            try {
-                txs.add(tx);
-
-                entryCnt.addAndGet(tx.allEntries().size());
-
-                if (evictSync || nearSync) {
-                    for (GridCacheTxEntry<K, V> e : tx.allEntries()) {
-                        Node<EvictionInfo> node = e.cached().removeMeta(meta);
-
-                        if (node != null)
-                            bufEvictQ.unlinkx(node);
-                    }
-                }
-            }
-            finally {
-                unwindLock.readLock().unlock();
-            }
+            tx.finishFuture().listenAsync(txLsnr);
         }
         finally {
             busyLock.leaveBusy();
@@ -752,41 +739,28 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
-     * @param entry Entry for eviction policy notification.
+     * @param e Entry for eviction policy notification.
      */
-    public void touch(GridCacheEntryEx<K, V> entry) {
+    public void touch(GridCacheEntryEx<K, V> e) {
         if (!busyLock.enterBusy())
             return;
 
         try {
-            if (!policyEnabled())
+            if (!plcEnabled || (e.key() instanceof GridCacheInternal))
                 return;
 
             // Don't track non-primary entries if evicts are synchronized.
-            if (cctx.isDht() && (evictSync || nearSync))
-                if (!cctx.primary(cctx.localNode(), entry.partition()))
-                    return;
+            if (cctx.isDht() && evictSync && !cctx.primary(cctx.localNode(), e.partition()))
+                return;
+
+            // Wait for futures to finish.
+            if (evictSyncAgr)
+                waitForEvictionFutures();
 
             if (log.isDebugEnabled())
-                log.debug("Touching entry [entry=" + entry + ", localNode=" + cctx.nodeId() + ']');
+                log.debug("Touching entry [entry=" + e + ", localNode=" + cctx.nodeId() + ']');
 
-            unwindLock.readLock().lock();
-
-            try {
-                entries.add(entry);
-
-                entryCnt.incrementAndGet();
-
-                if (evictSync || nearSync) {
-                    Node<EvictionInfo> node = entry.removeMeta(meta);
-
-                    if (node != null)
-                        bufEvictQ.unlinkx(node);
-                }
-            }
-            finally {
-                unwindLock.readLock().unlock();
-            }
+            notifyPolicy(e);
         }
         finally {
             busyLock.leaveBusy();
@@ -794,44 +768,33 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
-     * Note that this method should be called within
-     * read lock ({@link #unwindLock}).
-     * <p>
-     * Buffer nodes will not be unlinked here, since if node presents
-     * in queue, there will be another eviction iteration - do not postpone it.
-     *
-     * @param entry Entry for eviction policy notification.
+     * @param e Entry for eviction policy notification.
      */
-    private void touch0(GridCacheEntryEx<K, V> entry) {
-        assert (evictSync || nearSync) && policyEnabled();
+    private void touch0(GridCacheEntryEx<K, V> e) {
+        assert evictSyncAgr && plcEnabled;
 
-        entries.add(entry);
-
-        entryCnt.incrementAndGet();
+        // Do not wait for futures here since only limited number
+        // of entries can be passed to this method.
+        notifyPolicy(e);
     }
 
     /**
      * @param entries Entries for eviction policy notification.
      */
-    private void touchOnTopologyChange(Collection<? extends GridCacheEntryEx<K, V>> entries) {
-        if (F.isEmpty(entries) || !policyEnabled())
-            return;
+    private void touchOnTopologyChange(Iterable<? extends GridCacheEntryEx<K, V>> entries) {
+        assert plcEnabled && evictSync;
 
         if (log.isDebugEnabled())
             log.debug("Touching entries [entries=" + entries + ", localNode=" + cctx.nodeId() + ']');
 
-        unwindLock.readLock().lock();
+        for (GridCacheEntryEx<K, V> e : entries) {
+            if (e.key() instanceof GridCacheInternal)
+                // Skip internal entry.
+                continue;
 
-        // This method is intended to call only on topology changes when node becomes
-        // primary for this partition. No need to notify futures and clear buffer nodes,
-        // as these entries have never been tracked.
-        try {
-            this.entries.addAll(entries);
-
-            entryCnt.addAndGet(entries.size());
-        }
-        finally {
-            unwindLock.readLock().unlock();
+            // Do not wait for futures here since only limited number
+            // of entries can be passed to this method.
+            notifyPolicy(e);
         }
     }
 
@@ -853,11 +816,11 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         if (entry.key() instanceof GridCacheInternal)
             return false;
 
-        if (evictSync || nearSync) {
+        if (evictSyncAgr) {
             assert cctx.isReplicated() || cctx.isDht(); // Make sure cache is not NEAR.
 
-            if (entry.wrap(false).backup())
-                // Do not track backups.
+            if (entry.wrap(false).backup() && evictSync)
+                // Do not track backups if evicts are synchronized.
                 return !explicit;
 
             try {
@@ -891,15 +854,33 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
 
     /**
      * Enqueues entry for synchronized eviction.
-     * <p>
-     * Most of the time this method is called within write lock
-     * {@link #unwindLock}, except cases when evict is called explicitly.
      *
      * @param entry Entry.
      * @param filter Filter.
      * @throws GridCacheEntryRemovedException If entry got removed.
      */
     private void enqueue(GridCacheEntryEx<K, V> entry, GridPredicate<? super GridCacheEntry<K, V>>[] filter)
+        throws GridCacheEntryRemovedException {
+        Node<EvictionInfo> node = entry.meta(meta);
+
+        if (node == null) {
+            node = bufEvictQ.addLastx(new EvictionInfo(entry, entry.version(), filter));
+
+            if (entry.putMetaIfAbsent(meta, node) != null)
+                // Was concurrently added, need to clear it from queue.
+                bufEvictQ.unlinkx(node);
+            else if (log.isDebugEnabled())
+                log.debug("Added entry to eviction queue: " + entry);
+        }
+    }
+    /**
+     * Enqueues entry for synchronized eviction.
+     *
+     * @param entry Entry.
+     * @param filter Filter.
+     * @throws GridCacheEntryRemovedException If entry got removed.
+     */
+    private void enqueue0(GridCacheEntryEx<K, V> entry, GridPredicate<? super GridCacheEntry<K, V>>[] filter)
         throws GridCacheEntryRemovedException {
         Node<EvictionInfo> node = entry.meta(meta);
 
@@ -922,30 +903,23 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
 
         int bufSize = bufEvictQ.sizex();
 
-        if (bufSize > maxSize && buffEvicting.compareAndSet(false, true)) {
-            Collection<EvictionInfo> evictionInfos;
+        if (bufSize >= maxSize) {
+            if (log.isDebugEnabled())
+                log.debug("Processing eviction queue: " + bufSize);
 
-            try {
-                if (log.isDebugEnabled())
-                    log.debug("Processing eviction queue: " + bufSize);
+            Collection<EvictionInfo> evictInfos = new ArrayList<EvictionInfo>(bufSize);
 
-                evictionInfos = new ArrayList<EvictionInfo>(bufSize);
+            for (int i = 0; i < bufSize; i++) {
+                EvictionInfo info = bufEvictQ.poll();
 
-                for (int i = 0; i < bufSize; i++) {
-                    EvictionInfo info = bufEvictQ.poll();
+                if (info == null)
+                    break;
 
-                    if (info == null)
-                        break;
-
-                    evictionInfos.add(info);
-                }
-            }
-            finally {
-                buffEvicting.set(false);
+                evictInfos.add(info);
             }
 
-            if (!evictionInfos.isEmpty())
-                createEvictionFuture(evictionInfos);
+            if (!evictInfos.isEmpty())
+                addToCurrentFuture(evictInfos);
         }
     }
 
@@ -954,7 +928,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
      */
     private int maxQueueSize() {
         int size = Math.min((int)(cctx.cache().keySize() * cctx.config().getEvictMaxOverflowRatio()) / 100,
-            cctx.config().getEvictSynchronisedKeyBufferSize());
+            cctx.config().getEvictSynchronizedKeyBufferSize());
 
         return size > 0 ? size : 500;
     }
@@ -962,38 +936,59 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /**
      * Processes eviction queue (sends required requests, etc.).
      *
-     * @param evictionInfos Eviction information to create future with.
+     * @param evictInfos Eviction information to create future with.
      */
-    private void createEvictionFuture(Collection<EvictionInfo> evictionInfos) {
-        EvictionFuture fut = new EvictionFuture(evictionInfos);
+    private void addToCurrentFuture(Collection<EvictionInfo> evictInfos) {
+        assert !evictInfos.isEmpty();
 
-        // Put future in map.
-        futsCntLock.lock();
+        while (true) {
+            EvictionFuture fut = curEvictFut.get();
 
-        try {
-            activeFutsCnt++;
-        }
-        finally {
-            futsCntLock.unlock();
-        }
+            if (fut == null) {
+                curEvictFut.compareAndSet(null, new EvictionFuture(cctx.kernalContext()));
 
-        futs.put(fut.id(), fut);
+                continue;
+            }
 
-        fut.prepare();
-
-        // Listen to the future completion.
-        fut.listenAsync(new CI1<GridFuture<?>>() {
-            @Override public void apply(GridFuture<?> f) {
-                long topVer = lockTopology();
+            if (fut.prepareLock()) {
+                boolean added;
 
                 try {
-                    onFutureCompleted((EvictionFuture)f, topVer);
+                    added = fut.add(evictInfos);
                 }
                 finally {
-                    unlockTopology();
+                    fut.prepareUnlock();
                 }
+
+                if (added) {
+                    if (fut.prepare()) {
+                        // Thread that prepares future should remove it and install listener.
+                        curEvictFut.compareAndSet(fut, null);
+
+                        fut.listenAsync(new CI1<GridFuture<?>>() {
+                            @Override public void apply(GridFuture<?> f) {
+                                long topVer = lockTopology();
+
+                                try {
+                                    onFutureCompleted((EvictionFuture)f, topVer);
+                                }
+                                finally {
+                                    unlockTopology();
+                                }
+                            }
+                        });
+                    }
+
+                    break;
+                }
+                else
+                    // Infos were not added, create another future for next iteration.
+                    curEvictFut.compareAndSet(fut, new EvictionFuture(cctx.kernalContext()));
             }
-        });
+            else
+                // Future has not been locked, create another future for next iteration.
+                curEvictFut.compareAndSet(fut, new EvictionFuture(cctx.kernalContext()));
+        }
     }
 
     /**
@@ -1003,8 +998,6 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     private void onFutureCompleted(EvictionFuture fut, long topVer) {
         if (!busyLock.enterBusy())
             return;
-
-        boolean signalled = false;
 
         try {
             GridTuple2<Collection<EvictionInfo>, Collection<EvictionInfo>> t;
@@ -1020,21 +1013,9 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
             catch (GridException e) {
                 U.error(log, "Eviction future finished with error (all entries will be touched): " + fut, e);
 
-                // Signal first, then get read lock.
-                signalUnwind();
-
-                signalled = true;
-
-                if (policyEnabled()) {
-                    unwindLock.readLock().lock();
-
-                    try {
-                        for (EvictionInfo info : fut.entries())
-                            touch0(info.entry());
-                    }
-                    finally {
-                        unwindLock.readLock().unlock();
-                    }
+                if (plcEnabled) {
+                    for (EvictionInfo info : fut.entries())
+                        touch0(info.entry());
                 }
 
                 return;
@@ -1045,21 +1026,9 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                 if (log.isDebugEnabled())
                     log.debug("Topology has changed, all entries will be touched: " + fut);
 
-                // Signal first, then get read lock.
-                signalUnwind();
-
-                signalled = true;
-
-                if (policyEnabled()) {
-                    unwindLock.readLock().lock();
-
-                    try {
-                        for (EvictionInfo info : fut.entries())
-                            touch0(info.entry());
-                    }
-                    finally {
-                        unwindLock.readLock().unlock();
-                    }
+                if (plcEnabled) {
+                    for (EvictionInfo info : fut.entries())
+                        touch0(info.entry());
                 }
 
                 return;
@@ -1102,31 +1071,17 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
 
             Collection<EvictionInfo> rejectedEntries = t.get2();
 
-            // Signal first, then get read lock.
-            signalUnwind();
-
-            signalled = true;
-
-            // Touch rejected entries (only if policy is enabled).
-            if (policyEnabled() && !rejectedEntries.isEmpty()) {
-                unwindLock.readLock().lock();
-
-                try {
-                    // Touch remotely rejected entries.
-                    for (EvictionInfo info : rejectedEntries)
-                        touch0(info.entry());
-                }
-                finally {
-                    unwindLock.readLock().unlock();
-                }
+            // Touch remotely rejected entries (only if policy is enabled).
+            if (plcEnabled && !rejectedEntries.isEmpty()) {
+                for (EvictionInfo info : rejectedEntries)
+                    touch0(info.entry());
             }
         }
         finally {
             busyLock.leaveBusy();
 
-            // Signal unwind on future completion (safety).
-            if (!signalled)
-                signalUnwind();
+            // Signal on future completion.
+            signal();
         }
     }
 
@@ -1134,7 +1089,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
      * This method should be called when eviction future is processed
      * and unwind may continue.
      */
-    private void signalUnwind() {
+    private void signal() {
         futsCntLock.lock();
 
         try {
@@ -1143,7 +1098,8 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
 
             assert cnt >= 0 : "Invalid futures count: " + cnt;
 
-            futsCntCond.signalAll();
+            if (cnt < maxActiveFuts)
+                futsCntCond.signalAll();
         }
         finally {
             futsCntLock.unlock();
@@ -1169,14 +1125,17 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /**
      * Gets a collection of nodes to send eviction requests to.
      *
+     *
      * @param entry Entry.
+     * @param topVer Topology version.
      * @return Tuple of two collections: dht (in case of partitioned cache) nodes
      *      and readers (empty for replicated cache).
      * @throws GridCacheEntryRemovedException If entry got removed during method
      *      execution.
      */
     @SuppressWarnings( {"IfMayBeConditional"})
-    private GridTuple2<Collection<GridRichNode>, Collection<GridRichNode>> remoteNodes(GridCacheEntryEx<K, V> entry)
+    private GridTuple2<Collection<GridRichNode>, Collection<GridRichNode>> remoteNodes(GridCacheEntryEx<K, V> entry,
+        long topVer)
         throws GridCacheEntryRemovedException {
         assert entry != null;
 
@@ -1199,11 +1158,9 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         else {
             assert cctx.config().getCacheMode() == PARTITIONED;
 
-            if (evictSync) {
-                // TODO: What topology version to pass?
-                backups = F.transform(cctx.dht().topology().nodes(entry.partition(), -1), cctx.rich().richNode(),
+            if (evictSync)
+                backups = F.transform(cctx.dht().topology().nodes(entry.partition(), topVer), cctx.rich().richNode(),
                     F.<GridNode>notEqualTo(cctx.localNode()));
-            }
             else
                 backups = Collections.emptySet();
 
@@ -1229,41 +1186,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
             return;
 
         try {
-            if (policyEnabled()) {
-                if (entryCnt.get() >= entryUnwindThreshold) {
-                    // Only one thread should unwind for efficiency.
-                    if (unwinding.compareAndSet(false, true)) {
-                        GridCacheFlag[] old = cctx.forceLocal();
-
-                        try {
-                            if (activeFutsCnt >= maxActiveFuts || !unwindSafe(true)) {
-                                unwindLock.writeLock().lock();
-
-                                try {
-                                    boolean ret = unwindSafe(false); // Unwind within lock.
-
-                                    assert ret;
-
-                                    if (stopping.get())
-                                        return;
-                                }
-                                finally {
-                                    unwindLock.writeLock().unlock();
-                                }
-                            }
-                        }
-                        finally {
-                            cctx.forceFlags(old);
-
-                            unwinding.set(false);
-                        }
-                    }
-                }
-            }
-            else
-                assert entryCnt.get() == 0;
-
-            if (evictSync || nearSync)
+            if (evictSyncAgr)
                 checkEvictionQueue();
         }
         finally {
@@ -1272,83 +1195,20 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
-     * @param cap {@code True} if unwind process should cap after queue grows to certain limit.
-     * @return {@code True} if unwind thread was able to succeed, {@code false} if queue
-     *      kept growing during unwind.
-     */
-    private boolean unwindSafe(boolean cap) {
-        int cnt = 0;
-
-        int startCnt = entryCnt.get();
-
-        // Touch first.
-        for (GridCacheEntryEx<K, V> e = entries.poll(); e != null; e = entries.poll()) {
-            cnt = entryCnt.decrementAndGet();
-
-            notifyPolicy(e);
-
-            if (!cap && (evictSync || nearSync)) {
-                waitForEvictionFutures();
-
-                // Check stopping flag on return from wait.
-                if (stopping.get())
-                    return true;
-            }
-
-            if (cap && cnt >= startCnt * QUEUE_OUTGROW_RATIO)
-                return false;
-        }
-
-        for (Iterator<GridCacheTxEx<K, V>> it = txs.iterator(); it.hasNext(); ) {
-            GridCacheTxEx<K, V> tx = it.next();
-
-            if (!tx.done())
-                return true;
-
-            it.remove();
-
-            Collection<GridCacheTxEntry<K, V>> txEntries = tx.allEntries();
-
-            cnt = entryCnt.addAndGet(-txEntries.size());
-
-            if (!tx.internal()) {
-                for (GridCacheTxEntry<K, V> txe : txEntries) {
-                    GridCacheEntryEx<K, V> e = txe.cached();
-
-                    notifyPolicy(e);
-                }
-            }
-
-            if (!cap && (evictSync || nearSync)) {
-                waitForEvictionFutures();
-
-                // Check stopping flag on return from wait.
-                if (stopping.get())
-                    return true;
-            }
-
-            if (cap && cnt >= startCnt * QUEUE_OUTGROW_RATIO)
-                return false;
-        }
-
-        assert cap || cnt == 0 : "Invalid entry count [cnt=" + cnt + ", size=" + txs.size() + ", txs=" + txs +
-            ", entries=" + entries + ']';
-
-        return true;
-    }
-
-    /**
      * @param e Entry to notify eviction policy.
      */
     @SuppressWarnings({"IfMayBeConditional", "RedundantIfStatement"})
     private void notifyPolicy(GridCacheEntryEx<K, V> e) {
+        assert !(e.key() instanceof GridCacheInternal) : "Invalid entry for policy notification: " + e;
+
+        if (log.isDebugEnabled())
+            log.debug("Notifying eviction policy with entry: " + e);
+
         boolean notify;
 
-        if (e.key() instanceof GridCacheInternal)
-            notify = false;
-        // if near cache is disabled, then we always notify it,
+        // if near cache is disabled, then we always notify policy,
         // so the entry can be removed.
-        else if (cctx.isNear() && !cctx.config().isNearEnabled())
+        if (cctx.isNear() && !cctx.config().isNearEnabled())
             notify = true;
         else if (filter != null && !filter.evictAllowed(e.wrap(false)))
             notify = false;
@@ -1356,7 +1216,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
             notify = true;
 
         if (notify)
-            policy.onEntryAccessed(e.obsolete(), e.evictWrap());
+            plc.onEntryAccessed(e.obsolete(), e.evictWrap());
     }
 
     /**
@@ -1393,7 +1253,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
      */
     public void printStats() {
         X.println("Eviction stats [grid=" + cctx.gridName() + ", cache=" + cctx.cache().name() +
-            ", txs=" + txs.size() + ", entries=" + entries.size() + ", buffEvictQ=" + bufEvictQ.sizex() + ']');
+            ", buffEvictQ=" + bufEvictQ.sizex() + ']');
     }
 
     /** {@inheritDoc} */
@@ -1401,8 +1261,6 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         X.println(">>> ");
         X.println(">>> Eviction manager memory stats [grid=" + cctx.gridName() + ", cache=" + cctx.name() + ']');
         X.println(">>>   buffEvictQ size: " + bufEvictQ.sizex());
-        X.println(">>>   txsSize: " + txs.size());
-        X.println(">>>   entriesSize: " + entries.size());
         X.println(">>>   futsSize: " + futs.size());
         X.println(">>>   futsCreated: " + idGen.get());
     }
@@ -1422,6 +1280,8 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
          */
         private BackupWorker() {
             super(cctx.gridName(), "cache-eviction-backup-worker", log);
+
+            assert plcEnabled;
         }
 
         /**
@@ -1475,13 +1335,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                         if (log.isDebugEnabled())
                             log.debug("Touching partition entries: " + part);
 
-                        // Make sure copy values to local collection.
-                        Collection<GridDhtCacheEntry<K, V>> entries = new LinkedList<GridDhtCacheEntry<K, V>>();
-
-                        for (GridDhtCacheEntry<K, V> e : part.entries())
-                            entries.add(e);
-
-                        touchOnTopologyChange(entries);
+                        touchOnTopologyChange(part.entries());
                     }
                 }
             }
@@ -1547,7 +1401,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         private final long id = idGen.incrementAndGet();
 
         /** */
-        private Collection<EvictionInfo> evictionInfos;
+        private GridConcurrentLinkedDeque<EvictionInfo> evictInfos = new GridConcurrentLinkedDeque<EvictionInfo>();
 
         /** */
         private final ConcurrentMap<K, EvictionInfo> entries = new ConcurrentHashMap<K, EvictionInfo>();
@@ -1571,9 +1425,16 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
             new ConcurrentHashMap<UUID, GridCacheEvictionResponse<K, V>>();
 
         /** To make sure that future is completing within a single thread. */
-        private final AtomicBoolean completing = new AtomicBoolean(false);
+        private final AtomicBoolean finishPrepare = new AtomicBoolean();
 
-        /** Lock. */
+        /** Lock to use when future is being initialized. */
+        @GridToStringExclude
+        private final ReadWriteLock prepareLock = new ReentrantReadWriteLock();
+
+        /** To make sure that future is completing within a single thread. */
+        private final AtomicBoolean completing = new AtomicBoolean();
+
+        /** Lock to use after future is initialized. */
         @GridToStringExclude
         private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -1585,39 +1446,93 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         private long topVer;
 
         /**
-         * @param evictionInfos Eviction information to create future with.
+         * @param ctx Context.
          */
-        EvictionFuture(Collection<EvictionInfo> evictionInfos) {
-            super(cctx.kernalContext());
-
-            assert evictionInfos != null && !evictionInfos.isEmpty();
-
-            this.evictionInfos = evictionInfos;
+        EvictionFuture(GridKernalContext ctx) {
+            super(ctx);
         }
 
         /**
          * Required by {@code Externalizable}.
          */
         public EvictionFuture() {
-            // No-op.
+            assert false : "This should never happen.";
+        }
+
+        /**
+         * @return {@code True} if prepare lock was acquired.
+         */
+        boolean prepareLock() {
+            return prepareLock.readLock().tryLock();
+        }
+
+        /**
+         *
+         */
+        void prepareUnlock() {
+            prepareLock.readLock().unlock();
+        }
+
+        /**
+         * @param infos Infos to add.
+         * @return {@code False} if entries were not added due to capacity restrictions.
+         */
+        boolean add(Collection<EvictionInfo> infos) {
+            assert infos != null && !infos.isEmpty();
+
+            if (evictInfos.sizex() > maxQueueSize())
+                return false;
+
+            evictInfos.addAll(infos);
+
+            return true;
+        }
+
+        /**
+         * @return {@code True} if future has been prepared by this call.
+         */
+        @SuppressWarnings("LockAcquiredButNotSafelyReleased")
+        boolean prepare() {
+            if (evictInfos.sizex() >= maxQueueSize() && finishPrepare.compareAndSet(false, true)) {
+                // Lock will never be released intentionally.
+                prepareLock.writeLock().lock();
+
+                futsCntLock.lock();
+
+                try {
+                    activeFutsCnt++;
+                }
+                finally {
+                    futsCntLock.unlock();
+                }
+
+                // Put future in map.
+                futs.put(id, this);
+
+                prepare0();
+
+                return true;
+            }
+
+            return false;
         }
 
         /**
          * Prepares future (sends all required requests).
          */
-        private void prepare() {
+        private void prepare0() {
             if (log.isDebugEnabled())
                 log.debug("Preparing eviction future [futId=" + id + ", localNode=" + cctx.nodeId() +
-                    ", infos=" + evictionInfos + ']');
+                    ", infos=" + evictInfos + ']');
 
-            assert evictionInfos != null && !evictionInfos.isEmpty();
+            assert evictInfos != null && !evictInfos.isEmpty();
 
             topVer = lockTopology();
 
             try {
                 Collection<EvictionInfo> locals = null;
 
-                for (EvictionInfo info : evictionInfos) {
+                for (EvictionInfo info : evictInfos) {
                     // Queue node may have been stored in entry metadata concurrently, but we don't care
                     // about it since we are currently processing this entry.
                     Node<EvictionInfo> queueNode = info.entry().removeMeta(meta);
@@ -1628,7 +1543,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                     GridTuple2<Collection<GridRichNode>, Collection<GridRichNode>> tup;
 
                     try {
-                        tup = remoteNodes(info.entry());
+                        tup = remoteNodes(info.entry(), topVer);
                     }
                     catch (GridCacheEntryRemovedException ignored) {
                         if (log.isDebugEnabled())
@@ -1654,7 +1569,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                         // There are remote participants.
                         for (GridRichNode node : nodes) {
                             GridCacheEvictionRequest<K, V> req = F.addIfAbsent(reqMap, node.id(),
-                                new GridCacheEvictionRequest<K, V>(id, evictionInfos.size(), topVer));
+                                new GridCacheEvictionRequest<K, V>(id, evictInfos.size(), topVer));
 
                             assert req != null;
 
@@ -1663,7 +1578,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                     }
                     else {
                         if (locals == null)
-                            locals = new HashSet<EvictionInfo>(evictionInfos.size(), 1.0f);
+                            locals = new HashSet<EvictionInfo>(evictInfos.size(), 1.0f);
 
                         // There are no remote participants, need to keep the entry as local.
                         locals.add(info);
@@ -1682,7 +1597,7 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                             // Touch primary entry (without backup nodes) if not evicted
                             // to keep tracking.
                             if (!evict0(cctx.cache(), info.entry(), obsoleteVer, versionFilter(info)))
-                                touch(info.entry());
+                                touch0(info.entry());
                         }
                         catch (GridException e) {
                             U.error(log, "Failed to evict entry: " + info.entry(), e);

@@ -58,7 +58,7 @@ import static org.gridgain.grid.GridJobResultPolicy.*;
  * For more information refer to {@link GridTask} documentation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @param <T> Type of the task argument.
  * @param <R> Type of the task result returning from {@link GridTask#reduce(List)} method.
  */

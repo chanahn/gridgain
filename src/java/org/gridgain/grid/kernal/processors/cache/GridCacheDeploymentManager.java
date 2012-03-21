@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.*;
  * Deployment manager for cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
     /** Node filter. */
@@ -119,7 +119,7 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
         }
 
         if (log.isDebugEnabled())
-            log.debug("Unwinded undeploys count: " + cnt);
+            log.debug("Unwound undeploys count: " + cnt);
     }
 
     /**

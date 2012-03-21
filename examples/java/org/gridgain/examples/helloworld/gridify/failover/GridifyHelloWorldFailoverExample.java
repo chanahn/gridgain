@@ -151,16 +151,9 @@ import java.util.*;
  * with Spring AOP refer to {@link GridifySpringHelloWorldExample} example.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridifyHelloWorldFailoverExample {
-    /**
-     * Enforces singleton.
-     */
-    private GridifyHelloWorldFailoverExample() {
-        // No-op.
-    }
-
     /**
      * Method is grid-enabled with {@link Gridify} annotation and will be
      * executed on the grid. Simply prints out the argument passed in.

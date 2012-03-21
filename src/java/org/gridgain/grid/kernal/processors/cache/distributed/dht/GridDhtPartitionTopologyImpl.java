@@ -29,7 +29,7 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * Partition topology.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridToStringExclude
 class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, V> {
@@ -317,7 +317,8 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
                 }
             }
 
-            checkEvictions(updateSeq);
+            if (node2part != null && node2part.valid())
+                checkEvictions(updateSeq);
 
             consistencyCheck();
 
@@ -413,6 +414,9 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
                     }
                 }
             }
+
+            if (!cctx.preloadEnabled())
+                cctx.dataStructures().onPartitionsChange();
 
             consistencyCheck();
         }
@@ -534,7 +538,8 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
         lock.readLock().lock();
 
         try {
-            assert node2part != null && node2part.valid();
+            assert node2part != null && node2part.valid() : "Invalid node-to-partitions map [topVer=" + topVer +
+                ", node2part=" + node2part + ']';
 
             List<GridNode> nodes = new ArrayList<GridNode>(affNodes.size());
 
@@ -543,7 +548,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
 
             Collection<UUID> nodeIds = part2node.get(p);
 
-            if (!nodeIds.isEmpty()) {
+            if (!F.isEmpty(nodeIds)) {
                 for (UUID nodeId : nodeIds) {
                     if (!affIds.contains(nodeId) && hasState(p, nodeId, OWNING, MOVING, RENTING)) {
                         GridNode n = cctx.discovery().node(nodeId);
@@ -551,7 +556,6 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
                         if (n != null)
                             nodes.add(n);
                     }
-
                 }
             }
 
@@ -570,12 +574,13 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
      * @return List of nodes for the partition.
      */
     private List<GridNode> nodes(int p, long topVer, GridDhtPartitionState state, GridDhtPartitionState... states) {
-        Collection<UUID> allIds = topVer > 0 ? F.viewReadOnly(CU.allNodes(cctx, topVer), F.node2id()) : null;
+        Collection<UUID> allIds = topVer > 0 ? F.nodeIds(CU.allNodes(cctx, topVer)) : null;
 
         lock.readLock().lock();
 
         try {
-            assert node2part != null && node2part.valid();
+            assert node2part != null && node2part.valid() : "Invalid node-to-partitions map [topVer=" + topVer +
+                ", allIds=" + allIds + ", node2part=" + node2part + ']';
 
             Collection<UUID> nodeIds = part2node.get(p);
 
@@ -864,7 +869,7 @@ class GridDhtPartitionTopologyImpl<K, V> implements GridDhtPartitionTopology<K, 
                 Collection<GridRichNode> affNodes = cctx.affinity(p, allNodes);
 
                 if (!affNodes.contains(cctx.localNode())) {
-                    Collection<UUID> nodeIds = F.viewReadOnly(nodes(p, topVer, OWNING), F.node2id());
+                    Collection<UUID> nodeIds = F.nodeIds(nodes(p, topVer, OWNING));
 
                     // If all affinity nodes are owners, then evict partition from local node.
                     if (nodeIds.containsAll(F.nodeIds(affNodes))) {

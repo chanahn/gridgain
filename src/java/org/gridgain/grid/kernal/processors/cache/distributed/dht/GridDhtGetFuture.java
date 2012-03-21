@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.*;
  *
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Collection<GridCacheEntryInfo<K, V>>>
     implements GridDhtFuture<Collection<GridCacheEntryInfo<K, V>>> {
@@ -48,7 +48,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
     private GridCacheContext<K, V> cctx;
 
     /** Keys. */
-    private Collection<? extends K> keys;
+    private LinkedHashMap<? extends K, Boolean> keys;
 
     /** Reserved partitions. */
     private Collection<GridDhtLocalPartition> parts = new GridLeanSet<GridDhtLocalPartition>(5);
@@ -94,7 +94,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
         GridCacheContext<K, V> cctx,
         long msgId,
         UUID reader,
-        Collection<? extends K> keys,
+        LinkedHashMap<? extends K, Boolean> keys,
         boolean reload,
         @Nullable GridCacheTxLocalEx<K, V> tx,
         long topVer,
@@ -136,7 +136,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
      * @return Keys.
      */
     Collection<? extends K> keys() {
-        return keys;
+        return keys.keySet();
     }
 
     /** {@inheritDoc} */
@@ -174,8 +174,8 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
     /**
      * @param keys Keys.
      */
-    private void map(final Collection<? extends K> keys) {
-        GridDhtFuture<Object> fut = cctx.dht().dhtPreloader().request(keys, topVer);
+    private void map(final LinkedHashMap<? extends K, Boolean> keys) {
+        GridDhtFuture<Object> fut = cctx.dht().dhtPreloader().request(keys.keySet(), topVer);
 
         if (!F.isEmpty(fut.invalidPartitions()))
             retries.addAll(fut.invalidPartitions());
@@ -190,12 +190,19 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
                         onDone(e);
                     }
 
-                    Collection<K> mappedKeys = new GridLeanSet<K>(keys.size());
+                    LinkedHashMap<K, Boolean> mappedKeys = new LinkedHashMap<K, Boolean>(keys.size());
 
                     // Assign keys to primary nodes.
-                    for (K key : keys)
-                        if (!map(key, parts, mappedKeys))
-                            retries.add(cctx.partition(key));
+                    for (Map.Entry<? extends K, Boolean> key : keys.entrySet()) {
+                        int part = cctx.partition(key.getKey());
+
+                        if (!retries.contains(part)) {
+                            if (!map(key.getKey(), parts))
+                                retries.add(part);
+                            else
+                                mappedKeys.put(key.getKey(), key.getValue());
+                        }
+                    }
 
                     // Add new future.
                     add(getAsync(mappedKeys));
@@ -210,10 +217,9 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
     /**
      * @param key Key.
      * @param parts Parts to map.
-     * @param keys Keys to map
      * @return {@code True} if mapped.
      */
-    private boolean map(K key, Collection<GridDhtLocalPartition> parts, Collection<K> keys) {
+    private boolean map(K key, Collection<GridDhtLocalPartition> parts) {
         GridDhtLocalPartition part = topVer > 0 ?
             cache().topology().localPartition(cctx.partition(key), topVer, true) :
             cache().topology().localPartition(key, false);
@@ -226,13 +232,13 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
             if (part.reserve()) {
                 parts.add(part);
 
-                keys.add(key);
-
                 return true;
             }
+            else
+                return false;
         }
-
-        return false;
+        else
+            return true;
     }
 
     /**
@@ -240,7 +246,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
      * @return Future for local get.
      */
     @SuppressWarnings( {"unchecked", "IfMayBeConditional"})
-    private GridFuture<Collection<GridCacheEntryInfo<K, V>>> getAsync(final Collection<K> keys) {
+    private GridFuture<Collection<GridCacheEntryInfo<K, V>>> getAsync(final LinkedHashMap<? extends  K, Boolean> keys) {
         if (F.isEmpty(keys))
             return new GridFinishedFuture<Collection<GridCacheEntryInfo<K, V>>>(cctx.kernalContext(),
                 Collections.<GridCacheEntryInfo<K, V>>emptyList());
@@ -249,9 +255,9 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
 
         GridCompoundFuture<Boolean, Boolean> txFut = null;
 
-        for (K k : keys) {
+        for (Map.Entry<? extends K, Boolean> k : keys.entrySet()) {
             while (true) {
-                GridDhtCacheEntry<K, V> e = cache().entryExx(k, topVer);
+                GridDhtCacheEntry<K, V> e = cache().entryExx(k.getKey(), topVer);
 
                 try {
                     GridCacheEntryInfo<K, V> info = e.info();
@@ -267,7 +273,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
                     // TODO: To fix, check that reader is contained in the list of readers once
                     // TODO: again after the returned future completes - if not, try again.
                     // TODO: Also, why is info read before transactions are complete, and not after?
-                    GridFuture<Boolean> f = e.addReader(reader, msgId);
+                    GridFuture<Boolean> f = k.getValue() ? e.addReader(reader, msgId) : null;
 
                     if (f != null) {
                         if (txFut == null)
@@ -294,9 +300,9 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
 
         if (txFut == null || txFut.isDone()) {
             if (reload)
-                fut = cache().reloadAllAsync(keys, true, filters);
+                fut = cache().reloadAllAsync(keys.keySet(), true, filters);
             else
-                fut = tx == null ? cache().getAllAsync(keys, filters) : tx.getAllAsync(keys, filters);
+                fut = tx == null ? cache().getAllAsync(keys.keySet(), filters) : tx.getAllAsync(keys.keySet(), filters);
         }
         else {
             // If we are here, then there were active transactions for some entries
@@ -310,9 +316,10 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
                             throw new GridClosureException(e);
 
                         if (reload)
-                            return cache().reloadAllAsync(keys, true, filters);
+                            return cache().reloadAllAsync(keys.keySet(), true, filters);
                         else
-                            return tx == null ? cache().getAllAsync(keys, filters) : tx.getAllAsync(keys, filters);
+                            return tx == null ? cache().getAllAsync(keys.keySet(), filters) :
+                                tx.getAllAsync(keys.keySet(), filters);
                     }
                 },
                 cctx.kernalContext());

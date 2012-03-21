@@ -19,7 +19,7 @@ import java.util.*;
  * Partition map.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridDhtPartitionMap extends HashMap<Integer, GridDhtPartitionState>
     implements Comparable<GridDhtPartitionMap>, Externalizable {

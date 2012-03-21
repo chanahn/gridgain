@@ -20,16 +20,9 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * ten times with initial scheduling delay equal to five seconds.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridScheduleRunnableExample {
-    /**
-     * Ensures singleton.
-     */
-    private GridScheduleRunnableExample() {
-        /* No-op. */
-    }
-
     /**
      * Executes scheduling example.
      *

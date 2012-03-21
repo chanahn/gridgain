@@ -19,8 +19,10 @@ import java.io.*;
  * Base API for all supported types of cache queries: {@link GridCacheQuery}, {@link GridCacheReduceQuery},
  *  {@link GridCacheTransformQuery}.
  *
+ * @param <K> Key type.
+ * @param <V> Value type.
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridCacheQueryBase<K, V> extends GridMetadataAware, Closeable {
     /** Default query page size. */

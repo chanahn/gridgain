@@ -27,7 +27,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheTransactionExample {
     // Typedefs:
@@ -35,9 +35,6 @@ public class GridCacheTransactionExample {
     // G -> GridFactory
     // CIX1 -> GridInClosureX
     // P2 -> GridPredicate2
-
-    /** Ensure singleton. */
-    private GridCacheTransactionExample() { /* No-op. */ }
 
     /** Cache. */
     private static GridCache<UUID, Object> cache;

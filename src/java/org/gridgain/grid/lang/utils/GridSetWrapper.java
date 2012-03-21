@@ -18,7 +18,7 @@ import java.util.*;
  * Set implementation that delegates to map.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridSetWrapper<E> extends GridSerializableSet<E> {
     /** Dummy value. */

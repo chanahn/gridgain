@@ -39,7 +39,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Grid event storage SPI manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridEventStorageManager extends GridManagerAdapter<GridEventStorageSpi> {
     /** Internally-used events. */
@@ -562,7 +562,7 @@ public class GridEventStorageManager extends GridManagerAdapter<GridEventStorage
             GridDeployment dep = ctx.deploy().deploy(p.getClass(), U.detectClassLoader(p.getClass()));
 
             if (dep == null)
-                throw new GridException("Failed to deploy event filter: " + p);
+                throw new GridDeploymentException("Failed to deploy event filter: " + p);
 
             Serializable msg = new GridEventStorageMessage(
                 resTopic,
@@ -586,7 +586,7 @@ public class GridEventStorageManager extends GridManagerAdapter<GridEventStorage
 
             long delta = timeout;
 
-            Collection<UUID> uidsCopy = null;
+            Collection<UUID> uidsCp = null;
 
             synchronized (qryMux) {
                 try {
@@ -604,19 +604,19 @@ public class GridEventStorageManager extends GridManagerAdapter<GridEventStorage
                     throw new GridException("Failed to query events due to exception on remote node.", err.get());
 
                 if (!uids.isEmpty())
-                    uidsCopy = new LinkedList<UUID>(uids);
+                    uidsCp = new LinkedList<UUID>(uids);
             }
 
             // Outside of synchronization.
-            if (uidsCopy != null) {
-                for (Iterator<UUID> iter = uidsCopy.iterator(); iter.hasNext();)
+            if (uidsCp != null) {
+                for (Iterator<UUID> iter = uidsCp.iterator(); iter.hasNext();)
                     // Ignore nodes that have left the grid.
                     if (ctx.discovery().node(iter.next()) == null)
                         iter.remove();
 
-                if (!uidsCopy.isEmpty())
+                if (!uidsCp.isEmpty())
                     throw new GridException("Failed to receive event query response from following nodes: " +
-                        uidsCopy);
+                        uidsCp);
             }
         }
         finally {
@@ -680,7 +680,7 @@ public class GridEventStorageManager extends GridManagerAdapter<GridEventStorage
                         null);
 
                     if (dep == null)
-                        throw new GridException("Failed to obtain deployment for event filter " +
+                        throw new GridDeploymentException("Failed to obtain deployment for event filter " +
                             "(is peer class loading turned on?): " + req);
 
                     filter = U.unmarshal(ctx.config().getMarshaller(), req.filter(), dep.classLoader());

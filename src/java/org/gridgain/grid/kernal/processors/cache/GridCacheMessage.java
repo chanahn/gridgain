@@ -27,7 +27,7 @@ import java.util.*;
  * Parent of all cache messages.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public abstract class GridCacheMessage<K, V> implements Externalizable {
     /** Null message ID. */
@@ -294,7 +294,7 @@ public abstract class GridCacheMessage<K, V> implements Externalizable {
 
             prepareObject(p, ctx);
 
-            filterBytes[i] = p == null ? null : CU.marshal(ctx, p).getEntireArray();
+            filterBytes[i] = p == null ? null : CU.marshal(ctx, p).entireArray();
         }
 
         return filterBytes;
@@ -345,7 +345,7 @@ public abstract class GridCacheMessage<K, V> implements Externalizable {
         for (Object o : col) {
             prepareObject(o, ctx);
 
-            byteCol.add(o == null ? null : CU.marshal(ctx, o).getEntireArray());
+            byteCol.add(o == null ? null : CU.marshal(ctx, o).entireArray());
         }
 
         return byteCol;
@@ -396,8 +396,8 @@ public abstract class GridCacheMessage<K, V> implements Externalizable {
             prepareObject(e.getValue(), ctx);
 
             byteMap.put(
-                CU.marshal(ctx, e.getKey()).getEntireArray(),
-                CU.marshal(ctx, e.getValue()).getEntireArray()
+                CU.marshal(ctx, e.getKey()).entireArray(),
+                CU.marshal(ctx, e.getValue()).entireArray()
             );
         }
 
@@ -427,6 +427,62 @@ public abstract class GridCacheMessage<K, V> implements Externalizable {
             map.put(
                 U.<K1>unmarshal(mrsh, new GridByteArrayList(e.getKey()), ldr),
                 U.<V1>unmarshal(mrsh, new GridByteArrayList(e.getValue()), ldr)
+            );
+
+        return map;
+    }
+
+    /**
+     * @param map Map to marshal.
+     * @param ctx Context.
+     * @return Marshalled map.
+     * @throws GridException If failed.
+     */
+    @SuppressWarnings("TypeMayBeWeakened") // Don't weaken type to clearly see that it's linked hash map.
+    @Nullable protected final LinkedHashMap<byte[], Boolean> marshalBooleanLinkedMap(
+        @Nullable LinkedHashMap<?, Boolean> map, GridCacheContext<K, V> ctx) throws GridException {
+        assert ctx != null;
+
+        if (map == null)
+            return null;
+
+        LinkedHashMap<byte[], Boolean> byteMap = new LinkedHashMap<byte[], Boolean>(map.size());
+
+        for (Map.Entry<?, Boolean> e : map.entrySet()) {
+            prepareObject(e.getKey(), ctx);
+
+            byteMap.put(
+                CU.marshal(ctx, e.getKey()).entireArray(),
+                e.getValue()
+            );
+        }
+
+        return byteMap;
+    }
+
+    /**
+     * @param byteMap Map to unmarshal.
+     * @param ctx Context.
+     * @param ldr Loader.
+     * @return Unmarshalled map.
+     * @throws GridException If failed.
+     */
+    @Nullable protected final <K1> LinkedHashMap<K1, Boolean> unmarshalBooleanLinkedMap(
+        @Nullable Map<byte[], Boolean> byteMap, GridCacheContext<K, V> ctx, ClassLoader ldr) throws GridException {
+        assert ldr != null;
+        assert ctx != null;
+
+        if (byteMap == null)
+            return null;
+
+        LinkedHashMap<K1, Boolean> map = new LinkedHashMap<K1, Boolean>(byteMap.size());
+
+        GridMarshaller mrsh = ctx.marshaller();
+
+        for (Map.Entry<byte[], Boolean> e : byteMap.entrySet())
+            map.put(
+                U.<K1>unmarshal(mrsh, new GridByteArrayList(e.getKey()), ldr),
+                e.getValue()
             );
 
         return map;

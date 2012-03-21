@@ -115,16 +115,9 @@ import java.util.*;
  * with Spring AOP refer to {@link GridifySpringHelloWorldExample} example.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridifyPrimeExample {
-    /**
-     * Enforces singleton.
-     */
-    private GridifyPrimeExample() {
-        // No-op.
-    }
-
     /**
      * Starts up grid and checks all provided values for prime.
      *

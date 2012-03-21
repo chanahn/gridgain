@@ -9,8 +9,6 @@
 
 package org.gridgain.grid.lang.utils;
 
-import org.gridgain.grid.lang.*;
-import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.util.*;
 import org.jetbrains.annotations.*;
 import sun.misc.*;
@@ -62,7 +60,7 @@ import java.util.concurrent.atomic.*;
  * at http://creativecommons.org/publicdomain/zero/1.0/
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings( {"ALL"})
 public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implements Deque<E> {
@@ -286,7 +284,7 @@ public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implemen
          *
          * @param item Item to initialize.
          */
-        public Node(E item) {
+        Node(E item) {
             UNSAFE.putObject(this, itemOffset, item);
         }
 
@@ -574,14 +572,20 @@ public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implemen
      * Unlinks non-null node x, that has not yet been unlinked.
      *
      * @param x Node.
+     * @return {@code True} if node was unlinked by this call.
      */
-    public void unlinkx(Node<E> x) {
+    public boolean unlinkx(Node<E> x) {
         assert x != null;
 
         E item = x.item;
 
-        if (item != null && x.casItem(item, null))
+        if (item != null && x.casItem(item, null)) {
             unlink(x);
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -1192,21 +1196,6 @@ public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implemen
     }
 
     /**
-     * Inserts the specified node at the end of this deque.
-     * As the deque is unbounded, this method will never return {@code false}.
-     *
-     * <p>This method is equivalent to {@link #add(Node)}.
-     *
-     * @return {@code true} (as specified by {@link Deque#offerLast})
-     * @throws NullPointerException if the node is null
-     */
-    public boolean offerLast(Node<E> n) {
-        linkLast(n);
-
-        return true;
-    }
-
-    /**
      * Same as {@link #offerLast(Object)}, but returns new {@link Node}.
      *
      * @param e Element to add.
@@ -1217,7 +1206,7 @@ public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implemen
     }
 
     /** {@inheritDoc} */
-    @Override public @Nullable E peekFirst() {
+    @Nullable @Override public E peekFirst() {
         for (Node<E> p = first(); p != null; p = successor(p)) {
             E item = p.item;
 
@@ -1228,8 +1217,25 @@ public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implemen
         return null;
     }
 
+    /**
+     * Retrieves, but does not remove, the first node of this deque,
+     * or returns {@code null} if this deque is empty.
+     *
+     * @return The header node of this deque, or <tt>null</tt> if this deque is empty
+     */
+    @Nullable public Node<E> peekFirstx() {
+        for (Node<E> p = first(); p != null; p = successor(p)) {
+            E item = p.item;
+
+            if (item != null)
+                return p;
+        }
+
+        return null;
+    }
+
     /** {@inheritDoc} */
-    @Override public @Nullable E peekLast() {
+    @Nullable @Override public E peekLast() {
         for (Node<E> p = last(); p != null; p = predecessor(p)) {
             E item = p.item;
 
@@ -1255,7 +1261,7 @@ public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implemen
     }
 
     /** {@inheritDoc} */
-    @Override public @Nullable E pollFirst() {
+    @Nullable @Override public E pollFirst() {
         for (Node<E> p = first(); p != null; p = successor(p)) {
             E item = p.item;
 
@@ -1269,28 +1275,8 @@ public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implemen
         return null;
     }
 
-    /**
-     * Returns tuple of item and node or {@code null}
-     * if deque is empty.
-     *
-     * @return Tuple of item and node or {@code null}.
-     */
-    public @Nullable GridTuple2<E, Node<E>> pollFirstx() {
-        for (Node<E> p = first(); p != null; p = successor(p)) {
-            E item = p.item;
-
-            if (item != null && p.casItem(item, null)) {
-                unlink(p);
-
-                return F.t(item, p);
-            }
-        }
-
-        return null;
-    }
-
     /** {@inheritDoc} */
-    @Override public @Nullable E pollLast() {
+    @Nullable @Override public E pollLast() {
         for (Node<E> p = last(); p != null; p = predecessor(p)) {
             E item = p.item;
 
@@ -1352,18 +1338,6 @@ public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implemen
     }
 
     /**
-     * Inserts the specified node at the tail of this deque.
-     * As the deque is unbounded, this method will never throw
-     * {@link IllegalStateException} or return {@code false}.
-     *
-     * @return {@code true} (as specified by {@link Collection#add})
-     * @throws NullPointerException if the specified element is null
-     */
-    public boolean add(Node<E> n) {
-        return offerLast(n);
-    }
-
-    /**
      * Same as {@link #add(Object)}, but returns new node.
      *
      * @param e Element to add.
@@ -1378,24 +1352,28 @@ public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implemen
         return pollFirst();
     }
 
-    /**
-     * Returns tuple of item and node or {@code null}
-     * if deque is empty.
-     *
-     * @return Tuple of item and node or {@code null}.
-     */
-    @Nullable public GridTuple2<E, Node<E>> pollx() {
-        return pollFirstx();
-    }
-
     /** {@inheritDoc} */
     @Override public E remove() {
         return removeFirst();
     }
 
     /** {@inheritDoc} */
-    @Override public @Nullable E peek() {
+    @Nullable @Override public E peek() {
         return peekFirst();
+    }
+
+    /**
+     * Retrieves, but does not remove, the header node of the queue represented by
+     * this deque (in other words, the first node of this deque), or
+     * returns {@code null} if this deque is empty.
+     * <p>
+     * This method is equivalent to {@link #peekFirst()}.
+     *
+     * @return The header node of the queue represented by this deque, or
+     *      {@code null} if this deque is empty
+     */
+    @Nullable public Node<E> peekx() {
+        return peekFirstx();
     }
 
     /** {@inheritDoc} */

@@ -14,7 +14,7 @@ package org.gridgain.grid.spi.deployment;
  * to properly create or release resources associated with any deployment.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public interface GridDeploymentListener {
     /**

@@ -23,7 +23,7 @@ import java.util.*;
  * This class deserializes JSON string to Java object.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings( {"UnnecessaryFullyQualifiedName", "SizeReplaceableByIsEmpty", "IfMayBeConditional"})
 public class GridJsonDeserializer {

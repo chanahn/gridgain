@@ -22,17 +22,10 @@ import java.util.*;
  * example code to see the difference in coding approach.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridClosureExample1
  */
 public class GridTaskExample1 {
-    /**
-     * Ensures singleton.
-     */
-    private GridTaskExample1() {
-        /* No-op. */
-    }
-
     /**
      * Executes factorial calculation example without closures.
      *
@@ -74,7 +67,7 @@ public class GridTaskExample1 {
      * This class defines grid task for this example.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class GridFactorialTask extends GridTaskAdapter<Integer, BigInteger> {
         /** Execution node. */

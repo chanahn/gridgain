@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 3.6.0c.09012012
+:: Version: 4.0.0c.21032012
 ::
 
 ::
@@ -65,7 +65,7 @@ goto error_finish
 :run
 
 :: This is Ant-augmented variable.
-set ANT_AUGMENTED_GGJAR=gridgain-3.6.0c.jar
+set ANT_AUGMENTED_GGJAR=gridgain-4.0.0c.jar
 
 ::
 :: Set GRIDGAIN_LIBS
@@ -140,7 +140,7 @@ set JMX_MON=%JMX_MON% -Dcom.sun.management.jmxremote.port=%JMX_PORT% -Dcom.sun.m
 ::
 :: ADD YOUR/CHANGE ADDITIONAL OPTIONS HERE
 ::
-set JVM_OPTS=-Xms512m -Xmx512m -XX:MaxPermSize=384m -XX:+UseParNewGC -XX:MaxNewSize=32m -XX:NewSize=32m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
+set JVM_OPTS=-Xms512m -Xmx512m -Xss16m -XX:MaxPermSize=384m -XX:+UseParNewGC -XX:MaxNewSize=128m -XX:NewSize=32m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
 
 :: Uncomment to set preference to IPv4 stack.
 :: set JVM_OPTS=%JVM_OPTS% -Djava.net.preferIPv4Stack=true

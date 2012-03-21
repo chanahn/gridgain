@@ -18,7 +18,7 @@ import java.util.*;
  * This interface defines JMX view on kernal.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridMBeanDescription("MBean that provides access to Kernal information.")
 public interface GridKernalMBean {
@@ -283,7 +283,7 @@ public interface GridKernalMBean {
      * @return Grid checkpoint SPI implementation.
      */
     @GridMBeanDescription("Formatted instance of configured checkpoint SPI implementation.")
-    public String getCheckpointSpiFormatted();;
+    public String getCheckpointSpiFormatted();
 
     /**
      * Gets a formatted instance of configured collision SPI implementations.
@@ -340,6 +340,22 @@ public interface GridKernalMBean {
      */
     @GridMBeanDescription("Formatted instance of fully configured local metrics SPI implementation.")
     public String getMetricsSpiFormatted();
+
+    /**
+     * Gets a formatted instance of fully configured authentication SPI implementation.
+     *
+     * @return Grid authentication SPI implementation.
+     */
+    @GridMBeanDescription("Formatted instance of fully configured authentication SPI implementation.")
+    public String getAuthenticationSpiFormatted();
+
+    /**
+     * Gets a formatted instance of fully configured secure session SPI implementation.
+     *
+     * @return Grid secure session SPI implementation.
+     */
+    @GridMBeanDescription("Formatted instance of fully configured secure session SPI implementation.")
+    public String getSecureSessionSpiFormatted();
 
     /**
      * Gets OS information.

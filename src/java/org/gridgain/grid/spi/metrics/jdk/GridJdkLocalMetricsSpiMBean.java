@@ -17,7 +17,7 @@ import org.gridgain.grid.util.mbean.*;
  * Management MBean for {@link GridJdkLocalMetricsSpi} SPI.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridMBeanDescription("MBean that provides access to JDK local metrics SPI configuration.")
 public interface GridJdkLocalMetricsSpiMBean extends GridLocalMetrics, GridSpiManagementMBean {

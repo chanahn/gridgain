@@ -12,6 +12,7 @@ package org.gridgain.grid.kernal.processors.port;
 import org.gridgain.grid.*;
 import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.kernal.processors.*;
+import org.gridgain.grid.spi.*;
 import org.gridgain.grid.typedef.*;
 
 import java.util.*;
@@ -20,7 +21,7 @@ import java.util.*;
  * Registers and deregisters all ports used by SPI and Manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridPortProcessor extends GridProcessorAdapter {
     /** Collection of records about ports use. */

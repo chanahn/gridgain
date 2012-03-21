@@ -8,7 +8,7 @@
     \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 
     Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
-    Version: 3.6.0c.09012012
+    Version: 4.0.0c.21032012
 -->
 
 <!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
@@ -100,6 +100,15 @@
     <!--
     <category name="org.gridgain.grid.kernal.processors.cache.GridCacheDgcManager.trace">
         <level value="DEBUG"/>
+    </category>
+    -->
+
+    <!--
+        Uncomment to disable courtesy notice.
+    -->
+    <!--
+    <category name="org.gridgain.grid.CourtesyConfigNotice">
+        <level value="OFF"/>
     </category>
     -->
 

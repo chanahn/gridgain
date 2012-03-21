@@ -19,16 +19,9 @@ import java.util.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunctionYieldExample {
-    /**
-     * Ensures singleton.
-     */
-    private GridFunctionYieldExample() {
-        /* No-op. */
-    }
-
     /**
      * Executes example.
      *
@@ -42,7 +35,7 @@ public class GridFunctionYieldExample {
         // CO -> GridOutClosure
         // CA -> GridAbsClosure
         // F -> GridFunc
-        
+
         // Create sample array of temperature indicators.
         String[] strs = {
             "-20.2 C", "300 K", "60 F", "80.5 F", "99F"
@@ -78,7 +71,7 @@ public class GridFunctionYieldExample {
      * This class represents a temperature indicator with various formats.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class Temperature {
         /** Temperature value in Fahrenheit. */
@@ -106,7 +99,7 @@ public class GridFunctionYieldExample {
      * This class is intended for building {@link Temperature} instances from {@code String} values.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class TemperatureFactory {
         /**

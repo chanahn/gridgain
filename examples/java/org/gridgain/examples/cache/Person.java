@@ -20,7 +20,7 @@ import java.util.*;
  * Person record used for query examples.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class Person implements Serializable {
     /** Person ID (create unique SQL index for this field). */

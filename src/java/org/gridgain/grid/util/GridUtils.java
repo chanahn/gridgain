@@ -45,6 +45,7 @@ import java.lang.annotation.Annotation;
 import java.lang.management.*;
 import java.lang.reflect.*;
 import java.net.*;
+import java.nio.*;
 import java.nio.channels.*;
 import java.nio.channels.spi.*;
 import java.security.*;
@@ -61,8 +62,8 @@ import java.util.regex.*;
 import java.util.zip.*;
 
 import static org.fusesource.jansi.Ansi.Attribute.*;
-import static org.fusesource.jansi.Ansi.*;
 import static org.fusesource.jansi.Ansi.Color.*;
+import static org.fusesource.jansi.Ansi.*;
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.GridSystemProperties.*;
 import static org.gridgain.grid.kernal.GridNodeAttributes.*;
@@ -71,7 +72,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Collection of utility methods used throughout the system.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -232,7 +233,7 @@ public abstract class GridUtils {
     private static final SimpleDateFormat DEBUG_DATE_FMT = new SimpleDateFormat("HH:mm:ss,SS");
 
     /** Cached local host address to make sure that every time the same local host is returned. */
-    private static InetAddress localHost;
+    private static InetAddress locHost;
 
     /** */
     private static boolean ent;
@@ -447,9 +448,6 @@ public abstract class GridUtils {
                 throw new GridRuntimeException(e);
             }
         }
-
-        // Initialize JANSI.
-        AnsiConsole.systemInstall();
     }
 
     /**
@@ -569,7 +567,7 @@ public abstract class GridUtils {
     }
 
     /**
-     * Prints heap usage using {@link #debug(String)}.
+     * Prints heap usage.
      */
     public static void debugHeapUsage() {
         System.gc();
@@ -842,7 +840,7 @@ public abstract class GridUtils {
      * The ID8 will be constructed as follows:
      * <ul>
      * <li>Take first 4 digits for global ID, i.e. {@code GridUuid.globalId()}.</li>
-     * <li>Take last 4 digits for local ID, i.e. {@code GridUiid.localId()}.</li>
+     * <li>Take last 4 digits for local ID, i.e. {@code GridUuid.localId()}.</li>
      * </ul>
      *
      * @param id Input ID.
@@ -852,6 +850,22 @@ public abstract class GridUtils {
         String s = id.toString();
 
         return s.substring(0, 4) + s.substring(s.length() - 4);
+    }
+
+    /**
+     * Encodes {@link UUID} into a sequence of bytes using the {@link ByteBuffer},
+     * storing the result into a new byte array.
+     *
+     * @param uuid Unique identifier.
+     * @return Encoded into byte array {@link UUID}.
+     */
+    public static byte[] getBytes(UUID uuid) {
+        ByteBuffer buf = ByteBuffer.allocate(2 * 8 /* Size of long. */);
+
+        buf.putLong(uuid.getMostSignificantBits());
+        buf.putLong(uuid.getLeastSignificantBits());
+
+        return buf.array();
     }
 
     /**
@@ -1062,7 +1076,7 @@ public abstract class GridUtils {
      * @throws IOException If attempt to get local host failed.
      */
     public static synchronized boolean isLocalHostChanged() throws IOException {
-        return localHost != null && !resetLocalHost().equals(localHost);
+        return locHost != null && !resetLocalHost().equals(locHost);
     }
 
     /**
@@ -1076,11 +1090,11 @@ public abstract class GridUtils {
      * @throws IOException If attempt to get local host failed.
      */
     public static synchronized InetAddress getLocalHost() throws IOException {
-        if (localHost == null)
+        if (locHost == null)
             // Cache it.
-            localHost = resetLocalHost();
+            locHost = resetLocalHost();
 
-        return localHost;
+        return locHost;
     }
 
     /**
@@ -1088,22 +1102,22 @@ public abstract class GridUtils {
      * @throws IOException If attempt to get local host failed.
      */
     private static InetAddress resetLocalHost() throws IOException {
-        localHost = InetAddress.getLocalHost();
+        locHost = InetAddress.getLocalHost();
 
         // It should not take longer than 2 seconds to reach
         // local address on any network.
         int reachTimeout = 2000;
 
-        if (localHost.isLoopbackAddress() || !reachable(localHost, reachTimeout))
+        if (locHost.isLoopbackAddress() || !reachable(locHost, reachTimeout))
             for (NetworkInterface itf : asIterable(NetworkInterface.getNetworkInterfaces()))
                 for (InetAddress addr : asIterable(itf.getInetAddresses()))
                     if (!addr.isLoopbackAddress() && !addr.isLinkLocalAddress() && reachable(addr, reachTimeout)) {
-                        localHost = addr;
+                        locHost = addr;
 
                         break;
                     }
 
-        return localHost;
+        return locHost;
     }
 
     /**
@@ -1241,7 +1255,7 @@ public abstract class GridUtils {
 
             marshaller.marshal(obj, out);
 
-            return out.toByteArrayList();
+            return new GridByteArrayList(out.internalArray(), out.size());
         }
         finally {
             U.close(out, null);
@@ -1278,10 +1292,10 @@ public abstract class GridUtils {
         assert marshaller != null;
         assert buf != null;
 
-        ByteArrayInputStream in = null;
+        GridByteArrayInputStream in = null;
 
         try {
-            in = new ByteArrayInputStream(buf.getArray(), 0, buf.getSize());
+            in = new GridByteArrayInputStream(buf.internalArray(), 0, buf.size());
 
             return (T)marshaller.unmarshal(in, clsLdr);
         }
@@ -1341,7 +1355,11 @@ public abstract class GridUtils {
             try {
                 copy(in, out);
 
-                AbstractBeanFactory factory = new XmlBeanFactory(new ByteArrayResource(out.toByteArray()));
+                DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+
+                XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(factory);
+
+                reader.loadBeanDefinitions(new ByteArrayResource(out.toByteArray()));
 
                 usrVer = (String)factory.getBean("userVersion");
 
@@ -1526,7 +1544,7 @@ public abstract class GridUtils {
      * Verifier always returns successful result for any host.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.
@@ -1940,6 +1958,28 @@ public abstract class GridUtils {
     }
 
     /**
+     * Join byte arrays into single one.
+     *
+     * @param bufs list of byte arrays to concatenate.
+     * @return Concatenated byte's array.
+     */
+    public static byte[] join(byte[]... bufs) {
+        int size = 0;
+        for (byte[] buf : bufs) {
+            size += buf.length;
+        }
+
+        byte[] result = new byte[size];
+        int position = 0;
+        for (byte[] buf : bufs) {
+            System.arraycopy(buf, 0, result, position, buf.length);
+            position += buf.length;
+        }
+
+        return result;
+    }
+
+    /**
      * Converts byte array to formatted string. If calling:
      * <pre name="code" class="java">
      * ...
@@ -1956,13 +1996,13 @@ public abstract class GridUtils {
      * </pre>
      *
      * @param arr Array of byte.
-     * @param headerFmt C-style string format for the first element.
+     * @param hdrFmt C-style string format for the first element.
      * @param bodyFmt C-style string format for second and following elements, if any.
      * @return String with converted bytes.
      */
-    public static String byteArray2String(byte[] arr, String headerFmt, String bodyFmt) {
+    public static String byteArray2String(byte[] arr, String hdrFmt, String bodyFmt) {
         assert arr != null;
-        assert headerFmt != null;
+        assert hdrFmt != null;
         assert bodyFmt != null;
 
         SB sb = new SB();
@@ -1973,7 +2013,7 @@ public abstract class GridUtils {
 
         for (byte b : arr)
             if (first) {
-                sb.a(String.format(headerFmt, b));
+                sb.a(String.format(hdrFmt, b));
 
                 first = false;
             }
@@ -2016,7 +2056,7 @@ public abstract class GridUtils {
 
         byte[] bytes = new byte[chars.length / 2];
 
-        int byteCount = 0;
+        int byteCnt = 0;
 
         for (int i = 0; i < chars.length; i += 2) {
             int newByte = 0;
@@ -2027,9 +2067,9 @@ public abstract class GridUtils {
 
             newByte |= hexCharToByte(chars[i + 1]);
 
-            bytes[byteCount] = (byte)newByte;
+            bytes[byteCnt] = (byte)newByte;
 
-            byteCount++;
+            byteCnt++;
         }
 
         return bytes;
@@ -2199,6 +2239,68 @@ public abstract class GridUtils {
         }
 
         return off;
+    }
+
+    /**
+     * Converts primitive {@code short} type to byte array.
+     *
+     * @param s Short value.
+     * @return Array of bytes.
+     */
+    public static byte[] shortToBytes(short s) {
+        byte[] bytes = new byte[(Short.SIZE >> 3)];
+
+        shortToBytes(s, bytes, 0);
+
+        return bytes;
+    }
+
+    /**
+     * Converts primitive {@code short} type to byte array and stores it in specified
+     * byte array.
+     *
+     * @param s Short value.
+     * @param bytes Array of bytes.
+     * @param off Offset in {@code bytes} array.
+     * @return Number of bytes overwritten in {@code bytes} array.
+     */
+    public static int shortToBytes(short s, byte[] bytes, int off) {
+        int bytesCnt = Short.SIZE >> 3;
+
+        for (int i = 0; i < bytesCnt; i++) {
+            int shift = bytesCnt - i - 1 << 3;
+
+            bytes[off++] = (byte)(s >>> shift & 0xff);
+        }
+
+        return off;
+    }
+
+    /**
+     * Constructs {@code short} from byte array.
+     *
+     * @param bytes Array of bytes.
+     * @param off Offset in {@code bytes} array.
+     * @return Short value.
+     */
+    public static short bytesToShort(byte[] bytes, int off) {
+        assert bytes != null;
+
+        int bytesCnt = Short.SIZE >> 3;
+
+        if (off + bytesCnt > bytes.length)
+            // Just use the remainder.
+            bytesCnt = bytes.length - off;
+
+        short res = 0;
+
+        for (int i = 0; i < bytesCnt; i++) {
+            int shift = bytesCnt - i - 1 << 3;
+
+            res |= (0xffL & bytes[off++]) << shift;
+        }
+
+        return res;
     }
 
     /**
@@ -2873,9 +2975,54 @@ public abstract class GridUtils {
     }
 
     /**
+     * Depending on whether or not log is provided and quiet mode is enabled logs given messages as
+     * quiet message or normal log WARN message in {@code org.gridgain.grid.CourtesyConfigNotice}
+     * category. If {@code log} is {@code null} or in QUIET mode it will add <code>(courtesy)</code>
+     * prefix to the message.
+     *
+     * @param log Optional logger to use when QUIET mode is not enabled.
+     * @param msg Message to log.
+     */
+    public static void courtesy(@Nullable GridLogger log, Object msg) {
+        assert msg != null;
+
+        String s = msg.toString();
+
+        courtesy(log, s, s);
+    }
+
+    /**
+     * Depending on whether or not log is provided and quiet mode is enabled logs given messages as
+     * quiet message or normal log WARN message in {@code org.gridgain.grid.CourtesyConfigNotice}
+     * category. If {@code log} is {@code null} or in QUIET mode it will add <code>(courtesy)</code>
+     * prefix to the message.
+     *
+     * @param log Optional logger to use when QUIET mode is not enabled.
+     * @param longMsg Message to log using normal logger.
+     * @param shortMsg Message to log using quiet logger.
+     */
+    public static void courtesy(@Nullable GridLogger log, Object longMsg, Object shortMsg) {
+        assert longMsg != null;
+        assert shortMsg != null;
+
+        if (log != null && !log.isQuiet()) {
+            log.getLogger(GridConfiguration.COURTESY_LOGGER_NAME).warning(compact(longMsg.toString()));
+
+            return;
+        }
+
+        assert log == null || log.isQuiet();
+
+        System.err.println(
+            "[" + SHORT_DATE_FMT.format(new java.util.Date()) + "] " +
+            ansiYellow("(courtesy) ") +
+            compact(shortMsg.toString()));
+    }
+
+    /**
      * Depending on whether or not log is provided and quiet mode is enabled logs given
      * messages as quiet message or normal log WARN message. If {@code log} is {@code null}
-     * or in QUIET mode it will add <code>(!)</code> prefix to the message.
+     * or in QUIET mode it will add <code>(wtf)</code> prefix to the message.
      *
      * @param log Optional logger to use when QUIET mode is not enabled.
      * @param msg Message to log.
@@ -2891,7 +3038,7 @@ public abstract class GridUtils {
     /**
      * Depending on whether or not log is provided and quiet mode is enabled logs given
      * messages as quiet message or normal log ERROR message. If {@code log} is {@code null}
-     * or in QUIET mode it will add <code>(!!)</code> prefix to the message.
+     * or in QUIET mode it will add <code>(omg)</code> prefix to the message.
      *
      * @param log Optional logger to use when QUIET mode is not enabled.
      * @param msg Message to log.
@@ -2914,7 +3061,7 @@ public abstract class GridUtils {
     /**
      * Depending on whether or not log is provided and quiet mode is enabled logs given
      * messages as quiet message or normal log WARN message. If {@code log} is {@code null}
-     * or in QUIET mode it will add <code>(!)</code> prefix to the message.
+     * or in QUIET mode it will add <code>(wtf)</code> prefix to the message.
      *
      * @param log Optional logger to use when QUIET mode is not enabled.
      * @param longMsg Message to log using normal logger.
@@ -2934,7 +3081,7 @@ public abstract class GridUtils {
 
         System.err.println(
             "[" + SHORT_DATE_FMT.format(new java.util.Date()) + "] " +
-            ansiYellow("(!) ") +
+            ansiYellow("(wtf) ") +
             compact(shortMsg.toString()));
     }
 
@@ -2986,7 +3133,7 @@ public abstract class GridUtils {
     /**
      * Depending on whether or not log is provided and quiet mode is enabled logs given
      * messages as quiet message or normal log ERROR message. If {@code log} is {@code null}
-     * or in QUIET mode it will add <code>(!!)</code> prefix to the message.
+     * or in QUIET mode it will add <code>(omg)</code> prefix to the message.
      *
      * @param log Optional logger to use when QUIET mode is not enabled.
      * @param longMsg Message to log using normal logger.
@@ -3008,7 +3155,7 @@ public abstract class GridUtils {
 
         assert log == null || log.isQuiet();
 
-        System.err.println("[" + SHORT_DATE_FMT.format(new java.util.Date()) + "] " + ansiRed("(!!) ") +
+        System.err.println("[" + SHORT_DATE_FMT.format(new java.util.Date()) + "] " + ansiRed("(omg) ") +
             compact(shortMsg.toString()));
 
         if (e != null)
@@ -3358,7 +3505,7 @@ public abstract class GridUtils {
      *
      * @return Empty projection exception.
      */
-    public static GridEmptyProjectionException makeException() {
+    public static GridEmptyProjectionException emptyTopologyException() {
         return new GridEmptyProjectionException("Topology projection is empty. Note that dynamic projection " +
             "can be empty from call to call.");
     }
@@ -3562,6 +3709,31 @@ public abstract class GridUtils {
             int size = in.readInt();
 
             map = new HashMap<K, V>(size, 1.0f);
+
+            for (int i = 0; i < size; i++)
+                map.put((K)in.readObject(), (V)in.readObject());
+        }
+
+        return map;
+    }
+
+    /**
+     *
+     * @param in Input.
+     * @return Read map.
+     * @throws IOException If de-serialization failed.
+     * @throws ClassNotFoundException If deserialized class could not be found.
+     */
+    @SuppressWarnings({"unchecked"})
+    @Nullable public static <K, V> LinkedHashMap<K, V> readLinkedMap(ObjectInput in)
+        throws IOException, ClassNotFoundException {
+        LinkedHashMap<K, V> map = null;
+
+        // Check null flag.
+        if (!in.readBoolean()) {
+            int size = in.readInt();
+
+            map = new LinkedHashMap<K, V>(size, 1.0f);
 
             for (int i = 0; i < size; i++)
                 map.put((K)in.readObject(), (V)in.readObject());
@@ -4666,7 +4838,7 @@ public abstract class GridUtils {
         Thread curThread = Thread.currentThread();
 
         // Get original context class loader.
-        ClassLoader ctxLoader = curThread.getContextClassLoader();
+        ClassLoader ctxLdr = curThread.getContextClassLoader();
 
         //noinspection CatchGenericClass
         try {
@@ -4685,7 +4857,7 @@ public abstract class GridUtils {
         }
         finally {
             // Set the original class loader back.
-            curThread.setContextClassLoader(ctxLoader);
+            curThread.setContextClassLoader(ctxLdr);
         }
     }
 
@@ -4941,18 +5113,18 @@ public abstract class GridUtils {
             if (!t.hasMoreTokens())
                 return cal;
 
-            String token = t.nextToken();
+            String tok = t.nextToken();
 
-            if (":".equals(token)) { // Seconds.
+            if (":".equals(tok)) { // Seconds.
                 if (t.hasMoreTokens()) {
                     cal.set(Calendar.SECOND, Integer.parseInt(t.nextToken()));
 
                     if (!t.hasMoreTokens())
                         return cal;
 
-                    token = t.nextToken();
+                    tok = t.nextToken();
 
-                    if (".".equals(token)) {
+                    if (".".equals(tok)) {
                         String nt = t.nextToken();
 
                         while (nt.length() < 3)
@@ -4965,7 +5137,7 @@ public abstract class GridUtils {
                         if (!t.hasMoreTokens())
                             return cal;
 
-                        token = t.nextToken();
+                        tok = t.nextToken();
                     }
                     else
                         cal.set(Calendar.MILLISECOND, 0);
@@ -4978,26 +5150,26 @@ public abstract class GridUtils {
                 cal.set(Calendar.MILLISECOND, 0);
             }
 
-            if (!"Z".equals(token)) {
-                if (!"+".equals(token) && !"-".equals(token))
+            if (!"Z".equals(tok)) {
+                if (!"+".equals(tok) && !"-".equals(tok))
                     throw new GridException("Invalid date format: " + str);
 
-                boolean plus = "+".equals(token);
+                boolean plus = "+".equals(tok);
 
                 if (!t.hasMoreTokens())
                     throw new GridException("Invalid date format: " + str);
 
-                token = t.nextToken();
+                tok = t.nextToken();
 
                 int tzHour;
                 int tzMin;
 
-                if (token.length() == 4) {
-                    tzHour = Integer.parseInt(token.substring(0, 2));
-                    tzMin = Integer.parseInt(token.substring(2, 4));
+                if (tok.length() == 4) {
+                    tzHour = Integer.parseInt(tok.substring(0, 2));
+                    tzMin = Integer.parseInt(tok.substring(2, 4));
                 }
                 else {
-                    tzHour = Integer.parseInt(token);
+                    tzHour = Integer.parseInt(tok);
 
                     if (checkNextToken(t, ":", str) && t.hasMoreTokens())
                         tzMin = Integer.parseInt(t.nextToken());
@@ -5141,12 +5313,12 @@ public abstract class GridUtils {
      * Parses passed string with specified date.
      *
      * @param src String to parse.
-     * @param pattern Pattern.
+     * @param ptrn Pattern.
      * @return Parsed date.
      * @throws java.text.ParseException If exception occurs while parsing.
      */
-    public static Date parse(String src, String pattern) throws java.text.ParseException {
-        java.text.DateFormat format = new java.text.SimpleDateFormat(pattern);
+    public static Date parse(String src, String ptrn) throws java.text.ParseException {
+        java.text.DateFormat format = new java.text.SimpleDateFormat(ptrn);
 
         return format.parse(src);
     }
@@ -5175,11 +5347,11 @@ public abstract class GridUtils {
      * Formats passed date with specified pattern.
      *
      * @param date Date to format.
-     * @param pattern Pattern.
+     * @param ptrn Pattern.
      * @return Formatted date.
      */
-    public static String format(Date date, String pattern) {
-        java.text.DateFormat format = new java.text.SimpleDateFormat(pattern);
+    public static String format(Date date, String ptrn) {
+        java.text.DateFormat format = new java.text.SimpleDateFormat(ptrn);
 
         return format.format(date);
     }
@@ -5208,6 +5380,20 @@ public abstract class GridUtils {
         return new C1<UUID, GridRichNode>() {
             @Override @Nullable public GridRichNode apply(UUID id) {
                 return ctx.rich().rich(ctx.discovery().node(id));
+            }
+        };
+    }
+
+    /**
+     * @param ctx Kernal context.
+     * @return Closure that converts node to a rich node.
+     */
+    public static GridClosure<GridNode, GridRichNode> node2RichNode(final GridKernalContext ctx) {
+        assert ctx != null;
+
+        return new C1<GridNode, GridRichNode>() {
+            @Override @Nullable public GridRichNode apply(GridNode n) {
+                return ctx.rich().rich(n);
             }
         };
     }
@@ -5260,34 +5446,34 @@ public abstract class GridUtils {
     /**
      * Awaits for condition.
      *
-     * @param condition Condition to await for.
+     * @param cond Condition to await for.
      * @throws GridInterruptedException Wrapped {@link InterruptedException}
      */
-    public static void await(Condition condition) throws GridInterruptedException {
-       try {
-           condition.await();
-       }
-       catch (InterruptedException e) {
-           throw new GridInterruptedException(e);
-       }
+    public static void await(Condition cond) throws GridInterruptedException {
+        try {
+            cond.await();
+        }
+        catch (InterruptedException e) {
+            throw new GridInterruptedException(e);
+        }
     }
 
     /**
      * Awaits for condition.
      *
-     * @param condition Condition to await for.
+     * @param cond Condition to await for.
      * @param time The maximum time to wait,
      * @param unit The unit of the {@code time} argument.
      * @return {@code false} if the waiting time detectably elapsed before return from the method, else {@code true}
      * @throws GridInterruptedException Wrapped {@link InterruptedException}
      */
-    public static boolean await(Condition condition, long time, TimeUnit unit) throws GridInterruptedException {
-       try {
-           return condition.await(time, unit);
-       }
-       catch (InterruptedException e) {
-           throw new GridInterruptedException(e);
-       }
+    public static boolean await(Condition cond, long time, TimeUnit unit) throws GridInterruptedException {
+        try {
+            return cond.await(time, unit);
+        }
+        catch (InterruptedException e) {
+            throw new GridInterruptedException(e);
+        }
     }
 
     /**
@@ -5872,6 +6058,9 @@ public abstract class GridUtils {
      * @return Field value.
      */
     public static <T> T field(Object obj, String fieldName) {
+        assert obj != null;
+        assert fieldName != null;
+
         try {
             for (Field field : obj.getClass().getDeclaredFields())
                 if (field.getName().equals(fieldName)) {
@@ -5892,5 +6081,18 @@ public abstract class GridUtils {
         }
 
         throw new RuntimeException("Failed to get field value [fieldName=" + fieldName + ", obj=" + obj + ']');
+    }
+
+    /**
+     * Checks whether task to which provided session belongs
+     * was submitted by Visor.
+     *
+     * @param ses Task session.
+     * @return {@code True} if task was submitted by Visor.
+     */
+    public static boolean isVisorTask(GridTaskSession ses) {
+        assert ses != null;
+
+        return ses.getTaskName().startsWith("visor-");
     }
 }

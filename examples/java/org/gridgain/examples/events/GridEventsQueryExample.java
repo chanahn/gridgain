@@ -17,16 +17,9 @@ import org.gridgain.grid.typedef.*;
  * task to generate events, and then query them.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridEventsQueryExample {
-    /**
-     * Ensure singleton.
-     */
-    private GridEventsQueryExample() {
-        // No-op.
-    }
-
     /**
      * Executes an example task on the grid in order to generate events and then lists
      * all events that have occurred from task execution.

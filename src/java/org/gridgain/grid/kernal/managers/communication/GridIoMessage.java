@@ -21,13 +21,13 @@ import java.util.*;
  * Wrapper for all grid messages.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridIoMessage implements Externalizable {
     /** Sender ID. */
-    private UUID senderId;
+    private UUID sndId;
 
-    /** */
+    /** Destination IDs. */
     @GridToStringInclude
     private List<UUID> destIds;
 
@@ -47,7 +47,7 @@ public class GridIoMessage implements Externalizable {
     private GridByteArrayList msg;
 
     /** Message processing policy. */
-    private GridIoPolicy policy;
+    private GridIoPolicy plc;
 
     /** Message receive time. */
     private final long rcvTime = System.currentTimeMillis();
@@ -61,74 +61,74 @@ public class GridIoMessage implements Externalizable {
     }
 
     /**
-     * @param senderId Node ID.
+     * @param sndId Node ID.
      * @param destId Destination ID.
      * @param topic Communication topic.
      * @param topicOrd Topic ordinal value.
      * @param msg Communication message.
-     * @param policy Thread policy.
+     * @param plc Thread policy.
      */
-    public GridIoMessage(UUID senderId, UUID destId, String topic, int topicOrd, GridByteArrayList msg,
-        GridIoPolicy policy) {
-        this(senderId, Collections.singletonList(destId), topic, topicOrd, msg, policy);
+    public GridIoMessage(UUID sndId, UUID destId, String topic, int topicOrd, GridByteArrayList msg,
+        GridIoPolicy plc) {
+        this(sndId, Collections.singletonList(destId), topic, topicOrd, msg, plc);
     }
 
     /**
-     * @param senderId Node ID.
+     * @param sndId Node ID.
      * @param destIds Destination IDs.
      * @param topic Communication topic.
      * @param topicOrd Topic ordinal value.
      * @param msg Communication message.
-     * @param policy Thread policy.
+     * @param plc Thread policy.
      */
-    public GridIoMessage(UUID senderId, List<UUID> destIds, String topic, int topicOrd,
-        GridByteArrayList msg, GridIoPolicy policy) {
-        assert senderId != null;
+    public GridIoMessage(UUID sndId, List<UUID> destIds, String topic, int topicOrd,
+        GridByteArrayList msg, GridIoPolicy plc) {
+        assert sndId != null;
         assert destIds != null;
         assert topic != null;
         assert topicOrd <= Byte.MAX_VALUE;
-        assert policy != null;
+        assert plc != null;
         assert msg != null;
 
-        this.senderId = senderId;
+        this.sndId = sndId;
         this.destIds = destIds;
         this.msg = msg;
         this.topic = topic;
         this.topicOrd = topicOrd;
-        this.policy = policy;
+        this.plc = plc;
     }
 
     /**
-     * @param senderId Node ID.
+     * @param sndId Node ID.
      * @param destId Destination node ID.
      * @param topic Communication topic.
      * @param topicOrd Topic ordinal value.
      * @param msg Communication message.
-     * @param policy Thread policy.
+     * @param plc Thread policy.
      * @param msgId Message ID.
      * @param timeout Timeout.
      */
-    public GridIoMessage(UUID senderId, UUID destId, String topic, int topicOrd, GridByteArrayList msg,
-        GridIoPolicy policy, long msgId, long timeout) {
-        this(senderId, Collections.singletonList(destId), topic, topicOrd, msg, policy);
+    public GridIoMessage(UUID sndId, UUID destId, String topic, int topicOrd, GridByteArrayList msg,
+        GridIoPolicy plc, long msgId, long timeout) {
+        this(sndId, Collections.singletonList(destId), topic, topicOrd, msg, plc);
 
         this.msgId = msgId;
         this.timeout = timeout;
     }
 
     /**
-     * @param senderId Node ID.
+     * @param sndId Node ID.
      * @param destIds Destination node IDs.
      * @param topic Communication topic.
      * @param topicOrd Topic ordinal value.
      * @param msg Communication message.
-     * @param policy Thread policy.
+     * @param plc Thread policy.
      * @param msgId Message ID.
      * @param timeout Timeout.
      */
-    public GridIoMessage(UUID senderId, List<UUID> destIds, String topic, int topicOrd,
-        GridByteArrayList msg, GridIoPolicy policy, long msgId, long timeout) {
-        this(senderId, destIds, topic, topicOrd, msg, policy);
+    public GridIoMessage(UUID sndId, List<UUID> destIds, String topic, int topicOrd,
+        GridByteArrayList msg, GridIoPolicy plc, long msgId, long timeout) {
+        this(sndId, destIds, topic, topicOrd, msg, plc);
 
         this.msgId = msgId;
         this.timeout = timeout;
@@ -159,7 +159,7 @@ public class GridIoMessage implements Externalizable {
      * @return Policy.
      */
     GridIoPolicy policy() {
-        return policy;
+        return plc;
     }
 
     /**
@@ -187,14 +187,14 @@ public class GridIoMessage implements Externalizable {
      * @return Sender node ID.
      */
     UUID senderId() {
-        return senderId;
+        return sndId;
     }
 
     /**
-     * @param senderId Sender ID.
+     * @param sndId Sender ID.
      */
-    void senderId(UUID senderId) {
-        this.senderId = senderId;
+    void senderId(UUID sndId) {
+        this.sndId = sndId;
     }
 
     /**
@@ -218,9 +218,9 @@ public class GridIoMessage implements Externalizable {
         out.writeLong(timeout);
 
         // Special enum handling.
-        out.writeByte(policy.ordinal());
+        out.writeByte(plc.ordinal());
 
-        U.writeUuid(out, senderId);
+        U.writeUuid(out, sndId);
 
         out.writeByte(topicOrd);
 
@@ -245,15 +245,14 @@ public class GridIoMessage implements Externalizable {
         byte ord = in.readByte();
 
         // Account for incorrect message and check for positive enum ordinal.
-        policy = ord >= 0 ? GridIoPolicy.fromOrdinal(ord) : null;
+        plc = ord >= 0 ? GridIoPolicy.fromOrdinal(ord) : null;
 
-        senderId = U.readUuid(in);
+        sndId = U.readUuid(in);
 
         topicOrd = in.readByte();
 
-        if (topicOrd < 0) {
+        if (topicOrd < 0)
             topic = U.readString(in);
-        }
         else {
             GridTopic topic = GridTopic.fromOrdinal(topicOrd);
 
@@ -265,9 +264,8 @@ public class GridIoMessage implements Externalizable {
 
         int size = in.readInt();
 
-        if (size == 1) {
+        if (size == 1)
             destIds = Collections.singletonList(U.readUuid(in));
-        }
         else {
             destIds = new ArrayList<UUID>(size);
 
@@ -286,8 +284,8 @@ public class GridIoMessage implements Externalizable {
 
         GridIoMessage other = (GridIoMessage)obj;
 
-        return policy == other.policy && topic.equals(other.topic) && msgId == other.msgId &&
-            senderId.equals(other.senderId) && destIds.equals(other.destIds);
+        return plc == other.plc && topic.equals(other.topic) && msgId == other.msgId &&
+            sndId.equals(other.sndId) && destIds.equals(other.destIds);
     }
 
     /** {@inheritDoc} */
@@ -296,8 +294,8 @@ public class GridIoMessage implements Externalizable {
 
         res = 31 * res + (int)(msgId ^ (msgId >>> 32));
         res = 31 * res + msg.hashCode();
-        res = 31 * res + policy.hashCode();
-        res = 31 * res + senderId.hashCode();
+        res = 31 * res + plc.hashCode();
+        res = 31 * res + sndId.hashCode();
         res = 31 * res + topic.hashCode();
 
         return res;

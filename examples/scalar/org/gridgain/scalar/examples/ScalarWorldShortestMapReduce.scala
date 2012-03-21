@@ -21,7 +21,7 @@ import org.gridgain.grid.GridClosureCallMode._
  * on thousands requiring no special configuration or deployment.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object ScalarWorldShortestMapReduce {
     /**
@@ -29,11 +29,13 @@ object ScalarWorldShortestMapReduce {
      *
      * @param args Command line arguments, none required.
      */
-    def main(args: Array[String]) = scalar {
-        val input = "World shortest mapreduce application"
+    def main(args: Array[String]) {
+        scalar {
+            val input = "World shortest mapreduce application"
 
-        println("Non-space characters count: " +
-            grid$ @< (SPREAD, for (w <- input.split(" ")) yield (() => w.length), (s: Seq[Int]) => s.sum)
-        )
+            println("Non-space characters count: " +
+                grid$ @<(SPREAD, for (w <- input.split(" ")) yield (() => w.length), (s: Seq[Int]) => s.sum)
+            )
+        }
     }
 }

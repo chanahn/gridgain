@@ -10,10 +10,10 @@
 package org.gridgain.grid.kernal;
 
 import org.gridgain.grid.*;
-import org.gridgain.grid.kernal.controllers.affinity.*;
+import org.gridgain.grid.kernal.processors.affinity.*;
 import org.gridgain.grid.kernal.controllers.license.*;
-import org.gridgain.grid.kernal.controllers.rest.*;
-import org.gridgain.grid.kernal.controllers.segmentation.*;
+import org.gridgain.grid.kernal.processors.rest.*;
+import org.gridgain.grid.kernal.managers.authentication.*;
 import org.gridgain.grid.kernal.managers.checkpoint.*;
 import org.gridgain.grid.kernal.managers.collision.*;
 import org.gridgain.grid.kernal.managers.communication.*;
@@ -23,6 +23,7 @@ import org.gridgain.grid.kernal.managers.eventstorage.*;
 import org.gridgain.grid.kernal.managers.failover.*;
 import org.gridgain.grid.kernal.managers.loadbalancer.*;
 import org.gridgain.grid.kernal.managers.metrics.*;
+import org.gridgain.grid.kernal.managers.securesession.*;
 import org.gridgain.grid.kernal.managers.swapspace.*;
 import org.gridgain.grid.kernal.managers.topology.*;
 import org.gridgain.grid.kernal.processors.cache.*;
@@ -34,6 +35,7 @@ import org.gridgain.grid.kernal.processors.port.*;
 import org.gridgain.grid.kernal.processors.resource.*;
 import org.gridgain.grid.kernal.processors.rich.*;
 import org.gridgain.grid.kernal.processors.schedule.*;
+import org.gridgain.grid.kernal.processors.segmentation.*;
 import org.gridgain.grid.kernal.processors.session.*;
 import org.gridgain.grid.kernal.processors.task.*;
 import org.gridgain.grid.kernal.processors.timeout.*;
@@ -54,7 +56,7 @@ import static org.gridgain.grid.kernal.GridKernalState.*;
  * Implementation of kernal context.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridToStringExclude
 public class GridKernalContextImpl extends GridMetadataAwareAdapter implements GridKernalContext, Externalizable {
@@ -108,6 +110,14 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
 
     /** */
     @GridToStringExclude
+    private GridAuthenticationManager authMgr;
+
+    /** */
+    @GridToStringExclude
+    private GridSecureSessionManager sesMgr;
+
+    /** */
+    @GridToStringExclude
     private GridSwapSpaceManager swapspaceMgr;
 
     /*
@@ -137,7 +147,7 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
 
     /** */
     @GridToStringInclude
-    private GridClosureProcessor closureProc;
+    private GridClosureProcessor closProc;
 
     /** */
     @GridToStringInclude
@@ -163,6 +173,18 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
     @GridToStringInclude
     private GridScheduleProcessor scheduleProc;
 
+    /** */
+    @GridToStringInclude
+    private GridRestProcessor restProc;
+
+    /** */
+    @GridToStringInclude
+    private GridSegmentationProcessor segProc;
+
+    /** */
+    @GridToStringInclude
+    private GridAffinityProcessor affProc;
+
     /*
      * Controllers.
      * ===========
@@ -170,17 +192,7 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
 
     /** */
     @GridToStringInclude
-    private GridRestController restCtrl;
-
-    /** */
-    @GridToStringInclude
     private GridLicenseController licCtrl;
-
-    @GridToStringInclude
-    private GridAffinityController affCtrl;
-
-    @GridToStringInclude
-    private GridSegmentationController segCtrl;
 
     /** */
     @GridToStringExclude
@@ -261,6 +273,10 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
             colMgr = (GridCollisionManager)comp;
         else if (comp instanceof GridLocalMetricsManager)
             metricsMgr = (GridLocalMetricsManager)comp;
+        else if (comp instanceof GridAuthenticationManager)
+            authMgr = (GridAuthenticationManager)comp;
+        else if (comp instanceof GridSecureSessionManager)
+            sesMgr = (GridSecureSessionManager)comp;
         else if (comp instanceof GridLoadBalancerManager)
             loadMgr = (GridLoadBalancerManager)comp;
         else if (comp instanceof GridSwapSpaceManager)
@@ -290,24 +306,24 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
         else if (comp instanceof GridEmailProcessor)
             emailProc = (GridEmailProcessor)comp;
         else if (comp instanceof GridClosureProcessor)
-            closureProc = (GridClosureProcessor)comp;
+            closProc = (GridClosureProcessor)comp;
         else if (comp instanceof GridRichProcessor)
             richProc = (GridRichProcessor)comp;
         else if (comp instanceof GridScheduleProcessor)
             scheduleProc = (GridScheduleProcessor)comp;
+        else if (comp instanceof GridSegmentationProcessor)
+            segProc = (GridSegmentationProcessor)comp;
+        else if (comp instanceof GridAffinityProcessor)
+            affProc = (GridAffinityProcessor)comp;
+        else if (comp instanceof GridRestProcessor)
+            restProc = (GridRestProcessor)comp;
 
         /*
          * Controllers.
          * ===========
          */
-        else if (comp instanceof GridRestController)
-            restCtrl = (GridRestController)comp;
         else if (comp instanceof GridLicenseController)
             licCtrl = (GridLicenseController)comp;
-        else if (comp instanceof GridAffinityController)
-            affCtrl = (GridAffinityController)comp;
-        else if (comp instanceof GridSegmentationController)
-            segCtrl = (GridSegmentationController)comp;
 
         else
             assert false : "Unknown manager class: " + comp.getClass();
@@ -333,6 +349,11 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
     /** {@inheritDoc} */
     @Override public String build() {
         return grid().build();
+    }
+
+    /** {@inheritDoc} */
+    @Override public Date releaseDate() {
+        return grid().releaseDate();
     }
 
     /**
@@ -429,7 +450,7 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
 
     /** {@inheritDoc} */
     @Override public GridClosureProcessor closure() {
-        return closureProc;
+        return closProc;
     }
 
     /** {@inheritDoc} */
@@ -493,6 +514,16 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
     }
 
     /** {@inheritDoc} */
+    @Override public GridAuthenticationManager auth() {
+        return authMgr;
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridSecureSessionManager secureSession() {
+        return sesMgr;
+    }
+
+    /** {@inheritDoc} */
     @Override public GridLoadBalancerManager loadBalancing() {
         return loadMgr;
     }
@@ -508,18 +539,18 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
     }
 
     /** {@inheritDoc} */
-    @Override public GridAffinityController affinity() {
-        return affCtrl;
+    @Override public GridAffinityProcessor affinity() {
+        return affProc;
     }
 
     /** {@inheritDoc} */
-    @Override public GridRestController rest() {
-        return restCtrl;
+    @Override public GridRestProcessor rest() {
+        return restProc;
     }
 
     /** {@inheritDoc} */
-    @Override public GridSegmentationController segmentation() {
-        return segCtrl;
+    @Override public GridSegmentationProcessor segmentation() {
+        return segProc;
     }
 
     /** {@inheritDoc} */

@@ -72,16 +72,9 @@ import java.util.*;
  * output).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridifySpringConfigMathematicsExample {
-    /**
-     * Ensure singleton.
-     */
-    private GridifySpringConfigMathematicsExample() {
-        // No-op.
-    }
-
     /**
      * Execute {@code GridifyMathematicsExample} example grid-enabled with {@code GridifySetToValue} and
      * {@code GridifySetToSet} annotation.

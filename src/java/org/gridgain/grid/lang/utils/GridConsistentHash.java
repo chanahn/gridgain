@@ -28,7 +28,7 @@ import java.util.concurrent.locks.*;
  * <a href="http://weblogs.java.net/blog/tomwhite/archive/2007/11/consistent_hash.html">Tom White's Blog</a>.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridConsistentHash<N> implements Serializable {
     /**
@@ -621,26 +621,7 @@ public class GridConsistentHash<N> implements Serializable {
             Set<N> failed = null;
 
             for (N n : tailMap.values()) {
-                if (apply(p, n))
-                    return n;
-                else {
-                    if (failed == null)
-                        failed = new GridLeanSet<N>();
-
-                    failed.add(n);
-
-                    if (failed.size() == nodes.size())
-                        return null;
-                }
-
-
-                if (++idx >= size)
-                    break;
-            }
-
-            if (idx < size) {
-                // Wrap around moving clock-wise.
-                for (N n : circle.values()) {
+                if (failed == null || !failed.contains(n)) {
                     if (apply(p, n))
                         return n;
                     else {
@@ -651,6 +632,28 @@ public class GridConsistentHash<N> implements Serializable {
 
                         if (failed.size() == nodes.size())
                             return null;
+                    }
+                }
+
+                if (++idx >= size)
+                    break;
+            }
+
+            if (idx < size) {
+                // Wrap around moving clock-wise.
+                for (N n : circle.values()) {
+                    if (failed == null || !failed.contains(n)) {
+                        if (apply(p, n))
+                            return n;
+                        else {
+                            if (failed == null)
+                                failed = new GridLeanSet<N>();
+
+                            failed.add(n);
+
+                            if (failed.size() == nodes.size())
+                                return null;
+                        }
                     }
 
                     if (++idx >= size)
@@ -750,9 +753,8 @@ public class GridConsistentHash<N> implements Serializable {
         rw.readLock().lock();
 
         try {
-            if (circle.isEmpty()) {
+            if (circle.isEmpty())
                 return Collections.emptyList();
-            }
 
             SortedMap<Integer, N> tailMap = circle.tailMap(hash);
 
@@ -764,27 +766,7 @@ public class GridConsistentHash<N> implements Serializable {
             Set<N> failed = null;
 
             for (N n : tailMap.values()) {
-                if (!ret.contains(n)) {
-                    if (apply(p, n))
-                        ret.add(n);
-                    else {
-                        if (failed == null)
-                            failed = new GridLeanSet<N>();
-
-                        failed.add(n);
-
-                        if (failed.size() + ret.size() == nodes.size())
-                            return ret;
-                    }
-                }
-
-                if (++idx >= size || ret.size() == cnt)
-                    break;
-            }
-
-            if (idx < size && ret.size() < cnt) {
-                // Wrap around moving clock-wise.
-                for (N n : circle.values()) {
+                if (failed == null || !failed.contains(n)) {
                     if (!ret.contains(n)) {
                         if (apply(p, n))
                             ret.add(n);
@@ -796,6 +778,30 @@ public class GridConsistentHash<N> implements Serializable {
 
                             if (failed.size() + ret.size() == nodes.size())
                                 return ret;
+                        }
+                    }
+                }
+
+                if (++idx >= size || ret.size() == cnt)
+                    break;
+            }
+
+            if (idx < size && ret.size() < cnt) {
+                // Wrap around moving clock-wise.
+                for (N n : circle.values()) {
+                    if (failed == null || !failed.contains(n)) {
+                        if (!ret.contains(n)) {
+                            if (apply(p, n))
+                                ret.add(n);
+                            else {
+                                if (failed == null)
+                                    failed = new GridLeanSet<N>();
+
+                                failed.add(n);
+
+                                if (failed.size() + ret.size() == nodes.size())
+                                    return ret;
+                            }
                         }
                     }
 

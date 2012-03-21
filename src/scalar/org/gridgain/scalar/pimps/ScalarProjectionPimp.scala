@@ -20,13 +20,13 @@ import org.jetbrains.annotations._
  * Companion object.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object ScalarProjectionPimp {
     /**
      * Creates new Scalar projection pimp with given Java-side implementation.
      *
-     * @param value Java-side implementation.
+     * @param impl Java-side implementation.
      */
     def apply(impl: GridProjection) = {
         if (impl == null)
@@ -60,7 +60,7 @@ object ScalarProjectionPimp {
  * Scala's side method with `$` suffix.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class ScalarProjectionPimp[A <: GridProjection] extends PimpedType[A] with Iterable[GridRichNode]
     with ScalarTaskThreadContext[A] {
@@ -792,7 +792,7 @@ class ScalarProjectionPimp[A <: GridProjection] extends PimpedType[A] with Itera
      * @param cacheName Name of the cache to use for affinity co-location.
      * @param affKeys Collection of affinity keys. All dups will be ignored. If `null` or empty
      *      this method is no-op.
-     * @param job Closure to affinity co-located on the node with given affinity key and execute.
+     * @param r Closure to affinity co-located on the node with given affinity key and execute.
      *      If `null` - this method is no-op.
      * @param p Optional set of filtering predicates. All predicates must evaluate to `true` for a
      *      node to be included. If none provided - all nodes in this projection will be used for topology.
@@ -839,7 +839,7 @@ class ScalarProjectionPimp[A <: GridProjection] extends PimpedType[A] with Itera
      * @param cacheName Name of the cache to use for affinity co-location.
      * @param affKeys Collection of affinity keys. All dups will be ignored. If `null` or
      *      empty - this method is no-op.
-     * @param job Closure to affinity co-located on the node with given affinity key and execute.
+     * @param r Closure to affinity co-located on the node with given affinity key and execute.
      *      If `null` - this method is no-op.
      * @param p Optional set of filtering predicates. All predicates must evaluate to `true` for a
      *      node to be included. If none provided - all nodes in this projection will be used for topology.
@@ -880,7 +880,7 @@ class ScalarProjectionPimp[A <: GridProjection] extends PimpedType[A] with Itera
      * @param cacheName Name of the cache to use for affinity co-location.
      * @param affKeys Collection of affinity keys. All dups will be ignored. If `null`
      *      or empty - this method is no-op.
-     * @param job Closure to affinity co-located on the node with given affinity key and execute.
+     * @param c Closure to affinity co-located on the node with given affinity key and execute.
      *      If `null` - this method is no-op.
      * @param p Optional set of filtering predicates. All predicates must evaluate to `true` for a
      *      node to be included. If none provided - all nodes in this projection will be used for topology.
@@ -924,7 +924,7 @@ class ScalarProjectionPimp[A <: GridProjection] extends PimpedType[A] with Itera
      * @param cacheName Name of the cache to use for affinity co-location.
      * @param affKeys Collection of affinity keys. All dups will be ignored.
      *      If `null` or empty - this method is no-op.
-     * @param job Closure to affinity co-located on the node with given affinity key and execute.
+     * @param c Closure to affinity co-located on the node with given affinity key and execute.
      *      If `null` - this method is no-op.
      * @param p Optional set of filtering predicates. All predicates must evaluate to `true` for a
      *      node to be included. If none provided - all nodes in this projection will be used for topology.

@@ -9,7 +9,6 @@
 
 package org.gridgain.grid;
 
-import org.gridgain.grid.editions.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.spi.discovery.*;
 import org.gridgain.grid.test.*;
@@ -20,7 +19,7 @@ import org.gridgain.grid.thread.*;
  * properties and variables can be used to affect the behavior of GridGain.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridTestVmParameters
  */
 public final class GridSystemProperties {
@@ -83,14 +82,12 @@ public final class GridSystemProperties {
     public static final String GG_NO_ASCII = "GRIDGAIN_NO_ASCII";
 
     /**
-     * This property allows to override Jetty host for REST controller.
-     * Note that REST functionality is available only in Enterprise Edition.
+     * This property allows to override Jetty host for REST processor.
      */
     public static final String GG_JETTY_HOST = "GRIDGAIN_JETTY_HOST";
 
     /**
-     * This property allows to override Jetty local port for REST controller.
-     * Note that REST functionality is available only in Enterprise Edition.
+     * This property allows to override Jetty local port for REST processor.
      */
     public static final String GG_JETTY_PORT = "GRIDGAIN_JETTY_PORT";
 
@@ -224,13 +221,9 @@ public final class GridSystemProperties {
      * Name of the system property or environment variable to set or override
      * whether or not to enable email notifications for node lifecycle. If provided -
      * it will override the property in grid configuration.
-     * <p>
-     * Note that life cycle notification is only available in Enterprise Edition. In
-     * Community Edition this property is ignored.
      *
      * @see GridConfiguration#isLifeCycleEmailNotification()
      */
-    @GridEnterpriseFeature
     public static final String GG_LIFECYCLE_EMAIL_NOTIFY = "GRIDGAIN_LIFECYCLE_EMAIL_NOTIFY";
 
     /**
@@ -301,13 +294,6 @@ public final class GridSystemProperties {
     public static final String GG_DEP_MODE_OVERRIDE = "GRIDGAIN_DEPLOYMENT_MODE_OVERRIDE";
 
     /**
-     * System property to specify a threshold of eviction events accumulating before
-     * eviction policy gets notified. Default value is {@code 100}.  In most cases
-     * this value is large enough and does not need to be changed.
-     */
-    public static final String GG_EVICT_UNWIND_THRESHOLD = "GRIDGAIN_EVICT_UNWIND_THRESHOLD";
-
-    /**
      * System property to disable emailing of assertion errors.
      *
      * @see GridThread
@@ -331,6 +317,17 @@ public final class GridSystemProperties {
      * with warning level. {@code 0} (default value) disables warning on slow transactions.
      */
     public static final String GG_SLOW_TX_WARN_TIMEOUT = "GRIDGAIN_SLOW_TX_WARN_TIMEOUT";
+
+    /**
+     * System property to override multicast group taken from configuration.
+     * Used for testing purposes.
+     */
+    public static final String GG_OVERRIDE_MCAST_GRP = "GRIDGAIN_OVERRIDE_MCAST_GRP";
+
+    /**
+     * System property to override default reflection cache size. Default value is {@code 128}.
+     */
+    public static final String GG_REFLECTION_CACHE_SIZE = "GRIDGAIN_REFLECTION_CACHE_SIZE";
 
     /**
      * Enforces singleton.

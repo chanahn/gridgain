@@ -21,7 +21,7 @@ import java.util.*;
  * This class defines externalizable job execution request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
     /** */
@@ -148,7 +148,7 @@ public class GridJobExecuteRequest implements GridTaskMessage, Externalizable {
         this.dynamicSiblings = dynamicSiblings;
         this.ldrParticipants = ldrParticipants;
 
-        this.cpSpi = cpSpi == null || cpSpi.length() == 0 ? null : cpSpi;
+        this.cpSpi = cpSpi == null || cpSpi.isEmpty() ? null : cpSpi;
     }
 
     /** {@inheritDoc} */

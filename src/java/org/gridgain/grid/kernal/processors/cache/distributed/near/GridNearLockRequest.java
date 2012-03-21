@@ -26,7 +26,7 @@ import java.util.*;
  * Near cache lock request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridNearLockRequest<K, V> extends GridDistributedLockRequest<K, V> {
     /** Topology version. */

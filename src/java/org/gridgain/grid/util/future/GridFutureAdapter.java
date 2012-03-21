@@ -25,13 +25,11 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
-import static java.util.concurrent.TimeUnit.*;
-
 /**
  * Future adapter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements GridFuture<R>, Externalizable {
     /** Logger reference. */
@@ -252,7 +250,7 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
 
     /** {@inheritDoc} */
     @Override public R get(long timeout) throws GridException {
-        return get(timeout, MILLISECONDS);
+        return get(timeout, TimeUnit.MILLISECONDS);
     }
 
     /** {@inheritDoc} */

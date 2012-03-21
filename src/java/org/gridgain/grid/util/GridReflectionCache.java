@@ -9,30 +9,25 @@
 
 package org.gridgain.grid.util;
 
-import org.gridgain.grid.GridException;
-import org.gridgain.grid.cache.affinity.GridCacheAffinityMapped;
-import org.gridgain.grid.lang.GridPredicate;
-import org.gridgain.grid.lang.GridTuple2;
-import org.jetbrains.annotations.Nullable;
+import org.gridgain.grid.*;
+import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
+import org.gridgain.grid.lang.utils.GridConcurrentLinkedHashMap.*;
+import org.jetbrains.annotations.*;
 
 import java.io.*;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.concurrent.*;
+
+import static org.gridgain.grid.GridSystemProperties.*;
 
 /**
  * Reflection field and method cache for classes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
-@SuppressWarnings("TransientFieldNotInitialized")
 public class GridReflectionCache implements Externalizable {
     /** Compares fields by name. */
     private static final Comparator<Field> FIELD_NAME_COMPARATOR = new Comparator<Field>() {
@@ -48,13 +43,26 @@ public class GridReflectionCache implements Externalizable {
         }
     };
 
-    /** Weak fields cache. If class is GC'ed, then it will be removed from this cache. */
-    private transient ConcurrentMap<String, GridTuple2<List<Field>, Class<?>>> fields =
-            new ConcurrentHashMap<String, GridTuple2<List<Field>, Class<?>>>();
+    /** Cache size. */
+    private static final int CACHE_SIZE = Integer.getInteger(GG_REFLECTION_CACHE_SIZE, 128);
 
-    /** Weak methods cache. If class is GC'ed, then it will be removed from this cache. */
-    private transient ConcurrentMap<String, GridTuple2<List<Method>, Class<?>>> mtds =
-            new ConcurrentHashMap<String, GridTuple2<List<Method>, Class<?>>>();
+    /** Predicate to evict from maps. */
+    private static final GridPredicate2<?, ?> PRED = new GridPredicate2<GridConcurrentLinkedHashMap<?, ?>,
+        HashEntry<?, ?>>() {
+        @Override public boolean apply(GridConcurrentLinkedHashMap<?, ?> map, HashEntry<?, ?> e) {
+            return map.sizex() > CACHE_SIZE;
+        }
+    };
+
+    /** Fields cache. */
+    private ConcurrentMap<Class, List<Field>> fields = new GridConcurrentLinkedHashMap<Class, List<Field>>(
+        CACHE_SIZE, 0.75f, 16, true,
+        (GridPredicate2<GridConcurrentLinkedHashMap<Class, List<Field>>, HashEntry<Class, List<Field>>>)PRED);
+
+    /** Methods cache. */
+    private ConcurrentMap<Class, List<Method>> mtds = new GridConcurrentLinkedHashMap<Class, List<Method>>(
+        CACHE_SIZE, 0.75f, 16, true,
+        (GridPredicate2<GridConcurrentLinkedHashMap<Class, List<Method>>, HashEntry<Class, List<Method>>>)PRED);
 
     /** Field predicate. */
     private GridPredicate<Field> fp;
@@ -159,7 +167,7 @@ public class GridReflectionCache implements Externalizable {
     }
 
     /**
-     * Gets fields annotated with {@link org.gridgain.grid.cache.affinity.GridCacheAffinityMapped} annotation.
+     * Gets fields.
      *
      * @param cls Class.
      * @return Annotated field.
@@ -167,10 +175,10 @@ public class GridReflectionCache implements Externalizable {
     public List<Field> fields(Class<?> cls) {
         assert cls != null;
 
-        GridTuple2<List<Field>, Class<?>> t = fields.get(cls.getName());
+        List<Field> fieldsList = fields.get(cls);
 
-        if (t == null || !cls.equals(t.get2())) {
-            ArrayList<Field> all = new ArrayList<Field>();
+        if (fieldsList == null) {
+            fieldsList = new ArrayList<Field>();
 
             for (Class<?> c = cls; c != null && !c.equals(Object.class); c = c.getSuperclass()) {
                 List<Field> l = new ArrayList<Field>();
@@ -183,22 +191,22 @@ public class GridReflectionCache implements Externalizable {
                     }
                 }
 
-                Collections.sort(l, FIELD_NAME_COMPARATOR);
+                if (!l.isEmpty()) {
+                    Collections.sort(l, FIELD_NAME_COMPARATOR);
 
-                all.addAll(l);
+                    fieldsList.addAll(l);
+                }
             }
 
-            all.trimToSize();
-
-            fields.putIfAbsent(cls.getName(), t = new GridTuple2<List<Field>, Class<?>>(all, cls));
+            fields.putIfAbsent(cls, fieldsList);
         }
 
-        return t.get1();
+        return fieldsList;
     }
 
 
     /**
-     * Gets method annotated with {@link GridCacheAffinityMapped} annotation.
+     * Gets methods.
      *
      * @param cls Class.
      * @return Annotated method.
@@ -206,10 +214,10 @@ public class GridReflectionCache implements Externalizable {
     public List<Method> methods(Class<?> cls) {
         assert cls != null;
 
-        GridTuple2<List<Method>, Class<?>> t = mtds.get(cls.getName());
+        List<Method> mtdsList = mtds.get(cls);
 
-        if (t == null || !cls.equals(t.get2())) {
-            ArrayList<Method> all = new ArrayList<Method>();
+        if (mtdsList == null) {
+            mtdsList = new ArrayList<Method>();
 
             for (Class<?> c = cls; c != null && !c.equals(Object.class); c = c.getSuperclass()) {
                 List<Method> l = new ArrayList<Method>();
@@ -222,17 +230,17 @@ public class GridReflectionCache implements Externalizable {
                     }
                 }
 
-                Collections.sort(l, METHOD_NAME_COMPARATOR);
+                if (!l.isEmpty()) {
+                    Collections.sort(l, METHOD_NAME_COMPARATOR);
 
-                all.addAll(l);
+                    mtdsList.addAll(l);
+                }
             }
 
-            all.trimToSize();
-
-            mtds.putIfAbsent(cls.getName(), t = new GridTuple2<List<Method>, Class<?>>(all, cls));
+            mtds.putIfAbsent(cls, mtdsList);
         }
 
-        return t.get1();
+        return mtdsList;
     }
 
     /** {@inheritDoc} */
@@ -243,10 +251,6 @@ public class GridReflectionCache implements Externalizable {
 
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        // Start fresh.
-        fields = new ConcurrentHashMap<String, GridTuple2<List<Field>, Class<?>>>();
-        mtds = new ConcurrentHashMap<String, GridTuple2<List<Method>, Class<?>>>();
-
         fp = (GridPredicate<Field>)in.readObject();
         mp = (GridPredicate<Method>)in.readObject();
     }

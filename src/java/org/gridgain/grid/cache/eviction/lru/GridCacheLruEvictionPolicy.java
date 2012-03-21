@@ -13,8 +13,8 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.eviction.*;
 import org.gridgain.grid.lang.utils.*;
+import org.gridgain.grid.lang.utils.GridConcurrentLinkedDeque.*;
 import org.gridgain.grid.typedef.internal.*;
-import org.gridgain.grid.lang.utils.GridQueue.Node;
 
 import java.util.*;
 
@@ -27,7 +27,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * information is maintained by attaching ordering metadata to cache entries.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,
     GridCacheLruEvictionPolicyMBean {
@@ -40,8 +40,9 @@ public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy
     /** Allow empty entries flag. */
     private volatile boolean allowEmptyEntries = true;
 
-    /** Doubly-linked queue which supports GC-robust removals. */
-    private final GridQueue<GridCacheEntry<K, V>> queue = new GridQueue<GridCacheEntry<K, V>>();
+    /** Queue. */
+    private final GridConcurrentLinkedDeque<GridCacheEntry<K, V>> queue =
+        new GridConcurrentLinkedDeque<GridCacheEntry<K, V>>();
 
     /**
      * Constructs LRU eviction policy with all defaults.
@@ -126,26 +127,110 @@ public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy
     /** {@inheritDoc} */
     @Override public void onEntryAccessed(boolean rmv, GridCacheEntry<K, V> entry) {
         if (!rmv) {
+            if (!entry.isCached())
+                return;
+
+            boolean shrink = false;
+
             if (!allowEmptyEntries && empty(entry)) {
-                Node<GridCacheEntry<K, V>> node = entry.removeMeta(meta);
+                Node<GridCacheEntry<K, V>> node = entry.meta(meta);
 
                 if (node != null)
-                    queue.unlink(node);
+                    queue.unlinkx(node);
 
-                if (!entry.evict())
-                    touch(entry);
+                if (!entry.evict()) {
+                    entry.removeMeta(meta, node);
+
+                    shrink = touch(entry);
+                }
+                else {
+                    node = entry.meta(meta);
+
+                    if (node != null)
+                        queue.unlinkx(node);
+                }
             }
             else
-                touch(entry);
+                shrink = touch(entry);
+
+            if (shrink)
+                shrink();
         }
         else {
             Node<GridCacheEntry<K, V>> node = entry.removeMeta(meta);
 
             if (node != null)
-                queue.unlink(node);
+                queue.unlinkx(node);
+        }
+    }
+
+    /**
+     * @param entry Entry to touch.
+     * @return {@code True} if new node has been added to queue by this call.
+     */
+    private boolean touch(GridCacheEntry<K, V> entry) {
+        Node<GridCacheEntry<K, V>> node = entry.meta(meta);
+
+        // Entry has not been enqueued yet.
+        if (node == null) {
+            while (true) {
+                node = queue.offerLastx(entry);
+
+                if (entry.putMetaIfAbsent(meta, node) != null) {
+                    // Was concurrently added, need to clear it from queue.
+                    queue.unlinkx(node);
+
+                    // Queue has not been changed.
+                    return false;
+                }
+                else if (node.item() != null) {
+                    if (!entry.isCached()) {
+                        // Was concurrently evicted, need to clear it from queue.
+                        queue.unlinkx(node);
+
+                        return false;
+                    }
+
+                    return true;
+                }
+                // If node was unlinked by concurrent shrink() call, we must repeat the whole cycle.
+                else if (!entry.removeMeta(meta, node))
+                    return false;
+            }
+        }
+        else if (queue.unlinkx(node)) {
+            // Move node to tail.
+            Node<GridCacheEntry<K, V>> newNode = queue.offerLastx(entry);
+
+            if (!entry.replaceMeta(meta, node, newNode))
+                // Was concurrently added, need to clear it from queue.
+                queue.unlinkx(newNode);
         }
 
-        shrink();
+        // Entry is already in queue.
+        return false;
+    }
+
+    /**
+     * Shrinks queue to maximum allowed size.
+     */
+    private void shrink() {
+        int max = this.max;
+
+        int startSize = queue.sizex();
+
+        for (int i = 0; i < startSize && queue.sizex() > max; i++) {
+            GridCacheEntry<K, V> entry = queue.poll();
+
+            if (entry == null)
+                break;
+
+            if (!entry.evict()) {
+                entry.removeMeta(meta);
+
+                touch(entry);
+            }
+        }
     }
 
     /**
@@ -167,50 +252,8 @@ public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy
         }
     }
 
-    /**
-     * @param entry Entry to touch.
-     */
-    private void touch(GridCacheEntry<K, V> entry) {
-        Node<GridCacheEntry<K, V>> node = entry.meta(meta);
-
-        if (node == null) {
-            Node<GridCacheEntry<K, V>> old = entry.addMeta(meta, queue.offerx(entry));
-
-            assert old == null : "Node was enqueued by another thread: " + old;
-        }
-        else {
-            queue.unlink(node);
-
-            Node<GridCacheEntry<K, V>> old = entry.addMeta(meta, queue.offerx(entry));
-
-            assert old == node : "Node was unlinked by another thread [node=" + node + ", old=" + old + ']';
-        }
-    }
-
-    /**
-     * Shrinks LRU queue to maximum allowed size.
-     */
-    private void shrink() {
-        int max = this.max;
-
-        int startSize = queue.size();
-
-        for (int i = 0; i < startSize && queue.size() > max; i++) {
-            GridCacheEntry<K, V> entry = queue.poll();
-
-            assert entry != null;
-
-            Node<GridCacheEntry<K, V>> old = entry.removeMeta(meta);
-
-            assert old != null : "Entry does not have metadata: " + entry;
-
-            if (!entry.evict())
-                touch(entry);
-        }
-    }
-
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(GridCacheLruEvictionPolicy.class, this, "size", queue.size());
+        return S.toString(GridCacheLruEvictionPolicy.class, this, "size", queue.sizex());
     }
 }

@@ -15,6 +15,6 @@ package org.gridgain
  * Contains main Scalar APIs and converting mixins.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 package object scalar

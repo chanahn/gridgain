@@ -15,16 +15,9 @@ import org.gridgain.grid.typedef.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunctionRandExample {
-    /**
-     * Ensures singleton.
-     */
-    private GridFunctionRandExample() {
-        /* No-op. */
-    }
-
     /**
      * Executes example.
      *
@@ -38,7 +31,7 @@ public class GridFunctionRandExample {
         // CO -> GridOutClosure
         // CA -> GridAbsClosure
         // F -> GridFunc
-        
+
         // Array initialisation.
         String[] names = {
             "Neo", "Trinity", "The Oracle", "Switch", "Tank", "Dozer", "Morpheus", "Cypher", "Mouse"

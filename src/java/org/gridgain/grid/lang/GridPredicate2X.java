@@ -18,7 +18,7 @@ import org.gridgain.grid.typedef.*;
  * method and properly wraps {@link GridException} into {@link GridClosureException} instance.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see PX2
  */
 public abstract class GridPredicate2X<E1, E2> extends GridPredicate2<E1, E2> {

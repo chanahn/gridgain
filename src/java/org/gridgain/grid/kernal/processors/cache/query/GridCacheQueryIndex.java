@@ -41,7 +41,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * Cache query index. Manages full life-cycle of query index database (h2).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"UnnecessaryFullyQualifiedName"})
 public class GridCacheQueryIndex<K, V> {
@@ -665,11 +665,7 @@ public class GridCacheQueryIndex<K, V> {
 
                 U.marshal(cctx.marshaller(), field, out);
 
-                // Performance optimization. If internal array is more than 50% full,
-                // then use it directly, otherwise, create a copy of exact size.
-                byte[] buf = out.size() > out.getInternalArray().length / 2 ? out.getInternalArray() : out.toByteArray();
-
-                stmt.setBytes(idx, buf);
+                stmt.setBytes(idx, out.toByteArray());
             }
         }
         catch (Throwable e) {
@@ -1002,11 +998,13 @@ public class GridCacheQueryIndex<K, V> {
         Statement stmt = null;
 
         try {
-            FullText.dropIndex(c, schema, table.tableName().toUpperCase());
+            if (!cctx.config().isIndexMemoryOnly()) {
+                FullText.dropIndex(c, schema, table.tableName().toUpperCase());
 
-            // NOTE: there is no method dropIndex() for lucene engine correctly working.
-            // So we have to drop all lucene index.
-            FullTextLucene.dropAll(c);
+                // NOTE: there is no method dropIndex() for lucene engine correctly working.
+                // So we have to drop all lucene index.
+                FullTextLucene.dropAll(c);
+            }
 
             stmt = c.createStatement();
 

@@ -23,7 +23,7 @@ import collection.JavaConversions._
  * As a trade off in such cases the more code needs to be written vs. simple closure execution.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object ScalarTaskExample {
     /**
@@ -42,7 +42,7 @@ object ScalarTaskExample {
      */
     class GridHelloWorld extends GridTaskNoReduceSplitAdapter[String] {
         def split(gridSize: Int, arg: String): java.util.Collection[_ <: GridJob] = {
-            (for (w <- arg.split(" ")) yield toJob(() => println(w))) toSeq
+            (for (w <- arg.split(" ")) yield toJob(() => println(w))).toSeq
         }
     }
 }

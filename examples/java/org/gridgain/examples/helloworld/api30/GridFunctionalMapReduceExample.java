@@ -47,7 +47,7 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * folder.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunctionalMapReduceExample {
     /**
@@ -57,7 +57,7 @@ public class GridFunctionalMapReduceExample {
      * @throws GridException Thrown in case of any grid errors.
      */
     public static void main(final String[] args) throws GridException {
-        if (args.length == 1 && args[0].length() > 0)
+        if (args.length == 1 && !args[0].isEmpty())
             G.in(new GridInClosureX<Grid>() {
                 @Override public void applyx(Grid g) throws GridException {
                     X.println("Length of input argument is " + g.reduce(
@@ -75,12 +75,5 @@ public class GridFunctionalMapReduceExample {
                     ));
                 }
             });
-    }
-
-    /**
-     * Ensure singleton.
-     */
-    private GridFunctionalMapReduceExample() {
-        // No-op.
     }
 }

@@ -22,7 +22,7 @@ import java.util.*;
  * Force keys response. Contains absent keys.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridDhtForceKeysResponse<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable {
     /** Future ID. */

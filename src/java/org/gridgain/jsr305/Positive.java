@@ -16,7 +16,7 @@ import java.lang.annotation.*;
  * {@code positive} value. See <a href="http://jcp.org/en/jsr/detail?id=305">JSR-305</a> for more information.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

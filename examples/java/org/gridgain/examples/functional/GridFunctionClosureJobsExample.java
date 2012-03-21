@@ -45,18 +45,11 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * folder.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunctionClosureJobsExample {
     /** Random number generator. */
     private static final Random RAND = new Random();
-
-    /**
-     * Ensures singleton.
-     */
-    private GridFunctionClosureJobsExample() {
-        /* No-op. */
-    }
 
     /**
      * Executes example on the grid. Finds minimal divider for a set of numbers.

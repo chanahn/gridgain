@@ -7,7 +7,7 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 3.6.0c.09012012
+# Version: 4.0.0c.21032012
 #
 
 #
@@ -51,7 +51,7 @@ fi
 #
 # Set property JAR name during the Ant build.
 #
-ANT_AUGMENTED_GGJAR=gridgain-3.6.0c.jar
+ANT_AUGMENTED_GGJAR=gridgain-4.0.0c.jar
 
 osname=`uname`
 
@@ -143,7 +143,7 @@ JMX_MON="${JMX_MON} -Dcom.sun.management.jmxremote.port=${JMX_PORT} -Dcom.sun.ma
 #
 # ADD YOUR ADDITIONAL PARAMETERS/OPTIONS HERE
 #
-JVM_OPTS="-Xms512m -Xmx512m -XX:MaxPermSize=384m -XX:+UseParNewGC -XX:MaxNewSize=32m -XX:NewSize=32m \
+JVM_OPTS="-Xms512m -Xmx512m -Xss16m -XX:MaxPermSize=384m -XX:+UseParNewGC -XX:MaxNewSize=128m -XX:NewSize=32m \
 -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled"
 
 # Uncomment to set preference for IPv4 stack.

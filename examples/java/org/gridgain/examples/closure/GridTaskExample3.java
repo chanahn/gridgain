@@ -20,17 +20,10 @@ import java.util.*;
  * example code to see the difference in coding approach.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridClosureExample3
  */
 public class GridTaskExample3 {
-    /**
-     * Ensures singleton.
-     */
-    private GridTaskExample3() {
-        /* No-op. */
-    }
-
     /**
      * Executes broadcasting message example without using closures and functional API.
      *
@@ -67,7 +60,7 @@ public class GridTaskExample3 {
      * This class defines grid task for this example.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 3.6.0c.09012012
+     * @version 4.0.0c.21032012
      */
     private static class GridMessageBroadcastTask extends GridTaskNoReduceAdapter<String> {
         /** Execution nodes. */

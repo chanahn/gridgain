@@ -3,7 +3,6 @@ package org.gridgain.grid.spi.communication.tcp;
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.kernal.*;
-import org.gridgain.grid.kernal.processors.port.*;
 import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.marshaller.*;
@@ -65,6 +64,7 @@ import static org.gridgain.grid.GridEventType.*;
  * <li>Direct or heap buffer allocation (see {@link #setDirectBuffer(boolean)})</li>
  * <li>Count of selectors and selector threads for NIO server (see {@link #setSelectorsCount(int)})</li>
  * <li>Maximum count of open clients per remote node (see {@link #setMaxOpenClients(int)})</li>
+ * <li>{@code TCP_NODELAY} socket option for sockets (see {@link #setTcpNoDelay(boolean)})</li>
  * </ul>
  * <h2 class="header">Java Example</h2>
  * GridTcpCommunicationSpi is used by default and should be explicitly configured
@@ -103,7 +103,7 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridCommunicationSpi
  */
 @SuppressWarnings({"deprecation"}) @GridSpiInfo(
@@ -147,6 +147,9 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      */
     public static final int DFLT_PORT_RANGE = 100;
 
+    /** Default value for {@code TCP_NODELAY} socket option (value is <tt>true</tt>). */
+    public static final boolean DFLT_TCP_NODELAY = true;
+
     /** Logger. */
     @GridLoggerResource
     private GridLogger log;
@@ -160,16 +163,16 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     private GridMarshaller marsh;
 
     /** Local IP address. */
-    private String localAddr;
+    private String locAddr;
 
     /** Complex variable that represents this node IP address. */
-    private volatile InetAddress localHost;
+    private volatile InetAddress locHost;
 
     /** Local port which node uses. */
-    private int localPort = DFLT_PORT;
+    private int locPort = DFLT_PORT;
 
     /** Local port range. */
-    private int localPortRange = DFLT_PORT_RANGE;
+    private int locPortRange = DFLT_PORT_RANGE;
 
     /** Grid name. */
     @GridNameResource
@@ -189,6 +192,9 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
     /** Number of threads responsible for handling messages. */
     private int msgThreads = DFLT_MSG_THREADS;
+
+    /** {@code TCP_NODELAY} option value for created sockets. */
+    private boolean tcpNoDelay = DFLT_TCP_NODELAY;
 
     /** Idle client worker. */
     private IdleClientWorker idleClientWorker;
@@ -241,20 +247,20 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      * additional addresses beside the loopback one. This configuration
      * parameter is optional.
      *
-     * @param localAddr IP address. Default value is any available local
+     * @param locAddr IP address. Default value is any available local
      *      IP address.
      */
     @GridSpiConfiguration(optional = true)
     @GridLocalHostResource
-    public void setLocalAddress(String localAddr) {
+    public void setLocalAddress(String locAddr) {
         // Injection should not override value already set by Spring or user.
-        if (this.localAddr == null)
-            this.localAddr = localAddr;
+        if (this.locAddr == null)
+            this.locAddr = locAddr;
     }
 
     /** {@inheritDoc} */
     @Override public String getLocalAddress() {
-        return localAddr;
+        return locAddr;
     }
 
     /**
@@ -280,16 +286,16 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      * <p>
      * If not provided, default value is {@link #DFLT_PORT}.
      *
-     * @param localPort Port number.
+     * @param locPort Port number.
      */
     @GridSpiConfiguration(optional = true)
-    public void setLocalPort(int localPort) {
-        this.localPort = localPort;
+    public void setLocalPort(int locPort) {
+        this.locPort = locPort;
     }
 
     /** {@inheritDoc} */
     @Override public int getLocalPort() {
-        return localPort;
+        return locPort;
     }
 
     /**
@@ -306,16 +312,16 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      * <p>
      * If not provided, default value is {@link #DFLT_PORT_RANGE}.
      *
-     * @param localPortRange New local port range.
+     * @param locPortRange New local port range.
      */
     @GridSpiConfiguration(optional = true)
-    public void setLocalPortRange(int localPortRange) {
-        this.localPortRange = localPortRange;
+    public void setLocalPortRange(int locPortRange) {
+        this.locPortRange = locPortRange;
     }
 
     /** {@inheritDoc} */
     @Override public int getLocalPortRange() {
-        return localPortRange;
+        return locPortRange;
     }
 
     /**
@@ -424,6 +430,29 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
         return selectorsCnt;
     }
 
+    /**
+     * Sets value for {@code TCP_NODELAY} socket option. Each
+     * socket will be opened using provided value.
+     * <p>
+     * Setting this option to {@code true} disables Nagle's algorithm
+     * for socket decreasing latency and delivery time for small messages.
+     * <p>
+     * In most cases this should be set to {@code false}.
+     * <p>
+     * If not provided, default value is {@link #DFLT_TCP_NODELAY}.
+     *
+     * @param tcpNoDelay {@code True} to disable TCP delay.
+     */
+    @GridSpiConfiguration(optional = true)
+    public void setTcpNoDelay(boolean tcpNoDelay) {
+        this.tcpNoDelay = tcpNoDelay;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isTcpNoDelay() {
+        return tcpNoDelay;
+    }
+
     /** {@inheritDoc} */
     @Override public void setListener(GridMessageListener lsnr) {
         this.lsnr = lsnr;
@@ -507,19 +536,19 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
     /** {@inheritDoc} */
     @Override public Map<String, Object> getNodeAttributes() throws GridSpiException {
-        assertParameter(localPort > 1023, "localPort > 1023");
-        assertParameter(localPort <= 0xffff, "localPort < 0xffff");
-        assertParameter(localPortRange >= 0, "localPortRange >= 0");
+        assertParameter(locPort > 1023, "locPort > 1023");
+        assertParameter(locPort <= 0xffff, "locPort < 0xffff");
+        assertParameter(locPortRange >= 0, "locPortRange >= 0");
         assertParameter(msgThreads > 0, "msgThreads > 0");
 
         nioExec = new ThreadPoolExecutor(msgThreads, msgThreads, Long.MAX_VALUE, TimeUnit.MILLISECONDS,
             new LinkedBlockingQueue<Runnable>(), new GridSpiThreadFactory(gridName, "grid-nio-msg-handler", log));
 
         try {
-            localHost = F.isEmpty(localAddr) ? U.getLocalHost() : InetAddress.getByName(localAddr);
+            locHost = F.isEmpty(locAddr) ? U.getLocalHost() : InetAddress.getByName(locAddr);
         }
         catch (IOException e) {
-            throw new GridSpiException("Failed to initialize local address: " + localAddr, e);
+            throw new GridSpiException("Failed to initialize local address: " + locAddr, e);
         }
 
         try {
@@ -528,7 +557,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
             nioSrvr = resetServer();
         }
         catch (GridException e) {
-            throw new GridSpiException("Failed to initialize TCP server: " + localHost, e);
+            throw new GridSpiException("Failed to initialize TCP server: " + locHost, e);
         }
 
         Collection<Integer> extPorts = null;
@@ -538,21 +567,21 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
                 extPorts = portRsvr.getExternalPorts(boundTcpPort);
             }
             catch (GridException e) {
-                throw new GridSpiException("Failed to get mapped external ports for bound port: [portRsvr=" + portRsvr +
+                throw new GridSpiException("Failed to get mapped external ports for bound port [portRsvr=" + portRsvr +
                     ", boundTcpPort=" + boundTcpPort + ']', e);
             }
         }
 
         // Set local node attributes.
         return F.asMap(
-            createSpiAttributeName(ATTR_ADDR), localHost,
+            createSpiAttributeName(ATTR_ADDR), locHost,
             createSpiAttributeName(ATTR_PORT), boundTcpPort,
             createSpiAttributeName(ATTR_EXT_PORTS), extPorts);
     }
 
     /** {@inheritDoc} */
     @Override public void spiStart(String gridName) throws GridSpiException {
-        assert localHost != null;
+        assert locHost != null;
 
         // Start SPI start stopwatch.
         startStopwatch();
@@ -561,10 +590,10 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
         // Ack parameters.
         if (log.isDebugEnabled()) {
-            log.debug(configInfo("localAddr", localAddr));
+            log.debug(configInfo("locAddr", locAddr));
             log.debug(configInfo("msgThreads", msgThreads));
-            log.debug(configInfo("localPort", localPort));
-            log.debug(configInfo("localPortRange", localPortRange));
+            log.debug(configInfo("locPort", locPort));
+            log.debug(configInfo("locPortRange", locPortRange));
             log.debug(configInfo("idleConnTimeout", idleConnTimeout));
             log.debug(configInfo("directBuf", directBuf));
         }
@@ -598,14 +627,24 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      * @throws GridException Thrown if it's not possible to create tpcSrvr socket.
      */
     private GridNioServer resetServer() throws GridException {
-        int maxPort = localPort + localPortRange;
+        int maxPort = locPort + locPortRange;
 
-        GridNioServerListener lsnr = new GridNioServerListener() {
+        GridNioServerListener<byte[]> lsnr = new GridNioServerListener<byte[]>() {
             /** Cached class loader. */
             private final ClassLoader clsLdr = getClass().getClassLoader();
 
             /** {@inheritDoc} */
-            @Override public void onMessage(byte[] data) {
+            @Override public void onConnected(GridNioSession ses) {
+                // No-op.
+            }
+
+            /** {@inheritDoc} */
+            @Override public void onDisconnected(GridNioSession ses, @Nullable Exception e) {
+                // No-op.
+            }
+
+            /** {@inheritDoc} */
+            @Override public void onMessage(GridNioSession ses, byte[] data) {
                 try {
                     GridTcpCommunicationMessage msg = U.unmarshal(marsh,
                         new GridByteArrayList(data, data.length), clsLdr);
@@ -622,22 +661,22 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
             }
         };
 
-        GridNioServer srvr = null;
+        GridNioServer<byte[]> srvr = null;
 
         // If bound TPC port was not set yet, then find first
         // available port.
         if (boundTcpPort < 0)
-            for (int port = localPort; port < maxPort; port++)
+            for (int port = locPort; port < maxPort; port++)
                 try {
-                    srvr = new GridNioServer(localHost, port, lsnr, log, nioExec, selectorsCnt, gridName,
-                        directBuf, false);
+                    srvr = GridNioServerFactory.createServer(locHost, port, lsnr, new GridBufferedParser(), log,
+                        nioExec, selectorsCnt, gridName, directBuf);
 
                     boundTcpPort = port;
 
                     // Ack Port the TCP server was bound to.
                     if (log.isInfoEnabled())
                         log.info("Successfully bound to TCP port [port=" + boundTcpPort +
-                            ", localHost=" + localHost + ']');
+                            ", locHost=" + locHost + ']');
 
                     break;
                 }
@@ -645,11 +684,11 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
                     if (port + 1 < maxPort) {
                         if (log.isDebugEnabled())
                             log.debug("Failed to bind to local port (will try next port within range) [port=" + port +
-                                ", localHost=" + localHost + ']');
+                                ", locHost=" + locHost + ']');
                     }
                     else
-                        throw new GridException("Failed to bind to any port within range [startPort=" + localPort +
-                            ", portRange=" + localPortRange + ", localHost=" + localHost + ']', e);
+                        throw new GridException("Failed to bind to any port within range [startPort=" + locPort +
+                            ", portRange=" + locPortRange + ", locHost=" + locHost + ']', e);
                 }
         else
             throw new GridException("Tcp NIO server was already created on port " + boundTcpPort);
@@ -700,7 +739,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     /**
      * @param nodeId Left node ID.
      */
-    private void onNodeLeft(UUID nodeId) {
+    void onNodeLeft(UUID nodeId) {
         assert nodeId != null;
 
         GridNioClientPool pool = clients.get(nodeId);
@@ -717,8 +756,8 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     }
 
     /** {@inheritDoc} */
-    @Override protected void checkConfigurationConsistency(GridNode node, boolean starting) {
-        super.checkConfigurationConsistency(node, starting);
+    @Override protected void checkConfigurationConsistency(GridSpiContext spiCtx, GridNode node, boolean starting) {
+        super.checkConfigurationConsistency(spiCtx, node, starting);
 
         // These attributes are set on node startup in any case, so we MUST receive them.
         checkAttributePresence(node, createSpiAttributeName(ATTR_ADDR));
@@ -786,11 +825,11 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
                 GridByteArrayList buf = U.marshal(marsh, new GridTcpCommunicationMessage(nodeId, msg));
 
-                client.sendMessage(buf.getInternalArray(), buf.getSize());
+                client.sendMessage(buf.internalArray(), buf.size());
 
                 sentMsgsCnt.incrementAndGet();
 
-                sentBytesCnt.addAndGet(buf.getSize());
+                sentBytesCnt.addAndGet(buf.size());
             }
             catch (GridException e) {
                 throw new GridSpiException("Failed to send message to remote node: " + node, e);
@@ -918,7 +957,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
         for (String addr : addrs) {
             for (Integer port : ports) {
                 try {
-                    client = new GridNioClient(InetAddress.getByName(addr), port, localHost, connTimeout);
+                    client = new GridNioClient(InetAddress.getByName(addr), port, locHost, connTimeout, tcpNoDelay);
 
                     conn = true;
 
@@ -1069,11 +1108,6 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
                     openClients.add(client);
 
-                    int cnt = clientsCnt.incrementAndGetOpenClients();
-
-                    assert cnt > 0 : "Non-positive client count after client creation";
-                    assert cnt <= maxOpenClients;
-
                     // forceClose may have been called concurrently.
                     if (closed()) {
                         client.forceClose();
@@ -1082,13 +1116,20 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
                         success = false;
                     }
-                    else
-                        client.reserve();
+                    else {
+                        int cnt = clientsCnt.incrementAndGetOpenClients();
+
+                        assert cnt > 0 : "Non-positive client count after client creation: " + cnt;
+                        assert cnt <= maxOpenClients + 1 : "Open client count exceeded max value [cnt=" + cnt + ", " +
+                            "maxOpenClients=" + maxOpenClients + ']';
+
+                        success = client.reserve();
+                    }
                 }
+                else
+                    success = true;
 
-                success = true;
-
-                return client;
+                return success ? client : null;
             }
             finally {
                 if (!success)
@@ -1102,7 +1143,11 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
          * @param client Previously acquired client.
          */
         private void releaseClient(GridNioClient client) {
-            assert openClients.contains(client) : "Attempted to release a client that is not present in pool";
+            if (!openClients.contains(client)) {
+                U.warn(log, "Attempted to release a client that is not present in pool: " + client);
+
+                return;
+            }
 
             client.release();
 
@@ -1133,7 +1178,9 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
                         int cnt = clientsCnt.decrementAndGetOpenClients();
 
-                        assert cnt >= 0 : "Open client count become negative";
+                        assert cnt >= 0 : "Open client count become negative: " + cnt;
+                        assert cnt <= maxOpenClients : "Open client count exceeded max value [cnt=" + cnt + ", " +
+                            "maxOpenClients=" + maxOpenClients + ']';
                     }
                 }
             }
@@ -1145,9 +1192,10 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
         private void forceClose() {
             clientsCnt.clientReservations(-1);
 
-            for (GridNioClient client : openClients) {
+            for (GridNioClient client : openClients)
                 client.forceClose();
-            }
+
+            semaphore.release(Integer.MAX_VALUE - maxOpenClients);
         }
 
         /**
@@ -1185,6 +1233,12 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
                if (clientsCnt.compareAndSetClientReservations(prev, prev + 1)) {
                    semaphore.acquireUninterruptibly();
 
+                   if (closed()) {
+                       semaphore.release();
+
+                       return false;
+                   }
+
                    return true;
                }
             }
@@ -1200,7 +1254,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
                 int prev = clientsCnt.clientReservations();
 
                 if (prev == -1) {
-                    U.warn(log, "NIO client pool was released before active client was returned to the pool");
+                    U.warn(log, "NIO client pool was released before active client was returned to the pool.");
 
                     return;
                 }

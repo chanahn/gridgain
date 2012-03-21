@@ -1,5 +1,6 @@
 package org.gridgain.grid.marshaller.optimized;
 
+import org.gridgain.grid.typedef.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
@@ -9,14 +10,14 @@ import java.util.*;
  * This class is an extension of {@link ObjectInputStream} compatible with {@link GridOptimizedObjectOutput}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 class GridOptimizedObjectInput extends ObjectInputStream {
     /** */
     private final ClassLoader clsLdr;
 
     /** */
-    @Nullable private final Map<Integer, String> userPreregisteredId2Name;
+    @Nullable private final Map<Integer, T2<String, Class<?>>> userPreregisteredId2Name;
 
     /** Wrappers queued for delayed processing. */
     private Queue<GridOptimizedWrapper> wrappers;
@@ -28,11 +29,11 @@ class GridOptimizedObjectInput extends ObjectInputStream {
      * @throws IOException If initialization failed.
      */
     GridOptimizedObjectInput(InputStream in, ClassLoader clsLdr,
-        @Nullable Map<Integer, String> userPreregisteredId2Name) throws IOException {
+        @Nullable Map<Integer, T2<String, Class<?>>> userPreregisteredId2Name) throws IOException {
         super(in);
 
         assert clsLdr != null;
-        
+
         this.clsLdr = clsLdr;
 
         this.userPreregisteredId2Name = userPreregisteredId2Name;

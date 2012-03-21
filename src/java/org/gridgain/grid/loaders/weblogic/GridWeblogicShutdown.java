@@ -57,7 +57,7 @@ import java.util.*;
  * more information.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridLoader(description = "Weblogic loader")
 @SuppressWarnings({"deprecation", "unchecked"})

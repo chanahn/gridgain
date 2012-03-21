@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.*;
  * generated to prevent starvation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridCacheMvcc<K> {
     /** Logger reference. */
@@ -171,11 +171,11 @@ public final class GridCacheMvcc<K> {
                 }
 
                 // Iterate in reverse order.
-                for (ListIterator<GridCacheMvccCandidate<K>> it = locs.listIterator(locs.size());
-                     it.hasPrevious(); ) {
+                for (ListIterator<GridCacheMvccCandidate<K>> it = locs.listIterator(locs.size()); it.hasPrevious(); ) {
                     c = it.previous();
 
-                    assert !c.version().equals(cand.version());
+                    assert !c.version().equals(cand.version()) : "Versions can't match [existing=" + c +
+                        ", new=" + cand + ']';
 
                     // Add after the owner.
                     if (c.owner()) {

@@ -20,7 +20,7 @@ import java.util.*;
  * on file-based swapspace SPI.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @GridMBeanDescription("MBean that provides administrative and configuration information on file-based swapspace SPI.")
 public interface GridFileSwapSpaceSpiMBean extends GridSpiManagementMBean {
@@ -391,4 +391,22 @@ public interface GridFileSwapSpaceSpiMBean extends GridSpiManagementMBean {
      */
     @GridMBeanDescription("Submitted evict tasks count.")
     public int getSubmittedEvictTasksCount();
+
+    /**
+     * Gets current total entries count in space with the given name.
+     *
+     * @param space Name of the space.
+     * @return Total entries count in the space.
+     */
+    @GridMBeanDescription("Total entries count in space.")
+    public long getCount(String space);
+
+    /**
+     * Gets current total entries size in space with the given name.
+     *
+     * @param space Name of the space.
+     * @return Total entries size in the space.
+     */
+    @GridMBeanDescription("Total entries size in space.")
+    public long getSize(String space);
 }

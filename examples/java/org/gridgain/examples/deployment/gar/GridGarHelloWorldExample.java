@@ -63,16 +63,9 @@ import org.gridgain.grid.typedef.*;
  * </ol>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public final class GridGarHelloWorldExample {
-    /**
-     * Ensure singleton.
-     */
-    private GridGarHelloWorldExample() {
-        // No-op.
-    }
-
     /**
      * Execute {@code HelloWorld} example on the grid.
      *

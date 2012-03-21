@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.*;
  * Future composed of multiple inner futures.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> {
     /** Futures. */
@@ -50,6 +50,12 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> {
 
     /** Initialize flag. */
     private AtomicBoolean init = new AtomicBoolean(false);
+
+    /** Result with a flag to control if reducer has been called. */
+    private AtomicMarkableReference<R> res = new AtomicMarkableReference<R>(null, false);
+
+    /** Error. */
+    private AtomicReference<Throwable> err = new AtomicReference<Throwable>();
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -212,12 +218,13 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> {
      * Check completeness of the future.
      */
     private void checkComplete() {
-        if (init.get() && lsnrCalls.get() == futs.sizex() && finished.compareAndSet(false, true)) {
-            R res = null;
+        Throwable err = this.err.get();
 
+        if (init.get() && (res.isMarked() || lsnrCalls.get() == futs.sizex() || err != null) &&
+            finished.compareAndSet(false, true)) {
             try {
-                if (rdc != null)
-                    res = rdc.apply();
+                if (err == null && rdc != null && !res.isMarked())
+                    res.compareAndSet(null, rdc.apply(), false, true);
             }
             catch (RuntimeException e) {
                 U.error(log, "Failed to execute compound future reducer: " + this, e);
@@ -234,7 +241,7 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> {
                 throw e;
             }
 
-            onDone(res);
+            onDone(res.getReference(), err);
         }
     }
 
@@ -265,49 +272,52 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> {
                 T t = fut.get();
 
                 try {
-                    if (rdc != null && !rdc.collect(t) && finished.compareAndSet(false, true))
-                        onDone(rdc.apply());
+                    if (rdc != null && !rdc.collect(t) && !res.isMarked())
+                        res.compareAndSet(null, rdc.apply(), false, true);
                 }
                 catch (RuntimeException e) {
                     U.error(log, "Failed to execute compound future reducer: " + this, e);
 
+                    // Exception in reducer is a bug, so we bypass checkComplete here.
                     onDone(e);
                 }
                 catch (AssertionError e) {
                     U.error(log, "Failed to execute compound future reducer: " + this, e);
 
+                    // Bypass checkComplete because need to rethrow.
                     onDone(e);
 
                     throw e;
                 }
-
-                lsnrCalls.incrementAndGet();
-
-                checkComplete();
             }
             catch (GridCacheTxOptimisticException e) {
                 if (log.isDebugEnabled())
                     log.debug("Optimistic failure [fut=" + GridCompoundFuture.this + ", err=" + e + ']');
 
-                onDone(e);
+                err.compareAndSet(null, e);
             }
             catch (GridException e) {
                 U.error(log, "Failed to execute compound future reducer: " + this, e);
 
-                onDone(e);
+                err.compareAndSet(null, e);
             }
             catch (RuntimeException e) {
                 U.error(log, "Failed to execute compound future reducer: " + this, e);
 
-                onDone(e);
+                err.compareAndSet(null, e);
             }
             catch (AssertionError e) {
                 U.error(log, "Failed to execute compound future reducer: " + this, e);
 
+                // Bypass checkComplete because need to rethrow.
                 onDone(e);
 
                 throw e;
             }
+
+            lsnrCalls.incrementAndGet();
+
+            checkComplete();
         }
 
         /** {@inheritDoc} */

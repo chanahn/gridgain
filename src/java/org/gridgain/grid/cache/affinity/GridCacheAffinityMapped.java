@@ -136,18 +136,13 @@ import java.util.concurrent.*;
  * <p>
  * For more information about cache affinity also see {@link GridCacheAffinityMapper} and
  * {@link GridCacheAffinity} documentation.
- * <h1 class="header">Enterprise vs. Community</h1>
- * Note that in community edition affinity mapping is only allowed on the nodes which have
- * the cache started. If cache is not started on the node where the affinity mapping is being
- * determined, then {@link org.gridgain.grid.editions.GridEnterpriseFeatureException} will be thrown.
- * <p>
- * In enterprise edition, affinity for a key can be found from any node,
- * regardless of whether it has cache started or not. If cache is not started, enterprise edition
- * will fetch the affinity function from the remote node which does have the cache running.
+ * Affinity for a key can be found from any node, regardless of whether it has cache started
+ * or not. If cache is not started, affinity function will be fetched from the remote node
+ * which does have the cache running.
  *
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  * @see GridCacheName
  * @see GridCacheAffinity
  * @see GridCacheAffinityMapper

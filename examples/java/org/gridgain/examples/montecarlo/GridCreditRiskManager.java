@@ -18,7 +18,7 @@ import java.util.*;
  * This class abstracts out the calculation of risk for a credit portfolio.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 @SuppressWarnings({"FloatingPointEquality"})
 public class GridCreditRiskManager {
@@ -140,13 +140,13 @@ public class GridCreditRiskManager {
      * @return Probability of loss with given index.
      */
     private double getLossProbability(double[] losses, int i) {
-        double count = 0;
+        double cnt = 0;
         double loss = losses[i];
 
         for (double tmp : losses)
             if (loss == tmp)
-                count++;
+                cnt++;
 
-        return count / losses.length;
+        return cnt / losses.length;
     }
 }

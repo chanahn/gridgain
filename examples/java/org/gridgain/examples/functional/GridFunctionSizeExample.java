@@ -16,16 +16,9 @@ import java.util.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridFunctionSizeExample {
-    /**
-     * Ensures singleton.
-     */
-    private GridFunctionSizeExample() {
-        /* No-op. */
-    }
-
     /**
      * Executes example.
      *
@@ -39,7 +32,7 @@ public class GridFunctionSizeExample {
         // CO -> GridOutClosure
         // CA -> GridAbsClosure
         // F -> GridFunc
-        
+
         // Data initialisation.
         Collection<String> months = Arrays.asList("January", "February", "March", "April", "May", "June", "July",
             "August", "September", "October", "November", "December");

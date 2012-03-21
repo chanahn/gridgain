@@ -51,9 +51,12 @@ import static org.gridgain.grid.GridEventType.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
+    /** Flag to enable/disable consistency check (for internal use only). */
+    private static final boolean AFFINITY_CONSISTENCY_CHECK = Boolean.getBoolean("GRIDGAIN_AFFINITY_CONSISTENCY_CHECK");
+
     /** Default number of partitions. */
     public static final int DFLT_PARTITION_COUNT = 521;
 
@@ -122,6 +125,10 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
 
     /** Optional primary filter. */
     private final GridPredicate<UUID> primaryIdFilter = F.not(backupIdFilter);
+
+    /** Map of neighbors. */
+    @SuppressWarnings("TransientFieldNotInitialized")
+    private transient ConcurrentMap<UUID, Collection<UUID>> neighbors = new ConcurrentHashMap<UUID, Collection<UUID>>();
 
     /**
      * Empty constructor with all defaults.
@@ -341,9 +348,29 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
         this.exclNeighbors = exclNeighbors;
     }
 
+    /**
+     * Gets neighbors for a node.
+     *
+     * @param node Node.
+     * @return Neighbors.
+     */
+    private Collection<UUID> neighbors(final GridRichNode node) {
+        Collection<UUID> ns = neighbors.get(node.id());
+
+        if (ns == null)
+            ns = F.addIfAbsent(neighbors, node.id(), new ArrayList<UUID>(F.nodeIds(node.neighbors().nodes())));
+
+        return ns;
+    }
+
     /** {@inheritDoc} */
     @Override public Collection<GridRichNode> nodes(int part, Collection<GridRichNode> nodes) {
-        if (F.isEmpty(nodes))
+        if (nodes == null)
+            return Collections.emptyList();
+
+        int nodesSize = nodes.size();
+
+        if (nodesSize == 0)
             return Collections.emptyList();
 
         GridStopwatch watch = W.stopwatch("AFFINITY_CHECK", false);
@@ -353,18 +380,18 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
 
             addIfAbsent(nodes);
 
-            if (nodes.size() == 1) // Minor optimization.
+            if (nodesSize == 1) // Minor optimization.
                 return nodes;
 
-            Collection<UUID> nodeIds = F.nodeIds(nodes);
-
-            final Map<UUID, GridRichNode> lookup = new GridLeanMap<UUID, GridRichNode>(nodes.size());
+            final Map<UUID, GridRichNode> lookup = new GridLeanMap<UUID, GridRichNode>(nodesSize);
 
             // Store nodes in map for fast lookup.
             for (GridRichNode n : nodes)
                 lookup.put(n.id(), n);
 
-            Collection<UUID> ids;
+            Collection<UUID> nodeIds = lookup.keySet();
+
+            Collection<UUID> selected;
 
             if (backupFilter != null) {
                 UUID primaryId = nodeHash.node(part, primaryIdFilter, F.contains(nodeIds));
@@ -379,16 +406,16 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
                     return Collections.singletonList(n);
                 }
 
-                ids = primaryId != null ? F.concat(false, primaryId, backupIds) : backupIds;
+                selected = primaryId != null ? F.concat(false, primaryId, backupIds) : backupIds;
             }
             else {
-                if (!exclNeighbors || nodes.size() == 1) {
-                    ids = nodeHash.nodes(part, backups + 1, nodeIds);
+                if (!exclNeighbors) {
+                    selected = nodeHash.nodes(part, backups + 1, nodeIds);
 
-                    if (ids.size() == 1) {
-                        UUID id = F.first(ids);
+                    if (selected.size() == 1) {
+                        UUID id = F.first(selected);
 
-                        assert id != null : "Node ID cannot be null in affinity node ID collection: " + ids;
+                        assert id != null : "Node ID cannot be null in affinity node ID collection: " + selected;
 
                         GridRichNode n = lookup.get(id);
 
@@ -398,38 +425,36 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
                     }
                 }
                 else {
-                    ids = new ArrayList<UUID>(1 + backups);
+                    selected = new ArrayList<UUID>(1 + backups);
 
-                    final Collection<UUID> ids0 = ids;
+                    final Collection<UUID> selected0 = selected;
 
-                    int size = nodes.size();
+                    List<UUID> ids = nodeHash.nodes(part, backups + 1, F.contains(nodeIds), new P1<UUID>() {
+                        @Override public boolean apply(UUID id) {
+                            GridRichNode n = lookup.get(id);
 
-                    for (int i = 0; i < size; i++) {
-                        UUID id = nodeHash.node(part, F.contains(nodeIds), new P1<UUID>() {
-                            @Override public boolean apply(UUID id) {
-                                GridRichNode n = lookup.get(id);
+                            assert n != null;
 
-                                assert n != null;
+                            Collection<UUID> neighbors = neighbors(n);
 
-                                Collection<UUID> neighbors = F.nodeIds(n.neighbors().nodes());
+                            if (!F.containsAny(selected0, neighbors)) {
+                                selected0.add(n.id());
 
-                                // Dead nodes get handled by cache logic.
-                                return !ids0.contains(n.id()) && !F.containsAny(ids0, neighbors);
+                                return true;
                             }
-                        });
 
-                        if (id != null)
-                            ids.add(id);
+                            return false;
+                        }
+                    });
 
-                        if (ids.size() == size)
-                            break;
-                    }
+                    if (AFFINITY_CONSISTENCY_CHECK)
+                        assert F.eqOrdered(ids, selected);
                 }
             }
 
             Collection<GridRichNode> ret = new ArrayList<GridRichNode>(1 + backups);
 
-            for (UUID id : ids) {
+            for (UUID id : selected) {
                 GridRichNode n = lookup.get(id);
 
                 assert n != null;
@@ -468,6 +493,7 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
     /** {@inheritDoc} */
     @Override public void reset() {
         addedNodes = new GridConcurrentHashSet<UUID>();
+        neighbors = new ConcurrentHashMap<UUID, Collection<UUID>>();
 
         initLatch = new CountDownLatch(1);
 
@@ -516,32 +542,21 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
     /**
      * @param nodes Nodes to add.
      */
-    private void addIfAbsent(Iterable<? extends GridNode> nodes) {
+    private void addIfAbsent(Iterable<GridRichNode> nodes) {
         for (GridNode n : nodes)
-            addIfAbsent(n);
+            if (n != null && !addedNodes.contains(n.id()) && grid.node(n.id()) != null)
+                add(n, replicas(n));
     }
 
     /**
      * @param n Node to add.
-     */
-    private void addIfAbsent(GridNode n) {
-        if (n != null && !addedNodes.contains(n.id()))
-            add(n);
-    }
-
-    /**
-     * @param n Node to add.
-     */
-    private void add(GridNode n) {
-        if (grid.node(n.id()) != null)
-            add(n.id(), replicas(n));
-    }
-
-    /**
-     * @param id Node ID to add.
      * @param replicas Replicas.
      */
-    private void add(UUID id, int replicas) {
+    private void add(GridNode n, int replicas) {
+        neighbors.clear();
+
+        UUID id = n.id();
+
         nodeHash.addNode(id, replicas);
 
         addedNodes.add(id);
@@ -563,6 +578,8 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
                 it.remove();
 
                 nodeHash.removeNode(id);
+
+                neighbors.clear();
             }
         }
     }

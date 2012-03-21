@@ -22,7 +22,7 @@ import java.util._
  * Demonstrates cache ad-hoc queries with Scalar.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 object ScalarCacheQueryExample {
     /** Cache name. */
@@ -45,18 +45,14 @@ object ScalarCacheQueryExample {
      * @param g Grid instance to use.
      */
     private def example(g: Grid) {
-        if (!g.isEnterprise)
-            println(">>> NOTE: in Community Edition all queries will be run localy.");
-
         // Populate cache.
         initialize()
 
         // Cache instance shortcut.
         val cache = mkCache[GridCacheAffinityKey[UUID], Person]
 
-        // Distributed queries only supported by Enterprise Edition.
-        // In Community Edition we'll use local node projection.
-        val prj = if (g.isEnterprise) g else g.localNode
+        // Using distributed queries.
+        val prj = g
 
         // Example for SQL-based querying employees based on salary ranges.
         // Gets all persons with 'salary > 1000'.
@@ -97,9 +93,8 @@ object ScalarCacheQueryExample {
      * @return Cache to use.
      */
     private def mkCache[K, V]: GridCacheProjection[K, V] = {
-        // In Community Edition queries work only for 'local' cache.
-        // Distributed queries aren't support in Community Edition.
-        cache$[K, V](if (grid$.isEnterprise) CACHE_NAME else "local").get.flagsOn(GridCacheFlag.SYNC_COMMIT)
+        // Using distributed queries.
+        cache$[K, V](CACHE_NAME).get.flagsOn(GridCacheFlag.SYNC_COMMIT)
     }
 
     /**
@@ -156,7 +151,7 @@ object ScalarCacheQueryExample {
  * Organization class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 private case class Organization(
     @ScalarCacheQuerySqlField
@@ -171,7 +166,7 @@ private case class Organization(
  * Person class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 3.6.0c.09012012
+ * @version 4.0.0c.21032012
  */
 private case class Person(
     org: Organization,
