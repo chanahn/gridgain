@@ -391,11 +391,13 @@ public class GridDhtLocalPartition<K, V> implements Comparable<GridDhtLocalParti
     private void clearAll() {
         GridCacheVersion clearVer = cctx.versions().next();
 
+        boolean swap = cctx.isSwapEnabled();
+
         for (Iterator<GridDhtCacheEntry<K, V>> it = map.values().iterator(); it.hasNext();) {
             GridDhtCacheEntry<K, V> cached = it.next();
 
             try {
-                if (cached.clear(clearVer, cctx.isSwapEnabled(), true, CU.<K, V>empty()))
+                if (cached.clearInternal(clearVer, swap))
                     it.remove();
             }
             catch (GridException e) {

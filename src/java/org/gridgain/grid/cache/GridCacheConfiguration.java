@@ -50,6 +50,9 @@ public interface GridCacheConfiguration {
     /** Default size of preload thread pool. */
     public static final int DFLT_PRELOAD_THREAD_POOL_SIZE = 2;
 
+    /** Default preload timeout.*/
+    public final static long DFLT_PRELOAD_TIMEOUT = 10000;
+
     /**
      * Default time to live. The value is <tt>0</tt> which means that
      * cached objects never expire based on time.
@@ -519,6 +522,15 @@ public interface GridCacheConfiguration {
      * @return Size of preloading thread pool.
      */
     public int getPreloadThreadPoolSize();
+
+    /**
+     * Gets preload timeout.
+     * <p>
+     * Default value is {@link #DFLT_PRELOAD_TIMEOUT}.
+     *
+     * @return Preload timeout.
+     */
+    public long getPreloadTimeout();
 
     /**
      * Gets query types to use to auto index values of boxed and unboxed primitive types,

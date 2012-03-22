@@ -92,6 +92,12 @@ public final class GridSystemProperties {
     public static final String GG_JETTY_PORT = "GRIDGAIN_JETTY_PORT";
 
     /**
+     * This property allows to override maximum count of task results stored on one node
+     * in REST processor.
+     */
+    public static final String GG_REST_MAX_TASK_RESULTS = "GRIDGAIN_REST_MAX_TASK_RESULTS";
+
+    /**
      * Set to either {@code true} or {@code false} to enable or disable quiet mode
      * of GridGain. In quiet mode, only warning and errors are printed into the log
      * additionally to a shortened version of standard output on the start.

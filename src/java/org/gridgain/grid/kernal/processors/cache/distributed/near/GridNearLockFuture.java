@@ -459,9 +459,8 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
     /**
      * @param t Error.
      */
-    public void onError(Throwable t) {
-        if (err.compareAndSet(null, t instanceof GridCacheLockTimeoutException ? null : t))
-            onComplete(false, true);
+    private void onError(Throwable t) {
+        err.compareAndSet(null, t instanceof GridCacheLockTimeoutException ? null : t);
     }
 
     /**
@@ -605,16 +604,6 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
         return false;
     }
 
-    /**
-     * Checks for errors.
-     *
-     * @throws GridException If execution failed.
-     */
-    private void checkError() throws GridException {
-        if (err.get() != null)
-            throw U.cast(err.get());
-    }
-
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return futId.hashCode();
@@ -725,6 +714,14 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
 
                                 // Removed exception may be thrown here.
                                 GridCacheMvccCandidate<K> cand = addEntry(topVer, entry, node.id());
+
+                                if (isDone()) {
+                                    if (log.isDebugEnabled())
+                                        log.debug("Abandoning (re)map because future is done after addEntry attempt " +
+                                            "[fut=" + this + ", entry=" + entry + ']');
+
+                                    return;
+                                }
 
                                 if (cand != null) {
                                     if (req == null) {
@@ -1211,7 +1208,7 @@ public final class GridNearLockFuture<K, V> extends GridCompoundIdentityFuture<B
                             entries.set(i, (GridDistributedCacheEntry<K, V>)cctx.cache().entryEx(entry.key()));
                         }
                         catch (GridException e) {
-                            onError(e);
+                            onDone(e);
 
                             return;
                         }

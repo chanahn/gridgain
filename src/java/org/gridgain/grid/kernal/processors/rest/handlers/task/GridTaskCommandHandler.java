@@ -24,7 +24,6 @@ import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.concurrent.locks.*;
 
@@ -41,8 +40,23 @@ import static org.gridgain.grid.kernal.processors.rest.GridRestResponse.*;
  * @version 4.0.0c.22032012
  */
 public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
+    /** Default maximum number of task results. */
+    private static final int DFLT_MAX_TASK_RESULTS = 10240;
+
+    /** Maximum number of task results. */
+    private final int maxTaskResults = Integer.getInteger(GridSystemProperties.GG_REST_MAX_TASK_RESULTS,
+        DFLT_MAX_TASK_RESULTS);
+
     /** Task results. */
-    private final Map<GridUuid, TaskDescriptor> taskDescs = new ConcurrentHashMap<GridUuid, TaskDescriptor>();
+    private final Map<GridUuid, TaskDescriptor> taskDescs = new GridConcurrentLinkedHashMap<GridUuid, TaskDescriptor>(16, 0.75f, 4, false,
+        new P2<GridConcurrentLinkedHashMap<GridUuid, TaskDescriptor>,
+            GridConcurrentLinkedHashMap.HashEntry<GridUuid, TaskDescriptor>>() {
+            @Override public boolean apply(
+                GridConcurrentLinkedHashMap<GridUuid, TaskDescriptor> map,
+                GridConcurrentLinkedHashMap.HashEntry<GridUuid, TaskDescriptor> e) {
+                return map.sizex() > maxTaskResults;
+            }
+        });
 
     /** Topic ID generator. */
     private final AtomicLong topicIdGen = new AtomicLong();
@@ -108,7 +122,7 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override public GridFuture<GridRestResponse> handleAsync(GridRestRequest req) {
+    @Override public GridFuture<GridRestResponse> handleAsync(final GridRestRequest req) {
         assert req != null;
 
         if (log.isDebugEnabled())
@@ -122,9 +136,9 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
 
         switch (req.getCommand()) {
             case EXE: {
-                boolean async = Boolean.parseBoolean((String)value("async", req));
+                final boolean async = Boolean.parseBoolean((String)value("async", req));
 
-                String name = value("name", req);
+                final String name = value("name", req);
 
                 if (F.isEmpty(name)) {
                     res.setError(missingParameter("name"));
@@ -158,33 +172,25 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
 
                 taskRestRes.setId(tid.toString() + '~' + ctx.localNodeId().toString());
 
-                final CountDownLatch latch = new CountDownLatch(1);
-
                 taskFut.listenAsync(new GridInClosure<GridFuture<Object>>() {
                     @Override public void apply(GridFuture<Object> f) {
                         GridUuid tid = taskFut.getTaskSession().getId();
 
+                        TaskDescriptor desc;
+
                         try {
-                            taskDescs.put(tid, new TaskDescriptor(true, f.get(), null));
+                            desc = new TaskDescriptor(true, f.get(), null);
                         }
                         catch (GridException e) {
-                            U.error(log, "Failed to execute task.", e);
+                            U.error(log, "Failed to execute task [name=" + name + ", clientId=" + req.getClientId() +
+                                ']', e);
 
-                            taskDescs.put(tid, new TaskDescriptor(true, null, e));
+                            desc = new TaskDescriptor(true, null, e);
                         }
-                        finally {
-                            latch.countDown();
-                        }
-                    }
-                });
 
-                if (!async) {
-                    taskFut.listenAsync(new CI1<GridFuture<Object>>() {
-                        @Override public void apply(GridFuture<Object> f) {
-                            TaskDescriptor desc = taskDescs.get(tid);
+                        taskDescs.put(tid, desc);
 
-                            assert desc.finished();
-
+                        if (!async) {
                             if (desc.error() == null) {
                                 taskRestRes.setFinished(true);
                                 taskRestRes.setResult(desc.result());
@@ -199,9 +205,10 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
 
                             fut.onDone(res);
                         }
-                    });
-                }
-                else {
+                    }
+                });
+
+                if (async) {
                     res.setSuccessStatus(STATUS_SUCCESS);
                     res.setResponse(taskRestRes);
 

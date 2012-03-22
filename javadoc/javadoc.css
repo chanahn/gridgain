@@ -79,14 +79,14 @@ input.search_button {
     font-size: 10px;
     background-color: #efefef;
     font-family: helvetica, verdana, arial, helvetica, sans-serif;
-    border: 1px #ddd solid;
+    border: 1px #eee solid;
 }
 
 input.search_text {
     color: #333;
     font-size: 11px;
     font-family: helvetica, verdana, arial, helvetica, sans-serif;
-    border: 1px #ddd solid;
+    border: 1px #eee solid;
     height: auto;
 }
 
@@ -116,7 +116,7 @@ table.doctable th {
 }
 
 table.doctable tr:hover {
-    background: #f6f6f6;
+    background: #e6ffde;
 }
 
 table.doctable td {
@@ -129,7 +129,7 @@ table.doctable td {
 }
 
 .close-link {
-    border: 1px solid #ddd;
+    border: 1px solid #eee;
     background-color: #efefef;
     padding: 3px;
     color: #333;
@@ -167,7 +167,7 @@ blockquote.snippet, pre.snippet {
 hr {
     border-style: dotted;
     width: 100%;
-    color: #ddd;
+    color: #eee;
 }
 
 .dotted {
@@ -180,7 +180,7 @@ hr {
 
 .TableRowColor:hover {
     color: #333;
-    background: #f6f6f6;
+    background: #e6ffde;
 }
 
 .img-link {
@@ -224,7 +224,10 @@ a:hover {
 /*
  * Table colors.
  */
-.TableHeadingColor { background: #D6EBAD }
+.TableHeadingColor, .TableHeadingColor b, .TableHeadingColor th b { 
+    background-color: #eee;
+    color: #333;
+}
 .TableSubHeadingColor { background: #FFFFFF }
 
 /*
@@ -246,8 +249,9 @@ a:hover {
     font-weight: 100;
 }
 .NavBarCell1Rev {
-    background-color: #D6EBAD;
-    border: 1px dotted #9AC65C;
+    background-color: #eee;
+    color: #333;
+    border: 1px dotted #eee;
 }
 .NavBarFont1 { color: #333 }
 

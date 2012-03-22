@@ -119,7 +119,7 @@ public class GridDhtPartitionDemandPool<K, V> {
 
         syncFut = new SyncFuture(dmdWorkers);
 
-        timeout = new AtomicLong(cctx.gridConfig().getNetworkTimeout());
+        timeout = new AtomicLong(cctx.config().getPreloadTimeout());
     }
 
     /**

@@ -2015,29 +2015,36 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                     while (true) {
                         GridDistributedCacheEntry<K, V> entry = peekExx(key);
 
-                        try {
-                            if (entry != null) {
-                                entry.doneRemote(
-                                    req.version(),
-                                    req.version(),
-                                    req.committedVersions(),
-                                    req.rolledbackVersions());
+                        boolean created = false;
 
-                                // Note that we don't reorder completed versions here,
-                                // as there is no point to reorder relative to the version
-                                // we are about to remove.
-                                if (entry.removeLock(req.version())) {
-                                    if (log.isDebugEnabled())
-                                        log.debug("Removed lock [lockId=" + req.version() + ", key=" + key + ']');
-                                }
-                                else {
-                                    if (log.isDebugEnabled())
-                                        log.debug("Received unlock request for unknown candidate " +
-                                            "(added to cancelled locks set): " + req);
-                                }
+                        if (entry == null) {
+                            entry = entryExx(key);
+
+                            created = true;
+                        }
+
+                        try {
+                            entry.doneRemote(
+                                req.version(),
+                                req.version(),
+                                req.committedVersions(),
+                                req.rolledbackVersions());
+
+                            // Note that we don't reorder completed versions here,
+                            // as there is no point to reorder relative to the version
+                            // we are about to remove.
+                            if (entry.removeLock(req.version())) {
+                                if (log.isDebugEnabled())
+                                    log.debug("Removed lock [lockId=" + req.version() + ", key=" + key + ']');
                             }
-                            else if (log.isDebugEnabled())
-                                log.debug("Received unlock request for entry that could not be found: " + req);
+                            else {
+                                if (log.isDebugEnabled())
+                                    log.debug("Received unlock request for unknown candidate " +
+                                        "(added to cancelled locks set): " + req);
+                            }
+
+                            if (created && entry.markObsolete(req.version()))
+                                removeIfObsolete(key);
 
                             break;
                         }
@@ -2192,6 +2199,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                             if (log.isDebugEnabled())
                                 log.debug("Failed to locate lock candidate based on dht or near versions [nodeId=" +
                                     nodeId + ", ver=" + ver + ", unmap=" + unmap + ", keys=" + keys + ']');
+
+                            entry.removeLock(ver);
 
                             if (created && entry.markObsolete(ctx.versions().next()))
                                 removeIfObsolete(entry.key());

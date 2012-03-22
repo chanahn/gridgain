@@ -101,7 +101,7 @@ class GridReplicatedPreloadDemandPool<K, V> {
 
         int poolSize = cctx.preloadEnabled() ? cctx.config().getPreloadThreadPoolSize() : 1;
 
-        timeout.set(cctx.gridConfig().getNetworkTimeout());
+        timeout.set(cctx.config().getPreloadTimeout());
 
         for (int i = 0; i < poolSize; i++)
             workers.add(new DemandWorker(i));
@@ -589,11 +589,11 @@ class GridReplicatedPreloadDemandPool<K, V> {
      */
     private static class SupplyMessage<K, V> extends GridTuple2<UUID, GridReplicatedPreloadSupplyMessage<K, V>> {
         /**
-         * @param senderId Sender ID.
+         * @param sndId Sender ID.
          * @param msg Message.
          */
-        SupplyMessage(UUID senderId, GridReplicatedPreloadSupplyMessage<K, V> msg) {
-            super(senderId, msg);
+        SupplyMessage(UUID sndId, GridReplicatedPreloadSupplyMessage<K, V> msg) {
+            super(sndId, msg);
         }
 
         /**

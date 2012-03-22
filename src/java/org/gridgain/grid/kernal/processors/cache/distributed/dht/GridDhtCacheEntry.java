@@ -433,6 +433,67 @@ import java.util.*;
     }
 
     /**
+     * Marks entry as obsolete and, if possible or required, removes it
+     * from swap storage.
+     *
+     * @param ver Obsolete version.
+     * @param swap If {@code true} then remove from swap.
+     * @return {@code True} if entry was not being used, passed the filter and could be removed.
+     * @throws GridException If failed to remove from swap.
+     */
+    public boolean clearInternal(GridCacheVersion ver, boolean swap) throws GridException {
+        boolean rmv = false;
+
+        lock();
+
+        try {
+            try {
+                clearReaders();
+
+                // Call super.markObsolete to avoid recursive calls to clear if
+                // we are clearing dht local partition.
+                if (hasReaders() || !super.markObsolete(ver)) {
+                    if (log.isDebugEnabled())
+                        log.debug("Entry could not be marked obsolete (it is still used or has readers): " + this);
+
+                    return false;
+                }
+            }
+            catch (GridCacheEntryRemovedException ignore) {
+                if (log.isDebugEnabled())
+                    log.debug("Got removed entry when clearing (will simply return): " + this);
+
+                return true;
+            }
+
+            if (log.isDebugEnabled())
+                log.debug("Entry has been marked obsolete: " + this);
+
+            // Give to GC.
+            update(null, null, toExpireTime(ttl), ttl, ver, metrics);
+
+            clearIndex();
+
+            if (swap) {
+                releaseSwap();
+
+                if (log.isDebugEnabled())
+                    log.debug("Entry has been cleared from swap storage: " + this);
+            }
+
+            rmv = true;
+
+            return true;
+        }
+        finally {
+            unlock();
+
+            if (rmv)
+                cctx.cache().removeIfObsolete(key); // Clear cache.
+        }
+    }
+
+    /**
      * @return Collection of readers after check.
      * @throws GridCacheEntryRemovedException If removed.
      */

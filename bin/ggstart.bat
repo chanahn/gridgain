@@ -142,6 +142,9 @@ set JMX_MON=%JMX_MON% -Dcom.sun.management.jmxremote.port=%JMX_PORT% -Dcom.sun.m
 ::
 set JVM_OPTS=-Xms512m -Xmx512m -Xss16m -XX:MaxPermSize=384m -XX:+UseParNewGC -XX:MaxNewSize=128m -XX:NewSize=32m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
 
+:: For 32-bit JVMs comment the line above and uncomment the line below.
+:: set JVM_OPTS=-Xms128m -Xmx128m -Xss8m -XX:MaxPermSize=384m -XX:+UseParNewGC -XX:MaxNewSize=128m -XX:NewSize=32m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
+
 :: Uncomment to set preference to IPv4 stack.
 :: set JVM_OPTS=%JVM_OPTS% -Djava.net.preferIPv4Stack=true
 

@@ -310,7 +310,7 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
     /**
      * @throws GridException If failed.
      */
-    private void releaseSwap() throws GridException {
+    protected final void releaseSwap() throws GridException {
         if (cctx.isSwapEnabled()) {
             lock();
 

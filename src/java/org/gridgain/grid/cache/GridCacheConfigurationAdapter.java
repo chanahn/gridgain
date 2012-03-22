@@ -44,6 +44,9 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
     /** Preload thread pool size. */
     private int preloadPoolSize = DFLT_PRELOAD_THREAD_POOL_SIZE;
 
+    /** Preload timeout. */
+    private long preloadTimeout = DFLT_PRELOAD_TIMEOUT;
+
     /** Default time to live for cache entries. */
     private long ttl = DFLT_TIME_TO_LIVE;
 
@@ -277,6 +280,7 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
         preloadMode = cc.getPreloadMode();
         preloadBatchSize = cc.getPreloadBatchSize();
         preloadPoolSize = cc.getPreloadThreadPoolSize();
+        preloadTimeout = cc.getPreloadTimeout();
         refreshAheadRatio = cc.getRefreshAheadRatio();
         seqReserveSize = cc.getAtomicSequenceReserveSize();
         startSize = cc.getStartSize();
@@ -1170,6 +1174,20 @@ public class GridCacheConfigurationAdapter implements GridCacheConfiguration {
      */
     public void setPreloadThreadPoolSize(int preloadPoolSize) {
         this.preloadPoolSize = preloadPoolSize;
+    }
+
+    /** {@inheritDoc} */
+    @Override public long getPreloadTimeout() {
+        return preloadTimeout;
+    }
+
+    /**
+     * Gets preload timeout.
+     *
+     * @param preloadTimeout Preload timeout.
+     */
+    public void setPreloadTimeout(long preloadTimeout) {
+        this.preloadTimeout = preloadTimeout;
     }
 
     /** {@inheritDoc} */
