@@ -35,7 +35,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * Query adapter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public abstract class GridCacheQueryBaseAdapter<K, V> extends GridMetadataAwareAdapter implements
     GridCacheQueryBase<K, V> {

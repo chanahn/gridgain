@@ -137,14 +137,14 @@ import static org.gridgain.grid.spi.discovery.tcp.messages.GridTcpDiscoveryStatu
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridDiscoverySpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.21032012")
+    version = "4.0.0c.22032012")
 @GridSpiMultipleInstancesSupport(true)
 @GridDiscoverySpiOrderSupport(true)
 @GridDiscoverySpiReconnectSupport(true)
@@ -992,9 +992,7 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextInitialized(GridSpiContext spiCtx) throws GridSpiException {
-        super.onContextInitialized(spiCtx);
-
+    @Override public void onContextInitialized0(GridSpiContext spiCtx) throws GridSpiException {
         ctxInitLatch.countDown();
 
         spiCtx.registerPort(tcpSrvr.port, TCP);
@@ -1162,14 +1160,12 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextDestroyed() {
+    @Override protected void onContextDestroyed0() {
         if (ctxInitLatch.getCount() > 0)
             // Safety.
             ctxInitLatch.countDown();
 
         getSpiContext().deregisterPorts();
-
-        super.onContextDestroyed();
     }
 
     /**

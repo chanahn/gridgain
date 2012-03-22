@@ -14,7 +14,7 @@ package org.gridgain.grid.util;
  * it throws "normal" exceptions with standardized messages.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see A
  */
 public class GridArgumentCheck {

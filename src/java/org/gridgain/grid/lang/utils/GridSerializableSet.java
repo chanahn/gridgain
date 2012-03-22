@@ -22,7 +22,7 @@ import java.util.*;
  * sure to override these methods if it's possible to create efficient implementations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public abstract class GridSerializableSet<E> extends AbstractSet<E> implements Serializable {
     // No-op.

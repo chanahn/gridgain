@@ -15,7 +15,7 @@ import org.jetbrains.annotations.*;
  * Future computation completion is timed out.
  * 
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridFutureTimeoutException extends GridException {
     /**

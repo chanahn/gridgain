@@ -25,7 +25,7 @@ import java.util.*;
  * GridGain license generator.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridLicenseGeneratorV1 {
     /** Property key-value separator. */

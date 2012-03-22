@@ -26,7 +26,7 @@ import java.util.*;
  * method which can be {@code null}.
  *  
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridOpt
  */
 public class GridNullOpt<T> extends GridAbsPredicate implements GridTypedProduct<T> {

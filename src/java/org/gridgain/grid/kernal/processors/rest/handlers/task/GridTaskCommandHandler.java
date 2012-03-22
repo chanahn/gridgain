@@ -38,7 +38,7 @@ import static org.gridgain.grid.kernal.processors.rest.GridRestResponse.*;
  * Command handler for API requests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
     /** Task results. */

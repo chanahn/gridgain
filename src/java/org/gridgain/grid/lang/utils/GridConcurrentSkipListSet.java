@@ -23,7 +23,7 @@ import static java.lang.Boolean.*;
  * throwing {@link NoSuchElementException}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridConcurrentSkipListSet<E> extends GridSerializableSet<E> implements NavigableSet<E>, Cloneable {
     /**

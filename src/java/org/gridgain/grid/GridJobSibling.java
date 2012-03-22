@@ -18,7 +18,7 @@ import java.util.*;
  * from the same {@link GridTask#map(List, Object)} method invocation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public interface GridJobSibling extends GridMetadataAware {
     /**

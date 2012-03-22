@@ -24,7 +24,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Cache XA resource implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public final class GridCacheXAResource implements XAResource {
     /** Logger reference. */

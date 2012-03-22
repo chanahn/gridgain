@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.*;
  * concise code in cases when readability won't be sacrificed. For more information see {@link GridPredicate}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @param <E1> Type of the free variable, i.e. the element the predicate is called on.
  * @see GridFunc
  * @see GridPredicate

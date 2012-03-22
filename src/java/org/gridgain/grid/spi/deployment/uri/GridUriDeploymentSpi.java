@@ -10,7 +10,6 @@
 package org.gridgain.grid.spi.deployment.uri;
 
 import org.gridgain.grid.*;
-import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.spi.*;
@@ -22,6 +21,7 @@ import org.gridgain.grid.spi.deployment.uri.scanners.http.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -295,15 +295,16 @@ import java.util.Map.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridDeploymentSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.21032012")
+    version = "4.0.0c.22032012")
 @GridSpiMultipleInstancesSupport(true)
+@GridSpiConsistencyChecked(optional = false)
 @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
 public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeploymentSpi, GridUriDeploymentSpiMBean {
     /**
@@ -975,7 +976,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
                     ", encodedUri=" + U.hidePassword(encUri) + ']', e);
             }
 
-            if (uriObj.getScheme() == null || uriObj.getScheme().trim().length() == 0)
+            if (uriObj.getScheme() == null || uriObj.getScheme().trim().isEmpty())
                 throw new GridSpiException("Failed to get 'scheme' from URI [uri=" +
                     U.hidePassword(uri) +
                     ", encodedUri=" + U.hidePassword(encUri) + ']');
@@ -995,7 +996,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
         URI uri;
 
         // GridGain home found.
-        if (getGridGainHome() != null && getGridGainHome().length() > 0) {
+        if (getGridGainHome() != null && !getGridGainHome().isEmpty()) {
             File dir = new File(getGridGainHome(), DFLT_DEPLOY_DIR);
 
             if (!dir.exists())
@@ -1273,16 +1274,6 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
 
             return o1.getTimestamp() == o2.getTimestamp() ? 0 : -1;
         }
-    }
-
-    /** {@inheritDoc} */
-    @Override protected List<String> getConsistentAttributeNames() {
-        List<String> attrs = new ArrayList<String>(2);
-
-        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_CLASS));
-        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_VER));
-
-        return attrs;
     }
 
     /** {@inheritDoc} */

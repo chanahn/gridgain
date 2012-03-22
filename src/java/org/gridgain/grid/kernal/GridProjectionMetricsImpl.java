@@ -19,7 +19,7 @@ import static java.lang.Math.*;
  * Implementation for {@link GridProjectionMetrics} interface.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 class GridProjectionMetricsImpl implements GridProjectionMetrics {
     /** */

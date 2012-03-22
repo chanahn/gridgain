@@ -24,7 +24,7 @@ import java.util.concurrent.*;
  * Transaction node mapping.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridDistributedTxMapping<K, V> implements Externalizable {
     /** Mapped node. */

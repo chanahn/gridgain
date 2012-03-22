@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Cache sequence implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public final class GridCacheAtomicSequenceImpl extends GridMetadataAwareAdapter implements GridCacheAtomicSequenceEx,
     Externalizable {

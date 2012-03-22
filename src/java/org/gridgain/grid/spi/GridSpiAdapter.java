@@ -18,6 +18,7 @@ import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.json.*;
 import org.jetbrains.annotations.*;
+
 import javax.management.*;
 import java.io.*;
 import java.text.*;
@@ -29,7 +30,7 @@ import static org.gridgain.grid.GridEventType.*;
  * This class provides convenient adapter for SPI implementations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean, GridSpiJsonConfigurable {
     /** System line separator. */
@@ -164,7 +165,7 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextInitialized(final GridSpiContext spiCtx) throws GridSpiException {
+    @Override public final void onContextInitialized(final GridSpiContext spiCtx) throws GridSpiException {
         assert spiCtx != null;
 
         auth = new Authenticator() {
@@ -183,16 +184,38 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
                 GridNode node = spiCtx.node(((GridDiscoveryEvent)evt).eventNodeId());
 
                 if (node != null)
-                    checkConfigurationConsistency(spiCtx, node, false);
+                    try {
+                        checkConfigurationConsistency(spiCtx, node, false);
+                        checkConfigurationConsistency0(spiCtx, node, false);
+                    }
+                    catch(GridSpiException e) {
+                        U.error(log, "Spi consistency check failed [node=" + node.id() + ", spi=" + getName() + ']', e);
+                    }
             }
         }, EVT_NODE_JOINED);
 
-        for (GridNode node : spiCtx.remoteNodes())
+        for (GridNode node : spiCtx.remoteNodes()) {
             checkConfigurationConsistency(spiCtx, node, true);
+            checkConfigurationConsistency0(spiCtx, node, true);
+        }
+
+        onContextInitialized0(spiCtx);
+    }
+
+    /**
+     * Method to be called in the end of onContextInitialized method.
+     *
+     * @param spiCtx SPI context.
+     * @throws GridSpiException In case of errors.
+     */
+    protected void onContextInitialized0(final GridSpiContext spiCtx) throws GridSpiException {
+        // No-op.
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextDestroyed() {
+    @Override public final void onContextDestroyed() {
+        onContextDestroyed0();
+
         if (spiCtx != null && paramsLsnr != null)
             spiCtx.removeLocalEventListener(paramsLsnr);
 
@@ -200,6 +223,13 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
 
         // Set dummy no-op context.
         spiCtx = new GridDummySpiContext(locNode, auth);
+    }
+
+    /**
+     * Method to be called in the beginning of onContextDestroyed() method.
+     */
+    protected void onContextDestroyed0() {
+        // No-op.
     }
 
     /**
@@ -347,23 +377,72 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
     }
 
     /**
+     * @return {@code true} if this check is optional.
+     */
+    private boolean checkOptional() {
+        GridSpiConsistencyChecked ann = U.getAnnotation(getClass(), GridSpiConsistencyChecked.class);
+
+        return ann != null && ann.optional();
+    }
+
+    /**
+     * @return {@code true} if this check is enabled.
+     */
+    private boolean checkEnabled() {
+        return U.getAnnotation(getClass(), GridSpiConsistencyChecked.class) != null;
+    }
+
+    /**
+     * @return {@code true} if this check is enforced.
+     */
+    private boolean checkEnforced() {
+        return U.getAnnotation(getClass(), GridSpiConsistencyEnforced.class) != null;
+    }
+
+    /**
+     * Method which is called in the end of checkConfigurationConsistency() method. May be overriden in SPIs.
+     *
+     * @param spiCtx SPI context.
+     * @param node Remote node.
+     * @param starting If this node is starting or not.
+     * @throws GridSpiException in case of errors.
+     */
+    protected void checkConfigurationConsistency0(GridSpiContext spiCtx, GridNode node, boolean starting)
+        throws GridSpiException {
+        // No-op.
+    }
+
+    /**
      * Checks remote node SPI configuration and prints warnings if necessary.
      *
      * @param spiCtx SPI context.
      * @param node Remote node.
-     * @param starting Flag indicating whether this method is called during SPI start or
+     * @param starting Flag indicating whether this method is called during SPI start or not.
+     * @throws GridSpiException If check fatally failed.
      */
     @SuppressWarnings("IfMayBeConditional")
-    protected void checkConfigurationConsistency(GridSpiContext spiCtx, GridNode node, boolean starting) {
+    private void checkConfigurationConsistency(GridSpiContext spiCtx, GridNode node, boolean starting)
+        throws GridSpiException {
         assert spiCtx != null;
         assert node != null;
 
-        /*** Don't compare SPIs from different virtual grids. ***/
+        /*
+         * Optional SPI means that we should not print warning if SPIs are different but
+         * still need to compare attributes if SPIs are the same.
+         */
+        boolean optional = checkOptional();
+        boolean enabled = checkEnabled();
+        boolean enforced = checkEnforced();
+
+        if (!enabled && !enforced)
+            return;
+
+        /*** Don't compare SPIs from different virtual grids unless explicitly requested. ***/
 
         String locGridName = spiCtx.localNode().attribute(GridNodeAttributes.ATTR_GRID_NAME);
         String rmtGridName = node.attribute(GridNodeAttributes.ATTR_GRID_NAME);
 
-        if (!F.eq(locGridName, rmtGridName)) {
+        if (!F.eq(locGridName, rmtGridName) && !enforced) {
             if (log.isDebugEnabled())
                 log.debug("Skip consistency check for SPIs from different grids [locGridName=" + locGridName +
                     ", rmtGridName=" + rmtGridName + ']');
@@ -371,17 +450,8 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
             return;
         }
 
-        List<String> attrs = getConsistentAttributeNames();
-
         String clsAttr = createSpiAttributeName(GridNodeAttributes.ATTR_SPI_CLASS);
         String verAttr = createSpiAttributeName(GridNodeAttributes.ATTR_SPI_VER);
-
-        /*
-         * Optional SPI means that we should not print warning if SPIs are different but
-         * still need to compare attributes if SPIs are the same.
-         */
-        boolean isSpiOptional = !attrs.contains(clsAttr);
-        boolean isSpiConsistent = false;
 
         String name = getName();
 
@@ -391,37 +461,54 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
          * If there are any attributes do compare class and version
          * (do not print warning for the optional SPIs).
          */
-        if (!attrs.isEmpty()) {
-            /* Check SPI class and version. */
-            String locCls = spiCtx.localNode().attribute(clsAttr);
-            String rmtCls = node.attribute(clsAttr);
+        /* Check SPI class and version. */
+        String locCls = spiCtx.localNode().attribute(clsAttr);
+        String rmtCls = node.attribute(clsAttr);
 
-            String locVer = spiCtx.localNode().attribute(verAttr);
-            String rmtVer = node.attribute(verAttr);
+        String locVer = spiCtx.localNode().attribute(verAttr);
+        String rmtVer = node.attribute(verAttr);
 
-            assert locCls != null: "Local SPI class name attribute not found: " + clsAttr;
-            assert locVer != null: "Local SPI version attribute not found: " + verAttr;
+        assert locCls != null: "Local SPI class name attribute not found: " + clsAttr;
+        assert locVer != null: "Local SPI version attribute not found: " + verAttr;
 
-            if (!isSpiOptional) {
-                if (rmtCls == null)
-                    sb.a(format(">>> Remote SPI is not configured: " + name, locCls, rmtCls));
-                else if (!locCls.equals(rmtCls))
-                    sb.a(format(">>> Remote SPI is of different type: " + name, locCls, rmtCls));
-                else if (!F.eq(rmtVer, locVer)) {
-                    if (rmtVer.contains("x.x") || locVer.contains("x.x")) {
-                        if (log.isDebugEnabled())
-                            log.debug("Skip SPI version check for 'x.x' development version in: " + name);
-                    }
-                    else
-                        sb.a(format(">>> Remote SPI is of different version: " + name, locVer, rmtVer));
-                }
-                else
-                    isSpiConsistent = true;
+        boolean isSpiConsistent = false;
+
+        if (rmtCls == null) {
+            if (enforced && starting)
+                throw new GridSpiException("Remote SPI is not configured [name=" + name + ", loc=" + locCls + ']');
+
+            sb.a(format(">>> Remote SPI is not configured: " + name, locCls, rmtCls));
+        }
+        else if (!locCls.equals(rmtCls)) {
+            if (enforced && starting)
+                throw new GridSpiException("Remote SPI is of different type [name=" + name + ", loc=" + locCls +
+                    ", rmt=" + rmtCls + ']');
+
+            sb.a(format(">>> Remote SPI is of different type: " + name, locCls, rmtCls));
+        }
+        else if (!F.eq(rmtVer, locVer)) {
+            if (rmtVer.contains("x.x") || locVer.contains("x.x")) {
+                if (log.isDebugEnabled())
+                    log.debug("Skip SPI version check for 'x.x' development version in: " + name);
+            }
+            else {
+                if (enforced && starting)
+                    throw new GridSpiException("Remote SPI is of different version [name=" + name + ", locVer=" +
+                        locVer + ", rmtVer=" + rmtVer + ']');
+
+                sb.a(format(">>> Remote SPI is of different version: " + name, locVer, rmtVer));
             }
         }
+        else
+            isSpiConsistent = true;
+
+        if (optional && !isSpiConsistent)
+            return;
 
         // It makes no sense to compare inconsistent SPIs attributes.
         if (isSpiConsistent) {
+            List<String> attrs = getConsistentAttributeNames();
+
             // Process all SPI specific attributes.
             for (String attr: attrs) {
                 // Ignore class and version attributes processed above.
@@ -501,7 +588,7 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
      * Temporarily SPI context.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private static class GridDummySpiContext implements GridSpiContext {
         /** */

@@ -31,7 +31,7 @@ import org.slf4j.*;
  * injection.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridSlf4jLogger extends GridMetadataAwareAdapter implements GridLogger {
     /** SLF4J implementation proxy. */

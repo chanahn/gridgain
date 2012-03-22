@@ -18,7 +18,7 @@ import java.util.*;
  * This interface should be implemented by all distributed futures.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public interface GridCacheFuture<R> extends GridFuture<R> {
     /**

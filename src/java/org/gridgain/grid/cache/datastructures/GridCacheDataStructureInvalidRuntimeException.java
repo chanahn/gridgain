@@ -21,7 +21,7 @@ import org.jetbrains.annotations.*;
  * getting the underlying data structure from cache again.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridCacheDataStructureInvalidRuntimeException extends GridRuntimeException {
     /**

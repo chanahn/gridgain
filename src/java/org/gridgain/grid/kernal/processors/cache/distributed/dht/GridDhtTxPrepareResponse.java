@@ -23,7 +23,7 @@ import java.util.*;
  * DHT transaction prepare response.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridDhtTxPrepareResponse<K, V> extends GridDistributedTxPrepareResponse<K, V> {
     /** Evicted readers. */

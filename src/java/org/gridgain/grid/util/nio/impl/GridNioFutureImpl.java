@@ -25,7 +25,7 @@ import static java.util.concurrent.TimeUnit.*;
  * Default future implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridNioFutureImpl<R> implements GridNioFuture<R> {
     /** Done flag. */

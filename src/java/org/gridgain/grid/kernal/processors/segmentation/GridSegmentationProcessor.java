@@ -29,7 +29,7 @@ import java.util.*;
  * resolvers.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridConfiguration#getSegmentationResolvers()
  * @see GridConfiguration#getSegmentationPolicy()
  * @see GridConfiguration#getSegmentCheckFrequency()

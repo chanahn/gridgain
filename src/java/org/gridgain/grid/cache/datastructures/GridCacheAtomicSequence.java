@@ -50,7 +50,7 @@ import org.gridgain.grid.cache.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridCache#atomicSequence(String)
  * @see GridCache#atomicSequence(String, long, boolean)
  */

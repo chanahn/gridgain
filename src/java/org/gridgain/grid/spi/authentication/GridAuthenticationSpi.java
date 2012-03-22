@@ -49,8 +49,9 @@ import org.jetbrains.annotations.*;
  * to undefined behavior and explicitly not supported.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
+@GridSpiConsistencyEnforced
 public interface GridAuthenticationSpi extends GridSpi, GridSpiJsonConfigurable {
     /**
      * Checks if given subject is supported by this SPI. If not, then next authentication SPI

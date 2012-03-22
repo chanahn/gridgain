@@ -149,13 +149,13 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.21032012")
+    version = "4.0.0c.22032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridRoundRobinLoadBalancingSpi extends GridSpiAdapter implements GridLoadBalancingSpi,
     GridRoundRobinLoadBalancingSpiMBean {
@@ -248,9 +248,7 @@ public class GridRoundRobinLoadBalancingSpi extends GridSpiAdapter implements Gr
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextInitialized(GridSpiContext spiCtx) throws GridSpiException {
-        super.onContextInitialized(spiCtx);
-
+    @Override protected void onContextInitialized0(GridSpiContext spiCtx) throws GridSpiException {
         if (!isPerTask) {
             balancer.onContextInitialized(spiCtx);
         }
@@ -260,7 +258,7 @@ public class GridRoundRobinLoadBalancingSpi extends GridSpiAdapter implements Gr
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextDestroyed() {
+    @Override protected void onContextDestroyed0() {
         if (!isPerTask) {
             if (balancer != null) {
                 balancer.onContextDestroyed();
@@ -273,8 +271,6 @@ public class GridRoundRobinLoadBalancingSpi extends GridSpiAdapter implements Gr
                 spiCtx.removeLocalEventListener(lsnr);
             }
         }
-
-        super.onContextDestroyed();
     }
 
     /** {@inheritDoc} */

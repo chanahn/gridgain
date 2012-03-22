@@ -21,7 +21,7 @@ import org.gridgain.grid.*;
  * on additional functionality this adapter provides.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @param <R> Return value of the task (see {@link GridTask#reduce(java.util.List)} method).
  */
 public abstract class GridifyTaskAdapter<R> extends GridTaskAdapter<GridifyArgument, R> {

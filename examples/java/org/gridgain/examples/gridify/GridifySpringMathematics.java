@@ -16,7 +16,7 @@ import java.util.*;
  * Simple bean interface for Spring AOP-based annotations example.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public interface GridifySpringMathematics {
     /**

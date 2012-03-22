@@ -127,14 +127,14 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridSwapSpaceSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.21032012")
+    version = "4.0.0c.22032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridLevelDbSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpaceSpi, GridLevelDbSwapSpaceSpiMBean {
     /** Name for default (or {@code null}) space. */
@@ -829,6 +829,9 @@ public class GridLevelDbSwapSpaceSpi extends GridSpiAdapter implements GridSwapS
         GridLevelDbSpace space = space(spaceName);
 
         byte[] keyBytes = dbKeyBytes(key);
+        
+        if(c != null)
+            c.apply(space.get(keyBytes));
 
         space.delete(keyBytes);
 
@@ -1346,7 +1349,7 @@ public class GridLevelDbSwapSpaceSpi extends GridSpiAdapter implements GridSwapS
      * LevelDB based space to store data that is a simple wrapper for db methods without eviction.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private class GridLevelDbEvictDisabledSpace extends GridLevelDbSpace {
         /** */
@@ -1511,7 +1514,7 @@ public class GridLevelDbSwapSpaceSpi extends GridSpiAdapter implements GridSwapS
      * Abstract base class for LevelDB based stores with evictions.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private abstract class GridLevelDbEvictSpace extends GridLevelDbSpace {
         /** Number of read/write locks to perform database operations. */
@@ -1603,7 +1606,7 @@ public class GridLevelDbSwapSpaceSpi extends GridSpiAdapter implements GridSwapS
      * * LevelDB based space with eviction optimized for case when values are small.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private class GridLevelDbOptimizedLargeSpace extends GridLevelDbEvictSpace {
         /** Folder to store key->value mapping. */
@@ -1903,7 +1906,7 @@ public class GridLevelDbSwapSpaceSpi extends GridSpiAdapter implements GridSwapS
      * LevelDB based space with eviction optimized for case when values are small.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private class GridLevelDbOptimizedSmallSpace extends GridLevelDbEvictSpace {
         /** Folder to store key->meta + value mapping. */

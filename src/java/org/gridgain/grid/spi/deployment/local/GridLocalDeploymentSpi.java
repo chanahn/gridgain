@@ -20,10 +20,7 @@ import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.util.*;
-import java.util.Map.Entry;
-
-import static org.gridgain.grid.kernal.GridNodeAttributes.ATTR_SPI_CLASS;
-import static org.gridgain.grid.kernal.GridNodeAttributes.ATTR_SPI_VER;
+import java.util.Map.*;
 
 /**
  * Local deployment SPI that implements only within VM deployment on local
@@ -43,15 +40,16 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.ATTR_SPI_VER;
  * configuration parameters.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridDeploymentSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.21032012")
+    version = "4.0.0c.22032012")
 @GridSpiMultipleInstancesSupport(true)
+@GridSpiConsistencyChecked(optional = false)
 public class GridLocalDeploymentSpi extends GridSpiAdapter implements GridDeploymentSpi, GridLocalDeploymentSpiMBean {
     /** */
     @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
@@ -293,7 +291,7 @@ public class GridLocalDeploymentSpi extends GridSpiAdapter implements GridDeploy
      * @param rmvClsLdrs Class loaders to remove.
      * @return {@code True} if resource was removed.
      */
-    private boolean removeResources(ClassLoader clsLdrToIgnore, Map<String, String> rsrcs,
+    private boolean removeResources(@Nullable ClassLoader clsLdrToIgnore, Map<String, String> rsrcs,
         Collection<ClassLoader> rmvClsLdrs) {
         assert Thread.holdsLock(mux);
         assert rsrcs != null;
@@ -395,16 +393,6 @@ public class GridLocalDeploymentSpi extends GridSpiAdapter implements GridDeploy
     /** {@inheritDoc} */
     @Override public void setListener(GridDeploymentListener lsnr) {
         this.lsnr = lsnr;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected List<String> getConsistentAttributeNames() {
-        List<String> attrs = new ArrayList<String>(2);
-
-        attrs.add(createSpiAttributeName(ATTR_SPI_CLASS));
-        attrs.add(createSpiAttributeName(ATTR_SPI_VER));
-
-        return attrs;
     }
 
     /** {@inheritDoc} */

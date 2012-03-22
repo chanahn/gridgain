@@ -10,7 +10,6 @@
 package org.gridgain.grid.spi.checkpoint.sharedfs;
 
 import org.gridgain.grid.*;
-import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.marshaller.*;
 import org.gridgain.grid.resources.*;
@@ -92,15 +91,16 @@ import java.util.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridCheckpointSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.21032012")
+    version = "4.0.0c.22032012")
 @GridSpiMultipleInstancesSupport(true)
+@GridSpiConsistencyChecked(optional = false)
 public class GridSharedFsCheckpointSpi extends GridSpiAdapter implements GridCheckpointSpi,
     GridSharedFsCheckpointSpiMBean {
     /**
@@ -268,7 +268,7 @@ public class GridSharedFsCheckpointSpi extends GridSpiAdapter implements GridChe
             if (new File(curDirPath).exists())
                 folder = new File(curDirPath);
             else {
-                if (getGridGainHome() != null && getGridGainHome().length() > 0) {
+                if (getGridGainHome() != null && !getGridGainHome().isEmpty()) {
                     // Create relative by default.
                     folder = new File(getGridGainHome(), curDirPath);
 
@@ -492,16 +492,6 @@ public class GridSharedFsCheckpointSpi extends GridSpiAdapter implements GridChe
 
         if (timeoutTask != null)
             timeoutTask.setCheckpointListener(lsnr);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected List<String> getConsistentAttributeNames() {
-        List<String> attrs = new ArrayList<String>(2);
-
-        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_CLASS));
-        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_VER));
-
-        return attrs;
     }
 
     /** {@inheritDoc} */

@@ -34,7 +34,7 @@ import java.util.*;
  * is always empty. Nodes exchange their metrics using metrics store.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridTcpDiscoveryHeartbeatMessage extends GridTcpDiscoveryAbstractMessage {
     /** Map to store nodes metrics. */

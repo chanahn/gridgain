@@ -18,7 +18,7 @@ import java.nio.*;
  * Re-sizable array implementation of the byte list (eliminating auto-boxing of primitive byte type).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridByteArrayList implements Externalizable {
     /** List byte data. */

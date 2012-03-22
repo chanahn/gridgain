@@ -17,7 +17,7 @@ import org.gridgain.grid.util.stopwatch.*;
  * use only and meant to provide for more terse code when readability of code is not compromised.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 @SuppressWarnings({"ExtendsUtilityClass"})
 public class W extends GridStopwatchFactory { /* No-op. */ }

@@ -16,7 +16,7 @@ import org.gridgain.grid.util.mbean.*;
  * Management bean for {@link GridBasicTopologySpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 @GridMBeanDescription("MBean that provides access to basic topology SPI configuration.")
 public interface GridBasicTopologySpiMBean extends GridSpiManagementMBean {

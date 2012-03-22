@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.*
  * Adapter for Java's {@code GridMapper}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 abstract class GroverMapper<T1, T2> extends GridMapper<T1, T2> {
     /** Map function. */

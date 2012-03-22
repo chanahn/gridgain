@@ -44,7 +44,7 @@ import org.gridgain.grid.spi.metrics.jdk.*;
 import org.gridgain.grid.spi.securesession.*;
 import org.gridgain.grid.spi.securesession.noop.*;
 import org.gridgain.grid.spi.swapspace.*;
-import org.gridgain.grid.spi.swapspace.file.*;
+import org.gridgain.grid.spi.swapspace.leveldb.*;
 import org.gridgain.grid.spi.topology.*;
 import org.gridgain.grid.spi.topology.basic.*;
 import org.gridgain.grid.thread.*;
@@ -134,7 +134,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * For more information refer to {@link GridSpringBean} documentation.
 
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridFactory {
     /**
@@ -1303,7 +1303,7 @@ public class GridFactory {
      * Grid data container.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
@@ -1722,7 +1722,7 @@ public class GridFactory {
                 loadBalancingSpi = new GridLoadBalancingSpi[] {new GridRoundRobinLoadBalancingSpi()};
 
             if (swapspaceSpi == null)
-                swapspaceSpi = new GridSwapSpaceSpi[] {new GridFileSwapSpaceSpi()};
+                swapspaceSpi = new GridSwapSpaceSpi[] {new GridLevelDbSwapSpaceSpi()};
 
             myCfg.setCommunicationSpi(commSpi);
             myCfg.setDiscoverySpi(discoSpi);
@@ -2220,7 +2220,7 @@ public class GridFactory {
          * Contains necessary data for selected MBeanServer.
          *
          * @author 2012 Copyright (C) GridGain Systems
-         * @version 4.0.0c.21032012
+         * @version 4.0.0c.22032012
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

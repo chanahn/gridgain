@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.GridClosure2X
  * Wrapping Scala function for `GridClosure2X`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 class ScalarClosure2XFunction[T1, T2, R](val inner: GridClosure2X[T1, T2, R]) extends ((T1, T2) => R) {
     assert(inner != null)

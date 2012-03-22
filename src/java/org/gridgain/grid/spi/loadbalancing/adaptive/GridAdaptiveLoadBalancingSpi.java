@@ -220,13 +220,13 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.21032012")
+    version = "4.0.0c.22032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridAdaptiveLoadBalancingSpi extends GridSpiAdapter implements GridLoadBalancingSpi,
     GridAdaptiveLoadBalancingSpiMBean {
@@ -309,9 +309,7 @@ public class GridAdaptiveLoadBalancingSpi extends GridSpiAdapter implements Grid
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextInitialized(GridSpiContext spiCtx) throws GridSpiException {
-        super.onContextInitialized(spiCtx);
-
+    @Override protected void onContextInitialized0(GridSpiContext spiCtx) throws GridSpiException {
         getSpiContext().addLocalEventListener(evtLsnr = new GridLocalEventListener() {
             @Override public void onEvent(GridEvent evt) {
                 switch (evt.type()) {
@@ -410,7 +408,7 @@ public class GridAdaptiveLoadBalancingSpi extends GridSpiAdapter implements Grid
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextDestroyed() {
+    @Override protected void onContextDestroyed0() {
         if (evtLsnr != null) {
             GridSpiContext ctx = getSpiContext();
 
@@ -482,7 +480,7 @@ public class GridAdaptiveLoadBalancingSpi extends GridSpiAdapter implements Grid
      * Holder for weighted topology.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private class WeightedTopology {
         /** Topology sorted by weight. */

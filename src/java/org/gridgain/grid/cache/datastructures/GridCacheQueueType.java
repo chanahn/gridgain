@@ -15,7 +15,7 @@ import org.jetbrains.annotations.*;
  * Supported distributed cache queue types.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridCacheQueue
  */
 public enum GridCacheQueueType {

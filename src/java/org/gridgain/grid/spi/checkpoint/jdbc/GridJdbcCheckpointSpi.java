@@ -93,14 +93,14 @@ import java.text.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 @SuppressWarnings({"JDBCResourceOpenedButNotSafelyClosed", "JDBCExecuteWithNonConstantString"})
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.21032012")
+    version = "4.0.0c.22032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridJdbcCheckpointSpi extends GridSpiAdapter implements GridCheckpointSpi, GridJdbcCheckpointSpiMBean {
     /** Default number of retries in case of errors (value is {@code 2}). */
@@ -511,7 +511,7 @@ public class GridJdbcCheckpointSpi extends GridSpiAdapter implements GridCheckpo
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextDestroyed() {
+    @Override protected void onContextDestroyed0() {
         if (dataSrc != null) {
             Connection conn = null;
 
@@ -532,8 +532,6 @@ public class GridJdbcCheckpointSpi extends GridSpiAdapter implements GridCheckpo
                 U.close(conn, log);
             }
         }
-
-        super.onContextDestroyed();
     }
 
     /** {@inheritDoc} */

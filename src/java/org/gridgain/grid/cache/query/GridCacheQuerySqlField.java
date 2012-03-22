@@ -17,7 +17,7 @@ import java.lang.annotation.*;
  * {@link GridCacheReduceQuery}, or {@link GridCacheTransformQuery} documentation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridCacheQuery
  * @see GridCacheReduceQuery
  * @see GridCacheTransformQuery

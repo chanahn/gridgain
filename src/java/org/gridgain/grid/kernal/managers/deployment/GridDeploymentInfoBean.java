@@ -22,7 +22,7 @@ import java.util.*;
  * Deployment info bean.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridDeploymentInfoBean implements GridDeploymentInfo, Externalizable {
     /** */

@@ -33,7 +33,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
  * This class defines task processor.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridTaskProcessor extends GridProcessorAdapter {
     /** Wait for 5 seconds to allow discovery to take effect (best effort). */
@@ -133,12 +133,12 @@ public class GridTaskProcessor extends GridProcessorAdapter {
         }
 
         if (!execTasks.isEmpty()) {
-            if (cancel)
-                U.warn(log, "Canceling unfinished tasks due to stopping of the grid [cnt=" + execTasks.size() + "]");
-
             if (wait)
                 U.warn(log, "Will wait for all job responses from tasks before stopping grid" +
                     " (this may take some time)...");
+
+            if (cancel)
+                U.warn(log, "Canceling unfinished tasks due to stopping of the grid [cnt=" + execTasks.size() + "]");
         }
 
         // Interrupt jobs outside of synchronization.
@@ -152,16 +152,19 @@ public class GridTaskProcessor extends GridProcessorAdapter {
                         U.error(log, "Failed to cancel task: " + task, e);
 
                         task.cancel();
-
-                        @SuppressWarnings({"ThrowableInstanceNeverThrown"})
-                        Throwable ex = new GridException("Task failed due to stopping of the grid: " + task);
-
-                        task.finishTask(null, ex);
                     }
+
+                    Throwable ex = new GridTaskCancelledException("Task cancelled due to stopping of the grid [name=" +
+                        task.getSession().getTaskName() + ", sesId=" + task.getSession().getId() + ']');
+
+                    task.finishTask(null, ex);
                 }
 
                 try {
                     task.getTaskFuture().get();
+                }
+                catch (GridTaskCancelledException e) {
+                    U.warn(log, e.getMessage());
                 }
                 catch (GridException e) {
                     U.error(log, "Task failed: " + task, e);
@@ -171,8 +174,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
                 if (cancel)
                     task.cancel();
 
-                @SuppressWarnings({"ThrowableInstanceNeverThrown"})
-                Throwable ex = new GridException("Task failed due to stopping of the grid: " + task);
+                Throwable ex = new GridTaskCancelledException("Task cancelled due to stopping of the grid: " + task);
 
                 task.finishTask(null, ex);
             }
@@ -1056,7 +1058,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
      * Listener to node discovery events.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private class TaskDiscoveryListener implements GridLocalEventListener {
         /** {@inheritDoc} */

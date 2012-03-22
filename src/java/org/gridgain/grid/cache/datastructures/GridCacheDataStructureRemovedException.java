@@ -16,7 +16,7 @@ import org.jetbrains.annotations.*;
  * This exception gets thrown if attempt to access a removed data structure has been made.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridCacheDataStructureRemovedException extends GridException {
     /**

@@ -11,7 +11,6 @@ package org.gridgain.grid.spi.discovery.multicast;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
-import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
@@ -102,15 +101,16 @@ import static org.gridgain.grid.spi.discovery.multicast.GridMulticastDiscoveryNo
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridDiscoverySpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.21032012")
+    version = "4.0.0c.22032012")
 @GridSpiMultipleInstancesSupport(true)
+@GridSpiConsistencyChecked(optional = false)
 public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDiscoverySpi,
     GridMulticastDiscoverySpiMBean {
     /** Default heartbeat delay (value is {@code 3,000ms}). */
@@ -756,10 +756,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextInitialized(GridSpiContext spiCtx) throws GridSpiException {
+    @Override protected void onContextInitialized0(GridSpiContext spiCtx) throws GridSpiException {
         assert !isSpiCtxInitialized : "Multicast discovery SPI already initialized.";
-
-        super.onContextInitialized(spiCtx);
 
         getSpiContext().registerPort(boundTcpPort, GridPortProtocol.TCP);
         getSpiContext().registerPort(mcastPort, GridPortProtocol.UDP);
@@ -792,10 +790,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextDestroyed() {
+    @Override protected void onContextDestroyed0() {
         getSpiContext().deregisterPorts();
-
-        super.onContextDestroyed();
     }
 
     /** {@inheritDoc} */
@@ -1019,13 +1015,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
 
     /** {@inheritDoc} */
     @Override protected List<String> getConsistentAttributeNames() {
-        List<String> attrs = new ArrayList<String>(3);
-
-        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_CLASS));
-        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_VER));
-        attrs.add(createSpiAttributeName(HEARTBEAT_ATTRIBUTE_KEY));
-
-        return attrs;
+        return Collections.singletonList(createSpiAttributeName(HEARTBEAT_ATTRIBUTE_KEY));
     }
 
     /**
@@ -1063,7 +1053,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * to leave grid it sends corresponded message with leaving state.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private class MulticastHeartbeatSender extends GridSpiThread {
         /** Heartbeat message helper. */
@@ -1189,7 +1179,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * that comes from the others.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private class MulticastHeartbeatReceiver extends GridSpiThread {
         /** Multicast socket message is read from. */
@@ -1448,7 +1438,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * Tcp handshake sender.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private class TcpHandshakeSender extends GridSpiThread {
         /** Heartbeat. */
@@ -1655,7 +1645,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * Listener that processes TCP messages.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private class TcpHandshakeListener extends GridSpiThread {
         /** Socket TCP listener is set to. */
@@ -1875,7 +1865,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * milliseconds.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private class NodeSweeper extends GridSpiThread {
         /**

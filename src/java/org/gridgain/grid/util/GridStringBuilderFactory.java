@@ -15,7 +15,7 @@ import org.gridgain.grid.typedef.internal.*;
  * Per-thread cache of {@link StringBuilder} instances.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public final class GridStringBuilderFactory {
     /** Cache string builders per thread for better performance. */
@@ -56,7 +56,7 @@ public final class GridStringBuilderFactory {
      * Cached builder.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private static class CachedBuilder {
         /** Cached builder. */

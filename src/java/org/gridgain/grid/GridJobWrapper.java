@@ -20,7 +20,7 @@ import java.util.concurrent.*;
  * job needs to be cloned to multiple grid nodes during mapping phase of task execution.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridJobWrapper extends GridMetadataAwareAdapter implements GridJob, Callable<Object>,
     GridPeerDeployAware {

@@ -15,7 +15,7 @@ import org.gridgain.grid.typedef.internal.*;
  * Thrown when an operation is performed on removed entry.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridCacheFilterFailedException extends Exception {
     /** Value for which filter failed. */

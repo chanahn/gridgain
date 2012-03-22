@@ -47,7 +47,7 @@ import org.springframework.context.support.*;
  * output).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public final class GridMultipleTopologyExample {
     /**

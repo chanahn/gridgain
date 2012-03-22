@@ -24,7 +24,7 @@ import java.io.*;
  * arbitrary {@link #userObject()} put into the queue can also be indexed the same way.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridCacheQueueItemImpl<T> implements GridCacheQueueItem<T>, GridPeerDeployAware, Externalizable,
     Cloneable {

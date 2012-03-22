@@ -17,7 +17,7 @@ import org.jetbrains.annotations.*;
  * Adds affinity node ID to cache responses.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridCacheRestResponse extends GridRestResponse {
     /** Affinity node ID. */

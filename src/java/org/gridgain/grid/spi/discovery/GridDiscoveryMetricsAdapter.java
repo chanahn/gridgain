@@ -21,7 +21,7 @@ import java.io.*;
  * must be taken to update {@link GridDiscoveryMetricsHelper} as well. 
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridDiscoveryMetricsAdapter implements GridNodeMetrics, Externalizable {
     /** */

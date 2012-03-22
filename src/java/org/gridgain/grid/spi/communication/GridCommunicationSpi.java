@@ -43,7 +43,7 @@ import java.util.*;
  * to undefined behavior and explicitly not supported.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public interface GridCommunicationSpi extends GridSpi, GridSpiJsonConfigurable {
     /**

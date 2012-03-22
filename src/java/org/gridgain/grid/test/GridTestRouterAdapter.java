@@ -25,7 +25,7 @@ import static org.gridgain.grid.test.GridTestVmParameters.*;
  * are any. If there are no remote nodes, tests will be routed to local node.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridTestRouterAdapter implements GridTestRouter {
     /** */

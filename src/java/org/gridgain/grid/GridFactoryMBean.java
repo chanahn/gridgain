@@ -15,7 +15,7 @@ import org.gridgain.grid.util.mbean.*;
  * This interface defines JMX view on {@link GridFactory}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 @GridMBeanDescription("MBean that provides access to grid life-cycle operations.")
 public interface GridFactoryMBean {

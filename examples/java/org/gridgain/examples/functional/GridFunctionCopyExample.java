@@ -16,7 +16,7 @@ import java.util.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridFunctionCopyExample {
     /**
@@ -73,7 +73,7 @@ public class GridFunctionCopyExample {
      * This class simply represents a goods information.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private static class Item {
         /** Item name. */

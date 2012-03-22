@@ -13,7 +13,7 @@ package org.gridgain.grid.util.worker;
  * Convenience adapter for {@link GridWorker}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridWorkerListenerAdapter implements GridWorkerListener {
     /** {@inheritDoc} */

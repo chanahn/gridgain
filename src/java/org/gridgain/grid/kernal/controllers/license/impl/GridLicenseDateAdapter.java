@@ -17,7 +17,7 @@ import java.util.*;
  * Date-string XML adapter for JAXB.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridLicenseDateAdapter extends XmlAdapter<String, Date> {
     /** Pattern. */

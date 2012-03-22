@@ -17,7 +17,7 @@ import java.io.*;
  * Grid deployment response containing requested resource bytes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 class GridDeploymentResponse implements Externalizable {
     /** Result state. */

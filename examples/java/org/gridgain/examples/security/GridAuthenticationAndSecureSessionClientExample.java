@@ -21,7 +21,7 @@ import java.util.*;
  * Shows client authentication feature.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridAuthenticationAndSecureSessionClientExample {
     /** Change this property to start example in SSL mode. */
@@ -56,7 +56,10 @@ public class GridAuthenticationAndSecureSessionClientExample {
             X.println(">>> Current grid topology: " + client.compute().refreshTopology(true, true));
 
             // Command succeeded, session between client and grid node has been established.
-            X.println(">>> Secure session between client and grid has been established.");
+            if(useSsl)
+                X.println(">>> Secure session between client and grid has been established.");
+            else
+                X.println(">>> Session between client and grid has been established.");
 
             //...
             //...

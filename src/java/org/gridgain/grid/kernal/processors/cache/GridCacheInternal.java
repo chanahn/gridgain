@@ -15,7 +15,7 @@ package org.gridgain.grid.kernal.processors.cache;
  * operations (eviction, iteration).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public interface GridCacheInternal {
     // No-op.

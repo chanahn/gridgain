@@ -17,7 +17,7 @@ package org.gridgain.client;
  * node leaving and client receives topology update is {@link GridClientConfiguration#getTopologyRefreshFrequency()}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public interface GridClientTopologyListener {
     /**

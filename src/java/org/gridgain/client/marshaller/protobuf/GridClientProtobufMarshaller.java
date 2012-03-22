@@ -25,7 +25,7 @@ import static org.gridgain.client.message.protobuf.ClientMessagesProtocols.Objec
  * Client messages marshaller based on protocol buffers compiled code.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 @SuppressWarnings({"unchecked", "UnnecessaryFullyQualifiedName"})
 public class GridClientProtobufMarshaller implements GridClientMarshaller {

@@ -2,7 +2,6 @@ package org.gridgain.grid.spi.communication.tcp;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
-import org.gridgain.grid.kernal.*;
 import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.marshaller.*;
@@ -103,7 +102,7 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridCommunicationSpi
  */
 @SuppressWarnings({"deprecation"}) @GridSpiInfo(
@@ -112,6 +111,7 @@ import static org.gridgain.grid.GridEventType.*;
     email = "support@gridgain.com",
     version = "3.0")
 @GridSpiMultipleInstancesSupport(true)
+@GridSpiConsistencyChecked(optional = false)
 public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommunicationSpi,
     GridTcpCommunicationSpiMBean {
     /** Number of threads responsible for handling messages. */
@@ -612,9 +612,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     }
 
     /** {@inheritDoc} }*/
-    @Override public void onContextInitialized(GridSpiContext spiCtx) throws GridSpiException {
-        super.onContextInitialized(spiCtx);
-
+    @Override public void onContextInitialized0(GridSpiContext spiCtx) throws GridSpiException {
         getSpiContext().registerPort(boundTcpPort, GridPortProtocol.TCP);
 
         getSpiContext().addLocalEventListener(discoLsnr, EVT_NODE_LEFT, EVT_NODE_FAILED);
@@ -728,12 +726,10 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     }
 
     /** {@inheritDoc} */
-    @Override public void onContextDestroyed() {
+    @Override protected void onContextDestroyed0() {
         getSpiContext().deregisterPorts();
 
         getSpiContext().removeLocalEventListener(discoLsnr);
-
-        super.onContextDestroyed();
     }
 
     /**
@@ -756,9 +752,8 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     }
 
     /** {@inheritDoc} */
-    @Override protected void checkConfigurationConsistency(GridSpiContext spiCtx, GridNode node, boolean starting) {
-        super.checkConfigurationConsistency(spiCtx, node, starting);
-
+    @Override protected void checkConfigurationConsistency0(GridSpiContext spiCtx, GridNode node, boolean starting)
+        throws GridSpiException {
         // These attributes are set on node startup in any case, so we MUST receive them.
         checkAttributePresence(node, createSpiAttributeName(ATTR_ADDR));
         checkAttributePresence(node, createSpiAttributeName(ATTR_PORT));
@@ -1266,16 +1261,6 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     }
 
     /** {@inheritDoc} */
-    @Override protected List<String> getConsistentAttributeNames() {
-        List<String> attrs = new ArrayList<String>(2);
-
-        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_CLASS));
-        attrs.add(createSpiAttributeName(GridNodeAttributes.ATTR_SPI_VER));
-
-        return attrs;
-    }
-
-    /** {@inheritDoc} */
     @Override public String toString() {
         return S.toString(GridTcpCommunicationSpi.class, this);
     }
@@ -1308,7 +1293,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
         /**
          * Gets number of client reservations (i.e. calls to acquireClient made before pool was closed)
          *
-         * @return Number of successfull or pending reservations.
+         * @return Number of successful or pending reservations.
          */
         public int clientReservations() {
             return second();

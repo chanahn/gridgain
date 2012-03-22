@@ -37,7 +37,7 @@ import typedef._
  * cache: `'ggstart.sh examples/config/spring-cache.xml'`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 object ScalarCountGraphTrianglesExample {
     /** Cache name. */

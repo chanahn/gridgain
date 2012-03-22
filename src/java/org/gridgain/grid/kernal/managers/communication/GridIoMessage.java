@@ -21,7 +21,7 @@ import java.util.*;
  * Wrapper for all grid messages.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridIoMessage implements Externalizable {
     /** Sender ID. */

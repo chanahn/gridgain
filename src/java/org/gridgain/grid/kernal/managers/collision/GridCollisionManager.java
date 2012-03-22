@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.*;
  * This class defines a collision manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridCollisionManager extends GridManagerAdapter<GridCollisionSpi> {
     /** */

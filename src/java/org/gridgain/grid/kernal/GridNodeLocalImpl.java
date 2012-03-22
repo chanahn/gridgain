@@ -20,7 +20,7 @@ import java.util.concurrent.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 public class GridNodeLocalImpl<K, V> extends ConcurrentHashMap<K, V> implements GridNodeLocal<K, V>, Externalizable {
     /** */

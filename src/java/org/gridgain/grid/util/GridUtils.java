@@ -72,7 +72,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Collection of utility methods used throughout the system.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -1108,20 +1108,40 @@ public abstract class GridUtils {
         // local address on any network.
         int reachTimeout = 2000;
 
-        if (locHost.isLoopbackAddress() || !reachable(locHost, reachTimeout))
-            for (NetworkInterface itf : asIterable(NetworkInterface.getNetworkInterfaces()))
-                for (InetAddress addr : asIterable(itf.getInetAddresses()))
-                    if (!addr.isLoopbackAddress() && !addr.isLinkLocalAddress() && reachable(addr, reachTimeout)) {
+        if (locHost.isLoopbackAddress() || !reachable(locHost, reachTimeout)) {
+            for (NetworkInterface itf : asIterable(NetworkInterface.getNetworkInterfaces())) {
+                for (InetAddress addr : asIterable(itf.getInetAddresses())) {
+                    if (!addr.isLoopbackAddress() && !addr.isLinkLocalAddress() && reachable(itf, addr, reachTimeout)) {
                         locHost = addr;
 
                         break;
                     }
+                }
+            }
+        }
 
         return locHost;
     }
 
     /**
-     * Checks if address can be reached.
+     * Checks if address can be reached using three argument InetAddress.isReachable() version.
+     *
+     * @param itf Network interface to use for test.
+     * @param addr Address to check.
+     * @param reachTimeout Timeout for the check.
+     * @return {@code True} if address is reachable.
+     */
+    public static boolean reachable(NetworkInterface itf, InetAddress addr, int reachTimeout) {
+        try {
+            return addr.isReachable(itf, 0, reachTimeout);
+        }
+        catch (IOException ignore) {
+            return false;
+        }
+    }
+
+    /**
+     * Checks if address can be reached using one argument InetAddress.isReachable() version.
      *
      * @param addr Address to check.
      * @param reachTimeout Timeout for the check.
@@ -1544,7 +1564,7 @@ public abstract class GridUtils {
      * Verifier always returns successful result for any host.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.21032012
+     * @version 4.0.0c.22032012
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.
@@ -3974,8 +3994,23 @@ public abstract class GridUtils {
      * @return Instance of annotation, or {@code null} if not found.
      */
     @Nullable public static <T extends Annotation> T getAnnotation(Class<?> cls, Class<T> annCls) {
-        for (Class<?> c = cls; c != null && !c.equals(Object.class); c = c.getSuperclass()) {
-            T ann = c.getAnnotation(annCls);
+        if (cls == Object.class)
+            return null;
+
+        T ann = cls.getAnnotation(annCls);
+
+        if (ann != null)
+            return ann;
+
+        for (Class<?> itf : cls.getInterfaces()) {
+            ann = getAnnotation(itf, annCls); // Recursion.
+
+            if (ann != null)
+                return ann;
+        }
+
+        if (!cls.isInterface()) {
+            ann = getAnnotation(cls.getSuperclass(), annCls);
 
             if (ann != null)
                 return ann;

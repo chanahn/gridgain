@@ -30,7 +30,7 @@ import org.gridgain.grid.util.tostring.*;
  * becomes unavailable while future is held externally by the user.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  */
 @GridToStringExclude
 public interface GridKernalGateway {

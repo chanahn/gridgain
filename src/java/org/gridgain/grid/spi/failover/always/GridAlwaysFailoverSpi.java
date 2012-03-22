@@ -70,15 +70,16 @@ import java.util.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.21032012
+ * @version 4.0.0c.22032012
  * @see GridFailoverSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.21032012")
+    version = "4.0.0c.22032012")
 @GridSpiMultipleInstancesSupport(true)
+@GridSpiConsistencyChecked(optional = true)
 public class GridAlwaysFailoverSpi extends GridSpiAdapter implements GridFailoverSpi, GridAlwaysFailoverSpiMBean {
     /** Maximum number of attempts to execute a failed job on another node (default is {@code 5}). */
     public static final int DFLT_MAX_FAILOVER_ATTEMPTS = 5;
