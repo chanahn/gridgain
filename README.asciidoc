@@ -1,5 +1,5 @@
 GridGain - Real Time Big Data
-==============================
+=============================
 Nikita Ivanov <nivanov@gridgain.com>
 :Author Initials: NI
 :toc:
