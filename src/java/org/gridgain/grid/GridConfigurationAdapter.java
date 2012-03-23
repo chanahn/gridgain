@@ -747,16 +747,22 @@ public class GridConfigurationAdapter implements GridConfiguration {
     }
 
     /** {@inheritDoc} */
+    @Deprecated
     @Override public UUID getNodeId() {
         return nodeId;
     }
 
     /**
+     * This method is deprecated - GridGain internally will always guarantee that node IDs are
+     * always unique and never repeat. Use node attributes (see {@link #getUserAttributes()}
+     * to uniquely identify same logical nodes between restarts.
+     * <p>
      * Sets unique identifier for local node.
      *
      * @param nodeId Unique identifier for local node.
      * @see GridConfiguration#getNodeId()
      */
+    @Deprecated
     public void setNodeId(@Nullable UUID nodeId) {
         this.nodeId = nodeId;
     }

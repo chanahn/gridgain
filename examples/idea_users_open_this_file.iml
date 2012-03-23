@@ -41,7 +41,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/gridgain-4.0.0c.jar!/" />
+          <root url="jar://$MODULE_DIR$/%ANT_AUGMENTED_GGJAR%!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

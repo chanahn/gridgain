@@ -1,0 +1,12 @@
+GridGain is shipped with pre-configured .project and .classpath files for Eclipse.
+
+To create GridGain project in Eclipse do the following:
+
+1. If you want to run Scala examples, install the latest version of Scala IDE for Eclipse. See instructions
+   here: http://scala-ide.org/docs/user/gettingstarted.html (note that only Eclipse 3.6.2 is fully supported).
+   If you are going to use only Java, skip this step.
+2. Go to File -> New -> Project... and choose General Project wizard.
+3. Give your project a name (e.g., GridGain) and point it to the folder where you unzipped your GridGain
+   distribution.
+4. If you installed Scala IDE (step 1), go to Project -> Properties -> Builders and disable Java builder
+   (leave only Scala builder enabled).

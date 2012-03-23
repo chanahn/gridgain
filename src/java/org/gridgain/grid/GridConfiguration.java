@@ -387,11 +387,16 @@ public interface GridConfiguration {
     public MBeanServer getMBeanServer();
 
     /**
+     * This method is deprecated - GridGain internally will always guarantee that node IDs are
+     * always unique and never repeat. Use node attributes (see {@link #getUserAttributes()}
+     * to uniquely identify same logical nodes between restarts.
+     * <p>
      * Unique identifier for this node within grid. If not provided, default value will be used.
      * See {@link GridFactory} for information on default configuration.
      *
      * @return Unique identifier for this node within grid.
      */
+    @Deprecated
     public UUID getNodeId();
 
     /**

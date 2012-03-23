@@ -236,7 +236,7 @@ class GridUpdateNotifier {
                 if ("version".equals(name)) {
                     String content = meta.getAttribute("content");
 
-                    if (content != null && content.length() > 0)
+                    if (content != null && !content.isEmpty())
                         return content;
                 }
             }
