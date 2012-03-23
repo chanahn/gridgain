@@ -7,7 +7,7 @@ Nikita Ivanov <nivanov@gridgain.com>
 :numbered:
 :website: http://www.gridgain.com
 
-image::http://www.gridgain.com/images/logo2_bw_no_ver.png[]
+image::http://www.gridgain.com/images/logo/logo_mid.png[]
 
 GridGain is Java based open source middleware for real time big data processing and 
 analytics that scales up from one server to thousands of machines. 
