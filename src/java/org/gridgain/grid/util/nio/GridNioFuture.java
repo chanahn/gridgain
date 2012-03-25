@@ -19,7 +19,7 @@ import java.util.concurrent.*;
  * listen methods which require a valid grid kernal context.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  * @param <R> Type of the result for the future.
  */
 public interface GridNioFuture<R> {

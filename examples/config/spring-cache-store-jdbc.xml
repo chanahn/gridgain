@@ -38,7 +38,6 @@
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-2.5.xsd">
     <description>Main Spring file for grid configuration.</description>
 
-
     <!--
         Configuration below demonstrates how to setup a collision and failover SPI's
         to enable work stealing from overloaded nodes to underloaded nodes.

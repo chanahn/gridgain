@@ -44,7 +44,7 @@ import java.util.*;
  * If divisor is found, then we return it, otherwise we return {@code null}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridifyPrimeTask  extends GridifyTaskSplitAdapter<Long> {
     /** {@inheritDoc} */

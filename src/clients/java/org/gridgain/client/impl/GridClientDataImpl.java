@@ -18,7 +18,7 @@ import java.util.*;
  * Data projection that serves one cache instance and handles communication errors.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridClientDataImpl extends GridClientAbstractProjection<GridClientDataImpl> implements GridClientData {
     /** Cache name. */

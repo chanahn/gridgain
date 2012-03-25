@@ -7,7 +7,7 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 4.0.0c.22032012
+# Version: 4.0.0c.24032012
 #
 
 #
@@ -69,6 +69,8 @@ if [ "${GRIDGAIN_HOME}" = "" ]; then
             export GRIDGAIN_HOME="$(dirname $(readlink -f $0))"/..
             ;;
     esac
+elif [ "${GRIDGAIN_HOME}/bin" != "$(dirname $(readlink -f $0))" ]; then
+    echo $0", WARN: GRIDGAIN_HOME environment variable may be pointing to wrong folder: $GRIDGAIN_HOME"
 fi
 
 #

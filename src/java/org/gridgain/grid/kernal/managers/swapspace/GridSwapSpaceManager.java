@@ -30,7 +30,7 @@ import static org.gridgain.grid.GridEventType.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridSwapSpaceManager extends GridManagerAdapter<GridSwapSpaceSpi> {
     /** Local node ID. */
@@ -283,7 +283,7 @@ public class GridSwapSpaceManager extends GridManagerAdapter<GridSwapSpaceSpi> {
          *
          */
         private EventWorker() {
-            super(ctx.gridName(), "swap-mgr-evt-worker", log);
+            super(ctx.gridName(), "swap-event-worker", log);
         }
 
         /**

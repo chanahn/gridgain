@@ -28,7 +28,7 @@ import static org.gridgain.grid.kernal.processors.rest.GridRestCommand.*;
  * Command handler for API requests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
     /**
@@ -74,57 +74,41 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
         Collection<Object> keys = values("k", req);
 
         final GridCacheRestResponse res = new GridCacheRestResponse();
-
-        if (key == null &&
-            req.getCommand() != CACHE_METRICS &&
-            req.getCommand() != CACHE_GET_ALL &&
-            req.getCommand() != CACHE_PUT_ALL &&
-            req.getCommand() != CACHE_REMOVE_ALL) {
-            res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-            res.setError(missingParameter("key"));
-
-            return new GridFinishedFuture<GridRestResponse>(ctx, res);
-        }
-
-        if (F.isEmpty(keys) && (
-            req.getCommand() == CACHE_GET_ALL ||
-            req.getCommand() == CACHE_PUT_ALL)) {
-            res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-            res.setError(missingParameter("k1"));
-
-            return new GridFinishedFuture<GridRestResponse>(ctx, res);
-        }
-
-        final GridCache<Object, Object> cache = ctx.cache().cache(cacheName);
-
-        if (cache == null) {
-            res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-            res.setError("Failed to find cache for given cache name (null for default cache): " + cacheName);
-
-            return new GridFinishedFuture<GridRestResponse>(ctx, res);
-        }
-
-        // Set affinity node ID.
-        UUID nodeId = null;
-
-        if (key != null)
-            nodeId = cache.mapKeyToNode(key).id();
-
-        res.setAffinityNodeId(nodeId == null ? null : nodeId.toString());
-
         final GridFutureAdapter<GridRestResponse> fut = new GridFutureAdapter<GridRestResponse>(ctx);
 
         try {
-            Object val;
+            GridRestCommand cmd = req.getCommand();
+
+            if (key == null && (cmd == CACHE_GET || cmd == CACHE_PUT || cmd == CACHE_ADD || cmd == CACHE_REMOVE ||
+                cmd == CACHE_REPLACE || cmd == CACHE_INCREMENT || cmd == CACHE_DECREMENT || cmd == CACHE_CAS ||
+                cmd == CACHE_APPEND || cmd == CACHE_PREPEND))
+                throw new GridException(missingParameter("key"));
+
+            if (F.isEmpty(keys) && (cmd == CACHE_GET_ALL || cmd == CACHE_PUT_ALL))
+                throw new GridException(missingParameter("k1"));
+
+            final GridCache<Object, Object> cache = ctx.cache().cache(cacheName);
+
+            if (cache == null)
+                throw new GridException(
+                    "Failed to find cache for given cache name (null for default cache): " + cacheName);
+
+            // Set affinity node ID.
+            UUID nodeId = null;
+
+            if (key != null)
+                nodeId = cache.mapKeyToNode(key).id();
+
+            res.setAffinityNodeId(nodeId == null ? null : nodeId.toString());
+
             GridFuture<?> opFut;
 
-            switch (req.getCommand()) {
-                case CACHE_GET:
-                    opFut = cache.getAsync(key);
+            Object val;
 
-                    opFut.listenAsync(new CIX1<GridFuture<?>>() {
+            switch (cmd) {
+                case CACHE_GET:
+                    cache.getAsync(key).listenAsync(new CIX1<GridFuture<?>>() {
                         @Override public void applyx(GridFuture<?> f) throws GridException {
-                            res.setSuccessStatus(GridRestResponse.STATUS_SUCCESS);
                             res.setResponse(f.get());
 
                             fut.onDone(res);
@@ -134,11 +118,8 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
                     break;
 
                 case CACHE_GET_ALL:
-                    opFut = cache.getAllAsync(keys);
-
-                    opFut.listenAsync(new CIX1<GridFuture<?>>() {
+                    cache.getAllAsync(keys).listenAsync(new CIX1<GridFuture<?>>() {
                         @Override public void applyx(GridFuture<?> f) throws GridException {
-                            res.setSuccessStatus(GridRestResponse.STATUS_SUCCESS);
                             res.setResponse(f.get());
 
                             fut.onDone(res);
@@ -150,111 +131,12 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
                 case CACHE_PUT:
                     val = value("val", req);
 
-                    if (val != null) {
-                        opFut = cache.putxAsync(key, val);
+                    if (val == null)
+                        throw new GridException(missingParameter("val"));
 
-                        opFut.listenAsync(new CIX1<GridFuture<?>>() {
-                            @Override public void applyx(GridFuture<?> f) throws GridException {
-                                res.setSuccessStatus((Boolean)f.get() ? GridRestResponse.STATUS_SUCCESS :
-                                    GridRestResponse.STATUS_FAILED);
-
-                                res.setResponse(f.get());
-
-                                setExpiration(cache, key, req);
-
-                                fut.onDone(res);
-                            }
-                        });
-                    }
-                    else {
-                        res.setSuccessStatus(GridRestResponse.STATUS_SUCCESS);
-                        res.setResponse(false);
-                        res.setError(missingParameter("val"));
-
-                        fut.onDone(res);
-                    }
-
-                    break;
-
-                case CACHE_ADD:
-                    if (!cache.containsKey(key)) {
-                        val = value("val", req);
-
-                        if (val != null) {
-                            opFut = cache.putxAsync(key, val);
-
-                            opFut.listenAsync(new CIX1<GridFuture<?>>() {
-                                @Override public void applyx(GridFuture<?> f) throws GridException {
-                                    res.setSuccessStatus((Boolean)f.get() ? GridRestResponse.STATUS_SUCCESS :
-                                        GridRestResponse.STATUS_FAILED);
-
-                                    res.setResponse(f.get());
-
-                                    setExpiration(cache, key, req);
-
-                                    fut.onDone(res);
-                                }
-                            });
-                        }
-                        else {
-                            res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-                            res.setResponse(false);
-                            res.setError(missingParameter("val"));
-
-                            fut.onDone(res);
-                        }
-                    }
-                    else {
-                        res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-                        res.setResponse(false);
-
-                        fut.onDone(res);
-                    }
-
-                    break;
-
-                case CACHE_PUT_ALL:
-                    Collection<Object> vals = values("v", req);
-
-                    if (keys.size() == vals.size()) {
-                        Map<Object, Object> map = new GridLeanMap<Object, Object>(keys.size());
-
-                        Iterator keysIt = keys.iterator();
-                        Iterator valsIt = vals.iterator();
-
-                        while (keysIt.hasNext() && valsIt.hasNext())
-                            map.put(keysIt.next(), valsIt.next());
-
-                        assert !keysIt.hasNext() && !valsIt.hasNext();
-
-                        opFut = cache.putAllAsync(map);
-
-                        opFut.listenAsync(new CI1<GridFuture<?>>() {
-                            @Override public void apply(GridFuture<?> f) {
-                                res.setSuccessStatus(GridRestResponse.STATUS_SUCCESS);
-                                res.setResponse(true);
-
-                                fut.onDone(res);
-                            }
-                        });
-                    }
-                    else {
-                        res.setSuccessStatus(GridRestResponse.STATUS_SUCCESS);
-                        res.setResponse(true);
-                        res.setError("Number of keys and values must be equal.");
-
-                        fut.onDone(res);
-                    }
-
-                    break;
-
-                case CACHE_REMOVE:
-                    opFut = cache.removexAsync(key);
-
-                    opFut.listenAsync(new CIX1<GridFuture<?>>() {
+                    cache.putxAsync(key, val).listenAsync(new CIX1<GridFuture<?>>() {
                         @Override public void applyx(GridFuture<?> f) throws GridException {
-                            res.setSuccessStatus((Boolean)f.get() ? GridRestResponse.STATUS_SUCCESS :
-                                GridRestResponse.STATUS_FAILED);
+                            setExpiration(cache, key, req);
 
                             res.setResponse(f.get());
 
@@ -264,12 +146,77 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
 
                     break;
 
+                case CACHE_ADD:
+                    val = value("val", req);
+
+                    if (val == null)
+                        throw new GridException(missingParameter("val"));
+
+                    if (cache.containsKey(key)) {
+                        res.setResponse(false);
+
+                        fut.onDone(res);
+
+                        break;
+                    }
+
+                    cache.putxAsync(key, val).listenAsync(new CIX1<GridFuture<?>>() {
+                        @Override public void applyx(GridFuture<?> f) throws GridException {
+                            setExpiration(cache, key, req);
+
+                            res.setResponse(f.get());
+
+                            fut.onDone(res);
+                        }
+                    });
+
+                    break;
+
+                case CACHE_PUT_ALL:
+                    Collection<Object> vals = values("v", req);
+
+                    if (vals == null)
+                        throw new GridException(missingParameter("v"));
+
+                    if (keys.size() != vals.size())
+                        throw new GridException("Number of keys and values must be equal.");
+
+                    Map<Object, Object> map = new GridLeanMap<Object, Object>(keys.size());
+
+                    Iterator keysIt = keys.iterator();
+                    Iterator valsIt = vals.iterator();
+
+                    while (keysIt.hasNext() && valsIt.hasNext())
+                        map.put(keysIt.next(), valsIt.next());
+
+                    assert !keysIt.hasNext() && !valsIt.hasNext();
+
+                    cache.putAllAsync(map).listenAsync(new CI1<GridFuture<?>>() {
+                        @Override public void apply(GridFuture<?> f) {
+                            res.setResponse(true);
+
+                            fut.onDone(res);
+                        }
+                    });
+
+                    break;
+
+                case CACHE_REMOVE:
+                    cache.removexAsync(key).listenAsync(new CIX1<GridFuture<?>>() {
+                        @Override public void applyx(GridFuture<?> f) throws GridException {
+                            res.setResponse(f.get());
+
+                            fut.onDone(res);
+                        }
+                    });
+
+                    break;
+
                 case CACHE_REMOVE_ALL:
-                    opFut = !F.isEmpty(keys) ? cache.removeAllAsync(keys) : cache.removeAllAsync();
+                    opFut = F.isEmpty(keys) ? cache.removeAllAsync() : cache.removeAllAsync(keys);
 
                     opFut.listenAsync(new CI1<GridFuture<?>>() {
                         @Override public void apply(GridFuture<?> f) {
-                            res.setSuccessStatus(GridRestResponse.STATUS_SUCCESS);
                             res.setResponse(true);
 
                             fut.onDone(res);
@@ -281,28 +228,18 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
                 case CACHE_REPLACE:
                     val = value("val", req);
 
-                    if (val == null) {
-                        res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-                        res.setError(missingParameter("val"));
+                    if (val == null)
+                        throw new GridException(missingParameter("val"));
 
-                        fut.onDone(res);
-                    }
-                    else {
-                        opFut = cache.replacexAsync(key, val);
+                    cache.replacexAsync(key, val).listenAsync(new CIX1<GridFuture<?>>() {
+                        @Override public void applyx(GridFuture<?> f) throws GridException {
+                            setExpiration(cache, key, req);
 
-                        opFut.listenAsync(new CIX1<GridFuture<?>>() {
-                            @Override public void applyx(GridFuture<?> f) throws GridException {
-                                setExpiration(cache, key, req);
+                            res.setResponse(f.get());
 
-                                res.setSuccessStatus((Boolean)f.get() ? GridRestResponse.STATUS_SUCCESS :
-                                    GridRestResponse.STATUS_FAILED);
-
-                                res.setResponse(f.get());
-
-                                fut.onDone(res);
-                            }
-                        });
-                    }
+                            fut.onDone(res);
+                        }
+                    });
 
                     break;
 
@@ -327,9 +264,6 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
 
                     opFut.listenAsync(new CIX1<GridFuture<?>>() {
                         @Override public void applyx(GridFuture<?> f) throws GridException {
-                            res.setSuccessStatus((Boolean)f.get() ? GridRestResponse.STATUS_SUCCESS :
-                                GridRestResponse.STATUS_FAILED);
-
                             res.setResponse(f.get());
 
                             fut.onDone(res);
@@ -351,20 +285,20 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
                 case CACHE_METRICS:
                     GridCacheMetrics metrics;
 
-                    if (key != null) {
+                    if (key == null)
+                        // Cache metrics.
+                        metrics = cache.metrics();
+                    else {
                         GridCacheEntry<Object, Object> entry = cache.entry(key);
 
                         assert entry != null;
 
+                        // Entry metrics.
                         metrics = entry.metrics();
                     }
-                    else
-                        // Cache metrics were requested.
-                        metrics = cache.metrics();
 
                     assert metrics != null;
 
-                    res.setSuccessStatus(GridRestResponse.STATUS_SUCCESS);
                     res.setResponse(new GridCacheRestMetrics(metrics.createTime(), metrics.readTime(),
                         metrics.writeTime(), metrics.reads(), metrics.writes(), metrics.hits(), metrics.misses()));
 
@@ -379,10 +313,7 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
         catch (GridException e) {
             U.error(log, "Failed to execute cache command: " + req, e);
 
-            res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-            res.setError(e.getMessage());
-
-            return new GridFinishedFuture<GridRestResponse>(ctx, res);
+            return new GridFinishedFuture<GridRestResponse>(ctx, e);
         }
         finally {
             if (log.isDebugEnabled())
@@ -399,7 +330,7 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
      * @param key Key.
      * @param req Request.
      */
-    private void setExpiration(GridCacheProjection<Object,Object> cache,
+    private void setExpiration(GridCacheProjection<Object, Object> cache,
         Object key, GridRestRequest req) {
         assert cache != null;
         assert key != null;
@@ -440,8 +371,6 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
         Object initObj = value("init", req);
         Object deltaObj = value("delta", req);
 
-        String error = null;
-
         Long init = null;
 
         if (initObj != null) {
@@ -450,50 +379,40 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
                     init = Long.valueOf((String)initObj);
                 }
                 catch (NumberFormatException ignored) {
-                    error = invalidNumericParameter("init");
+                    throw new GridException(invalidNumericParameter("init"));
                 }
             }
             else if (initObj instanceof Long)
                 init = (Long)initObj;
         }
 
+        if (deltaObj == null)
+            throw new GridException(missingParameter("delta"));
+
         Long delta = null;
 
-        if (deltaObj != null) {
-            if (deltaObj instanceof String) {
-                try {
-                    delta = Long.valueOf((String)deltaObj);
-                }
-                catch (NumberFormatException ignored) {
-                    error = invalidNumericParameter("delta");
-                }
+        if (deltaObj instanceof String) {
+            try {
+                delta = Long.valueOf((String)deltaObj);
             }
-            else if (deltaObj instanceof Long)
-                delta = (Long)deltaObj;
+            catch (NumberFormatException ignored) {
+                throw new GridException(invalidNumericParameter("delta"));
+            }
         }
-        else
-            error = missingParameter("delta");
+        else if (deltaObj instanceof Long)
+            delta = (Long)deltaObj;
 
-        if (error == null) {
-            GridCacheAtomicLong l = init != null ? cache.atomicLong(key, init, false) : cache.atomicLong(key);
+        GridCacheAtomicLong l = init != null ? cache.atomicLong(key, init, false) : cache.atomicLong(key);
 
-            GridFuture<Long> opFut = l.addAndGetAsync(decr ? -delta : delta);
+        GridFuture<Long> opFut = l.addAndGetAsync(decr ? -delta : delta);
 
-            opFut.listenAsync(new CIX1<GridFuture<?>>() {
-                @Override public void applyx(GridFuture<?> f) throws GridException {
-                    res.setSuccessStatus(GridRestResponse.STATUS_SUCCESS);
-                    res.setResponse(f.get());
+        opFut.listenAsync(new CIX1<GridFuture<?>>() {
+            @Override public void applyx(GridFuture<?> f) throws GridException {
+                res.setResponse(f.get());
 
-                    fut.onDone(res);
-                }
-            });
-        }
-        else {
-            res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-            res.setError(error);
-
-            fut.onDone(res);
-        }
+                fut.onDone(res);
+            }
+        });
     }
 
     /**
@@ -505,13 +424,14 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
      * @param res Response.
      * @param fut Future.
      * @param prepend Whether to prepend.
+     * @throws GridException In case of any exception.
      */
     private void appendOrPrepend(
-        final GridCacheProjection<Object,Object> cache,
+        final GridCacheProjection<Object, Object> cache,
         final Object key,
         GridRestRequest req, final GridRestResponse res,
         final GridFutureAdapter<GridRestResponse> fut,
-        final boolean prepend) {
+        final boolean prepend) throws GridException {
         assert cache != null;
         assert key != null;
         assert req != null;
@@ -519,54 +439,40 @@ public class GridCacheCommandHandler extends GridRestCommandHandlerAdapter {
 
         final Object val = value("val", req);
 
-        if (val != null) {
-            GridFuture<Object> getFut = cache.getAsync(key);
+        if (val == null)
+            throw new GridException(missingParameter("val"));
 
-            getFut.listenAsync(new CIX1<GridFuture<Object>>() {
-                @Override public void applyx(GridFuture<Object> f) throws GridException {
-                    Object currVal = f.get();
+        cache.getAsync(key).listenAsync(new CIX1<GridFuture<Object>>() {
+            @Override public void applyx(GridFuture<Object> f) throws GridException {
+                Object currVal = f.get();
 
-                    if (currVal != null) {
-                        if (val instanceof String && currVal instanceof String) {
-                            String newVal = prepend ? (String)val + currVal : currVal + (String)val;
+                if (currVal == null) {
+                    res.setResponse(false);
 
-                            GridFuture<Boolean> putFut = cache.putxAsync(key, newVal);
+                    fut.onDone(res);
 
-                            putFut.listenAsync(new CIX1<GridFuture<Boolean>>() {
-                                @Override public void applyx(GridFuture<Boolean> f) throws GridException {
-                                    res.setSuccessStatus((Boolean)f.get() ? GridRestResponse.STATUS_SUCCESS :
-                                        GridRestResponse.STATUS_FAILED);
+                    return;
+                }
 
-                                    res.setResponse(f.get());
+                if (!(val instanceof String && currVal instanceof String)) {
+                    fut.onDone(new GridException("Incompatible types."));
 
-                                    fut.onDone(res);
-                                }
-                            });
-                        }
-                        else {
-                            res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-                            res.setResponse(false);
-                            res.setError("Incompatible types.");
+                    return;
+                }
 
-                            fut.onDone(res);
-                        }
-                    }
-                    else {
-                        res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-                        res.setResponse(false);
+                String newVal = prepend ? (String)val + currVal : currVal + (String)val;
+
+                GridFuture<Boolean> putFut = cache.putxAsync(key, newVal);
+
+                putFut.listenAsync(new CIX1<GridFuture<Boolean>>() {
+                    @Override public void applyx(GridFuture<Boolean> f) throws GridException {
+                        res.setResponse(f.get());
 
                         fut.onDone(res);
                     }
-                }
-            });
-        }
-        else {
-            res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-            res.setResponse(false);
-            res.setError(missingParameter("val"));
-
-            fut.onDone(res);
-        }
+                });
+            }
+        });
     }
 
     /** {@inheritDoc} */

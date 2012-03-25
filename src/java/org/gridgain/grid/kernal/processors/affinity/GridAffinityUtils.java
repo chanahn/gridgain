@@ -28,7 +28,7 @@ import static org.gridgain.grid.GridJobResultPolicy.*;
  * Affinity utility methods.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 class GridAffinityUtils {
     /**
@@ -76,7 +76,7 @@ class GridAffinityUtils {
                             catch (GridException e) {
                                 res.set3(e);
 
-                                log.error("Failed to transfer affinity:", e);
+                                U.error(log, "Failed to transfer affinity:", e);
                             }
 
                         return res;

@@ -183,7 +183,10 @@
   </component>
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/idea_users_open_this_file.iml" filepath="$PROJECT_DIR$/idea_users_open_this_file.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Examples.iml" filepath="$PROJECT_DIR$/Examples.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Java client.iml" filepath="$PROJECT_DIR$/Java client.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Main.iml" filepath="$PROJECT_DIR$/Main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Sources.iml" filepath="$PROJECT_DIR$/Sources.iml" />
     </modules>
   </component>
   <component name="ProjectResources">
@@ -197,7 +200,25 @@
   </component>
   <component name="WebServicesPlugin" addRequiredLibraries="true" />
   <component name="libraryTable">
-    <library name="libs">
+    <library name="Examples libraries">
+      <CLASSES>
+        <root url="file://$PROJECT_DIR$/examples/libs/hadoop" />
+        <root url="file://$PROJECT_DIR$/examples/libs/hadoop" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES />
+      <jarDirectory url="file://$PROJECT_DIR$/examples/libs/hadoop" recursive="false" />
+    </library>
+    <library name="Java client libraries">
+      <CLASSES>
+        <root url="file://$PROJECT_DIR$/clients/java/libs" />
+        <root url="file://$PROJECT_DIR$/clients/java/libs" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES />
+      <jarDirectory url="file://$PROJECT_DIR$/clients/java/libs" recursive="false" />
+    </library>
+    <library name="Libraries">
       <CLASSES>
         <root url="file://$PROJECT_DIR$/libs" />
         <root url="file://$PROJECT_DIR$/libs" />
@@ -206,7 +227,7 @@
       <SOURCES />
       <jarDirectory url="file://$PROJECT_DIR$/libs" recursive="false" />
     </library>
-    <library name="scala">
+    <library name="Scala">
       <CLASSES>
         <root url="jar://$PROJECT_DIR$/libs/scala-compiler-2.9.1.jar!/" />
         <root url="jar://$PROJECT_DIR$/libs/scala-library-2.9.1.jar!/" />

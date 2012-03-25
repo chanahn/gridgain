@@ -100,7 +100,7 @@ import java.util.concurrent.*;
  * with Gridify annotation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @GridLoader(description = "Weblogic loader")
 @SuppressWarnings("deprecation")

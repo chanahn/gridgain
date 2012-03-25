@@ -20,7 +20,7 @@ import java.util.*;
  * Abstract command handler.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public abstract class GridRestCommandHandlerAdapter implements GridRestCommandHandler {
     /** Kernal context. */
@@ -74,14 +74,15 @@ public abstract class GridRestCommandHandlerAdapter implements GridRestCommandHa
         assert req != null;
 
         List<T> vals = new LinkedList<T>();
+        Set<String> keys = req.getParameters().keySet();
 
         int i = 1;
 
         while (true) {
-            T p = this.<T>value(keyPrefix + i++, req);
+            String key = keyPrefix + i++;
 
-            if (p != null)
-                vals.add(p);
+            if (keys.contains(key))
+                vals.add(this.<T>value(key, req));
             else
                 break;
         }
@@ -90,16 +91,20 @@ public abstract class GridRestCommandHandlerAdapter implements GridRestCommandHa
     }
 
     /**
+     * Return missing parameter error message.
+     *
      * @param param Parameter name.
-     * @return Error message.
+     * @return Missing parameter error message.
      */
     protected String missingParameter(String param) {
         return "Failed to find mandatory parameter in request: " + param;
     }
 
     /**
+     * Return invalid numeric parameter error message.
+     *
      * @param param Parameter name.
-     * @return Error message.
+     * @return Invalid numeric parameter error message.
      */
     protected String invalidNumericParameter(String param) {
         return "Failed to parse numeric parameter: " + param;

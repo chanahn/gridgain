@@ -23,7 +23,7 @@ import java.nio.*;
  * Implementation of SSL filter using {@link SSLEngine}
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridNioSslFilter extends GridNioFilterAdapter {
     /** Handler meta name. */

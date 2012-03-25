@@ -134,7 +134,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * For more information refer to {@link GridSpringBean} documentation.
 
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridFactory {
     /**
@@ -488,7 +488,7 @@ public class GridFactory {
                 return;
             }
 
-            U.log(null, "Restarting node. Will exit(" + RESTART_EXIT_CODE + ").");
+            U.log(null, "Restarting node. Will exit (" + RESTART_EXIT_CODE + ").");
 
             // Set the exit code so that shell process can recognize it and loop
             // the start up sequence again.
@@ -1016,11 +1016,10 @@ public class GridFactory {
                 e.getMessage() + ']', e);
         }
 
-        if (cfgMap == null) {
+        if (cfgMap == null)
             throw new GridException("Failed to find a single grid factory configuration in: " + springCfgUrl);
-        }
 
-        if (isLog4jUsed)
+        if (isLog4jUsed) {
             try {
                 // Remove previously added no-op logger.
                 Class appenderCls = Class.forName("org.apache.log4j.Appender");
@@ -1030,6 +1029,7 @@ public class GridFactory {
             catch (Exception e) {
                 throw new GridException("Failed to remove previously added no-op logger for Log4j.", e);
             }
+        }
 
         if (cfgMap.isEmpty())
             throw new GridException("Can't find grid factory configuration in: " + springCfgUrl);
@@ -1050,13 +1050,14 @@ public class GridFactory {
         }
         catch (GridException e) {
             // Stop all instances started so far.
-            for (GridNamedInstance grid : grids)
+            for (GridNamedInstance grid : grids) {
                 try {
                     grid.stop(true, false);
                 }
                 catch (Exception e1) {
                     U.error(grid.log, "Error when stopping grid: " + grid, e1);
                 }
+            }
 
             throw e;
         }
@@ -1303,7 +1304,7 @@ public class GridFactory {
      * Grid data container.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.22032012
+     * @version 4.0.0c.24032012
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
@@ -1364,7 +1365,10 @@ public class GridFactory {
         /** Start latch. */
         private final CountDownLatch startLatch = new CountDownLatch(1);
 
-        /** Thread that starts this named instance. This field can be non-volatile. */
+        /**
+         * Thread that starts this named instance. This field can be non-volatile since
+         * it makes sense only for thread where it was originally initialized.
+         */
         @SuppressWarnings("FieldAccessedSynchronizedAndUnsynchronized")
         private Thread starterThread;
 
@@ -1462,6 +1466,7 @@ public class GridFactory {
          * @param ctx Optional Spring application context.
          * @throws GridException If start failed.
          */
+        @SuppressWarnings("deprecation")
         private void start0(GridConfiguration cfg, boolean single, ApplicationContext ctx) throws GridException {
             assert grid == null : "Grid is already started: " + name;
 
@@ -2220,7 +2225,7 @@ public class GridFactory {
          * Contains necessary data for selected MBeanServer.
          *
          * @author 2012 Copyright (C) GridGain Systems
-         * @version 4.0.0c.22032012
+         * @version 4.0.0c.24032012
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

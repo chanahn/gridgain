@@ -27,9 +27,8 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
-@SuppressWarnings({"UnusedDeclaration"})
 public class GridClosureProcessor extends GridProcessorAdapter {
     /** */
     private GridWorkerPool sysPool;
@@ -41,7 +40,6 @@ public class GridClosureProcessor extends GridProcessorAdapter {
     private final ReadWriteLock busyLock = new ReentrantReadWriteLock();
 
     /**
-     *
      * @param ctx Kernal context.
      */
     public GridClosureProcessor(GridKernalContext ctx) {
@@ -986,6 +984,38 @@ public class GridClosureProcessor extends GridProcessorAdapter {
     public <R> GridFuture<R> callAsync(GridClosureCallMode mode,
         @Nullable Callable<R> job, @Nullable Collection<? extends GridNode> nodes) {
         return callAsync(mode, job, nodes, false);
+    }
+
+    /**
+     * @param mode Distribution mode.
+     * @param job Closure to execute.
+     * @param nodes Grid nodes.
+     * @param sys If {@code true}, then system pool will be used.
+     * @param <R> Type.
+     * @return Grid future for collection of closure results.
+     */
+    public <R> GridFuture<R> callAsyncNoFailover(GridClosureCallMode mode, @Nullable Callable<R> job,
+        @Nullable Collection<? extends GridNode> nodes, boolean sys) {
+        assert mode != null;
+
+        enterBusy2();
+
+        try {
+            if (job == null)
+                return new GridFinishedFuture<R>(ctx);
+
+            if (F.isEmpty(nodes))
+                return new GridFinishedFuture<R>(ctx, makeException());
+
+            ctx.task().setThreadContext(TC_RESULT, X.NO_FAILOVER);
+
+            ctx.task().setThreadContext(TC_SUBGRID, nodes);
+
+            return ctx.task().execute(new T8<R>(mode, job, nodes, ctx), null, 0, null, sys);
+        }
+        finally {
+            leaveBusy();
+        }
     }
 
     /**

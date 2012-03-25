@@ -10,7 +10,7 @@ public final class ClientMessagesProtocols {
   }
   public enum ObjectWrapperType
       implements com.google.protobuf.ProtocolMessageEnum {
-    NULL(0, 0),
+    NONE(0, 0),
     BOOL(1, 1),
     BYTE(2, 2),
     SHORT(3, 3),
@@ -32,7 +32,7 @@ public final class ClientMessagesProtocols {
     TASK_BEAN(19, 61),
     ;
     
-    public static final int NULL_VALUE = 0;
+    public static final int NONE_VALUE = 0;
     public static final int BOOL_VALUE = 1;
     public static final int BYTE_VALUE = 2;
     public static final int SHORT_VALUE = 3;
@@ -58,7 +58,7 @@ public final class ClientMessagesProtocols {
     
     public static ObjectWrapperType valueOf(int value) {
       switch (value) {
-        case 0: return NULL;
+        case 0: return NONE;
         case 1: return BOOL;
         case 2: return BYTE;
         case 3: return SHORT;
@@ -108,7 +108,7 @@ public final class ClientMessagesProtocols {
     }
     
     private static final ObjectWrapperType[] VALUES = {
-      NULL, BOOL, BYTE, SHORT, INT32, INT64, FLOAT, DOUBLE, BYTES, STRING, COLLECTION, MAP, CACHE_REQUEST, TASK_REQUEST, LOG_REQUEST, TOPOLOGY_REQUEST, AUTH_REQUEST, RESPONSE, NODE_BEAN, TASK_BEAN, 
+      NONE, BOOL, BYTE, SHORT, INT32, INT64, FLOAT, DOUBLE, BYTES, STRING, COLLECTION, MAP, CACHE_REQUEST, TASK_REQUEST, LOG_REQUEST, TOPOLOGY_REQUEST, AUTH_REQUEST, RESPONSE, NODE_BEAN, TASK_BEAN, 
     };
     
     public static ObjectWrapperType valueOf(
@@ -192,7 +192,7 @@ public final class ClientMessagesProtocols {
     }
     
     private void initFields() {
-      type_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperType.NULL;
+      type_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperType.NONE;
       binary_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
@@ -362,7 +362,7 @@ public final class ClientMessagesProtocols {
       
       public Builder clear() {
         super.clear();
-        type_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperType.NULL;
+        type_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperType.NONE;
         bitField0_ = (bitField0_ & ~0x00000001);
         binary_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -496,7 +496,7 @@ public final class ClientMessagesProtocols {
       private int bitField0_;
       
       // required .org.gridgain.client.message.ObjectWrapperType type = 1;
-      private org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperType type_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperType.NULL;
+      private org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperType type_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperType.NONE;
       public boolean hasType() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
@@ -514,7 +514,7 @@ public final class ClientMessagesProtocols {
       }
       public Builder clearType() {
         bitField0_ = (bitField0_ & ~0x00000001);
-        type_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperType.NULL;
+        type_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperType.NONE;
         onChanged();
         return this;
       }
@@ -4919,10 +4919,10 @@ public final class ClientMessagesProtocols {
     boolean hasTaskName();
     String getTaskName();
     
-    // required .org.gridgain.client.message.Collection arguments = 4;
-    boolean hasArguments();
-    org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection getArguments();
-    org.gridgain.client.message.protobuf.ClientMessagesProtocols.CollectionOrBuilder getArgumentsOrBuilder();
+    // required .org.gridgain.client.message.ObjectWrapper argument = 4;
+    boolean hasArgument();
+    org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper getArgument();
+    org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperOrBuilder getArgumentOrBuilder();
   }
   public static final class ProtoTaskRequest extends
       com.google.protobuf.GeneratedMessage
@@ -4985,22 +4985,22 @@ public final class ClientMessagesProtocols {
       }
     }
     
-    // required .org.gridgain.client.message.Collection arguments = 4;
-    public static final int ARGUMENTS_FIELD_NUMBER = 4;
-    private org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection arguments_;
-    public boolean hasArguments() {
+    // required .org.gridgain.client.message.ObjectWrapper argument = 4;
+    public static final int ARGUMENT_FIELD_NUMBER = 4;
+    private org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper argument_;
+    public boolean hasArgument() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
-    public org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection getArguments() {
-      return arguments_;
+    public org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper getArgument() {
+      return argument_;
     }
-    public org.gridgain.client.message.protobuf.ClientMessagesProtocols.CollectionOrBuilder getArgumentsOrBuilder() {
-      return arguments_;
+    public org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperOrBuilder getArgumentOrBuilder() {
+      return argument_;
     }
     
     private void initFields() {
       taskName_ = "";
-      arguments_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.getDefaultInstance();
+      argument_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.getDefaultInstance();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -5011,11 +5011,11 @@ public final class ClientMessagesProtocols {
         memoizedIsInitialized = 0;
         return false;
       }
-      if (!hasArguments()) {
+      if (!hasArgument()) {
         memoizedIsInitialized = 0;
         return false;
       }
-      if (!getArguments().isInitialized()) {
+      if (!getArgument().isInitialized()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -5030,7 +5030,7 @@ public final class ClientMessagesProtocols {
         output.writeBytes(3, getTaskNameBytes());
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeMessage(4, arguments_);
+        output.writeMessage(4, argument_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -5047,7 +5047,7 @@ public final class ClientMessagesProtocols {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(4, arguments_);
+          .computeMessageSize(4, argument_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -5165,7 +5165,7 @@ public final class ClientMessagesProtocols {
       }
       private void maybeForceBuilderInitialization() {
         if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-          getArgumentsFieldBuilder();
+          getArgumentFieldBuilder();
         }
       }
       private static Builder create() {
@@ -5176,10 +5176,10 @@ public final class ClientMessagesProtocols {
         super.clear();
         taskName_ = "";
         bitField0_ = (bitField0_ & ~0x00000001);
-        if (argumentsBuilder_ == null) {
-          arguments_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.getDefaultInstance();
+        if (argumentBuilder_ == null) {
+          argument_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.getDefaultInstance();
         } else {
-          argumentsBuilder_.clear();
+          argumentBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000002);
         return this;
@@ -5227,10 +5227,10 @@ public final class ClientMessagesProtocols {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        if (argumentsBuilder_ == null) {
-          result.arguments_ = arguments_;
+        if (argumentBuilder_ == null) {
+          result.argument_ = argument_;
         } else {
-          result.arguments_ = argumentsBuilder_.build();
+          result.argument_ = argumentBuilder_.build();
         }
         result.bitField0_ = to_bitField0_;
         onBuilt();
@@ -5251,8 +5251,8 @@ public final class ClientMessagesProtocols {
         if (other.hasTaskName()) {
           setTaskName(other.getTaskName());
         }
-        if (other.hasArguments()) {
-          mergeArguments(other.getArguments());
+        if (other.hasArgument()) {
+          mergeArgument(other.getArgument());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -5263,11 +5263,11 @@ public final class ClientMessagesProtocols {
           
           return false;
         }
-        if (!hasArguments()) {
+        if (!hasArgument()) {
           
           return false;
         }
-        if (!getArguments().isInitialized()) {
+        if (!getArgument().isInitialized()) {
           
           return false;
         }
@@ -5303,12 +5303,12 @@ public final class ClientMessagesProtocols {
               break;
             }
             case 34: {
-              org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.Builder subBuilder = org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.newBuilder();
-              if (hasArguments()) {
-                subBuilder.mergeFrom(getArguments());
+              org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.Builder subBuilder = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.newBuilder();
+              if (hasArgument()) {
+                subBuilder.mergeFrom(getArgument());
               }
               input.readMessage(subBuilder, extensionRegistry);
-              setArguments(subBuilder.buildPartial());
+              setArgument(subBuilder.buildPartial());
               break;
             }
           }
@@ -5353,94 +5353,94 @@ public final class ClientMessagesProtocols {
         onChanged();
       }
       
-      // required .org.gridgain.client.message.Collection arguments = 4;
-      private org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection arguments_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.getDefaultInstance();
+      // required .org.gridgain.client.message.ObjectWrapper argument = 4;
+      private org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper argument_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-          org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection, org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.Builder, org.gridgain.client.message.protobuf.ClientMessagesProtocols.CollectionOrBuilder> argumentsBuilder_;
-      public boolean hasArguments() {
+          org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper, org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.Builder, org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperOrBuilder> argumentBuilder_;
+      public boolean hasArgument() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
-      public org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection getArguments() {
-        if (argumentsBuilder_ == null) {
-          return arguments_;
+      public org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper getArgument() {
+        if (argumentBuilder_ == null) {
+          return argument_;
         } else {
-          return argumentsBuilder_.getMessage();
+          return argumentBuilder_.getMessage();
         }
       }
-      public Builder setArguments(org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection value) {
-        if (argumentsBuilder_ == null) {
+      public Builder setArgument(org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper value) {
+        if (argumentBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
           }
-          arguments_ = value;
+          argument_ = value;
           onChanged();
         } else {
-          argumentsBuilder_.setMessage(value);
+          argumentBuilder_.setMessage(value);
         }
         bitField0_ |= 0x00000002;
         return this;
       }
-      public Builder setArguments(
-          org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.Builder builderForValue) {
-        if (argumentsBuilder_ == null) {
-          arguments_ = builderForValue.build();
+      public Builder setArgument(
+          org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.Builder builderForValue) {
+        if (argumentBuilder_ == null) {
+          argument_ = builderForValue.build();
           onChanged();
         } else {
-          argumentsBuilder_.setMessage(builderForValue.build());
+          argumentBuilder_.setMessage(builderForValue.build());
         }
         bitField0_ |= 0x00000002;
         return this;
       }
-      public Builder mergeArguments(org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection value) {
-        if (argumentsBuilder_ == null) {
+      public Builder mergeArgument(org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper value) {
+        if (argumentBuilder_ == null) {
           if (((bitField0_ & 0x00000002) == 0x00000002) &&
-              arguments_ != org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.getDefaultInstance()) {
-            arguments_ =
-              org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.newBuilder(arguments_).mergeFrom(value).buildPartial();
+              argument_ != org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.getDefaultInstance()) {
+            argument_ =
+              org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.newBuilder(argument_).mergeFrom(value).buildPartial();
           } else {
-            arguments_ = value;
+            argument_ = value;
           }
           onChanged();
         } else {
-          argumentsBuilder_.mergeFrom(value);
+          argumentBuilder_.mergeFrom(value);
         }
         bitField0_ |= 0x00000002;
         return this;
       }
-      public Builder clearArguments() {
-        if (argumentsBuilder_ == null) {
-          arguments_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.getDefaultInstance();
+      public Builder clearArgument() {
+        if (argumentBuilder_ == null) {
+          argument_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.getDefaultInstance();
           onChanged();
         } else {
-          argumentsBuilder_.clear();
+          argumentBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
-      public org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.Builder getArgumentsBuilder() {
+      public org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.Builder getArgumentBuilder() {
         bitField0_ |= 0x00000002;
         onChanged();
-        return getArgumentsFieldBuilder().getBuilder();
+        return getArgumentFieldBuilder().getBuilder();
       }
-      public org.gridgain.client.message.protobuf.ClientMessagesProtocols.CollectionOrBuilder getArgumentsOrBuilder() {
-        if (argumentsBuilder_ != null) {
-          return argumentsBuilder_.getMessageOrBuilder();
+      public org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperOrBuilder getArgumentOrBuilder() {
+        if (argumentBuilder_ != null) {
+          return argumentBuilder_.getMessageOrBuilder();
         } else {
-          return arguments_;
+          return argument_;
         }
       }
       private com.google.protobuf.SingleFieldBuilder<
-          org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection, org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.Builder, org.gridgain.client.message.protobuf.ClientMessagesProtocols.CollectionOrBuilder> 
-          getArgumentsFieldBuilder() {
-        if (argumentsBuilder_ == null) {
-          argumentsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-              org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection, org.gridgain.client.message.protobuf.ClientMessagesProtocols.Collection.Builder, org.gridgain.client.message.protobuf.ClientMessagesProtocols.CollectionOrBuilder>(
-                  arguments_,
+          org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper, org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.Builder, org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperOrBuilder> 
+          getArgumentFieldBuilder() {
+        if (argumentBuilder_ == null) {
+          argumentBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper, org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.Builder, org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapperOrBuilder>(
+                  argument_,
                   getParentForChildren(),
                   isClean());
-          arguments_ = null;
+          argument_ = null;
         }
-        return argumentsBuilder_;
+        return argumentBuilder_;
       }
       
       // @@protoc_insertion_point(builder_scope:org.gridgain.client.message.ProtoTaskRequest)
@@ -12121,73 +12121,73 @@ public final class ClientMessagesProtocols {
       "\n\007GET_ALL\020\004\022\007\n\003RMV\020\005\022\013\n\007RMV_ALL\020\006\022\007\n\003ADD" +
       "\020\007\022\013\n\007REPLACE\020\010\022\007\n\003CAS\020\t\022\013\n\007METRICS\020\n\"9\n" +
       "\017ProtoLogRequest\022\014\n\004path\030\003 \001(\t\022\014\n\004from\030\004" +
-      " \001(\005\022\n\n\002to\030\005 \001(\005\"`\n\020ProtoTaskRequest\022\020\n\010" +
-      "taskName\030\003 \002(\t\022:\n\targuments\030\004 \002(\0132\'.org.",
-      "gridgain.client.message.Collection\"i\n\024Pr" +
-      "otoTopologyRequest\022\031\n\021includeAttributes\030" +
-      "\003 \002(\010\022\026\n\016includeMetrics\030\004 \002(\010\022\016\n\006nodeId\030" +
-      "\005 \001(\t\022\016\n\006nodeIp\030\006 \001(\t\"\254\001\n\rProtoResponse\022" +
-      "\021\n\trequestId\030\001 \002(\003\022\020\n\010clientId\030\002 \002(\014\022\016\n\006" +
-      "status\030\003 \002(\005\022\024\n\014errorMessage\030\004 \001(\t\022:\n\006re" +
-      "sult\030\005 \001(\0132*.org.gridgain.client.message" +
-      ".ObjectWrapper\022\024\n\014sessionToken\030\006 \001(\014\"x\n\r" +
-      "ProtoTaskBean\022\n\n\002id\030\002 \002(\t\022\020\n\010finished\030\003 " +
-      "\002(\010\022:\n\006result\030\004 \001(\0132*.org.gridgain.clien",
-      "t.message.ObjectWrapper\022\r\n\005error\030\005 \001(\t\"\304" +
-      "\013\n\024ProtoNodeMetricsBean\022\032\n\016lastUpdateTim" +
-      "e\030\001 \002(\003:\002-1\022\035\n\021maximumActiveJobs\030\002 \002(\005:\002" +
-      "-1\022\035\n\021currentActiveJobs\030\003 \002(\005:\002-1\022\035\n\021ave" +
-      "rageActiveJobs\030\004 \002(\002:\002-1\022\036\n\022maximumWaiti" +
-      "ngJobs\030\005 \002(\005:\002-1\022\036\n\022currentWaitingJobs\030\006" +
-      " \002(\005:\002-1\022\036\n\022averageWaitingJobs\030\007 \002(\002:\002-1" +
-      "\022\037\n\023maximumRejectedJobs\030\010 \002(\005:\002-1\022\037\n\023cur" +
-      "rentRejectedJobs\030\t \002(\005:\002-1\022\037\n\023averageRej" +
-      "ectedJobs\030\n \002(\002:\002-1\022 \n\024maximumCancelledJ",
-      "obs\030\013 \002(\005:\002-1\022 \n\024currentCancelledJobs\030\014 " +
-      "\002(\005:\002-1\022 \n\024averageCancelledJobs\030\r \002(\002:\002-" +
-      "1\022\035\n\021totalRejectedJobs\030\016 \002(\005:\002-1\022\036\n\022tota" +
-      "lCancelledJobs\030\017 \002(\005:\002-1\022\035\n\021totalExecute" +
-      "dJobs\030\020 \002(\005:\002-1\022\036\n\022maximumJobWaitTime\030\021 " +
-      "\002(\003:\002-1\022\036\n\022currentJobWaitTime\030\022 \002(\003:\002-1\022" +
-      "\036\n\022averageJobWaitTime\030\023 \002(\001:\002-1\022!\n\025maxim" +
-      "umJobExecuteTime\030\024 \002(\003:\002-1\022!\n\025currentJob" +
-      "ExecuteTime\030\025 \002(\003:\002-1\022!\n\025averageJobExecu" +
-      "teTime\030\026 \002(\001:\002-1\022\031\n\rtotalIdleTime\030\027 \002(\003:",
-      "\002-1\022\033\n\017currentIdleTime\030\030 \002(\003:\002-1\022\025\n\ttota" +
-      "lCpus\030\031 \002(\005:\002-1\022\032\n\016currentCpuLoad\030\032 \002(\001:" +
-      "\002-1\022\032\n\016averageCpuLoad\030\033 \002(\001:\002-1\022!\n\025heapM" +
-      "emoryInitialized\030\034 \002(\003:\002-1\022\032\n\016heapMemory" +
-      "Used\030\035 \002(\003:\002-1\022\037\n\023heapMemoryCommitted\030\036 " +
-      "\002(\003:\002-1\022\035\n\021heapMemoryMaximum\030\037 \002(\003:\002-1\022$" +
-      "\n\030nonHeapMemoryInitialized\030  \002(\003:\002-1\022\035\n\021" +
-      "nonHeapMemoryUsed\030! \002(\003:\002-1\022\"\n\026nonHeapMe" +
-      "moryCommitted\030\" \002(\003:\002-1\022 \n\024nonHeapMemory" +
-      "Maximum\030# \002(\003:\002-1\022\022\n\006upTime\030$ \002(\003:\002-1\022\025\n",
-      "\tstartTime\030% \002(\003:\002-1\022\031\n\rnodeStartTime\030& " +
-      "\002(\003:\002-1\022\036\n\022currentThreadCount\030\' \002(\005:\002-1\022" +
-      "\036\n\022maximumThreadCount\030( \002(\005:\002-1\022#\n\027total" +
-      "StartedThreadCount\030) \002(\003:\002-1\022$\n\030currentD" +
-      "aemonThreadCount\030* \002(\005:\002-1\022\037\n\023fileSystem" +
-      "FreeSpace\030+ \002(\003:\002-1\022 \n\024fileSystemTotalSp" +
-      "ace\030, \002(\003:\002-1\022!\n\025fileSystemUsableSpace\030-" +
-      " \002(\003:\002-1\022\033\n\017lastDataVersion\030. \002(\003:\002-1\"\241\002" +
-      "\n\rProtoNodeBean\022\016\n\006nodeId\030\001 \002(\t\022\027\n\017inter" +
-      "nalAddress\030\002 \003(\t\022\027\n\017externalAddress\030\003 \003(",
-      "\t\022\017\n\007tcpPort\030\004 \002(\005\022\021\n\tjettyPort\030\005 \002(\005\022B\n" +
-      "\007metrics\030\006 \001(\01321.org.gridgain.client.mes" +
-      "sage.ProtoNodeMetricsBean\0224\n\nattributes\030" +
-      "\007 \001(\0132 .org.gridgain.client.message.Map\022" +
-      "0\n\006caches\030\t \001(\0132 .org.gridgain.client.me" +
-      "ssage.Map*\243\002\n\021ObjectWrapperType\022\010\n\004NULL\020" +
-      "\000\022\010\n\004BOOL\020\001\022\010\n\004BYTE\020\002\022\t\n\005SHORT\020\003\022\t\n\005INT3" +
-      "2\020\004\022\t\n\005INT64\020\005\022\t\n\005FLOAT\020\006\022\n\n\006DOUBLE\020\007\022\t\n" +
-      "\005BYTES\020\010\022\n\n\006STRING\020\t\022\016\n\nCOLLECTION\020\n\022\007\n\003" +
-      "MAP\020\013\022\021\n\rCACHE_REQUEST\020\024\022\020\n\014TASK_REQUEST",
-      "\020\025\022\017\n\013LOG_REQUEST\020\026\022\024\n\020TOPOLOGY_REQUEST\020" +
-      "\027\022\020\n\014AUTH_REQUEST\020\030\022\014\n\010RESPONSE\020(\022\r\n\tNOD" +
-      "E_BEAN\020<\022\r\n\tTASK_BEAN\020=B?\n$org.gridgain." +
-      "client.message.protobufB\027ClientMessagesP" +
-      "rotocols"
+      " \001(\005\022\n\n\002to\030\005 \001(\005\"b\n\020ProtoTaskRequest\022\020\n\010" +
+      "taskName\030\003 \002(\t\022<\n\010argument\030\004 \002(\0132*.org.g",
+      "ridgain.client.message.ObjectWrapper\"i\n\024" +
+      "ProtoTopologyRequest\022\031\n\021includeAttribute" +
+      "s\030\003 \002(\010\022\026\n\016includeMetrics\030\004 \002(\010\022\016\n\006nodeI" +
+      "d\030\005 \001(\t\022\016\n\006nodeIp\030\006 \001(\t\"\254\001\n\rProtoRespons" +
+      "e\022\021\n\trequestId\030\001 \002(\003\022\020\n\010clientId\030\002 \002(\014\022\016" +
+      "\n\006status\030\003 \002(\005\022\024\n\014errorMessage\030\004 \001(\t\022:\n\006" +
+      "result\030\005 \001(\0132*.org.gridgain.client.messa" +
+      "ge.ObjectWrapper\022\024\n\014sessionToken\030\006 \001(\014\"x" +
+      "\n\rProtoTaskBean\022\n\n\002id\030\002 \002(\t\022\020\n\010finished\030" +
+      "\003 \002(\010\022:\n\006result\030\004 \001(\0132*.org.gridgain.cli",
+      "ent.message.ObjectWrapper\022\r\n\005error\030\005 \001(\t" +
+      "\"\304\013\n\024ProtoNodeMetricsBean\022\032\n\016lastUpdateT" +
+      "ime\030\001 \002(\003:\002-1\022\035\n\021maximumActiveJobs\030\002 \002(\005" +
+      ":\002-1\022\035\n\021currentActiveJobs\030\003 \002(\005:\002-1\022\035\n\021a" +
+      "verageActiveJobs\030\004 \002(\002:\002-1\022\036\n\022maximumWai" +
+      "tingJobs\030\005 \002(\005:\002-1\022\036\n\022currentWaitingJobs" +
+      "\030\006 \002(\005:\002-1\022\036\n\022averageWaitingJobs\030\007 \002(\002:\002" +
+      "-1\022\037\n\023maximumRejectedJobs\030\010 \002(\005:\002-1\022\037\n\023c" +
+      "urrentRejectedJobs\030\t \002(\005:\002-1\022\037\n\023averageR" +
+      "ejectedJobs\030\n \002(\002:\002-1\022 \n\024maximumCancelle",
+      "dJobs\030\013 \002(\005:\002-1\022 \n\024currentCancelledJobs\030" +
+      "\014 \002(\005:\002-1\022 \n\024averageCancelledJobs\030\r \002(\002:" +
+      "\002-1\022\035\n\021totalRejectedJobs\030\016 \002(\005:\002-1\022\036\n\022to" +
+      "talCancelledJobs\030\017 \002(\005:\002-1\022\035\n\021totalExecu" +
+      "tedJobs\030\020 \002(\005:\002-1\022\036\n\022maximumJobWaitTime\030" +
+      "\021 \002(\003:\002-1\022\036\n\022currentJobWaitTime\030\022 \002(\003:\002-" +
+      "1\022\036\n\022averageJobWaitTime\030\023 \002(\001:\002-1\022!\n\025max" +
+      "imumJobExecuteTime\030\024 \002(\003:\002-1\022!\n\025currentJ" +
+      "obExecuteTime\030\025 \002(\003:\002-1\022!\n\025averageJobExe" +
+      "cuteTime\030\026 \002(\001:\002-1\022\031\n\rtotalIdleTime\030\027 \002(",
+      "\003:\002-1\022\033\n\017currentIdleTime\030\030 \002(\003:\002-1\022\025\n\tto" +
+      "talCpus\030\031 \002(\005:\002-1\022\032\n\016currentCpuLoad\030\032 \002(" +
+      "\001:\002-1\022\032\n\016averageCpuLoad\030\033 \002(\001:\002-1\022!\n\025hea" +
+      "pMemoryInitialized\030\034 \002(\003:\002-1\022\032\n\016heapMemo" +
+      "ryUsed\030\035 \002(\003:\002-1\022\037\n\023heapMemoryCommitted\030" +
+      "\036 \002(\003:\002-1\022\035\n\021heapMemoryMaximum\030\037 \002(\003:\002-1" +
+      "\022$\n\030nonHeapMemoryInitialized\030  \002(\003:\002-1\022\035" +
+      "\n\021nonHeapMemoryUsed\030! \002(\003:\002-1\022\"\n\026nonHeap" +
+      "MemoryCommitted\030\" \002(\003:\002-1\022 \n\024nonHeapMemo" +
+      "ryMaximum\030# \002(\003:\002-1\022\022\n\006upTime\030$ \002(\003:\002-1\022",
+      "\025\n\tstartTime\030% \002(\003:\002-1\022\031\n\rnodeStartTime\030" +
+      "& \002(\003:\002-1\022\036\n\022currentThreadCount\030\' \002(\005:\002-" +
+      "1\022\036\n\022maximumThreadCount\030( \002(\005:\002-1\022#\n\027tot" +
+      "alStartedThreadCount\030) \002(\003:\002-1\022$\n\030curren" +
+      "tDaemonThreadCount\030* \002(\005:\002-1\022\037\n\023fileSyst" +
+      "emFreeSpace\030+ \002(\003:\002-1\022 \n\024fileSystemTotal" +
+      "Space\030, \002(\003:\002-1\022!\n\025fileSystemUsableSpace" +
+      "\030- \002(\003:\002-1\022\033\n\017lastDataVersion\030. \002(\003:\002-1\"" +
+      "\241\002\n\rProtoNodeBean\022\016\n\006nodeId\030\001 \002(\t\022\027\n\017int" +
+      "ernalAddress\030\002 \003(\t\022\027\n\017externalAddress\030\003 ",
+      "\003(\t\022\017\n\007tcpPort\030\004 \002(\005\022\021\n\tjettyPort\030\005 \002(\005\022" +
+      "B\n\007metrics\030\006 \001(\01321.org.gridgain.client.m" +
+      "essage.ProtoNodeMetricsBean\0224\n\nattribute" +
+      "s\030\007 \001(\0132 .org.gridgain.client.message.Ma" +
+      "p\0220\n\006caches\030\t \001(\0132 .org.gridgain.client." +
+      "message.Map*\243\002\n\021ObjectWrapperType\022\010\n\004NON" +
+      "E\020\000\022\010\n\004BOOL\020\001\022\010\n\004BYTE\020\002\022\t\n\005SHORT\020\003\022\t\n\005IN" +
+      "T32\020\004\022\t\n\005INT64\020\005\022\t\n\005FLOAT\020\006\022\n\n\006DOUBLE\020\007\022" +
+      "\t\n\005BYTES\020\010\022\n\n\006STRING\020\t\022\016\n\nCOLLECTION\020\n\022\007" +
+      "\n\003MAP\020\013\022\021\n\rCACHE_REQUEST\020\024\022\020\n\014TASK_REQUE",
+      "ST\020\025\022\017\n\013LOG_REQUEST\020\026\022\024\n\020TOPOLOGY_REQUES" +
+      "T\020\027\022\020\n\014AUTH_REQUEST\020\030\022\014\n\010RESPONSE\020(\022\r\n\tN" +
+      "ODE_BEAN\020<\022\r\n\tTASK_BEAN\020=B?\n$org.gridgai" +
+      "n.client.message.protobufB\027ClientMessage" +
+      "sProtocols"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -12263,7 +12263,7 @@ public final class ClientMessagesProtocols {
           internal_static_org_gridgain_client_message_ProtoTaskRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_org_gridgain_client_message_ProtoTaskRequest_descriptor,
-              new java.lang.String[] { "TaskName", "Arguments", },
+              new java.lang.String[] { "TaskName", "Argument", },
               org.gridgain.client.message.protobuf.ClientMessagesProtocols.ProtoTaskRequest.class,
               org.gridgain.client.message.protobuf.ClientMessagesProtocols.ProtoTaskRequest.Builder.class);
           internal_static_org_gridgain_client_message_ProtoTopologyRequest_descriptor =

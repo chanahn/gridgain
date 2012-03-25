@@ -20,7 +20,7 @@ import java.util.*;
  * DHT partition topology.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @GridToStringExclude
 public interface GridDhtPartitionTopology<K, V> {

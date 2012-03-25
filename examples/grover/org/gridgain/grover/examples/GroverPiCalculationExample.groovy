@@ -20,7 +20,7 @@ import org.gridgain.grover.categories.*
  * This example calculates Pi number in parallel on the grid.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @Typed
 @Use(GroverProjectionCategory)

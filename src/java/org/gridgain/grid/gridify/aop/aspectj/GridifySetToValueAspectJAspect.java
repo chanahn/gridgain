@@ -31,7 +31,7 @@ import static org.gridgain.grid.util.gridify.GridifyUtils.*;
  * {@code gridified} methods.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  * @see GridifySetToValue
  */
 @Aspect

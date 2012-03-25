@@ -61,7 +61,7 @@ import java.util.concurrent.*;
  * <p>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, DisposableBean, InitializingBean,
     ApplicationContextAware, Externalizable {
@@ -668,14 +668,14 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
     }
 
     /** {@inheritDoc} */
-    @Override public GridFuture<?> runLocal(@Nullable Runnable r) throws GridException {
+    @Override public GridFuture<?> runLocal(@Nullable Runnable r) {
         assert g != null;
 
         return g.runLocal(r);
     }
 
     /** {@inheritDoc} */
-    @Override public <R> GridFuture<R> callLocal(@Nullable Callable<R> c) throws GridException {
+    @Override public <R> GridFuture<R> callLocal(@Nullable Callable<R> c) {
         assert g != null;
 
         return g.callLocal(c);
@@ -1637,6 +1637,13 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
         assert g != null;
 
         g.restartNodes(ids);
+    }
+
+    /** {@inheritDoc} */
+    @Override public <K, V> GridDataLoader<K, V> dataLoader(@Nullable String cacheName) {
+        assert g != null;
+
+        return g.dataLoader(cacheName);
     }
 
     /** {@inheritDoc} */

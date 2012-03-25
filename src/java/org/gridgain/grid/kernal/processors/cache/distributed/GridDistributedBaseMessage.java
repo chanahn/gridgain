@@ -24,7 +24,7 @@ import java.util.*;
  * Base for all messages in replicated cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public abstract class GridDistributedBaseMessage<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable,
     GridCacheVersionable {

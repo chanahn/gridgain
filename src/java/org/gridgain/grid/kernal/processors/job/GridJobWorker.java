@@ -36,7 +36,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Job worker.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridJobWorker extends GridWorker implements GridTimeoutObject {
     /** Per-thread held flag. */

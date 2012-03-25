@@ -12,6 +12,7 @@ package org.gridgain.grid.kernal;
 import org.gridgain.grid.*;
 import org.gridgain.grid.kernal.processors.affinity.*;
 import org.gridgain.grid.kernal.controllers.license.*;
+import org.gridgain.grid.kernal.processors.dataload.*;
 import org.gridgain.grid.kernal.processors.rest.*;
 import org.gridgain.grid.kernal.managers.authentication.*;
 import org.gridgain.grid.kernal.managers.checkpoint.*;
@@ -56,7 +57,7 @@ import static org.gridgain.grid.kernal.GridKernalState.*;
  * Implementation of kernal context.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @GridToStringExclude
 public class GridKernalContextImpl extends GridMetadataAwareAdapter implements GridKernalContext, Externalizable {
@@ -176,6 +177,10 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
     /** */
     @GridToStringInclude
     private GridRestProcessor restProc;
+
+    /** */
+    @GridToStringInclude
+    private GridDataLoaderProcessor dataLdrProc;
 
     /** */
     @GridToStringInclude
@@ -317,6 +322,8 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
             affProc = (GridAffinityProcessor)comp;
         else if (comp instanceof GridRestProcessor)
             restProc = (GridRestProcessor)comp;
+        else if (comp instanceof GridDataLoaderProcessor)
+            dataLdrProc = (GridDataLoaderProcessor)comp;
 
         /*
          * Controllers.
@@ -384,6 +391,7 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings("deprecation")
     @Override public UUID localNodeId() {
         return discovery() == null ? cfg.getNodeId() : discovery().localNode().id();
     }
@@ -551,6 +559,11 @@ public class GridKernalContextImpl extends GridMetadataAwareAdapter implements G
     /** {@inheritDoc} */
     @Override public GridSegmentationProcessor segmentation() {
         return segProc;
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridDataLoaderProcessor dataLoad() {
+        return dataLdrProc;
     }
 
     /** {@inheritDoc} */

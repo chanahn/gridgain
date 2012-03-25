@@ -4,26 +4,27 @@
     <facet type="scala" name="Scala">
       <configuration>
         <option name="compilerLibraryLevel" value="Project" />
-        <option name="compilerLibraryName" value="scala" />
+        <option name="compilerLibraryName" value="Scala" />
       </configuration>
     </facet>
   </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$">
+    <content url="file://$MODULE_DIR$/examples">
       <sourceFolder url="file://$MODULE_DIR$/examples/gar/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/examples/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/examples/grover" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/examples/scalar" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="libs" level="project" />
-    <orderEntry type="library" name="scala" level="project" />
+    <orderEntry type="library" name="Libraries" level="project" />
+    <orderEntry type="library" name="Examples libraries" level="project" />
+    <orderEntry type="library" name="Java client libraries" level="project" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="file://$MODULE_DIR$/config/aop/aspectj" />
+          <root url="jar://$MODULE_DIR$/gridgain-4.0.0c.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
@@ -38,14 +39,6 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/%ANT_AUGMENTED_GGJAR%!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
   </component>
 </module>
+

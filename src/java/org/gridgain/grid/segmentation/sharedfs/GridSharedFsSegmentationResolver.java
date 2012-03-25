@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.*;
  * shared directory.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridSharedFsSegmentationResolver extends GridSegmentationResolver {
     /** Path to shared directory. */

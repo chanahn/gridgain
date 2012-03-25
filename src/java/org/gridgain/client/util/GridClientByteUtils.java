@@ -13,42 +13,17 @@ package org.gridgain.client.util;
  * Primitive to byte array and backward conversions.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public abstract class GridClientByteUtils {
     /**
-     * Converts primitive {@code long} type to byte array.
+     * Converts primitive {@code short} type to byte array.
      *
-     * @param l Long value.
+     * @param s Short value.
      * @return Array of bytes.
      */
-    public static byte[] longToBytes(long l) {
-        byte[] bytes = new byte[(Long.SIZE >> 3)];
-
-        longToBytes(l, bytes, 0);
-
-        return bytes;
-    }
-
-    /**
-     * Converts primitive {@code long} type to byte array and stores it in specified
-     * byte array.
-     *
-     * @param l Long value.
-     * @param bytes Array of bytes.
-     * @param off Offset in {@code bytes} array.
-     * @return Number of bytes overwritten in {@code bytes} array.
-     */
-    public static int longToBytes(long l, byte[] bytes, int off) {
-        int bytesCnt = Long.SIZE >> 3;
-
-        for (int i = 0; i < bytesCnt; i++) {
-            int shift = bytesCnt - i - 1 << 3;
-
-            bytes[off++] = (byte)(l >>> shift & 0xff);
-        }
-
-        return off;
+    public static byte[] shortToBytes(short s) {
+        return toBytes(s, new byte[2], 0, 2);
     }
 
     /**
@@ -58,46 +33,17 @@ public abstract class GridClientByteUtils {
      * @return Array of bytes.
      */
     public static byte[] intToBytes(int i) {
-        byte[] bytes = new byte[(Integer.SIZE >> 3)];
-
-        intToBytes(i, bytes, 0);
-
-        return bytes;
+        return toBytes(i, new byte[4], 0, 4);
     }
 
     /**
-     * Converts primitive {@code int} type to byte array and stores it in specified
-     * byte array.
+     * Converts primitive {@code long} type to byte array.
      *
-     * @param i Integer value.
-     * @param bytes Array of bytes.
-     * @param off Offset in {@code bytes} array.
-     * @return Number of bytes overwritten in {@code bytes} array.
-     */
-    public static int intToBytes(int i, byte[] bytes, int off) {
-        int bytesCnt = Integer.SIZE >> 3;
-
-        for (int j = 0; j < bytesCnt; j++) {
-            int shift = bytesCnt - j - 1 << 3;
-
-            bytes[off++] = (byte)(i >>> shift & 0xff);
-        }
-
-        return off;
-    }
-
-    /**
-     * Converts primitive {@code short} type to byte array.
-     *
-     * @param s Short value.
+     * @param l Long value.
      * @return Array of bytes.
      */
-    public static byte[] shortToBytes(short s) {
-        byte[] bytes = new byte[(Short.SIZE >> 3)];
-
-        shortToBytes(s, bytes, 0);
-
-        return bytes;
+    public static byte[] longToBytes(long l) {
+        return toBytes(l, new byte[8], 0, 8);
     }
 
     /**
@@ -110,15 +56,39 @@ public abstract class GridClientByteUtils {
      * @return Number of bytes overwritten in {@code bytes} array.
      */
     public static int shortToBytes(short s, byte[] bytes, int off) {
-        int bytesCnt = Short.SIZE >> 3;
+        toBytes(s, bytes, off, 2);
 
-        for (int i = 0; i < bytesCnt; i++) {
-            int shift = bytesCnt - i - 1 << 3;
+        return 2;
+    }
 
-            bytes[off++] = (byte)(s >>> shift & 0xff);
-        }
+    /**
+     * Converts primitive {@code int} type to byte array and stores it in specified
+     * byte array.
+     *
+     * @param i Integer value.
+     * @param bytes Array of bytes.
+     * @param off Offset in {@code bytes} array.
+     * @return Number of bytes overwritten in {@code bytes} array.
+     */
+    public static int intToBytes(int i, byte[] bytes, int off) {
+        toBytes(i, bytes, off, 4);
 
-        return off;
+        return 4;
+    }
+
+    /**
+     * Converts primitive {@code long} type to byte array and stores it in specified
+     * byte array.
+     *
+     * @param l Long value.
+     * @param bytes Array of bytes.
+     * @param off Offset in {@code bytes} array.
+     * @return Number of bytes overwritten in {@code bytes} array.
+     */
+    public static int longToBytes(long l, byte[] bytes, int off) {
+        toBytes(l, bytes, off, 8);
+
+        return 8;
     }
 
     /**
@@ -129,23 +99,7 @@ public abstract class GridClientByteUtils {
      * @return Short value.
      */
     public static short bytesToShort(byte[] bytes, int off) {
-        assert bytes != null;
-
-        int bytesCnt = Short.SIZE >> 3;
-
-        if (off + bytesCnt > bytes.length)
-            // Just use the remainder.
-            bytesCnt = bytes.length - off;
-
-        short res = 0;
-
-        for (int i = 0; i < bytesCnt; i++) {
-            int shift = bytesCnt - i - 1 << 3;
-
-            res |= (0xffL & bytes[off++]) << shift;
-        }
-
-        return res;
+        return (short) fromBytes(bytes, off, 2);
     }
 
     /**
@@ -156,23 +110,7 @@ public abstract class GridClientByteUtils {
      * @return Integer value.
      */
     public static int bytesToInt(byte[] bytes, int off) {
-        assert bytes != null;
-
-        int bytesCnt = Integer.SIZE >> 3;
-
-        if (off + bytesCnt > bytes.length)
-            // Just use the remainder.
-            bytesCnt = bytes.length - off;
-
-        int res = 0;
-
-        for (int i = 0; i < bytesCnt; i++) {
-            int shift = bytesCnt - i - 1 << 3;
-
-            res |= (0xffL & bytes[off++]) << shift;
-        }
-
-        return res;
+        return (int) fromBytes(bytes, off, 4);
     }
 
     /**
@@ -183,19 +121,50 @@ public abstract class GridClientByteUtils {
      * @return Long value.
      */
     public static long bytesToLong(byte[] bytes, int off) {
+        return fromBytes(bytes, off, 8);
+    }
+
+    /**
+     * Converts primitive {@code long} type to byte array and stores it in specified
+     * byte array. The highest byte in the value is the first byte in result array.
+     *
+     * @param l Unsigned long value.
+     * @param bytes Bytes array to write result to.
+     * @param offset Offset in the target array to write result to.
+     * @param limit Limit of bytes to write into output.
+     * @return Number of bytes overwritten in {@code bytes} array.
+     */
+    private static byte[] toBytes(long l, byte[] bytes, int offset, int limit) {
         assert bytes != null;
+        assert limit <= 8;
+        assert bytes.length >= offset + limit;
 
-        int bytesCnt = Long.SIZE >> 3;
+        for (int i = limit - 1; i >= 0; i--) {
+            bytes[offset + i] = (byte)(l & 0xFF);
+            l >>>= 8;
+        }
 
-        if (off + bytesCnt > bytes.length)
-            bytesCnt = bytes.length - off;
+        return bytes;
+    }
+
+    /**
+     * Constructs {@code long} from byte array. The first byte in array is the highest byte in result.
+     *
+     * @param bytes Array of bytes.
+     * @param offset Offset in {@code bytes} array.
+     * @param limit Amount of bytes to use in the source array.
+     * @return Unsigned long value.
+     */
+    private static long fromBytes(byte[] bytes, int offset, int limit) {
+        assert bytes != null;
+        assert limit <= 8;
+        assert bytes.length >= offset + limit;
 
         long res = 0;
 
-        for (int i = 0; i < bytesCnt; i++) {
-            int shift = bytesCnt - i - 1 << 3;
-
-            res |= (0xffL & bytes[off++]) << shift;
+        for (int i = 0; i < limit; i++) {
+            res <<= 8;
+            res |= bytes[offset + i] & 0xFF;
         }
 
         return res;

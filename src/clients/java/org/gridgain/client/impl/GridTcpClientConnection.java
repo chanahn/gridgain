@@ -29,7 +29,7 @@ import static org.gridgain.client.message.GridClientCacheRequest.GridCacheOperat
  * provided.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 class GridTcpClientConnection extends GridClientConnection {
     /** Logger */
@@ -614,16 +614,16 @@ class GridTcpClientConnection extends GridClientConnection {
     /**
      *
      * @param taskName Task name.
-     * @param args Arguments.
+     * @param arg Task argument.
      * @return Task execution result.
      * @throws GridClientConnectionResetException In case of error.
      */
-    @Override public <R> GridClientFuture<R> execute(String taskName, Object... args)
+    @Override public <R> GridClientFuture<R> execute(String taskName, Object arg)
         throws GridClientConnectionResetException, GridClientClosedException {
         GridClientTaskRequest msg = new GridClientTaskRequest();
 
         msg.taskName(taskName);
-        msg.arguments(args);
+        msg.argument(arg);
 
         final GridClientFutureAdapter<GridClientTaskResultBean> fut = makeRequest(msg);
 

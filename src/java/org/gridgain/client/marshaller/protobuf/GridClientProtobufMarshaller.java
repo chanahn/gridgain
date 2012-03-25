@@ -25,7 +25,7 @@ import static org.gridgain.client.message.protobuf.ClientMessagesProtocols.Objec
  * Client messages marshaller based on protocol buffers compiled code.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @SuppressWarnings({"unchecked", "UnnecessaryFullyQualifiedName"})
 public class GridClientProtobufMarshaller implements GridClientMarshaller {
@@ -39,9 +39,9 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
 
         GridClientMessage msg = (GridClientMessage)obj;
 
-        ObjectWrapperType type = NULL;
+        ObjectWrapperType type = NONE;
 
-        ByteString wrapped;
+        GeneratedMessage wrapped;
 
         if (obj instanceof GridClientResultBean) {
             GridClientResultBean bean = (GridClientResultBean)obj;
@@ -63,7 +63,7 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
             if (bean.result() != null)
                 builder.setResult(wrapObject(bean.result()));
 
-            wrapped = builder.build().toByteString();
+            wrapped = builder.build();
 
             type = RESPONSE;
         }
@@ -136,7 +136,7 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
 
                 builder.setTaskName(req.taskName());
 
-                builder.setArguments(wrapCollection(Arrays.asList(req.arguments())));
+                builder.setArgument(wrapObject(req.argument()));
 
                 reqBuilder.setBody(builder.build().toByteString());
 
@@ -161,13 +161,13 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
                 type = TOPOLOGY_REQUEST;
             }
 
-            wrapped = reqBuilder.build().toByteString();
+            wrapped = reqBuilder.build();
         }
 
         ObjectWrapper.Builder res = ObjectWrapper.newBuilder();
 
         res.setType(type);
-        res.setBinary(wrapped);
+        res.setBinary(wrapped.toByteString());
 
         return res.build().toByteArray();
     }
@@ -215,7 +215,7 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
 
                 res.taskName(reqBean.getTaskName());
 
-                res.arguments(unwrapCollection(reqBean.getArguments()).toArray());
+                res.argument(unwrapObject(reqBean.getArgument()));
 
                 return (T)res;
             }
@@ -326,6 +326,7 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
      * @return Converted message.
      * @throws IOException If node attribute cannot be converted.
      */
+    @SuppressWarnings("TypeMayBeWeakened")
     private ProtoNodeBean wrapNode(GridClientNodeBean node) throws IOException {
         ProtoNodeBean.Builder builder = ProtoNodeBean.newBuilder();
 
@@ -548,38 +549,6 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
     }
 
     /**
-     * Wraps a collection of nodes to a sequence of messages.
-     *
-     * @param beans Beans collection to convert.
-     * @return Collection of converted messages.
-     * @throws IOException If some node attribute cannot be converted.
-     */
-    private Iterable<ProtoNodeBean> wrapNodes(java.util.Collection<GridClientNodeBean> beans) throws IOException {
-        java.util.Collection<ProtoNodeBean> res = new ArrayList<ProtoNodeBean>(beans.size());
-
-        for (GridClientNodeBean bean : beans)
-            res.add(wrapNode(bean));
-
-        return res;
-    }
-
-    /**
-     * Unwraps a sequence of messages to a collection of nodes.
-     *
-     * @param beans Messages to convert.
-     * @return Converted collection.
-     * @throws IOException If message parsing failed.
-     */
-    private List<GridClientNodeBean> unwrapNodes(java.util.Collection<ProtoNodeBean> beans) throws IOException {
-        List<GridClientNodeBean> res = new ArrayList<GridClientNodeBean>(beans.size());
-
-        for (ProtoNodeBean bean : beans)
-            res.add(unwrapNode(bean));
-
-        return res;
-    }
-
-    /**
      * Converts java object to a protocol-understandable format.
      *
      * @param obj Object to convert.
@@ -589,7 +558,7 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
     private ObjectWrapper wrapObject(Object obj) throws IOException {
         ObjectWrapper.Builder builder = ObjectWrapper.newBuilder();
 
-        ObjectWrapperType type = NULL;
+        ObjectWrapperType type = NONE;
         ByteString data;
 
         if (obj == null) {
@@ -668,6 +637,10 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
         else if (obj instanceof Enum || obj instanceof InetAddress) {
             data = ByteString.copyFrom(obj.toString(), "UTF-8");
         }
+        else if (obj.getClass().isArray()) {
+            throw new IOException("Failed to serialize array (use collections instead): "
+                + obj.getClass().getName());
+        }
         else
             throw new IOException("Failed to serialize object (object serialization of given type is not supported): "
                 + obj.getClass().getName());
@@ -692,7 +665,7 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
         ByteString data = wrapper.getBinary();
 
         switch (type) {
-            case NULL: {
+            case NONE: {
                 return null;
             }
 
@@ -787,6 +760,7 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
      * @return Collection of wrapped objects.
      * @throws IOException If some element of collection cannot be converted.
      */
+    @SuppressWarnings("TypeMayBeWeakened")
     private ClientMessagesProtocols.Collection wrapCollection(java.util.Collection<?> col) throws IOException {
         ClientMessagesProtocols.Collection.Builder  builder = ClientMessagesProtocols.Collection.newBuilder();
 

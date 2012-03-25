@@ -27,7 +27,7 @@ import java.util.concurrent.locks.*;
  * This class provides necessary synchronization for thread-safe access.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @SuppressWarnings( {"SynchronizeOnNonFinalField"})
 public class GridMetadataAwareLockAdapter extends ReentrantLock implements GridMetadataAware, Cloneable {

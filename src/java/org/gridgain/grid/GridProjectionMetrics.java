@@ -22,7 +22,7 @@ import java.io.*;
  * in participating nodes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  * @see GridNodeMetrics
  * @see GridProjection#projectionMetrics()
  */
@@ -215,6 +215,14 @@ public interface GridProjectionMetrics extends Serializable {
      * @return Average idle time.
      */
     public double getAverageIdleTime();
+
+    /**
+     * Gets percentage of time nodes in this projection are idling vs. executing jobs.
+     *
+     * @return Percentage of time nodes in this projection are idle (value is less than
+     *      or equal to {@code 1} and greater than or equal to {@code 0}).
+     */
+    public float getIdleTimePercentage();
 
     /**
      * Gets minimum busy time for nodes in the projection.

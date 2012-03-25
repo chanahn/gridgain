@@ -32,7 +32,7 @@ import java.util.concurrent.*;
  * Processor for all Grid and task/job resources.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridResourceProcessor extends GridProcessorAdapter {
     /** Grid instance injector. */
@@ -82,6 +82,7 @@ public class GridResourceProcessor extends GridProcessorAdapter {
      *
      * @param ctx Kernal context.
      */
+    @SuppressWarnings("deprecation")
     public GridResourceProcessor(GridKernalContext ctx) {
         super(ctx);
 

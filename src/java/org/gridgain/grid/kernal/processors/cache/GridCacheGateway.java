@@ -18,7 +18,7 @@ import org.jetbrains.annotations.*;
  * Cache gateway.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @GridToStringExclude
 public class GridCacheGateway<K, V> {
@@ -112,6 +112,11 @@ public class GridCacheGateway<K, V> {
                 ctx.projectionPerCall(prj);
 
             return prev;
+        }
+        catch (IllegalStateException e) {
+            // This exception is thrown only in case if grid has already been stopped
+            // and we must not call readUnlock.
+            throw e;
         }
         catch (RuntimeException e) {
             try {

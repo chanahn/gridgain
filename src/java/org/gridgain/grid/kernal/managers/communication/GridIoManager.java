@@ -42,7 +42,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Grid communication manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
     /** Max closed topics to store. */
@@ -127,6 +127,7 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
     /**
      * @param ctx Grid kernal context.
      */
+    @SuppressWarnings("deprecation")
     public GridIoManager(GridKernalContext ctx) {
         super(GridCommunicationSpi.class, ctx, ctx.config().getCommunicationSpi());
 

@@ -23,7 +23,7 @@ import collection.JavaConversions._
  * Demonstrates basic Data Grid (a.k.a cache) operations with Scalar.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 object ScalarCacheExample {
     /**

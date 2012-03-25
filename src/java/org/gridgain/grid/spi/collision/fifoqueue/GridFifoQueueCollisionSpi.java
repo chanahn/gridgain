@@ -64,13 +64,13 @@ import java.util.concurrent.atomic.*;
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.22032012")
+    version = "4.0.0c.24032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridFifoQueueCollisionSpi extends GridSpiAdapter implements GridCollisionSpi,
     GridFifoQueueCollisionSpiMBean {

@@ -40,7 +40,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * Discovery SPI manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
     /** System line separator. */
@@ -487,20 +487,12 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
 
     /** {@inheritDoc} */
     @Override public void onKernalStop0(boolean cancel, boolean wait) {
-        // Stop receiving notifications.
-        getSpi().setListener(null);
-
         // Stop segment check worker.
         if (segChkWrk != null) {
             segChkWrk.cancel();
 
             U.join(segChkThread, log);
         }
-
-        // Stop discovery worker.
-        discoWrk.cancel();
-
-        U.join(discoWrkThread, log);
 
         // Stop reconnect worker.
         if (reconWrk != null) {
@@ -512,6 +504,14 @@ public class GridDiscoveryManager extends GridManagerAdapter<GridDiscoverySpi> {
 
     /** {@inheritDoc} */
     @Override public void stop(boolean cancel, boolean wait) throws GridException {
+        // Stop receiving notifications.
+        getSpi().setListener(null);
+
+        // Stop discovery worker.
+        discoWrk.cancel();
+
+        U.join(discoWrkThread, log);
+
         // Stop SPI itself.
         stopSpi();
 

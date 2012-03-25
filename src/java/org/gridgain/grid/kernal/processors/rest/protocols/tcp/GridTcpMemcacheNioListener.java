@@ -28,7 +28,7 @@ import static org.gridgain.grid.kernal.processors.rest.protocols.tcp.GridTcpRest
  * Handles memcache requests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridTcpMemcacheNioListener implements GridNioServerListener<GridTcpRestPacket> {
     /** Logger */
@@ -69,7 +69,7 @@ public class GridTcpMemcacheNioListener implements GridNioServerListener<GridTcp
         final GridTuple3<GridRestCommand, Boolean, Boolean> cmd = command(req.operationCode());
 
         if (cmd == null) {
-            U.warn(log, "Cannot find corresponding REST command for opcode (session will be closed): [ses=" + ses +
+            U.warn(log, "Cannot find corresponding REST command for op code (session will be closed): [ses=" + ses +
                 ", opCode=" + Integer.toHexString(req.operationCode()) + ']');
 
             ses.close();
@@ -136,11 +136,33 @@ public class GridTcpMemcacheNioListener implements GridNioServerListener<GridTcp
                     GridTcpRestPacket res = new GridTcpRestPacket(req);
 
                     if (restRes.getSuccessStatus() == GridRestResponse.STATUS_SUCCESS) {
-                        if (cmd.get1() == CACHE_GET) {
-                            res.status(restRes.getResponse() == null ? KEY_NOT_FOUND : SUCCESS);
+                        switch (cmd.get1()) {
+                            case CACHE_GET: {
+                                res.status(restRes.getResponse() == null ? KEY_NOT_FOUND : SUCCESS);
+
+                                break;
+                            }
+
+                            case CACHE_PUT:
+                            case CACHE_ADD:
+                            case CACHE_REMOVE:
+                            case CACHE_REPLACE:
+                            case CACHE_CAS:
+                            case CACHE_APPEND:
+                            case CACHE_PREPEND: {
+                                boolean result = restRes.getResponse().equals(Boolean.TRUE);
+
+                                res.status(result ? SUCCESS : FAILURE);
+
+                                break;
+                            }
+
+                            default: {
+                                res.status(SUCCESS);
+
+                                break;
+                            }
                         }
-                        else
-                            res.status(SUCCESS);
                     }
                     else
                         res.status(FAILURE);

@@ -36,14 +36,15 @@ import java.util.concurrent.*;
  * <p>
  * Following short video provides quick overview of basic Compute Grid capabilities:
  * <p>
- * <a href="http://www.youtube.com/user/gridgain?hd=1#p/a/u/0/MXIUc6Tm5uU" target="youtube"><img src="http://gridgain.com/images/video_mapreduce_thumb.png"></a>
+ * <a href="http://www.youtube.com/user/gridgain?hd=1#p/a/u/0/MXIUc6Tm5uU" target="youtube"><img
+ * src="http://gridgain.com/images/video_mapreduce_thumb.png"></a>
  * <p>
  * For more information see
  * <a target=wiki href="http://www.gridgainsystems.com:8080/wiki/display/GG15UG/Grid+Interface">Grid Interface</a>
  * on Wiki.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public interface Grid extends GridProjection {
     /**
@@ -379,11 +380,10 @@ public interface Grid extends GridProjection {
      *
      * @param r Runnable to execute. If {@code null} - this method is no-op.
      * @return Future for this execution.
-     * @throws GridException Thrown in case of rejected execution by internal system thread pool.
      * @see #callLocal(Callable)
      * @see GridAbsClosure
      */
-    public GridFuture<?> runLocal(@Nullable Runnable r) throws GridException;
+    public GridFuture<?> runLocal(@Nullable Runnable r);
 
     /**
      * Executes given callable on internal system thread pool asynchronously.
@@ -398,11 +398,10 @@ public interface Grid extends GridProjection {
      * @param c Callable to execute. If {@code null} - this method is no-op.
      * @return Future for this execution.
      * @param <R> Type of the return value for the closure.
-     * @throws GridException Thrown in case of rejected execution by internal system thread pool.
      * @see #runLocal(Runnable)
      * @see GridOutClosure
      */
-    public <R> GridFuture<R> callLocal(@Nullable Callable<R> c) throws GridException;
+    public <R> GridFuture<R> callLocal(@Nullable Callable<R> c);
 
     /**
      * Schedules closure for execution using local <b>cron-based</b> scheduling.
@@ -804,4 +803,14 @@ public interface Grid extends GridProjection {
      * @return Grid configuration instance.
      */
     public GridConfiguration configuration();
+
+    /**
+     * Gets a new instance of data loader associated with given cache name. Data loader
+     * is responsible for loading external data into data grid. For more information
+     * refer to {@link GridDataLoader} documentation.
+     *
+     * @param cacheName Cache name ({@code null} for default cache).
+     * @return Data loader.
+     */
+    public <K, V> GridDataLoader<K, V> dataLoader(@Nullable String cacheName);
 }

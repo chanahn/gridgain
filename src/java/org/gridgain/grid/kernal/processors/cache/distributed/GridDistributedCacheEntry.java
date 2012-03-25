@@ -22,7 +22,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Entry for distributed (replicated/partitioned) cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridDistributedCacheEntry<K, V> extends GridCacheMapEntry<K, V> {

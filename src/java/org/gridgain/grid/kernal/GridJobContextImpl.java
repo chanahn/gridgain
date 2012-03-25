@@ -28,7 +28,7 @@ import java.util.*;
  * Remote job context implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridJobContextImpl extends GridMetadataAwareAdapter implements GridJobContext {
     /** Kernal context ({@code null} for job result context). */

@@ -18,7 +18,7 @@ import org.jetbrains.annotations.*;
  * Manager of data structures.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public abstract class GridCacheDataStructuresManager<K, V> extends GridCacheManager<K, V> {
     /**

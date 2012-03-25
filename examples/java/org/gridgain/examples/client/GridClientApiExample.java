@@ -34,7 +34,7 @@ import java.util.*;
  * as the grid node - we do it here only for example purposes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridClientApiExample {
     /** Count of keys to be stored in this example. */
@@ -87,7 +87,7 @@ public class GridClientApiExample {
             });
 
             // Execute test task that will count total count of cache entries in grid.
-            Integer entryCnt = prj.execute(ClientExampleTask.class.getName());
+            Integer entryCnt = prj.execute(ClientExampleTask.class.getName(), null);
 
             X.println(">>> Predicate projection : there are totally " + entryCnt + " test entries on the grid");
 
@@ -96,14 +96,14 @@ public class GridClientApiExample {
 
             prj = prj.projection(clntNode);
 
-            entryCnt = prj.execute(ClientExampleTask.class.getName());
+            entryCnt = prj.execute(ClientExampleTask.class.getName(), null);
 
             X.println(">>> GridClientNode projection : there are totally " + entryCnt + " test entries on the grid");
 
             // Use of collections is also possible.
             prj = prj.projection(Collections.singleton(clntNode));
 
-            entryCnt = prj.execute(ClientExampleTask.class.getName());
+            entryCnt = prj.execute(ClientExampleTask.class.getName(), null);
 
             X.println(">>> Collection projection : there are totally " + entryCnt + " test entries on the grid");
 
@@ -118,7 +118,7 @@ public class GridClientApiExample {
                 }
             }, balancer);
 
-            entryCnt = prj.execute(ClientExampleTask.class.getName());
+            entryCnt = prj.execute(ClientExampleTask.class.getName(), null);
 
             X.println(">>> Predicate projection with balancer : there are totally " + entryCnt +
                 " test entries on the grid");
@@ -128,12 +128,12 @@ public class GridClientApiExample {
 
             prj = prj.projection(Collections.singleton(clntNode), balancer);
 
-            entryCnt = prj.execute(ClientExampleTask.class.getName());
+            entryCnt = prj.execute(ClientExampleTask.class.getName(), null);
 
             X.println(">>> GridClientNode projection : there are totally " + entryCnt + " test entries on the grid");
 
             // Execution may be asynchronous.
-            GridClientFuture<Integer> fut = prj.executeAsync(ClientExampleTask.class.getName());
+            GridClientFuture<Integer> fut = prj.executeAsync(ClientExampleTask.class.getName(), null);
 
             X.println(">>> Execute async : there are totally " + fut.get() + " test entries on the grid");
 
@@ -144,12 +144,12 @@ public class GridClientApiExample {
 
             rmtCache.put(key, "new value for 0");
 
-            entryCnt = prj.affinityExecute(ClientExampleTask.class.getName(), "partitioned", key);
+            entryCnt = prj.affinityExecute(ClientExampleTask.class.getName(), "partitioned", key, null);
 
             X.println(">>> Affinity execute : there are totally " + entryCnt + " test entries on the grid");
 
             // Affinity execution may be asynchronous, too.
-            fut = prj.affinityExecuteAsync(ClientExampleTask.class.getName(), "partitioned", key);
+            fut = prj.affinityExecuteAsync(ClientExampleTask.class.getName(), "partitioned", key, null);
 
             X.println(">>> Affinity execute async : there are totally " + fut.get() + " test entries on the grid");
 

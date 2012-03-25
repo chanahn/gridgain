@@ -19,7 +19,7 @@ import java.io.*;
  * Count down latch value.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public final class GridCacheCountDownLatchValue implements GridCacheInternal, Externalizable, Cloneable {
     /** Count. */

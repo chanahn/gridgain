@@ -27,12 +27,13 @@ import java.util.concurrent.locks.*;
  * {@link #block} that blocks till all activities leave "busy" state.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @GridToStringExclude
 public class GridBusyLock {
-    /** Underlying reentrant read-write lock. */
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    /** Underlying re-entrant read-write lock. */
+    @SuppressWarnings("TypeMayBeWeakened")
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
      * Enters "busy" state.
@@ -41,6 +42,15 @@ public class GridBusyLock {
      */
     public boolean enterBusy() {
         return lock.readLock().tryLock();
+    }
+
+    /**
+     * Checks if busy lock was blocked by current thread.
+     *
+     * @return {@code True} if busy lock was blocked by current thread.
+     */
+    public boolean blockedByCurrentThread() {
+        return lock.writeLock().isHeldByCurrentThread();
     }
 
     /**

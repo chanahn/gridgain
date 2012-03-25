@@ -9,20 +9,18 @@
 
 package org.gridgain.client.message;
 
-import java.util.*;
-
 /**
  * {@code Task} command request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridClientTaskRequest extends GridClientAbstractMessage {
     /** Task name. */
     private String taskName;
 
-    /** Task parameters */
-    private Object[] args;
+    /** Task parameter. */
+    private Object arg;
 
     /**
      * @return Task name.
@@ -41,15 +39,15 @@ public class GridClientTaskRequest extends GridClientAbstractMessage {
     /**
      * @return Arguments.
      */
-    public Object[] arguments() {
-        return args;
+    public Object argument() {
+        return arg;
     }
 
     /**
-     * @param args Arguments.
+     * @param arg Arguments.
      */
-    public void arguments(Object[] args) {
-        this.args = args;
+    public void argument(Object arg) {
+        this.arg = arg;
     }
 
     /** {@inheritDoc} */
@@ -62,14 +60,14 @@ public class GridClientTaskRequest extends GridClientAbstractMessage {
 
         GridClientTaskRequest other = (GridClientTaskRequest)o;
 
-        return taskName != null ? taskName.equals(other.taskName) : other.taskName == null &&
-            Arrays.equals(args, other.args);
+        return (taskName == null ? other.taskName == null : taskName.equals(other.taskName)) &&
+            arg == null ? other.arg == null : arg.equals(other.arg);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return 31 * (taskName != null ? taskName.hashCode() : 0) +
-            (args != null ? Arrays.hashCode(args) : 0);
+        return (taskName == null ? 0 : taskName.hashCode()) +
+            31 * (arg == null ? 0 : arg.hashCode());
     }
 
     /** {@inheritDoc} */
@@ -77,8 +75,8 @@ public class GridClientTaskRequest extends GridClientAbstractMessage {
         return new StringBuilder().
             append("GridClientTaskRequest [taskName=").
             append(taskName).
-            append(", args=").
-            append(args == null ? "null" : Arrays.asList(args).toString()).
+            append(", arg=").
+            append(arg).
             append("]").
             toString();
     }

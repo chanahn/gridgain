@@ -31,13 +31,12 @@ import static java.util.concurrent.TimeUnit.*;
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.kernal.GridTopic.*;
 import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
-import static org.gridgain.grid.kernal.processors.rest.GridRestResponse.*;
 
 /**
  * Command handler for API requests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
     /** Default maximum number of task results. */
@@ -122,7 +121,27 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override public GridFuture<GridRestResponse> handleAsync(final GridRestRequest req) {
+    @Override public GridFuture<GridRestResponse> handleAsync(GridRestRequest req) {
+        try {
+            return handleAsyncUnsafe(req);
+        }
+        catch (GridException e) {
+            U.error(log, "Failed to execute task command: " + req, e);
+
+            return new GridFinishedFuture<GridRestResponse>(ctx, e);
+        }
+        finally {
+            if (log.isDebugEnabled())
+                log.debug("Handled task REST request: " + req);
+        }
+    }
+
+    /**
+     * @param req Request.
+     * @return Future.
+     * @throws GridException On any handling exception.
+     */
+    private GridFuture<GridRestResponse> handleAsyncUnsafe(final GridRestRequest req) throws GridException {
         assert req != null;
 
         if (log.isDebugEnabled())
@@ -140,12 +159,8 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
 
                 final String name = value("name", req);
 
-                if (F.isEmpty(name)) {
-                    res.setError(missingParameter("name"));
-                    res.setSuccessStatus(STATUS_FAILED);
-
-                    return new GridFinishedFuture<GridRestResponse>(ctx, res);
-                }
+                if (F.isEmpty(name))
+                    throw new GridException(missingParameter("name"));
 
                 List<Object> params = values("p", req);
 
@@ -157,9 +172,8 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
                     try {
                         timeout = Long.parseLong(s);
                     }
-                    catch (NumberFormatException e) {
-                        if (log.isDebugEnabled())
-                            log.debug("Failed to parse timeout parameter: " + e.getMessage());
+                    catch (NumberFormatException ignore) {
+                        throw new GridException(invalidNumericParameter("timeout"));
                     }
                 }
 
@@ -176,7 +190,7 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
                     @Override public void apply(GridFuture<Object> f) {
                         GridUuid tid = taskFut.getTaskSession().getId();
 
-                        TaskDescriptor desc;
+                        TaskDescriptor desc = null;
 
                         try {
                             desc = new TaskDescriptor(true, f.get(), null);
@@ -190,26 +204,22 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
 
                         taskDescs.put(tid, desc);
 
+
                         if (!async) {
                             if (desc.error() == null) {
                                 taskRestRes.setFinished(true);
                                 taskRestRes.setResult(desc.result());
 
-                                res.setSuccessStatus(STATUS_SUCCESS);
                                 res.setResponse(taskRestRes);
+                                fut.onDone(res);
                             }
-                            else {
-                                res.setSuccessStatus(STATUS_FAILED);
-                                res.setError(desc.error().getMessage());
-                            }
-
-                            fut.onDone(res);
+                            else
+                                fut.onDone(desc.error());
                         }
                     }
                 });
 
                 if (async) {
-                    res.setSuccessStatus(STATUS_SUCCESS);
                     res.setResponse(taskRestRes);
 
                     fut.onDone(res);
@@ -221,25 +231,13 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
             case RESULT:
                 String id = value("id", req);
 
-                if (F.isEmpty(id)) {
-                    res.setSuccessStatus(STATUS_FAILED);
-                    res.setError(missingParameter("id"));
-
-                    fut.onDone(res);
-
-                    break;
-                }
+                if (F.isEmpty(id))
+                    throw new GridException(missingParameter("id"));
 
                 StringTokenizer st = new StringTokenizer(id, "~");
 
-                if (st.countTokens() != 2) {
-                    res.setSuccessStatus(STATUS_FAILED);
-                    res.setError("Failed to parse id parameter: " + id);
-
-                    fut.onDone(res);
-
-                    break;
-                }
+                if (st.countTokens() != 2)
+                    throw new GridException("Failed to parse id parameter: " + id);
 
                 String tidParam = st.nextToken();
                 String resHolderIdParam = st.nextToken();
@@ -251,64 +249,47 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
 
                     UUID resHolderId = !F.isEmpty(resHolderIdParam) ? UUID.fromString(resHolderIdParam) : null;
 
-                    if (tid == null || resHolderId == null) {
-                        res.setSuccessStatus(STATUS_FAILED);
-                        res.setError("Failed to parse id parameter: " + id);
-
-                        fut.onDone(res);
-
-                        break;
-                    }
+                    if (tid == null || resHolderId == null)
+                        throw new GridException("Failed to parse id parameter: " + id);
 
                     if (ctx.localNodeId().equals(resHolderId)) {
                         TaskDescriptor desc = taskDescs.get(tid);
 
-                        if (desc != null) {
-                            taskRestRes.setFinished(desc.finished());
+                        if (desc == null)
+                            throw new GridException( "Task with provided id has never been started on provided node" +
+                                " [taskId=" + tidParam + ", taskResHolderId=" + resHolderIdParam + ']');
 
-                            if (desc.error() != null)
-                                taskRestRes.setError(desc.error().getMessage());
-                            else
-                                taskRestRes.setResult(desc.result());
+                        taskRestRes.setFinished(desc.finished());
 
-                            res.setSuccessStatus(STATUS_SUCCESS);
-                            res.setResponse(taskRestRes);
-                        }
-                        else {
-                            res.setSuccessStatus(STATUS_FAILED);
-                            res.setError("Task with provided id has never been started on provided node [taskId=" +
-                                tidParam + ", taskResHolderId=" + resHolderIdParam + ']');
-                        }
+                        if (desc.error() != null)
+                            throw new GridException(desc.error().getMessage());
+
+                        taskRestRes.setResult(desc.result());
+
+                        res.setResponse(taskRestRes);
                     }
                     else {
                         GridTuple2<String, TaskResultResponse> t = requestTaskResult(resHolderId, tid);
 
-                        if (t.get1() != null) {
-                            res.setSuccessStatus(STATUS_FAILED);
-                            res.setError(t.get1());
-                        }
-                        else {
-                            TaskResultResponse taskRes = t.get2();
+                        if (t.get1() != null)
+                            throw new GridException(t.get1());
 
-                            assert taskRes != null;
+                        TaskResultResponse taskRes = t.get2();
 
-                            if (taskRes.found()) {
-                                taskRestRes.setFinished(taskRes.finished());
+                        assert taskRes != null;
 
-                                if (taskRes.error() != null)
-                                    taskRestRes.setError(taskRes.error());
-                                else
-                                    taskRestRes.setResult(taskRes.result());
+                        if (!taskRes.found())
+                            throw new GridException("Task with provided id has never been started on provided node " +
+                                "[taskId=" + tidParam + ", taskResHolderId=" + resHolderIdParam + ']');
 
-                                res.setSuccessStatus(STATUS_SUCCESS);
-                                res.setResponse(taskRestRes);
-                            }
-                            else {
-                                res.setSuccessStatus(STATUS_FAILED);
-                                res.setError("Task with provided id has never been started on provided node " +
-                                    "[taskId=" + tidParam + ", taskResHolderId=" + resHolderIdParam + ']');
-                            }
-                        }
+                        taskRestRes.setFinished(taskRes.finished());
+
+                        if (taskRes.error() != null)
+                            throw new GridException(taskRes.error());
+
+                        taskRestRes.setResult(taskRes.result());
+
+                        res.setResponse(taskRestRes);
                     }
                 }
                 catch (IllegalArgumentException e) {
@@ -318,8 +299,7 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
                     if (log.isDebugEnabled())
                         log.debug(msg);
 
-                    res.setSuccessStatus(STATUS_FAILED);
-                    res.setError(msg);
+                    throw new GridException(msg, e);
                 }
 
                 fut.onDone(res);
@@ -327,11 +307,7 @@ public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
                 break;
 
             case NOOP:
-                final GridRestResponse emptyRes = new GridRestResponse();
-
-                emptyRes.setSuccessStatus(STATUS_SUCCESS);
-
-                fut.onDone(emptyRes);
+                fut.onDone(new GridRestResponse());
 
                 break;
 

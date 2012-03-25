@@ -32,7 +32,7 @@ import java.util.concurrent._
  * trait and therefore brings with it all implicits into the scope.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 trait ScalarConversions {
     /**

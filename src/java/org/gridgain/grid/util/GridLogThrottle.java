@@ -26,7 +26,7 @@ import java.util.concurrent.*;
  * classes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridLogThrottle {
     /** Default throttle timeout in milliseconds (value is <tt>5 * 60 * 1000</tt>). */

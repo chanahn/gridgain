@@ -18,7 +18,7 @@ import java.util.*;
  * topology refresh and log downloading.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public interface GridClientCompute {
     /**
@@ -111,22 +111,22 @@ public interface GridClientCompute {
      * Executes task.
      *
      * @param taskName Task name or task class name.
-     * @param params Optional parameters.
+     * @param taskArg Optional task argument.
      * @return Task execution result.
      * @throws GridClientException In case of error.
      */
-    public <R> R execute(String taskName, Object... params) throws GridClientException;
+    public <R> R execute(String taskName, Object taskArg) throws GridClientException;
 
     /**
      * Asynchronously executes task.
      *
      * @param taskName Task name or task class name.
-     * @param params Optional parameters.
+     * @param taskArg Optional task argument.
      * @return Future.
      * @throws GridServerUnreachableException If none of the servers can be reached.
      * @throws GridClientClosedException If client was closed manually.
      */
-    public <R> GridClientFuture<R> executeAsync(String taskName, Object... params)
+    public <R> GridClientFuture<R> executeAsync(String taskName, Object taskArg)
         throws GridServerUnreachableException, GridClientClosedException;
 
     /**
@@ -136,11 +136,11 @@ public interface GridClientCompute {
      * @param taskName Task name or task class name.
      * @param cacheName Name of the cache on which affinity should be calculated.
      * @param affKey Affinity key.
-     * @param params Optional parameters.
+     * @param taskArg Optional task argument.
      * @return Task execution result.
      * @throws GridClientException In case of error.
      */
-    public <R> R affinityExecute(String taskName, String cacheName, Object affKey, Object... params)
+    public <R> R affinityExecute(String taskName, String cacheName, Object affKey, Object taskArg)
         throws GridClientException;
 
     /**
@@ -150,13 +150,13 @@ public interface GridClientCompute {
      * @param taskName Task name or task class name.
      * @param cacheName Name of the cache on which affinity should be calculated.
      * @param affKey Affinity key.
-     * @param params Optional parameters.
+     * @param taskArg Optional task argument.
      * @return Future.
      * @throws GridServerUnreachableException If none of the servers can be reached.
      * @throws GridClientClosedException If client was closed manually.
      */
     public <R> GridClientFuture<R> affinityExecuteAsync(String taskName, String cacheName, Object affKey,
-        Object... params) throws GridServerUnreachableException, GridClientClosedException;
+        Object taskArg) throws GridServerUnreachableException, GridClientClosedException;
 
     /**
      * Gets most recently refreshed topology. If this compute instance is a projection,

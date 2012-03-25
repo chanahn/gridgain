@@ -43,7 +43,7 @@ import java.util.concurrent.*;
  * will automatically pick default values for all values that are not set.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridConfigurationAdapter implements GridConfiguration {
     /** Optional grid name. */
@@ -269,6 +269,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
      *
      * @param cfg Grid configuration to copy from.
      */
+    @SuppressWarnings("deprecation")
     public GridConfigurationAdapter(GridConfiguration cfg) {
         assert cfg != null;
 

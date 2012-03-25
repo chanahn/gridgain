@@ -18,7 +18,7 @@ import java.util.*;
  * Class contains common connection-error handling logic.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 abstract class GridClientAbstractProjection<T extends GridClientAbstractProjection> {
     /** List of nodes included in this projection. If null, all nodes in topology are included. */
@@ -72,6 +72,8 @@ abstract class GridClientAbstractProjection<T extends GridClientAbstractProjecti
 
         boolean changeNode = false;
 
+        Throwable cause = null;
+
         for (int i = 0; i < RETRY_CNT; i++) {
 
             if (node == null || changeNode)
@@ -89,16 +91,20 @@ abstract class GridClientAbstractProjection<T extends GridClientAbstractProjecti
 
                 // It's ok, just reconnect to the same node.
                 changeNode = false;
+
+                cause = e;
             }
             catch (GridClientConnectionResetException e) {
                 client.onFacadeFailed(node, conn, e);
 
                 changeNode = true;
+
+                cause = e;
             }
         }
 
         throw new GridServerUnreachableException("Failed to communicate with grid nodes " +
-            "(maximum count of retries reached).");
+            "(maximum count of retries reached).", cause);
     }
 
     /**

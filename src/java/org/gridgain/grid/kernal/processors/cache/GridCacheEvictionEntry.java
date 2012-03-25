@@ -30,7 +30,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * Entry wrapper that never obscures obsolete entries from user.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridCacheEvictionEntry<K, V> implements GridCacheEntry<K, V>, Externalizable {
     /** Static logger to avoid re-creation. */

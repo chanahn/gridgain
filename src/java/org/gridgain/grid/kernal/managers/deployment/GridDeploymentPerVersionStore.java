@@ -31,7 +31,7 @@ import static org.gridgain.grid.GridEventType.*;
  * {@link GridDeploymentMode#CONTINUOUS} modes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridDeploymentPerVersionStore extends GridDeploymentStoreAdapter {
     /** Shared deployment cache. */

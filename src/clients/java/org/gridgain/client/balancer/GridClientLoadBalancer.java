@@ -18,7 +18,7 @@ import java.util.*;
  * (e.g. task run or cache operation in case of pinned mode).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public interface GridClientLoadBalancer {
     /**

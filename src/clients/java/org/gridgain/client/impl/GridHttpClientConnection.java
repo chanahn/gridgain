@@ -26,7 +26,7 @@ import java.util.logging.*;
  * Java client implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridHttpClientConnection extends GridClientConnection {
     /** Logger. */
@@ -173,7 +173,7 @@ public class GridHttpClientConnection extends GridClientConnection {
                     " is sent): " + serverAddress());
 
             try {
-                final InputStream input = openInputStream(buildRequestString(params, false, true));
+                final InputStream input = openInputStream(buildRequestString(params));
 
                 FutureWorker worker = new FutureWorker(fut) {
                     @Override protected void body() throws Exception {
@@ -183,7 +183,9 @@ public class GridHttpClientConnection extends GridClientConnection {
                             int successStatus = json.getInt("successStatus");
 
                             if (successStatus == GridClientResultBean.STATUS_AUTH_FAILURE) {
-                                InputStream inputAuth = openInputStream(buildRequestString(params, true, false));
+                                sesTok = null;
+
+                                InputStream inputAuth = openInputStream(buildRequestString(params));
 
                                 json = readReply(inputAuth);
                             }
@@ -195,12 +197,23 @@ public class GridHttpClientConnection extends GridClientConnection {
 
                             String errorMsg = (String)json.get("error");
 
-                            if (successStatus == GridClientResultBean.STATUS_AUTH_FAILURE)
+                            if (successStatus == GridClientResultBean.STATUS_AUTH_FAILURE) {
+                                sesTok = null;
+
                                 fut.onDone(new GridClientAuthenticationException("Client authentication failed " +
                                     "[clientId=" + clientId + ", srvAddr=" + serverAddress() + ", errMsg=" + errorMsg +
                                     ']'));
-                            else if (errorMsg != null && !errorMsg.isEmpty())
+                            }
+                            else if (successStatus == GridClientResultBean.STATUS_FAILED) {
+                                if (errorMsg == null || errorMsg.isEmpty())
+                                    errorMsg = "Unknown server error.";
+
                                 fut.onDone(new GridClientException(errorMsg));
+                            }
+                            else if (successStatus != GridClientResultBean.STATUS_SUCCESS) {
+                                fut.onDone(new GridClientException("Unsupported server response status code" +
+                                    ": " + successStatus));
+                            }
                             else
                                 fut.onDone(json.get("response"));
                         }
@@ -240,26 +253,37 @@ public class GridHttpClientConnection extends GridClientConnection {
      * Builds request string with given parameters.
      *
      * @param params Request parameters.
-     * @param includeCred Whether client credentials should be included.
-     * @param includeSesTok Whether session token should be included.
      * @return Request string in URL format.
      */
-    private String buildRequestString(Map<String, Object> params, boolean includeCred, boolean includeSesTok) {
-        StringBuilder builder = new StringBuilder(sslContext() != null ? "https://" : "http://");
+    private String buildRequestString(Map<String, Object> params) {
+        StringBuilder builder = new StringBuilder(sslContext() == null ? "http://" : "https://");
 
         builder.append(serverAddress().getHostName()).append(':').append(serverAddress().getPort()).append
             ("/gridgain?");
 
-        for (Map.Entry<String, Object> e : params.entrySet())
-            builder.append(e.getKey()).append('=').append(e.getValue()).append('&');
+        params = new HashMap<String, Object>(params);
 
-        if (includeSesTok && sesTok != null)
-            builder.append("sessionToken=").append(sesTok).append('&');
+        if (sesTok != null)
+            params.put("sessionToken", sesTok);
+        else if (credentials() != null)
+            params.put("cred", credentials());
 
-        if (includeCred && credentials() != null)
-            builder.append("cred=").append(credentials()).append('&');
+        params.put("clientId", clientId.toString());
 
-        builder.append("clientId=").append(clientId);
+        for (Map.Entry<String, Object> entry : params.entrySet())
+            if (!(entry.getValue() instanceof String))
+                throw new IllegalArgumentException("Http connection supports only string arguments in requests" +
+                    ", while received [key=" + entry.getKey() + ", value=" + entry.getValue() + "]");
+
+        try {
+            for (Map.Entry<String, Object> e : params.entrySet())
+                builder.append(e.getKey()).append('=')
+                    .append(URLEncoder.encode((String)e.getValue(), "UTF-8"))
+                    .append('&');
+        }
+        catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
 
         return builder.toString();
     }
@@ -485,7 +509,7 @@ public class GridHttpClientConnection extends GridClientConnection {
 
     /** {@inheritDoc} */
     @SuppressWarnings("unchecked")
-    @Override public <R> GridClientFuture<R> execute(final String taskName, final Object... params)
+    @Override public <R> GridClientFuture<R> execute(final String taskName, final Object taskArg)
         throws GridClientClosedException, GridClientConnectionResetException {
         assert taskName != null;
 
@@ -494,10 +518,8 @@ public class GridHttpClientConnection extends GridClientConnection {
         paramsMap.put("cmd", "exe");
         paramsMap.put("name", taskName);
 
-        if (params != null) {
-            for (int i = 0; i < params.length; i++)
-                paramsMap.put("p" + (i + 1), params[i]);
-        }
+        if (taskArg != null)
+            paramsMap.put("p1", taskArg);
 
         GridClientFutureAdapter fut = new GridClientFutureAdapter() {
             @Override public void onDone(Object res) {
@@ -606,10 +628,33 @@ public class GridHttpClientConnection extends GridClientConnection {
         if (path != null)
             params.put("path", path);
 
-        params.put("from", fromLine);
-        params.put("to", toLine);
+        params.put("from", String.valueOf(fromLine));
+        params.put("to", String.valueOf(toLine));
 
-        return makeJettyRequest(params);
+        GridClientFutureAdapter fut = new GridClientFutureAdapter() {
+            @SuppressWarnings("unchecked")
+            @Override public void onDone(Object res) {
+                if (res == null || res instanceof JSONNull) {
+                    super.onDone((Object) null);
+
+                    return;
+                }
+
+                assert res instanceof JSONArray : "Did not receive a JSON array [cls=" + res.getClass() + ", " +
+                    "res=" + res + ']';
+
+                JSONArray arr = (JSONArray)res;
+
+                List<String> list = new ArrayList<String>(arr.size());
+
+                for (Object o : arr)
+                    list.add((String)o);
+
+                super.onDone(list);
+            }
+        };
+
+        return makeJettyRequest(params, fut);
     }
 
     /**

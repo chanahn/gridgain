@@ -29,7 +29,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Storage for local deployments.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 class GridDeploymentLocalStore extends GridDeploymentStoreAdapter {
     /** Sequence. */

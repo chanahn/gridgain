@@ -25,7 +25,7 @@ import java.util.concurrent.*;
  * {@link GridJobAdapterEx}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public abstract class GridCallable<V> extends GridLambdaAdapter implements Callable<V>, GridJob {
     /**

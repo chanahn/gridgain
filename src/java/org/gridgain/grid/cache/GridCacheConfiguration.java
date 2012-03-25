@@ -34,7 +34,7 @@ import java.util.*;
  * default configuration.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public interface GridCacheConfiguration {
     /** Default query log name. */
@@ -51,7 +51,7 @@ public interface GridCacheConfiguration {
     public static final int DFLT_PRELOAD_THREAD_POOL_SIZE = 2;
 
     /** Default preload timeout.*/
-    public final static long DFLT_PRELOAD_TIMEOUT = 10000;
+    public static final long DFLT_PRELOAD_TIMEOUT = 10000;
 
     /**
      * Default time to live. The value is <tt>0</tt> which means that

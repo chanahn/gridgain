@@ -24,7 +24,7 @@ import java.util.concurrent.locks.*;
  * <a href="http://weblogs.java.net/blog/tomwhite/archive/2007/11/consistent_hash.html">Tom White's Blog</a>.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridClientConsistentHash<N> implements Serializable {
     /**
@@ -140,7 +140,7 @@ public class GridClientConsistentHash<N> implements Serializable {
      * @param o Object to convert.
      * @return Byte array for hashing.
      */
-    private static byte[] toHashBytes(Object o) {
+    protected static byte[] toHashBytes(Object o) {
         if (o instanceof byte[])
             return (byte[])o;
 
@@ -175,10 +175,12 @@ public class GridClientConsistentHash<N> implements Serializable {
     }
 
     /**
+     * Bytes order (from lowest to highest) is specific only for consistent hash.
+     *
      * @param i Integer.
      * @return Byte array.
      */
-    public static byte[] intToBytes(int i) {
+    protected static byte[] intToBytes(int i) {
         byte[] b = new byte[4];
 
         b[0] = (byte)i;
@@ -190,10 +192,12 @@ public class GridClientConsistentHash<N> implements Serializable {
     }
 
     /**
+     * Bytes order (from lowest to highest) is specific only for consistent hash.
+     *
      * @param l Long.
      * @return Bytes.
      */
-    public static byte[] longToBytes(long l) {
+    protected static byte[] longToBytes(long l) {
         byte[] b = new byte[8];
 
         longToBytes(l, b, 0);
@@ -202,6 +206,8 @@ public class GridClientConsistentHash<N> implements Serializable {
     }
 
     /**
+     * Bytes order (from lowest to highest) is specific only for consistent hash.
+     *
      * @param l Long.
      * @param b Byte array.
      * @param off Offset.
@@ -351,42 +357,6 @@ public class GridClientConsistentHash<N> implements Serializable {
             }
 
             return false;
-        }
-        finally {
-            rw.writeLock().unlock();
-        }
-    }
-
-    /**
-     * Removes given nodes and all their replicas from consistent hash algorithm
-     * (if nodes are {@code null} or empty, then no-op).
-     *
-     * @param nodes Nodes to remove.
-     */
-    public void removeNodes(Collection<N> nodes) {
-        if (nodes == null || nodes.isEmpty())
-            return;
-
-        Collection<N> rmv = new LinkedList<N>();
-
-        rw.writeLock().lock();
-
-        try {
-            for (Iterator<N> it = circle.values().iterator(); it.hasNext();) {
-                N n = it.next();
-
-                if (nodes.contains(n)) {
-                    it.remove();
-
-                    if (!rmv.contains(n)) {
-                        rmv.add(n);
-
-                        nodes.remove(n);
-
-                        this.nodes.remove(n);
-                    }
-                }
-            }
         }
         finally {
             rw.writeLock().unlock();

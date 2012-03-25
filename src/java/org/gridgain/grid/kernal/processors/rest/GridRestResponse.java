@@ -17,7 +17,7 @@ import org.jetbrains.annotations.*;
  * JSON response. Getters and setters must conform to JavaBean standard.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridRestResponse {
     /** Command succeeded. */
@@ -30,7 +30,7 @@ public class GridRestResponse {
     public static final int STATUS_AUTH_FAILED = 2;
 
     /** Success status. */
-    private int successStatus;
+    private int successStatus = STATUS_SUCCESS;
 
     /** Session token. */
     private byte[] sesTokBytes;
@@ -53,29 +53,25 @@ public class GridRestResponse {
     }
 
     /**
-     * @param successStatus Success.
-     */
-    public GridRestResponse(int successStatus) {
-        this.successStatus = successStatus;
-    }
-
-    /**
-     * @param successStatus Success.
+     * Constructs successful rest response.
+     *
      * @param obj Response object.
      */
-    public GridRestResponse(int successStatus, Object obj) {
-        this.successStatus = successStatus;
+    public GridRestResponse(Object obj) {
+        successStatus = STATUS_SUCCESS;
         this.obj = obj;
     }
 
     /**
-     * @param successStatus Success.
-     * @param obj Response object.
+     * Constructs failed rest response.
+     *
+     * @param status Response status.
      * @param err Error, {@code null} if success is {@code true}.
      */
-    public GridRestResponse(int successStatus, @Nullable Object obj, @Nullable String err) {
-        this.successStatus = successStatus;
-        this.obj = obj;
+    public GridRestResponse(int status, @Nullable String err) {
+        assert status != STATUS_SUCCESS;
+
+        successStatus = status;
         this.err = err;
     }
 
@@ -84,13 +80,6 @@ public class GridRestResponse {
      */
     public int getSuccessStatus() {
         return successStatus;
-    }
-
-    /**
-     * @param successStatus Success flag.
-     */
-    public void setSuccessStatus(int successStatus) {
-        this.successStatus = successStatus;
     }
 
     /**
@@ -131,7 +120,7 @@ public class GridRestResponse {
     /**
      * @param sesTokBytes Session token for remote client.
      */
-    public void sessionTokenBytes(byte[] sesTokBytes) {
+    public void sessionTokenBytes(@Nullable byte[] sesTokBytes) {
         this.sesTokBytes = sesTokBytes;
     }
 
@@ -145,7 +134,7 @@ public class GridRestResponse {
     /**
      * @param sesTokStr String representation of session token.
      */
-    public void setSessionToken(String sesTokStr) {
+    public void setSessionToken(@Nullable String sesTokStr) {
         this.sesTokStr = sesTokStr;
     }
 

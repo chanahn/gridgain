@@ -41,7 +41,7 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * and populating local cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @SuppressWarnings( {"NonConstantFieldWithUpperCaseName"})
 public class GridDhtPartitionDemandPool<K, V> {

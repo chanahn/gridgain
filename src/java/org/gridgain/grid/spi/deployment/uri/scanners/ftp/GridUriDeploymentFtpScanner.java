@@ -23,7 +23,7 @@ import java.util.*;
  * Scanner doesn't search files in subfolders.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridUriDeploymentFtpScanner extends GridUriDeploymentScanner {
     /** */

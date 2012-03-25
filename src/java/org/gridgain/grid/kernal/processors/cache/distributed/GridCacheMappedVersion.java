@@ -16,7 +16,7 @@ import org.jetbrains.annotations.*;
  * Interface mostly for Near to DHT version mapping.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public interface GridCacheMappedVersion {
     /**

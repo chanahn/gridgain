@@ -12,12 +12,34 @@ package org.gridgain.grid.spi.swapspace;
 import org.gridgain.grid.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.spi.*;
+import org.gridgain.grid.spi.swapspace.leveldb.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
 
 /**
- * Swap space SPI.
+ * Provides a mechanism in grid for storing data on disk. GridGain cache uses swap space to overflow
+ * data to disk if it cannot fit in memory. It's also possible to use swap space directly
+ * by calling +Grid+^javadoc:Grid.html^ API swap-related methods. Logically storage is organized into
+ * independent +'spaces'+ in which data is stored.
+ * <p>
+ * All swap space implementations can be configured to prevent infinite growth and evict oldest entries.
+ * <p>
+ * The default swap space SPI is {@link GridLevelDbSwapSpaceSpi} which uses {@code Google LevelDB}
+ * implementation for storing data on disk.
+ * <p>
+ * Gridgain provides the following {@code GridSwapSpaceSpi} implementations:
+ * <ul>
+ * <li>
+ *     {@link org.gridgain.grid.spi.swapspace.file.GridFileSwapSpaceSpi} - swap space based on file
+ *     system.
+ * </li>
+ * <li>
+ *     {@link org.gridgain.grid.spi.swapspace.leveldb.GridLevelDbSwapSpaceSpi} - default SPI. It uses
+ *     {@code Google LevelDB} implementation for effectively compressing and storing data.
+ * </li>
+ * </ul>
+ * <p>
  * <p>
  * <b>NOTE:</b> this SPI (i.e. methods in this interface) should never be used directly. SPIs provide
  * internal view on the subsystem and is used internally by GridGain kernal. In rare use cases when
@@ -27,7 +49,7 @@ import java.util.*;
  * to undefined behavior and explicitly not supported.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public interface GridSwapSpaceSpi extends GridSpi, GridSpiJsonConfigurable {
     /**

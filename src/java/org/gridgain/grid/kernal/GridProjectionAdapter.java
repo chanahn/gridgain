@@ -36,7 +36,7 @@ import static org.gridgain.grid.util.nodestart.GridNodeStartUtils.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements GridProjection {
     /** Log reference. */
@@ -182,6 +182,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
      * @param run Run to wrap.
      * @return Wrapped call.
      */
+    @SuppressWarnings("UnusedDeclaration")
     private CA wrapRun(@Nullable final String cacheName, final Object affKey, final Runnable run) {
         return new CA() {
             @GridCacheName
@@ -204,6 +205,7 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
      * @param <R> Type of the {@code call} return value.
      * @return Wrapped call.
      */
+    @SuppressWarnings("UnusedDeclaration")
     private <R> CO<R> wrapCall(@Nullable final String cacheName, final Object affKey, final Callable<R> call) {
         return new CO<R>() {
             @GridCacheName

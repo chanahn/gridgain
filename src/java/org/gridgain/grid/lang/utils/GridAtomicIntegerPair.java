@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.*;
  * This class provides atomic pair of integer variables.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridAtomicIntegerPair {
     /** Long placeholder. */

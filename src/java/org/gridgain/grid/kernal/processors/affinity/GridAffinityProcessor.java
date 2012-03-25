@@ -32,7 +32,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
  * Data affinity processor.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridAffinityProcessor extends GridProcessorAdapter {
     /** Retries to get affinity in case of error. */
@@ -92,7 +92,7 @@ public class GridAffinityProcessor extends GridProcessorAdapter {
     }
 
     /** {@inheritDoc} */
-    public <K> Map<GridRichNode, Collection<K>> mapKeysToNodes(String cacheName, Collection<GridRichNode> nodes,
+    public <K> Map<GridRichNode, Collection<K>> mapKeysToNodes(@Nullable String cacheName, Collection<GridRichNode> nodes,
         @Nullable Collection<? extends K> keys, boolean sys) throws GridException {
         return keysToNodes(cacheName, keys, nodes, sys);
     }
@@ -104,7 +104,7 @@ public class GridAffinityProcessor extends GridProcessorAdapter {
     }
 
     /** {@inheritDoc} */
-    @Nullable public <K> GridRichNode mapKeyToNode(String cacheName, Collection<GridRichNode> nodes, K key,
+    @Nullable public <K> GridRichNode mapKeyToNode(@Nullable String cacheName, Collection<GridRichNode> nodes, K key,
         boolean sys) throws GridException {
         Map<GridRichNode, Collection<K>> map = keysToNodes(cacheName, F.asList(key), nodes, sys);
 
@@ -277,8 +277,8 @@ public class GridAffinityProcessor extends GridProcessorAdapter {
      * @return Tuple with result objects.
      * @throws GridException If either local or remote node cannot get deployment for affinity objects.
      */
-    private GridTuple2<GridCacheAffinityMapper, GridCacheAffinity> affinityFromNode(String cacheName, GridNode n,
-        boolean sys) throws GridException {
+    private GridTuple2<GridCacheAffinityMapper, GridCacheAffinity> affinityFromNode(@Nullable String cacheName,
+        GridNode n, boolean sys) throws GridException {
         ctx.task().setThreadContext(TC_SUBGRID, F.asSet(n));
 
         GridTuple3<GridAffinityMessage, GridAffinityMessage, GridException> t = ctx.task()
@@ -306,8 +306,9 @@ public class GridAffinityProcessor extends GridProcessorAdapter {
      * @throws GridException If failed.
      */
     @SuppressWarnings({"unchecked"})
-    private <K> Map<GridRichNode, Collection<K>> affinityMap(final String cacheName, GridCacheAffinityMapper<K> mapper,
-        GridCacheAffinity<Object> aff, Collection<? extends K> keys, Collection<GridRichNode> nodes) throws GridException {
+    private <K> Map<GridRichNode, Collection<K>> affinityMap(@Nullable final String cacheName,
+        GridCacheAffinityMapper<K> mapper, GridCacheAffinity<Object> aff, Collection<? extends K> keys,
+        Collection<GridRichNode> nodes) throws GridException {
         assert mapper != null;
         assert aff != null;
         assert !F.isEmpty(keys);

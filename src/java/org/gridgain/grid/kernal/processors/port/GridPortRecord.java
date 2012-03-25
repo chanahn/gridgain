@@ -16,7 +16,7 @@ import org.gridgain.grid.typedef.internal.*;
  * This class defines record about port use.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridPortRecord {
     /** Port. */

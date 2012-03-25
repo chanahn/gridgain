@@ -18,7 +18,7 @@ import org.gridgain.grid.util.tostring.*;
  * Convenient adapter for grid controllers.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public abstract class GridControllerAdapter implements GridController {
     /** Kernal context. */

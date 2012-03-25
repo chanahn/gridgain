@@ -32,12 +32,9 @@ import static org.gridgain.grid.spi.GridSecuritySubjectType.REMOTE_CLIENT;
  * Rest processor implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridRestProcessor extends GridProcessorAdapter {
-    /** Empty session token. */
-    private static final byte[] EMPTY_TOK = new byte[0];
-
     /** Protocols. */
     private final Collection<GridRestProtocol> protos = new ArrayList<GridRestProtocol>();
 
@@ -50,44 +47,45 @@ public class GridRestProcessor extends GridProcessorAdapter {
             return handleAsync(req).get();
         }
 
-        @Override public GridFuture<GridRestResponse> handleAsync(GridRestRequest req) {
+        @Override public GridFuture<GridRestResponse> handleAsync(final GridRestRequest req) {
             try {
-                final byte[] sesTok = authenticate(req);
-
-                GridFuture<GridRestResponse> res = null;
-
-                for (GridRestCommandHandler handler : handlers) {
-                    if (handler.supported(req.getCommand())) {
-                        res = handler.handleAsync(req);
-
-                        break;
-                    }
-                }
-
-                if (res != null) {
-                    return new GridEmbeddedFuture<GridRestResponse, GridRestResponse>(ctx, res,
-                        new C2<GridRestResponse, Exception, GridRestResponse>() {
-                        @Override public GridRestResponse apply(GridRestResponse res, Exception e) {
-                            res.sessionTokenBytes(sesTok);
-
-                            return res;
-                        }
-                    });
-                }
-                else {
-                    // No handler found for command.
-                    GridRestResponse resp = new GridRestResponse(STATUS_FAILED, null,
-                        "Failed to find registered handler for command: " + req.getCommand());
-
-                    resp.sessionTokenBytes(sesTok);
-
-                    return new GridFinishedFuture<GridRestResponse>(ctx, resp);
-                }
+                authenticate(req);
             }
             catch (GridException e) {
-                return new GridFinishedFuture<GridRestResponse>(ctx, new GridRestResponse(STATUS_AUTH_FAILED, null,
-                    e.getMessage()));
+                return new GridFinishedFuture<GridRestResponse>(ctx,
+                    new GridRestResponse(STATUS_AUTH_FAILED, e.getMessage()));
             }
+
+            GridFuture<GridRestResponse> res = null;
+
+            for (GridRestCommandHandler handler : handlers)
+                if (handler.supported(req.getCommand())) {
+                    res = handler.handleAsync(req);
+
+                    break;
+                }
+
+            if (res == null)
+                return new GridFinishedFuture<GridRestResponse>(ctx, new GridException(
+                    "Failed to find registered handler for command: " + req.getCommand()));
+
+            return new GridEmbeddedFuture<GridRestResponse, GridRestResponse>(ctx, res,
+                new C2<GridRestResponse, Exception, GridRestResponse>() {
+                    @Override public GridRestResponse apply(GridRestResponse res, Exception e) {
+                        if (e != null)
+                            res = new GridRestResponse(STATUS_FAILED, e.getMessage());
+
+                        assert res != null;
+
+                        try {
+                            res.sessionTokenBytes(updateSessionToken(req));
+                        } catch (GridException x) {
+                            U.warn(log, "Cannot update response session token: " + x.getMessage());
+                        }
+
+                        return res;
+                    }
+                });
         }
     };
 
@@ -102,37 +100,56 @@ public class GridRestProcessor extends GridProcessorAdapter {
      * Authenticates remote client.
      *
      * @param req Request to authenticate.
-     * @return Secure session token.
-     *
      * @throws GridException If authentication failed.
      */
-    private byte[] authenticate(GridRestRequest req) throws GridException {
+    private void authenticate(GridRestRequest req) throws GridException {
         UUID clientId = req.getClientId();
 
         if (clientId == null)
             throw new GridException("Failed to authenticate remote client (client id was not specified): " + req);
 
-        byte[] sesTok = req.getSessionToken();
-
-        if (sesTok == null)
-            sesTok = EMPTY_TOK;
-
         byte[] clientIdBytes = U.getBytes(clientId);
 
-        sesTok = ctx.secureSession().validate(REMOTE_CLIENT, clientIdBytes, sesTok, null);
+        byte[] sesTok = req.getSessionToken();
 
-        if (sesTok != null)
-            return sesTok;
-        else {
-            if (ctx.auth().authenticate(REMOTE_CLIENT, clientIdBytes, req.getCredentials())) {
-                // Generate new session id.
-                return ctx.secureSession().validate(REMOTE_CLIENT, clientIdBytes, null, null);
-            }
+        // Validate session.
+        if (sesTok != null && ctx.secureSession().validate(REMOTE_CLIENT, clientIdBytes, sesTok, null) != null)
+            // Session is still valid.
+            return;
+
+        // Authenticate client if invalid session.
+        if (!ctx.auth().authenticate(REMOTE_CLIENT, clientIdBytes, req.getCredentials()))
+            if (req.getCredentials() == null)
+                throw new GridException("Failed to authenticate remote client (secure session SPI not set?): " + req);
             else
-                // Return response with flag indicating if it is a expired session or authentication failed.
-                throw new GridException("Failed to authenticate remote client [clientId=" + clientId + ", req=" + req +
-                    ']');
-        }
+                throw new GridException("Failed to authenticate remote client (invalid credentials?): " + req);
+    }
+
+    /**
+     * Update session token to actual state.
+     *
+     * @param req Grid est request.
+     * @return Valid session token.
+     * @throws GridException If session token update process failed.
+     */
+    private byte[] updateSessionToken(GridRestRequest req) throws GridException {
+        byte[] subjId = U.getBytes(req.getClientId());
+
+        byte[] sesTok = req.getSessionToken();
+
+        // Update token from request to actual state.
+        if (sesTok != null)
+            sesTok = ctx.secureSession().validate(REMOTE_CLIENT, subjId, req.getSessionToken(), null);
+
+        // Create new session token, if request doesn't valid session token.
+        if (sesTok == null)
+            sesTok = ctx.secureSession().validate(REMOTE_CLIENT, subjId, null, null);
+
+        // Validate token has been created.
+        if (sesTok == null)
+            throw new GridException("Cannot create session token (is secure session SPI set?).");
+
+        return sesTok;
     }
 
     /**

@@ -23,7 +23,7 @@ import java.util.*;
  * DHT cache lock response.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridDhtLockResponse<K, V> extends GridDistributedLockResponse<K, V> {
     /** Evicted readers. */

@@ -29,7 +29,7 @@ import static org.gridgain.grid.GridEventType.*;
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridCacheRichExample {
     /**
@@ -88,17 +88,17 @@ public class GridCacheRichExample {
                 };
 
                 // Local node store.
-                ConcurrentMap<String, GridLocalEventListener> nodeLocal = G.grid().nodeLocal();
+                ConcurrentMap<String, GridLocalEventListener> nodeLoc = G.grid().nodeLocal();
 
                 // GridNodeLocal is a ConcurrentMap attached to every grid node.
-                GridLocalEventListener prev = nodeLocal.remove("lsnr");
+                GridLocalEventListener prev = nodeLoc.remove("lsnr");
 
                 // Make sure that we always unsubscribe the old listener regardless
                 // of how many times we run the example.
                 if (prev != null)
                     G.grid().removeLocalEventListener(prev);
 
-                nodeLocal.put("lsnr", lsnr);
+                nodeLoc.put("lsnr", lsnr);
 
                 G.grid().addLocalEventListener(lsnr,
                     EVT_CACHE_OBJECT_PUT,

@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * an overall top {@code 10} list within the grid.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridPopularWordsRealTimeExample {
     /** Number of most popular words to retrieve from grid. */

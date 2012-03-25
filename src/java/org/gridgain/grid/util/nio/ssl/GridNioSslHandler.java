@@ -28,7 +28,7 @@ import static javax.net.ssl.SSLEngineResult.Status.*;
  * Class that encapsulate the per-session SSL state, encoding and decoding logic.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 class GridNioSslHandler extends ReentrantLock {
     /** Grid logger. */

@@ -28,7 +28,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Command handler for API requests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridTopologyCommandHandler extends GridRestCommandHandlerAdapter {
     /**
@@ -75,7 +75,6 @@ public class GridTopologyCommandHandler extends GridRestCommandHandlerAdapter {
                 for (GridNode node : ctx.discovery().allNodes())
                     top.add(createNodeBean(node, mtr, attr));
 
-                res.setSuccessStatus(GridRestResponse.STATUS_SUCCESS);
                 res.setResponse(top);
 
                 break;
@@ -88,38 +87,33 @@ public class GridTopologyCommandHandler extends GridRestCommandHandlerAdapter {
 
                     final String ip = value("ip", req);
 
-                    if (id == null && ip == null) {
-                        res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
-                        res.setError("Failed to handle request (either id or ip should be specified).");
+                    if (id == null && ip == null)
+                        return new GridFinishedFuture<GridRestResponse>(ctx, new GridException(
+                            "Failed to handle request (either id or ip should be specified)."));
+
+                    GridNode node;
+
+                    if (id != null) {
+                        // Always refresh topology so client see most up-to-date view.
+                        ctx.discovery().alive(id);
+
+                        node = ctx.discovery().node(id);
+
+                        if (node != null && ip != null && !node.externalAddresses().contains(ip) &&
+                            !node.internalAddresses().contains(ip))
+                            node = null;
                     }
-                    else {
-                        GridNode node;
+                    else
+                        node = F.find(ctx.discovery().allNodes(), null, new P1<GridNode> () {
+                            @Override public boolean apply(GridNode n) {
+                                return n.internalAddresses().contains(ip) || n.externalAddresses().contains(ip);
+                            }
+                        });
 
-                        if (id != null) {
-                            // Always refresh topology so client see most up-to-date view.
-                            ctx.discovery().alive(id);
-
-                            node = ctx.discovery().node(id);
-
-                            if (node != null && ip != null && !node.externalAddresses().contains(ip) &&
-                                !node.internalAddresses().contains(ip))
-                                node = null;
-                        }
-                        else
-                            node = F.find(ctx.discovery().allNodes(), null, new P1<GridNode> () {
-                                @Override public boolean apply(GridNode n) {
-                                    return n.internalAddresses().contains(ip) || n.externalAddresses().contains(ip);
-                                }
-                            });
-
-
-                        if (node != null)
-                            res.setResponse(createNodeBean(node, mtr, attr));
-                        else
-                            res.setResponse(null);
-
-                        res.setSuccessStatus(GridRestResponse.STATUS_SUCCESS);
-                    }
+                    if (node != null)
+                        res.setResponse(createNodeBean(node, mtr, attr));
+                    else
+                        res.setResponse(null);
                 }
                 catch (IllegalArgumentException e) {
                     String msg = "Failed to parse id parameter [id=" + idParam + ", err=" + e.getMessage() + ']';
@@ -127,8 +121,7 @@ public class GridTopologyCommandHandler extends GridRestCommandHandlerAdapter {
                     if (log.isDebugEnabled())
                         log.debug(msg);
 
-                    res.setError(msg);
-                    res.setSuccessStatus(GridRestResponse.STATUS_FAILED);
+                    return new GridFinishedFuture<GridRestResponse>(ctx, new GridException(msg));
                 }
 
                 break;

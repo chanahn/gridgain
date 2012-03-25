@@ -31,7 +31,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Cache communication manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
     /** Number of retries using to send messages. */
@@ -220,13 +220,32 @@ public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings("BusyWait")
     @Override protected void onKernalStop0() {
         cctx.gridIO().removeMessageListener(topic);
 
         for (String ordTopic : orderedHandlers.keySet())
             cctx.gridIO().removeMessageListener(ordTopic);
 
-        rw.writeLock().lock();
+        boolean interrupted = false;
+
+        // Busy wait is intentional.
+        while (true) {
+            try {
+                if (rw.writeLock().tryLock(200, TimeUnit.MILLISECONDS))
+                    break;
+                else
+                    Thread.sleep(200);
+            }
+            catch (InterruptedException ignore) {
+                // Preserve interrupt status & ignore.
+                // Note that interrupted flag is cleared.
+                interrupted = true;
+            }
+        }
+
+        if (interrupted)
+            Thread.currentThread().interrupt();
 
         try {
             stopping = true;

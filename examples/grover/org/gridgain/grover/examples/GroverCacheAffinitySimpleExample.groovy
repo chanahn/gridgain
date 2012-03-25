@@ -31,7 +31,7 @@ import org.gridgain.grover.categories.*
  * be started with or without cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @Typed
 @Use(GroverProjectionCategory)

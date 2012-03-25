@@ -17,7 +17,7 @@ import java.util.*;
  * it will immediately invoke collision SPI.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public interface GridCollisionExternalListener extends EventListener {
     /**

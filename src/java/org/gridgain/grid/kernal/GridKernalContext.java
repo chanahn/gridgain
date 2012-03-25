@@ -13,6 +13,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.editions.*;
 import org.gridgain.grid.kernal.processors.affinity.*;
 import org.gridgain.grid.kernal.controllers.license.*;
+import org.gridgain.grid.kernal.processors.dataload.*;
 import org.gridgain.grid.kernal.processors.rest.*;
 import org.gridgain.grid.kernal.managers.authentication.*;
 import org.gridgain.grid.kernal.managers.checkpoint.*;
@@ -46,7 +47,7 @@ import java.util.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @GridToStringExclude
 public interface GridKernalContext extends GridMetadataAware, Iterable<GridComponent> {
@@ -260,6 +261,13 @@ public interface GridKernalContext extends GridMetadataAware, Iterable<GridCompo
      * @return Segmentation processor.
      */
     public GridSegmentationProcessor segmentation();
+
+    /**
+     * Gets data loader processor.
+     *
+     * @return Data loader processor.
+     */
+    public GridDataLoaderProcessor dataLoad();
 
     /**
      * Gets deployment manager.

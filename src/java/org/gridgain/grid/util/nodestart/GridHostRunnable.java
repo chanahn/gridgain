@@ -18,7 +18,7 @@ import java.util.concurrent.*;
  * Host group starter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridHostRunnable implements Runnable {
     /** Thread pool. */

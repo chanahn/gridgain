@@ -31,7 +31,7 @@ import static org.gridgain.grid.kernal.processors.cache.distributed.dht.GridDhtP
  * Thread pool for supplying partitions to demanding nodes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridDhtPartitionSupplyPool<K, V> {
     /** */

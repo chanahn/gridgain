@@ -32,7 +32,7 @@ import static org.gridgain.grid.cache.GridCacheFlag.*;
  * Cache projection.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridCacheProjectionImpl<K, V> extends GridMetadataAwareAdapter implements GridCacheProjection<K, V>,
     Externalizable {

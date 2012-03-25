@@ -29,7 +29,7 @@ import java.util.concurrent.*;
  * See {@link #HTTP_URL} for specific access URL used.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 class GridUpdateNotifier {
     /*
@@ -41,13 +41,13 @@ class GridUpdateNotifier {
      */
     /** Access URL to be used to access latest version data. */
     private static final String HTTP_URL =
-        "http://www.gridgain.org/update_status_cmn.php?v=4.0.0c.22032012";
+        "http://www.gridgain.org/update_status_cmn.php?v=4.0.0c.24032012";
 
     /** Ant-enhanced system version. */
     private static final String VER = "4.0.0c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "22032012";
+    private static final String BUILD = "24032012";
 
     /** Throttling for logging out. */
     private static final long THROTTLE_PERIOD = 24 * 60 * 60 * 1000; // 1 day.

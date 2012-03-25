@@ -295,14 +295,14 @@ import java.util.Map.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  * @see GridDeploymentSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.22032012")
+    version = "4.0.0c.24032012")
 @GridSpiMultipleInstancesSupport(true)
 @GridSpiConsistencyChecked(optional = false)
 @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})

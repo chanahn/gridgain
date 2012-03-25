@@ -24,12 +24,14 @@ import javax.servlet.http.*;
 import java.io.*;
 import java.util.*;
 
+import static org.gridgain.grid.kernal.processors.rest.GridRestResponse.STATUS_FAILED;
+
 /**
  * Jetty REST handler. The following URL format is supported:
  * {@code /gridgain?cmd=cmdName&param1=abc&param2=123}
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridJettyRestHandler extends AbstractHandler {
     /** Logger. */
@@ -251,27 +253,22 @@ public class GridJettyRestHandler extends AbstractHandler {
         try {
             cmdRes = hnd.handle(cmdReq);
 
-            if (cmdRes == null) {
-                res.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            if (cmdRes == null)
+                throw new IllegalStateException("Received null result from handler: " + hnd);
 
-                cmdRes = new GridRestResponse(GridRestResponse.STATUS_FAILED, null, "Received null result from " +
-                    "handler: " + hnd);
-            }
-            else {
-                byte[] sesTok = cmdRes.sessionTokenBytes();
+            byte[] sesTok = cmdRes.sessionTokenBytes();
 
-                if (sesTok != null)
-                    cmdRes.setSessionToken(U.byteArray2HexString(sesTok));
+            if (sesTok != null)
+                cmdRes.setSessionToken(U.byteArray2HexString(sesTok));
 
-                res.setStatus(HttpServletResponse.SC_OK);
-            }
+            res.setStatus(HttpServletResponse.SC_OK);
         }
-        catch (Throwable e) {
-            res.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        catch (Exception e) {
+            res.setStatus(HttpServletResponse.SC_OK);
 
             U.error(log, "Failed to process HTTP request [action=" + action + ", req=" + req + ']', e);
 
-            cmdRes = new GridRestResponse(GridRestResponse.STATUS_FAILED, null, e.getMessage());
+            cmdRes = new GridRestResponse(STATUS_FAILED, e.getMessage());
         }
 
         JSON json;
@@ -282,7 +279,7 @@ public class GridJettyRestHandler extends AbstractHandler {
         catch (JSONException e) {
             U.error(log, "Failed to convert response to JSON: " + cmdRes, e);
 
-            json = JSONSerializer.toJSON(new GridRestResponse(GridRestResponse.STATUS_FAILED, null, e.getMessage()));
+            json = JSONSerializer.toJSON(new GridRestResponse(STATUS_FAILED, e.getMessage()));
         }
 
         try {

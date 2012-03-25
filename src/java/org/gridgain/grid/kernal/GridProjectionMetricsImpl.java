@@ -19,7 +19,7 @@ import static java.lang.Math.*;
  * Implementation for {@link GridProjectionMetrics} interface.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 class GridProjectionMetricsImpl implements GridProjectionMetrics {
     /** */
@@ -102,6 +102,9 @@ class GridProjectionMetricsImpl implements GridProjectionMetrics {
 
     /** */
     private double avgIdleTime;
+
+    /** */
+    private float avgIdleTimePercent;
 
     /** */
     private float minBusyTimePerc = Float.POSITIVE_INFINITY;
@@ -283,6 +286,7 @@ class GridProjectionMetricsImpl implements GridProjectionMetrics {
             minIdleTime = min(minIdleTime, m.getCurrentIdleTime());
             maxIdleTime = max(maxIdleTime, m.getCurrentIdleTime());
             avgIdleTime += m.getCurrentIdleTime();
+            avgIdleTimePercent += m.getIdleTimePercentage();
 
             minBusyTimePerc = min(minBusyTimePerc, m.getBusyTimePercentage());
             maxBusyTimePerc = max(maxBusyTimePerc, m.getBusyTimePercentage());
@@ -342,6 +346,7 @@ class GridProjectionMetricsImpl implements GridProjectionMetrics {
         avgDaemonThreadCnt /= size;
         avgThreadCnt /= size;
         avgIdleTime /= size;
+        avgIdleTimePercent /= size;
         avgBusyTimePerc /= size;
         avgCpuLoad /= size;
         avgHeapMemCmt /= size;
@@ -517,6 +522,11 @@ class GridProjectionMetricsImpl implements GridProjectionMetrics {
     /** {@inheritDoc} */
     @Override public double getAverageIdleTime() {
         return avgIdleTime;
+    }
+
+    /** {@inheritDoc} */
+    @Override public float getIdleTimePercentage() {
+        return avgIdleTimePercent;
     }
 
     /** {@inheritDoc} */

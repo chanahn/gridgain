@@ -28,6 +28,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 import static org.gridgain.grid.GridEventType.*;
+import static org.gridgain.grid.GridJobResultPolicy.*;
 import static org.gridgain.grid.kernal.GridTopic.*;
 import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
 import static org.gridgain.grid.kernal.processors.job.GridJobProcessor.*;
@@ -37,7 +38,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
  * Grid task worker. Handles full task life cycle.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  * @param <T> Task argument type.
  * @param <R> Task return value type.
  */
@@ -401,6 +402,11 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
 
             processDelayedResponses();
         }
+        catch (GridEmptyProjectionException e) {
+            U.warn(log, "Failed to map task jobs to nodes (topology projection is empty): " + ses);
+
+            finishTask(null, e);
+        }
         catch (GridException e) {
             U.error(log, "Failed to map task jobs to nodes: " + ses, e);
 
@@ -408,7 +414,8 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
         }
         // Catch throwable to protect against bad user code.
         catch (Throwable e) {
-            String errMsg = "Failed to map task jobs to nodes due to undeclared user exception: " + ses;
+            String errMsg = "Failed to map task jobs to nodes due to undeclared user exception" +
+                " [cause=" + e.getMessage() + ", ses=" + ses + "]";
 
             log.error(errMsg, e);
 
@@ -644,7 +651,8 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
             }
 
             // Get nodes topology for failover.
-            Collection<? extends GridNode> top = ctx.topology().getTopology(ses, ctx.discovery().allNodes());
+            Collection<? extends GridNode> top = plc == FAILOVER ?
+                ctx.topology().getTopology(ses, ctx.discovery().allNodes()) : null;
 
             synchronized (mux) {
                 // If task is not waiting for responses,
@@ -682,6 +690,8 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
                     }
 
                     case FAILOVER: {
+                        assert top != null;
+
                         boolean cancelled = jobRes.getJobContext().getAttribute(CANCELLED_ATTR_KEY) != null;
 
                         if (cancelled) {
@@ -706,7 +716,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
             // Outside of synchronization.
             if (plc != null) {
                 // Handle failover.
-                if (plc == GridJobResultPolicy.FAILOVER)
+                if (plc == FAILOVER)
                     sendFailoverRequest(jobRes);
                 else {
                     evtLsnr.onJobFinished(this, jobRes.getSibling());
@@ -963,6 +973,7 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
     /**
      * @param res Job result.
      */
+    @SuppressWarnings("deprecation")
     private void sendRequest(GridJobResult res) {
         assert res != null;
 

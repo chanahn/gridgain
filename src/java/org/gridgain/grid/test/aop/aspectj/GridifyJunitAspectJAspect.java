@@ -16,8 +16,10 @@ import org.aspectj.lang.reflect.*;
 import org.gridgain.grid.test.*;
 import org.gridgain.grid.test.junit3.*;
 import org.gridgain.grid.test.junit4.*;
-import org.junit.runner.Describable;
+import org.gridgain.grid.typedef.internal.*;
+import org.junit.runner.*;
 import org.junit.runner.notification.*;
+
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -31,7 +33,7 @@ import static org.gridgain.grid.test.GridTestVmParameters.*;
  * {@code gridified} JUnits.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  * @see GridifyTest
  */
 @Aspect
@@ -106,7 +108,7 @@ public class GridifyJunitAspectJAspect {
      * @return Method execution result.
      * @throws Throwable If execution failed.
      */
-    @Around("execution(public void (org.junit.runners.Suite).run(org.junit.runner.notification.RunNotifier))"
+    @Around("execution(public void (org.junit.runners.ParentRunner).run(org.junit.runner.notification.RunNotifier))"
         + "&& !cflow(target(org.gridgain.grid.test.junit4.GridJunit4Suite))")
     public Object gridifyJunit4(ProceedingJoinPoint joinPoint) throws Throwable {
         Describable suite = (Describable)joinPoint.getTarget();
@@ -115,9 +117,9 @@ public class GridifyJunitAspectJAspect {
         // thus JUnit 4 task will pick up proper class loader.
         ClassLoader clsLdr = joinPoint.getSignature().getDeclaringType().getClassLoader();
 
-        Class<?> cls = Class.forName(suite.getDescription().getDisplayName(), true, clsLdr);
+        Class<?> cls = suite.getDescription().getTestClass();
 
-        if (cls.getAnnotation(GridifyTest.class) != null) {
+        if (cls != null && cls.getAnnotation(GridifyTest.class) != null) {
             new GridJunit4Suite(cls, clsLdr).run((RunNotifier)joinPoint.getArgs()[0]);
 
             return null;

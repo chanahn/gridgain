@@ -14,7 +14,7 @@ package org.gridgain.grid.kernal.processors.cache;
  * User must provide implementation of storage.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public interface GridCacheInternalStorable<T> extends GridCacheInternal{
     /**

@@ -23,7 +23,7 @@ import java.util.*;
  * Detects timeout events and processes them.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridTimeoutProcessor extends GridProcessorAdapter {
     /** */
@@ -106,7 +106,7 @@ public class GridTimeoutProcessor extends GridProcessorAdapter {
      * Handles job timeouts.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.22032012
+     * @version 4.0.0c.24032012
      */
     private class TimeoutWorker extends GridWorker {
         /**

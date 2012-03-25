@@ -21,7 +21,7 @@ import java.util.*;
  * SSH-based node starter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridNodeRunnable implements Runnable {
     /** Default GridGain home path for Windows (taken from environment variable). */

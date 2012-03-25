@@ -32,40 +32,42 @@ import java.util.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.22032012")
+    version = "4.0.0c.24032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridBasicTopologySpi extends GridSpiAdapter implements GridTopologySpi, GridBasicTopologySpiMBean {
     /** */
-    private boolean isLocalNode = true;
+    private boolean isLocNode = true;
 
     /** */
     private boolean isRmtNodes = true;
 
     /** */
-    @GridLocalNodeIdResource private UUID localNodeId;
+    @GridLocalNodeIdResource
+    private UUID locNodeId;
 
     /** Injected grid logger. */
-    @GridLoggerResource private GridLogger log;
+    @GridLoggerResource
+    private GridLogger log;
 
     /** {@inheritDoc} */
     @Override public boolean isLocalNode() {
-        return isLocalNode;
+        return isLocNode;
     }
 
     /**
      * Sets the flag on whether or not return local node.
      *
-     * @param isLocalNode {@code true} to return local node, {@code false} otherwise.
+     * @param isLocNode {@code true} to return local node, {@code false} otherwise.
      */
     @GridSpiConfiguration(optional = true)
-    public void setLocalNode(boolean isLocalNode) {
-        this.isLocalNode = isLocalNode;
+    public void setLocalNode(boolean isLocNode) {
+        this.isLocNode = isLocNode;
     }
 
     /** {@inheritDoc} */
@@ -89,13 +91,13 @@ public class GridBasicTopologySpi extends GridSpiAdapter implements GridTopology
         Collection<GridNode> top = new ArrayList<GridNode>(grid.size());
 
         for (GridNode node : grid) {
-            if (isLocalNode == true && node.id().equals(localNodeId)) {
-                top.add(node);
-            }
+            assert node != null;
 
-            if (isRemoteNodes() == true && node.id().equals(localNodeId) == false) {
+            if (isLocNode && node.id().equals(locNodeId))
                 top.add(node);
-            }
+
+            if (isRmtNodes && !node.id().equals(locNodeId))
+                top.add(node);
         }
 
         return top;
@@ -107,13 +109,13 @@ public class GridBasicTopologySpi extends GridSpiAdapter implements GridTopology
         startStopwatch();
 
         // Check parameters.
-        assertParameter(isLocalNode == true || isRmtNodes == true, "isLocalNode == true || isRmtNodes == true");
+        assertParameter(isLocNode || isRmtNodes, "isLocalNode == true || isRmtNodes == true");
 
         registerMBean(gridName, this, GridBasicTopologySpiMBean.class);
 
         // Ack parameters.
         if (log.isDebugEnabled()) {
-            log.debug(configInfo("isLocalNode", isLocalNode));
+            log.debug(configInfo("isLocalNode", isLocNode));
             log.debug(configInfo("isRmtNodes", isRmtNodes));
         }
 
@@ -128,9 +130,8 @@ public class GridBasicTopologySpi extends GridSpiAdapter implements GridTopology
         unregisterMBean();
 
         // Ack ok stop.
-        if (log.isDebugEnabled() ==true) {
+        if (log.isDebugEnabled())
             log.debug(stopInfo());
-        }
     }
 
     /** {@inheritDoc} */

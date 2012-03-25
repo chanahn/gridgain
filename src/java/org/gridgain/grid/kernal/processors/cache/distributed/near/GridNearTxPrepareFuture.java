@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  *
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public final class GridNearTxPrepareFuture<K, V> extends GridCompoundIdentityFuture<GridCacheTxEx<K, V>>
     implements GridCacheMvccFuture<K, V, GridCacheTxEx<K, V>> {

@@ -15,6 +15,7 @@ import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.kernal.controllers.*;
 import org.gridgain.grid.kernal.processors.affinity.*;
 import org.gridgain.grid.kernal.controllers.license.*;
+import org.gridgain.grid.kernal.processors.dataload.*;
 import org.gridgain.grid.kernal.processors.rest.*;
 import org.gridgain.grid.kernal.managers.*;
 import org.gridgain.grid.kernal.managers.authentication.*;
@@ -76,17 +77,17 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * misspelling.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridKernal extends GridProjectionAdapter implements Grid, GridKernalMBean, Externalizable {
     /** Ant-augmented version number. */
     private static final String VER = "4.0.0c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "22032012";
+    private static final String BUILD = "24032012";
 
     /** Ant-augmented release date. */
-    private static final String RELEASE_DATE = "22032012";
+    private static final String RELEASE_DATE = "24032012";
 
     /** Ant-augmented copyright blurb. */
     private static final String COPYRIGHT = "2012 Copyright (C) GridGain Systems";
@@ -400,6 +401,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings("deprecation")
     @Override public UUID getLocalNodeId() {
         assert cfg != null;
 
@@ -506,7 +508,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
      * @param cfg Grid configuration to use.
      * @throws GridException Thrown in case of any errors.
      */
-    @SuppressWarnings({"CatchGenericClass"})
+    @SuppressWarnings({"CatchGenericClass", "deprecation"})
     public void start(final GridConfiguration cfg) throws GridException {
         gw.compareAndSet(null, new GridKernalGatewayImpl(cfg.getGridName()));
 
@@ -702,6 +704,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             startProcessor(ctx, new GridTaskProcessor(ctx));
             startProcessor(ctx, new GridScheduleProcessor(ctx));
             startProcessor(ctx, new GridRestProcessor(ctx));
+            startProcessor(ctx, new GridDataLoaderProcessor(ctx));
 
             gw.writeLock();
 
@@ -1510,25 +1513,6 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
 
         // How to get Groovy and Clojure version at runtime?!?
         return groovy ? "Groovy" : clojure ? "Clojure" : U.jdkName() + " ver. " + U.jdkVersion();
-    }
-
-    /**
-     * Stops the processor.
-     *
-     * @param proc Processor to stop.
-     * @param cancel Cancellation flag.
-     * @param wait Wait flag.
-     */
-    private void stopProcessor(@Nullable GridComponent proc, boolean cancel, boolean wait) {
-        if (proc != null)
-            try {
-                proc.stop(cancel, wait);
-            }
-            catch (Throwable e) {
-                errOnStop = true;
-
-                U.error(log, "Failed to stop processor (ignoring): " + proc, e);
-            }
     }
 
     /**
@@ -2419,7 +2403,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     }
 
     /** {@inheritDoc} */
-    @Override public GridFuture<?> runLocal(Runnable r) throws GridException {
+    @Override public GridFuture<?> runLocal(Runnable r) {
         A.notNull(r, "r");
 
         guard();
@@ -2433,7 +2417,7 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     }
 
     /** {@inheritDoc} */
-    @Override public <R> GridFuture<R> callLocal(Callable<R> c) throws GridException {
+    @Override public <R> GridFuture<R> callLocal(Callable<R> c) {
         A.notNull(c, "c");
 
         guard();
@@ -2744,6 +2728,18 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
     /** {@inheritDoc} */
     @Override public boolean dynamic() {
         return true;
+    }
+
+    /** {@inheritDoc} */
+    @Override public <K, V> GridDataLoader<K, V> dataLoader(@Nullable String cacheName) {
+        guard();
+
+        try {
+            return ctx.dataLoad().dataLoader(cacheName);
+        }
+        finally {
+            unguard();
+        }
     }
 
     /** {@inheritDoc} */

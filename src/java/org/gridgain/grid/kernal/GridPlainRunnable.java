@@ -13,7 +13,7 @@ package org.gridgain.grid.kernal;
  * Runnable instance that should never be deployed or injected.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public interface GridPlainRunnable extends Runnable {
     // No-op.

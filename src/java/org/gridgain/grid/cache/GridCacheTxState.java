@@ -15,7 +15,7 @@ import org.jetbrains.annotations.*;
  * Cache transaction state.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public enum GridCacheTxState {
     /** Transaction started. */

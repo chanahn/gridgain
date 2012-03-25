@@ -51,7 +51,7 @@ import static org.gridgain.grid.GridEventType.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
     /** Flag to enable/disable consistency check (for internal use only). */

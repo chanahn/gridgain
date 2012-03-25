@@ -17,7 +17,7 @@ import java.lang.annotation.*;
  * want to reserve API and naming context for it - hence the annotation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

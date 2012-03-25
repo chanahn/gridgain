@@ -18,7 +18,7 @@ import java.util.*;
  * to the parent base stream or to a stream of your choice.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridTestPrintStream extends PrintStream {
     /** */

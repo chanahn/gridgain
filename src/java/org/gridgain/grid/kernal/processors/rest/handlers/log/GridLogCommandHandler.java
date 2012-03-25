@@ -27,7 +27,7 @@ import static org.gridgain.grid.kernal.processors.rest.GridRestCommand.*;
  * Handler for {@link GridRestCommand#LOG} command.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridLogCommandHandler extends GridRestCommandHandlerAdapter {
     /** Default log path. */
@@ -83,13 +83,11 @@ public class GridLogCommandHandler extends GridRestCommandHandlerAdapter {
             URL url = U.resolveGridGainUrl(path);
 
             if (url == null)
-                return new GridFinishedFuture<GridRestResponse>(ctx,
-                    new GridRestResponse(GridRestResponse.STATUS_FAILED, null, "Log file not found: " + path));
+                throw new GridException("Log file not found: " + path);
 
             if (!isAccessible(url))
-                return new GridFinishedFuture<GridRestResponse>(ctx,
-                    new GridRestResponse(GridRestResponse.STATUS_FAILED, null, "File is not accessible through REST " +
-                        "(check restAccessibleFolders configuration property): " + path));
+                throw new GridException("File is not accessible through REST" +
+                    " (check restAccessibleFolders configuration property): " + path);
 
             reader = new BufferedReader(new InputStreamReader(url.openStream()));
 
@@ -111,12 +109,13 @@ public class GridLogCommandHandler extends GridRestCommandHandlerAdapter {
                 lines.add(line);
             }
 
-            return new GridFinishedFuture<GridRestResponse>(ctx,
-                new GridRestResponse(GridRestResponse.STATUS_SUCCESS, lines));
+            return new GridFinishedFuture<GridRestResponse>(ctx, new GridRestResponse(lines));
+        }
+        catch (GridException e) {
+            return new GridFinishedFuture<GridRestResponse>(ctx, e);
         }
         catch (IOException e) {
-            return new GridFinishedFuture<GridRestResponse>(ctx,
-                new GridRestResponse(GridRestResponse.STATUS_FAILED, null, e.getMessage()));
+            return new GridFinishedFuture<GridRestResponse>(ctx, e);
         }
         finally {
             U.close(reader, log);

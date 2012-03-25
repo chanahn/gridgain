@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 4.0.0c.22032012
+:: Version: 4.0.0c.24032012
 ::
 
 ::
@@ -46,17 +46,22 @@ if not "%GRIDGAIN_HOME%" == "" goto checkGridGainHome2
     pushd "%~dp0"/..
     set GRIDGAIN_HOME=%CD%
     popd
+    goto checkGridGainHome3
 
 :checkGridGainHome2
+if "%GRIDGAIN_HOME%\bin\" == "%~dp0" goto :checkGridGainHome3
+    echo %0, WARN: GRIDGAIN_HOME environment variable may be pointing to wrong folder: %GRIDGAIN_HOME%
+
+:checkGridGainHome3
 :: remove all trailing slashes from GRIDGAIN_HOME.
 if %GRIDGAIN_HOME:~-1,1% == \ goto removeTrailingSlash
 if %GRIDGAIN_HOME:~-1,1% == / goto removeTrailingSlash
-goto checkGridGainHome3
+goto checkGridGainHome4
 :removeTrailingSlash
 set GRIDGAIN_HOME=%GRIDGAIN_HOME:~0,-1%
-goto checkGridGainHome2
+goto checkGridGainHome3
 
-:checkGridGainHome3
+:checkGridGainHome4
 if exist "%GRIDGAIN_HOME%\config" goto run
     echo %0, ERROR: GRIDGAIN_HOME environment variable is not valid installation home.
     echo %0, ERROR: GRIDGAIN_HOME variable must point to GridGain installation folder.

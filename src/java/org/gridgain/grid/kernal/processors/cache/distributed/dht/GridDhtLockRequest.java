@@ -25,7 +25,7 @@ import java.util.*;
  * DHT lock request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridDhtLockRequest<K, V> extends GridDistributedLockRequest<K, V> {
     /** Near keys to lock. */

@@ -22,7 +22,7 @@ import java.util.*;
  * Object wrapper containing serialized byte array of original object and deployment information.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 class GridAffinityMessage implements Externalizable {
     /** */

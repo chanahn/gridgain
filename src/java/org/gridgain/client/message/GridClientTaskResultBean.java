@@ -13,7 +13,7 @@ package org.gridgain.client.message;
  * Task result.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridClientTaskResultBean {
     /** Synthetic ID containing task ID and result holding node ID. */

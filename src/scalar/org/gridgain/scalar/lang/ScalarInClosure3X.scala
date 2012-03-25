@@ -19,7 +19,7 @@ import org.gridgain.grid._
  * Peer deploy aware adapter for Java's `GridInClosure3X`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 class ScalarInClosure3X[T1, T2, T3](private val f: (T1, T2, T3) => Unit) extends GridInClosure3X[T1, T2, T3] {
     assert(f != null)

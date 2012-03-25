@@ -39,7 +39,7 @@ import java.util.concurrent.*;
  * in {@link NullPointerException} and may be harder to catch.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public interface GridRichNode extends GridProjection, GridNode, Comparable<GridRichNode>,
     GridTypedProduct<GridRichNode> {
@@ -128,7 +128,7 @@ public interface GridRichNode extends GridProjection, GridNode, Comparable<GridR
      * or data grid.
      * <p>
      * Application code should never use daemon nodes.
-     *  
+     *
      * @return {@code True} if this node is a daemon, {@code false} otherwise.
      */
     public boolean isDaemon();
@@ -581,7 +581,7 @@ public interface GridRichNode extends GridProjection, GridNode, Comparable<GridR
 
     /**
      * Puts value into node local storage of this node. If this node is remote the value
-     * will be transfered to remote node and put there in remote node's local storage.
+     * will be transferred to remote node and put there in remote node's local storage.
      * Note that unlike its sibling {@link #nodeLocalPutAsync(Object, Object)}
      * this method will block until operation is complete. Note also that {@code key} and
      * {@code value} must be serializable as per current marshaller.
@@ -599,7 +599,7 @@ public interface GridRichNode extends GridProjection, GridNode, Comparable<GridR
 
     /**
      * Puts value into node local storage of this node. If this node is remote the value
-     * will be transfered to remote node and put there in remote node's local storage.
+     * will be transferred to remote node and put there in remote node's local storage.
      * Note that unlike its sibling {@link #nodeLocalPut(Object, Object)}
      * this method will not block and will return with the future. Note also that {@code key}
      * and {@code value} must be serializable as per current marshaller.

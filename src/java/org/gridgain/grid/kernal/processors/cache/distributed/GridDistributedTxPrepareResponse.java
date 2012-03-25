@@ -23,7 +23,7 @@ import java.util.*;
  * Response to prepare request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridDistributedTxPrepareResponse<K, V> extends GridDistributedBaseMessage<K, V> {
     /** Collections of local lock candidates. */

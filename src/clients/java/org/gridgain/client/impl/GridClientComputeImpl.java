@@ -18,7 +18,7 @@ import java.util.*;
  * Compute projection implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @SuppressWarnings("NullableProblems")
 public class GridClientComputeImpl extends GridClientAbstractProjection<GridClientComputeImpl>
@@ -70,34 +70,34 @@ public class GridClientComputeImpl extends GridClientAbstractProjection<GridClie
     }
 
     /** {@inheritDoc} */
-    @Override public <R> R execute(String taskName, Object... params) throws GridClientException {
-        return this.<R>executeAsync(taskName, params).get();
+    @Override public <R> R execute(String taskName, Object taskArg) throws GridClientException {
+        return this.<R>executeAsync(taskName, taskArg).get();
     }
 
     /** {@inheritDoc} */
-    @Override public <R> GridClientFuture<R> executeAsync(final String taskName, final Object... params)
+    @Override public <R> GridClientFuture<R> executeAsync(final String taskName, final Object taskArg)
         throws GridServerUnreachableException, GridClientClosedException {
         return withReconnectHandling(new ClientProjectionClosure<R>() {
             @Override public GridClientFuture<R> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
-                return conn.execute(taskName, params);
+                return conn.execute(taskName, taskArg);
             }
         });
     }
 
     /** {@inheritDoc} */
-    @Override public <R> R affinityExecute(String taskName, String cacheName, Object affKey, Object... params)
+    @Override public <R> R affinityExecute(String taskName, String cacheName, Object affKey, Object taskArg)
         throws GridClientException {
-        return this.<R>affinityExecuteAsync(taskName, cacheName, affKey, params).get();
+        return this.<R>affinityExecuteAsync(taskName, cacheName, affKey, taskArg).get();
     }
 
     /** {@inheritDoc} */
     @Override public <R> GridClientFuture<R> affinityExecuteAsync(final String taskName, String cacheName, Object affKey,
-        final Object... params) throws GridServerUnreachableException, GridClientClosedException {
+        final Object taskArg) throws GridServerUnreachableException, GridClientClosedException {
         return withReconnectHandling(new ClientProjectionClosure<R>() {
             @Override public GridClientFuture<R> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
-                return conn.execute(taskName, params);
+                return conn.execute(taskName, taskArg);
             }
         }, cacheName, affKey);
     }

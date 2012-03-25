@@ -13,7 +13,7 @@ package org.gridgain.client.message;
  * {@code Topology} command request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 public class GridClientTopologyRequest extends GridClientAbstractMessage {
     /** Id of requested node. */

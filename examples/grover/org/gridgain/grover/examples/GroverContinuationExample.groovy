@@ -57,7 +57,7 @@ import org.jetbrains.annotations.*
  * folder.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.22032012
+ * @version 4.0.0c.24032012
  */
 @Typed
 class GroverContinuationExample {
@@ -107,7 +107,7 @@ class GroverContinuationExample {
 
     /**
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.22032012
+     * @version 4.0.0c.24032012
      */
     private static class FibonacciClosure extends CX1<Long, BigInteger> {
         /**
