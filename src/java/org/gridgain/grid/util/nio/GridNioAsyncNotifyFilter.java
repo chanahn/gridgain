@@ -20,7 +20,7 @@ import java.util.concurrent.*;
  * Enables multithreaded notification of session opened, message received and session closed events.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridNioAsyncNotifyFilter extends GridNioFilterAdapter {
     /** Logger. */

@@ -16,7 +16,7 @@ import java.io.*;
  * TODO: add file description.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 interface GridJunit3SerializableTest extends Serializable {
     /**

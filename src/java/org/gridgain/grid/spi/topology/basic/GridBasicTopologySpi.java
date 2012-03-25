@@ -32,13 +32,13 @@ import java.util.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.24032012")
+    version = "4.0.0c.25032012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridBasicTopologySpi extends GridSpiAdapter implements GridTopologySpi, GridBasicTopologySpiMBean {
     /** */

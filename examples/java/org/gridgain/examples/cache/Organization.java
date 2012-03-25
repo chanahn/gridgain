@@ -19,7 +19,7 @@ import java.util.*;
  * Organization record used for query examples.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class Organization implements Serializable {
     /** Organization ID (create unique SQL-based index for this field). */

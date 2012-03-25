@@ -21,7 +21,7 @@ import org.gridgain.grid.GridClosureCallMode._
  * on thousands requiring no special configuration or deployment.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 object ScalarWorldShortestMapReduce {
     /**

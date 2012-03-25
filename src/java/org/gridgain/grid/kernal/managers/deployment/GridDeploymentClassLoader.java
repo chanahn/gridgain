@@ -31,7 +31,7 @@ import java.util.concurrent.*;
  * remote node this class will throw exception.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 @SuppressWarnings({"CustomClassloader"})
 class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInfo {
@@ -424,7 +424,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
     }
 
     /**
-     * Loads the class with the specified binary name.  The
+     * Loads the class with the specified binary name. The
      * default implementation of this method searches for classes in the
      * following order:
      * <p>
@@ -494,10 +494,9 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
                 if (i != -1) {
                     String pkgName = name.substring(0, i);
 
-                    if (getPackage(pkgName) == null){
-                         /* Too much nulls is normal because we don't have package's meta info */
+                    if (getPackage(pkgName) == null)
+                         // Too much nulls is normal because we don't have package's meta info.
                          definePackage(pkgName, null, null, null, null, null, null, null);
-                     }
                 }
             }
 

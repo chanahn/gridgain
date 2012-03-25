@@ -36,7 +36,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Command handler for API requests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridTaskCommandHandler extends GridRestCommandHandlerAdapter {
     /** Default maximum number of task results. */

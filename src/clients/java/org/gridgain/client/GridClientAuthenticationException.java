@@ -13,7 +13,7 @@ package org.gridgain.client;
  * Exception that represents client authentication failure for some reason.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridClientAuthenticationException extends GridClientException {
     /**

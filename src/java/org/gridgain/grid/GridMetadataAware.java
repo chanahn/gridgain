@@ -35,7 +35,7 @@ import java.util.concurrent.*;
  * context to cache entries to properly expire them.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public interface GridMetadataAware extends Serializable {
     /**

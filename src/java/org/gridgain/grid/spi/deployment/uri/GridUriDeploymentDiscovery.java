@@ -29,7 +29,7 @@ import java.util.jar.*;
  * If at least one of them could not be loaded helper fails.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 final class GridUriDeploymentDiscovery {
     /**

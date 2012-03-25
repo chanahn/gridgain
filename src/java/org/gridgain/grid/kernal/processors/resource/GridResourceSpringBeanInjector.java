@@ -22,7 +22,7 @@ import java.lang.reflect.*;
  * by Spring {@code ApplicationContext}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridResourceSpringBeanInjector implements GridResourceInjector {
     /** */

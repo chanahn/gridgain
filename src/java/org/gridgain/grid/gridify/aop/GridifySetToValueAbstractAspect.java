@@ -23,7 +23,7 @@ import static org.gridgain.grid.util.gridify.GridifyUtils.*;
  * This adapter used in grid task for {@link GridifySetToValue} annotation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridifySetToValueAbstractAspect {
     /**

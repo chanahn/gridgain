@@ -132,7 +132,7 @@ import java.util.*;
  * intermediate state to avoid starting from scratch in case of a failure.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public interface GridJob extends Serializable {
     /**

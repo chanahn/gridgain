@@ -20,7 +20,7 @@ import java.util.concurrent.*;
  * management functionality for workers.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public final class GridWorkerGroup {
     /** Value for {@code null} names. */

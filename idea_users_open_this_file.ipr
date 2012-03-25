@@ -183,10 +183,10 @@
   </component>
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Examples.iml" filepath="$PROJECT_DIR$/Examples.iml" />
-      <module fileurl="file://$PROJECT_DIR$/Java client.iml" filepath="$PROJECT_DIR$/Java client.iml" />
-      <module fileurl="file://$PROJECT_DIR$/Main.iml" filepath="$PROJECT_DIR$/Main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/Sources.iml" filepath="$PROJECT_DIR$/Sources.iml" />
+      <module fileurl="file://$PROJECT_DIR$/idea/Examples.iml" filepath="$PROJECT_DIR$/idea/Examples.iml" />
+      <module fileurl="file://$PROJECT_DIR$/idea/Java client.iml" filepath="$PROJECT_DIR$/idea/Java client.iml" />
+      <module fileurl="file://$PROJECT_DIR$/idea/Main.iml" filepath="$PROJECT_DIR$/idea/Main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/idea/Sources.iml" filepath="$PROJECT_DIR$/idea/Sources.iml" />
     </modules>
   </component>
   <component name="ProjectResources">

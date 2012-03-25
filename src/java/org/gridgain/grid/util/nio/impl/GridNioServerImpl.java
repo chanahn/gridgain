@@ -32,7 +32,7 @@ import java.util.concurrent.*;
  * Supports sending data to remote clients.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridNioServerImpl<T> implements GridNioServer<T> {
     /** Time, which server will wait before retry operation. */

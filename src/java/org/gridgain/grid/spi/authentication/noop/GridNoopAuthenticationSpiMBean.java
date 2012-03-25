@@ -16,7 +16,7 @@ import org.gridgain.grid.util.mbean.*;
  * Management bean for {@link GridNoopAuthenticationSpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 @GridMBeanDescription("MBean that provides access to no-op authentication SPI configuration.")
 public interface GridNoopAuthenticationSpiMBean extends GridSpiManagementMBean {

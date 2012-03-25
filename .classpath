@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
     <classpathentry kind="src" path="examples/gar/src"/>
+    <classpathentry kind="src" path="src/scalar"/>
+    <classpathentry kind="src" path="src/grover"/>
+    <classpathentry excluding="org/gridgain/client/|org/gridgain/grid/gridify/aop/jboss/|org/gridgain/grid/kernal/GridProjectionAdapter.java|org/gridgain/grid/lang/GridFunc.java|org/gridgain/grid/lang/GridReducer.java|org/gridgain/grid/lang/GridReducer2.java|org/gridgain/grid/loaders/glassfish/|org/gridgain/grid/loaders/jboss/|org/gridgain/grid/loaders/tomcat/|org/gridgain/grid/loaders/weblogic/|org/gridgain/grid/loaders/websphere/|org/gridgain/grid/logger/jboss/|org/gridgain/grid/logger/tomcat/|org/gridgain/grid/marshaller/jboss/|org/gridgain/grid/test/aop/jboss/|org/gridgain/grid/thread/GridThreadWorkManagerExecutor.java|org/gridgain/grid/tools/ant/" kind="src" path="src/java"/>
+    <classpathentry kind="src" path="src/clients/java"/>
     <classpathentry kind="src" path="examples/java"/>
     <classpathentry kind="src" path="examples/scalar"/>
     <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
@@ -91,5 +95,6 @@
     <classpathentry kind="lib" path="examples/libs/hadoop/hadoop-core-1.0.1.jar"/>
     <classpathentry kind="lib" path="clients/java/gridgain-client.jar"/>
     <classpathentry kind="lib" path="gridgain-4.0.0c.jar"/>
+    <classpathentry kind="lib" path="config/aop/aspectj"/>
     <classpathentry kind="output" path="out"/>
 </classpath>

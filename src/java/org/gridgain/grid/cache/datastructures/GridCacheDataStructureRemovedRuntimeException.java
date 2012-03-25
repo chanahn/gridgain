@@ -13,10 +13,15 @@ import org.gridgain.grid.*;
 import org.jetbrains.annotations.*;
 
 /**
- * This exception gets thrown if attempt to access a removed data structure has been made.
+ * This runtime exception gets thrown if attempt to access a removed data structure has been made.
+ * <p>
+ * Note that data structures throw runtime exceptions out of methods that don't have
+ * checked exceptions in the signature. If you prefer to handle checked exceptions,
+ * then use methods that end with {@code 'x'}, e.g. {@link GridCacheQueue#addx(Object)}
+ * vs. {@link GridCacheQueue#add(Object)}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridCacheDataStructureRemovedRuntimeException extends GridRuntimeException {
     /**

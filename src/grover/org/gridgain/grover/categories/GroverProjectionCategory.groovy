@@ -24,7 +24,7 @@ import org.jetbrains.annotations.*
  * to be annotated: {@code @Use(GroverProjectionCategory)}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 @Typed
 class GroverProjectionCategory {

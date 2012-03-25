@@ -119,7 +119,7 @@ import org.gridgain.grid.typedef.*;
  * with Spring AOP refer to {@link GridifySpringHelloWorldExample} example.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public final class GridifyHelloWorldStateExample {
     /**

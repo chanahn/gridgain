@@ -21,7 +21,7 @@ import java.util.*;
  * Shows client authentication feature.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridAuthenticationAndSecureSessionClientExample {
     /** Change this property to start example in SSL mode. */

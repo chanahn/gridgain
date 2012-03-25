@@ -10,11 +10,11 @@
   </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$/examples">
-      <sourceFolder url="file://$MODULE_DIR$/examples/gar/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/examples/grover" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/examples/java" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/examples/scalar" isTestSource="false" />
+    <content url="file://$MODULE_DIR$/../examples">
+      <sourceFolder url="file://$MODULE_DIR$/../examples/gar/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../examples/grover" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../examples/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../examples/scalar" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
@@ -24,7 +24,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/gridgain-4.0.0c.jar!/" />
+          <root url="jar://$MODULE_DIR$/../gridgain-4.0.0c.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
@@ -33,7 +33,16 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/clients/java/gridgain-client.jar!/" />
+          <root url="jar://$MODULE_DIR$/../clients/java/gridgain-client.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../config/aop/aspectj" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

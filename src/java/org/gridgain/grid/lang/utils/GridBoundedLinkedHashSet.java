@@ -28,7 +28,7 @@ import java.util.*;
  *
  * @param <E> Set element.
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridBoundedLinkedHashSet<E> extends GridSerializableSet<E> implements Cloneable {
     /** */

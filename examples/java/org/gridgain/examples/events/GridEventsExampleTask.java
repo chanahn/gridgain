@@ -20,7 +20,7 @@ import java.util.*;
  * Example task used to generate events for event demonstration example.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridEventsExampleTask extends GridTaskNoReduceAdapter<String> {
     /** Injected load balancer. */

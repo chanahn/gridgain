@@ -7,7 +7,7 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 4.0.0c.24032012
+# Version: 4.0.0c.25032012
 #
 
 #
@@ -55,21 +55,25 @@ ANT_AUGMENTED_GGJAR=gridgain-4.0.0c.jar
 
 osname=`uname`
 
+GRIDGAIN_HOME_TMP=
+
+case $osname in
+    Darwin*)
+        export GRIDGAIN_HOME_TMP=$(dirname $(dirname $(cd ${0%/*} && echo $PWD/${0##*/})))
+        ;;
+    *)
+        export GRIDGAIN_HOME_TMP="$(dirname $(readlink -f $0))"/..
+        ;;
+esac
+
 #
 # Set GRIDGAIN_HOME, if needed.
 #
 if [ "${GRIDGAIN_HOME}" = "" ]; then
     echo $0", WARN: GRIDGAIN_HOME environment variable is not found."
 
-    case $osname in
-        Darwin*)
-            export GRIDGAIN_HOME=$(dirname $(dirname $(cd ${0%/*} && echo $PWD/${0##*/})))
-            ;;
-        *)
-            export GRIDGAIN_HOME="$(dirname $(readlink -f $0))"/..
-            ;;
-    esac
-elif [ "${GRIDGAIN_HOME}/bin" != "$(dirname $(readlink -f $0))" ]; then
+    export GRIDGAIN_HOME=${GRIDGAIN_HOME_TMP}
+elif [ "${GRIDGAIN_HOME}" != "${GRIDGAIN_HOME_TMP}" ] && [ "${GRIDGAIN_HOME}/bin/.." != "${GRIDGAIN_HOME_TMP}" ]; then
     echo $0", WARN: GRIDGAIN_HOME environment variable may be pointing to wrong folder: $GRIDGAIN_HOME"
 fi
 

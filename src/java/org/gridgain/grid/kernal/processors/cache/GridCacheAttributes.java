@@ -20,7 +20,7 @@ import java.io.*;
  * This class contains information on a single cache configured on some node.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridCacheAttributes implements Externalizable {
     /** Cache name. */

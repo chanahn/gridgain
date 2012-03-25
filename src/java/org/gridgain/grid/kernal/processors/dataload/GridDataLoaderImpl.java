@@ -25,6 +25,7 @@ import org.gridgain.grid.util.tostring.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -38,7 +39,7 @@ import static org.gridgain.grid.cache.GridCacheMode.*;
  * Data loader implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
     /** Log reference. */
@@ -101,6 +102,12 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
 
     /** IDs of cache nodes. */
     private Collection<UUID> cacheNodes = new HashSet<UUID>();
+
+    /** Class to deploy on remote node. */
+    private Class<?> depCls;
+
+    /** Job peer deploy aware. */
+    private GridPeerDeployAware jobPda;
 
     /**
      * @param ctx Grid kernal context.
@@ -176,7 +183,7 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
             }
 
             if (log.isDebugEnabled())
-                log.debug("Inited cache nodes: " + cacheNodes);
+                log.debug("Initialized cache nodes: " + cacheNodes);
         }
         finally {
             lock.writeLock().unlock();
@@ -219,12 +226,22 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
     }
 
     /** {@inheritDoc} */
+    @Override public void deployClass(Class<?> depCls) {
+        A.notNull(depCls, "depCls");
+
+        if (cSaved || cRef.get() != null)
+            throw new IllegalStateException("Cannot change active data loader configuration.");
+
+        this.depCls = depCls;
+    }
+
+    /** {@inheritDoc} */
     @Override @Nullable public String cacheName() {
         return cacheName;
     }
 
     /** {@inheritDoc} */
-    @Override public void addData(K key, V val) throws GridException, GridInterruptedException, IllegalStateException {
+    @Override public void addData(final K key, final V val) throws GridException, GridInterruptedException, IllegalStateException {
         A.notNull(key, "key");
         A.notNull(val, "val");
 
@@ -243,7 +260,42 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
 
                 // Save configuration snapshot.
                 if (!cSaved) {
-                    cRef.compareAndSet(null, new Configuration(bufSize, parallelOps));
+                    cRef.compareAndSet(null, new Configuration(bufSize, parallelOps,
+                        new GridPeerDeployAware() {
+                            private Class<?> cls;
+
+                            private ClassLoader ldr;
+
+                            @Override public Class<?> deployClass() {
+                                if (cls == null) {
+                                    if (depCls != null)
+                                        cls = depCls;
+                                    else {
+                                        if (cls == null)
+                                            cls = detectClass(key);
+
+                                        if (cls == null)
+                                            cls = detectClass(val);
+
+                                        if (cls == null)
+                                            cls = GridDataLoaderImpl.class;
+                                    }
+                                }
+
+                                return cls;
+                            }
+
+                            @Override public ClassLoader classLoader() {
+                                if (ldr == null)
+                                    ldr = deployClass().getClassLoader();
+
+                                // Safety.
+                                if (ldr == null)
+                                    ldr = GridDataLoaderImpl.class.getClassLoader();
+
+                                return ldr;
+                            }
+                        }));
 
                     cSaved = true;
                 }
@@ -260,6 +312,49 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         finally {
             ctx.gateway().readUnlock();
         }
+    }
+
+    /**
+     * @param obj Object.
+     * @return First non-JDK or deployment aware class.
+     */
+    @Nullable private Class<?> detectClass(Object obj) {
+        assert obj != null;
+
+        if (obj instanceof GridPeerDeployAware)
+            return ((GridPeerDeployAware) obj).deployClass();
+
+        if (!U.isJdk(obj.getClass()))
+            return obj.getClass();
+
+        if (obj instanceof Iterable<?>) {
+            for (Object o : (Iterable) obj) {
+                if (o instanceof GridPeerDeployAware)
+                    return ((GridPeerDeployAware) o).deployClass();
+
+                if (!U.isJdk(o.getClass()))
+                    return o.getClass();
+            }
+
+            // No point to continue.
+            return null;
+        }
+
+        if (obj.getClass().isArray()) {
+            int len = Array.getLength(obj);
+
+            for (int i = 0; i < len; i++) {
+                Object o = Array.get(obj, i);
+
+                if (o instanceof GridPeerDeployAware)
+                    return ((GridPeerDeployAware) o).deployClass();
+
+                if (!U.isJdk(o.getClass()))
+                    return o.getClass();
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -401,7 +496,26 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
             busyLock.block();
 
             if (!cSaved) {
-                cRef.compareAndSet(null, new Configuration(bufSize, parallelOps));
+                cRef.compareAndSet(null, new Configuration(bufSize, parallelOps,
+                    new GridPeerDeployAware() {
+                        private Class<?> cls;
+
+                        private ClassLoader ldr;
+
+                        @Override public Class<?> deployClass() {
+                            if (cls == null)
+                                cls = depCls != null ? depCls : GridDataLoaderImpl.class;
+
+                            return cls;
+                        }
+
+                        @Override public ClassLoader classLoader() {
+                            if (ldr == null)
+                                ldr = deployClass().getClassLoader();
+
+                            return ldr;
+                        }
+                    }));
 
                 cSaved = true;
             }
@@ -582,7 +696,7 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
     /**
      * Job to put entries to cache on affinity node.
      */
-    private static class PutJob<K, V> extends GridCallable<Object> {
+    private static class PutJob<K, V> implements Callable<Object>, GridPeerDeployAware, Externalizable {
         /** Grid. */
         @GridInstanceResource
         private Grid g;
@@ -597,15 +711,28 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         /** Entries to put. */
         private Collection<GridTuple2<K, V>> col;
 
+        /** */
+        private GridPeerDeployAware pda;
+
+        /**
+         * {@link Externalizable} support.
+         */
+        public PutJob() {
+            // No-op.
+        }
+
         /**
          * @param cacheName Cache name.
          * @param col Entries to put.
+         * @param pda Peer deploy aware.
          */
-        private PutJob(String cacheName, Collection<GridTuple2<K, V>> col) {
+        private PutJob(@Nullable String cacheName, Collection<GridTuple2<K, V>> col, GridPeerDeployAware pda) {
             assert col != null && !col.isEmpty();
+            assert pda != null;
 
             this.cacheName = cacheName;
             this.col = col;
+            this.pda = pda;
         }
 
         /** {@inheritDoc} */
@@ -643,6 +770,28 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
                 if (log.isDebugEnabled())
                     log.debug("Put job finished on node: " + g.localNode().id());
             }
+        }
+
+        /** {@inheritDoc} */
+        @Override public Class<?> deployClass() {
+            return pda.deployClass();
+        }
+
+        /** {@inheritDoc} */
+        @Override public ClassLoader classLoader() {
+            return pda.classLoader();
+        }
+
+        /** {@inheritDoc} */
+        @Override public void writeExternal(ObjectOutput out) throws IOException {
+            U.writeString(out, cacheName);
+            U.writeCollection(out, col);
+        }
+
+        /** {@inheritDoc} */
+        @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            cacheName = U.readString(in);
+            col = U.readCollection(in);
         }
 
         /** {@inheritDoc} */
@@ -763,13 +912,21 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
 
                     incrementActiveTasks();
 
+                    if (jobPda == null) {
+                        Configuration c = cRef.get();
+
+                        assert c != null;
+
+                        jobPda = c.pda();
+                    }
+
                     if (nodeId.equals(ctx.localNodeId()))
-                        fut = ctx.closure().callLocalSafe(new PutJob<K, V>(cacheName, col), true);
+                        fut = ctx.closure().callLocalSafe(new PutJob<K, V>(cacheName, col, jobPda), true);
                     else {
                         GridNode node = ctx.discovery().node(nodeId);
 
                         if (node != null)
-                            fut = ctx.closure().callAsyncNoFailover(UNICAST, new PutJob<K, V>(cacheName, col),
+                            fut = ctx.closure().callAsyncNoFailover(UNICAST, new PutJob<K, V>(cacheName, col, jobPda),
                                 Arrays.asList(node), true);
                         else {
                             // Node has left, will remap.
@@ -1008,13 +1165,14 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
     /**
      *
      */
-    private static class Configuration extends GridTuple2<Integer, Integer> {
+    private static class Configuration extends GridTuple3<Integer, Integer, GridPeerDeployAware> {
         /**
          * @param bufSize Buffer size.
          * @param parallelOps Parallel operations.
+         * @param pda Peer deploy aware.
          */
-        private Configuration(int bufSize, int parallelOps) {
-            super(bufSize, parallelOps);
+        private Configuration(int bufSize, int parallelOps, GridPeerDeployAware pda) {
+            super(bufSize, parallelOps, pda);
         }
 
         /**
@@ -1032,10 +1190,17 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         }
 
         /**
-         * @return Parallel oprerations.
+         * @return Parallel operations.
          */
         int parallelOps() {
             return get2();
+        }
+
+        /**
+         * @return Deploy class.
+         */
+        GridPeerDeployAware pda() {
+            return get3();
         }
     }
 }

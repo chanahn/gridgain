@@ -29,7 +29,7 @@ import GridClosureCallMode._
  * an overall top `10` list within the grid.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 object ScalarPopularWordsRealTimeExample {
     private final val POPULAR_WORDS_CNT = 10;

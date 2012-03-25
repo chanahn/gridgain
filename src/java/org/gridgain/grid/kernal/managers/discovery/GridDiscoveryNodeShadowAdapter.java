@@ -22,7 +22,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Convenient adapter for {@link GridNodeShadow}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 class GridDiscoveryNodeShadowAdapter extends GridMetadataAwareAdapter implements GridNodeShadow {
     /** Node ID. */

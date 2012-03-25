@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.*;
  * to check whether node is in the correct segment or not.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridReachabilitySegmentationResolver extends GridSegmentationResolver {
     /** Default value for TTL. */

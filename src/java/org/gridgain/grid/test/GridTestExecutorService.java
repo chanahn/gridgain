@@ -26,7 +26,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * tests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridTestExecutorService extends ThreadPoolExecutor {
     /** Default core pool size (value is {@code 100}). */
@@ -111,7 +111,7 @@ public class GridTestExecutorService extends ThreadPoolExecutor {
      * every thread.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.24032012
+     * @version 4.0.0c.25032012
      */
     private static class GridJunitThreadFactory implements ThreadFactory {
         /** Grid name. */

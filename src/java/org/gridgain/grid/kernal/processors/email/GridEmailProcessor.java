@@ -23,7 +23,7 @@ import java.util.*;
  * Email (SMTP) processor. Responsible for sending emails.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridEmailProcessor extends GridProcessorAdapter {
     /** Maximum emails queue size. */

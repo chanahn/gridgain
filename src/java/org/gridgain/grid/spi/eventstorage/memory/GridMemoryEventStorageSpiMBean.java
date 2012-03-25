@@ -22,7 +22,7 @@ import org.gridgain.grid.util.mbean.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 @GridMBeanDescription("MBean that provides access to memory event storage SPI configuration.")
 public interface GridMemoryEventStorageSpiMBean extends GridSpiManagementMBean {

@@ -16,7 +16,7 @@ import java.util.*;
  * Demonstrates various functional APIs from {@link org.gridgain.grid.lang.GridFunc} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridFunctionForEachExample {
     /**
@@ -56,7 +56,7 @@ public class GridFunctionForEachExample {
      * This class represents a sample menu item.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.24032012
+     * @version 4.0.0c.25032012
      */
     private static class Item {
         /** Menu item name. */

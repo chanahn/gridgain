@@ -17,7 +17,7 @@ import org.jetbrains.annotations.*;
  * on transaction concurrency controls.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public enum GridCacheTxConcurrency {
     /** Optimistic concurrency control. */

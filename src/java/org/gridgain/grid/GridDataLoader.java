@@ -53,7 +53,7 @@ import org.gridgain.grid.lang.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public interface GridDataLoader<K, V> {
     /** Default max concurrent put operations count. */
@@ -114,6 +114,18 @@ public interface GridDataLoader<K, V> {
      * @return Future for this loading process.
      */
     public GridFuture<?> future();
+
+    /**
+     * Optional deploy class for peer deployment. All classes loaded by a data loader
+     * must be class-loadable from the same class-loader. GridGain will make the best
+     * effort to detect the most suitable class-loader for data loading. However,
+     * in complex cases, where compound or deeply nested class-loaders are used,
+     * it is best to specify a deploy class which can be any class loaded by
+     * the class-loader for given data.
+     *
+     * @param depCls Any class loaded by the class-loader for given data.
+     */
+    public void deployClass(Class<?> depCls);
 
     /**
      * Adds data for loading on remote node. This method can be called for multiple

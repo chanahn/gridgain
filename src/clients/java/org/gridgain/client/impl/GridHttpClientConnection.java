@@ -26,7 +26,7 @@ import java.util.logging.*;
  * Java client implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.24032012
+ * @version 4.0.0c.25032012
  */
 public class GridHttpClientConnection extends GridClientConnection {
     /** Logger. */
