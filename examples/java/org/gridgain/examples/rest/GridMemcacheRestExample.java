@@ -28,7 +28,7 @@ import java.net.*;
  * If you want to test this example with remote node, please don't start remote
  * node from command line but start {@link GridCacheDefaultNodeStartup} from IDE
  * instead because this example requires that some classes are present in classpath
- * on all nodes,
+ * on all nodes.
  *
  * @author 2012 Copyright (C) GridGain Systems
  * @version 4.0.0c.25032012

@@ -129,7 +129,13 @@ abstract class GridClientAbstractProjection<T extends GridClientAbstractProjecti
         if (nodes != null || affinity == null)
             return withReconnectHandling(c);
         else {
-            GridClientNode node = affinity.node(affKey, projectionNodes());
+            Collection<? extends GridClientNode> prjNodes = projectionNodes();
+
+            if (prjNodes.isEmpty())
+                throw new GridServerUnreachableException("Failed to get affinity node (no nodes in topology were " +
+                    "accepted by the filter): " + filter);
+
+            GridClientNode node = affinity.node(affKey, prjNodes);
 
             for (int i = 0; i < RETRY_CNT; i++) {
                 GridClientConnection conn = null;
