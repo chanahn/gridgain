@@ -19,6 +19,9 @@ This folder contains GridGain XML configuration files. You'll need various confi
 ### 'libs' folder
 This folder contains necessary libraries for example. For example, it contains Hadoop HDFS library for Hadoop examples.
 
+### 'keystore' folder
+This folders contains files required by SSL for Java Client example.
+
 ### 'java' folder
 This folder contains Java examples for all major GridGain APIs. There are over 50 different examples for different GRidGain subsystems.
 
