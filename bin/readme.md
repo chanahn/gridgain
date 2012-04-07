@@ -18,7 +18,7 @@ Scalar and join the default grid.
 Note that you can freely modify script *bin/scalar.scala*.
 
 ### ggvisor.{sh|bat}
-** Enteprise & OEM Editions Only. **
+**Enteprise & OEM Editions Only.**
 
 This script starts Visor Management & Monitoring application that is based on
 Scala RELP. Visor gets loaded by loading Scala script "bin/visor.scala". 

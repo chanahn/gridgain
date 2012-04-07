@@ -22,6 +22,9 @@ This folder contains necessary libraries for example. For example, it contains H
 ### 'keystore' folder
 This folders contains files required by SSL for Java Client example.
 
+### 'dotnet' folder
+This folders contains examples for .NET/C# Client APIs.
+
 ### 'java' folder
 This folder contains Java examples for all major GridGain APIs. There are over 50 different examples for different GRidGain subsystems.
 
