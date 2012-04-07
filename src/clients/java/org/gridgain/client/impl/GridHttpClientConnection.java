@@ -26,7 +26,7 @@ import java.util.logging.*;
  * Java client implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridHttpClientConnection extends GridClientConnection {
     /** Logger. */
@@ -492,7 +492,7 @@ public class GridHttpClientConnection extends GridClientConnection {
     }
 
     /** {@inheritDoc} */
-    @Override public <K> GridClientFuture<Map<String, ? extends Number>> cacheMetrics(final String cacheName,
+    @Override public <K> GridClientFuture<GridClientDataMetrics> cacheMetrics(final String cacheName,
         final K key) throws GridClientClosedException, GridClientConnectionResetException {
         Map<String, Object> params = new HashMap<String, Object>();
 
@@ -504,7 +504,14 @@ public class GridHttpClientConnection extends GridClientConnection {
         if (cacheName != null)
             params.put("cacheName", cacheName);
 
-        return makeJettyRequest(params);
+        GridClientFutureAdapter fut = new GridClientFutureAdapter() {
+            @SuppressWarnings("unchecked")
+            @Override public void onDone(Object res) {
+                super.onDone(metricsMapToMetrics((Map<String, Number>)res));
+            }
+        };
+
+        return makeJettyRequest(params, fut);
     }
 
     /** {@inheritDoc} */
@@ -712,8 +719,61 @@ public class GridHttpClientConnection extends GridClientConnection {
 
         Object metrics = nodeBean.get("metrics");
 
-        if (metrics != null && !(metrics instanceof JSONNull))
-            node.metrics((Map<String, Object>)metrics);
+        if (metrics != null && !(metrics instanceof JSONNull)) {
+            Map<String, Number> metricsMap = (Map<String, Number>)metrics;
+
+            GridClientNodeMetricsAdapter metricsAdapter = new GridClientNodeMetricsAdapter();
+
+            metricsAdapter.setStartTime(safeLong(metricsMap, "startTime"));
+            metricsAdapter.setAverageActiveJobs((float)safeDouble(metricsMap, "averageActiveJobs"));
+            metricsAdapter.setAverageCancelledJobs((float)safeDouble(metricsMap, "averageCancelledJobs"));
+            metricsAdapter.setAverageCpuLoad(safeDouble(metricsMap, "averageCpuLoad"));
+            metricsAdapter.setAverageJobExecuteTime(safeDouble(metricsMap, "averageJobExecuteTime"));
+            metricsAdapter.setAverageJobWaitTime(safeDouble(metricsMap, "averageJobWaitTime"));
+            metricsAdapter.setAverageRejectedJobs((float)safeDouble(metricsMap, "averageRejectedJobs"));
+            metricsAdapter.setAverageWaitingJobs((float)safeDouble(metricsMap, "averageWaitingJobs"));
+            metricsAdapter.setCurrentActiveJobs((int)safeLong(metricsMap, "currentActiveJobs"));
+            metricsAdapter.setCurrentCancelledJobs((int)safeLong(metricsMap, "currentCancelledJobs"));
+            metricsAdapter.setCurrentCpuLoad(safeLong(metricsMap, "currentCpuLoad"));
+            metricsAdapter.setCurrentDaemonThreadCount((int)safeLong(metricsMap, "currentDaemonThreadCount"));
+            metricsAdapter.setCurrentIdleTime(safeLong(metricsMap, "currentIdleTime"));
+            metricsAdapter.setCurrentJobExecuteTime(safeLong(metricsMap, "currentJobExecuteTime"));
+            metricsAdapter.setCurrentJobWaitTime(safeLong(metricsMap, "currentJobWaitTime"));
+            metricsAdapter.setCurrentRejectedJobs((int)safeLong(metricsMap, "currentRejectedJobs"));
+            metricsAdapter.setCurrentThreadCount((int)safeLong(metricsMap, "currentThreadCount"));
+            metricsAdapter.setCurrentWaitingJobs((int)safeLong(metricsMap, "currentWaitingJobs"));
+            metricsAdapter.setFileSystemFreeSpace(safeLong(metricsMap, "fileSystemFreeSpace"));
+            metricsAdapter.setFileSystemTotalSpace(safeLong(metricsMap, "fileSystemTotalSpace"));
+            metricsAdapter.setFileSystemUsableSpace(safeLong(metricsMap, "fileSystemUsableSpace"));
+            metricsAdapter.setHeapMemoryCommitted(safeLong(metricsMap, "heapMemoryCommitted"));
+            metricsAdapter.setHeapMemoryInitialized(safeLong(metricsMap, "heapMemoryInitialized"));
+            metricsAdapter.setHeapMemoryMaximum(safeLong(metricsMap, "heapMemoryMaximum"));
+            metricsAdapter.setHeapMemoryUsed(safeLong(metricsMap, "heapMemoryUsed"));
+            metricsAdapter.setLastDataVersion(safeLong(metricsMap, "lastDataVersion"));
+            metricsAdapter.setLastUpdateTime(safeLong(metricsMap, "lastUpdateTime"));
+            metricsAdapter.setMaximumActiveJobs((int)safeLong(metricsMap, "maximumActiveJobs"));
+            metricsAdapter.setMaximumCancelledJobs((int)safeLong(metricsMap, "maximumCancelledJobs"));
+            metricsAdapter.setMaximumJobExecuteTime(safeLong(metricsMap, "maximumJobExecuteTime"));
+            metricsAdapter.setMaximumJobWaitTime(safeLong(metricsMap, "maximumJobWaitTime"));
+            metricsAdapter.setMaximumRejectedJobs((int)safeLong(metricsMap, "maximumRejectedJobs"));
+            metricsAdapter.setMaximumThreadCount((int)safeLong(metricsMap, "maximumThreadCount"));
+            metricsAdapter.setMaximumWaitingJobs((int)safeLong(metricsMap, "maximumWaitingJobs"));
+            metricsAdapter.setNodeStartTime(safeLong(metricsMap, "nodeStartTime"));
+            metricsAdapter.setNonHeapMemoryCommitted(safeLong(metricsMap, "nonHeapMemoryCommitted"));
+            metricsAdapter.setNonHeapMemoryInitialized(safeLong(metricsMap, "nonHeapMemoryInitialized"));
+            metricsAdapter.setNonHeapMemoryMaximum(safeLong(metricsMap, "nonHeapMemoryMaximum"));
+            metricsAdapter.setNonHeapMemoryUsed(safeLong(metricsMap, "nonHeapMemoryUsed"));
+            metricsAdapter.setStartTime(safeLong(metricsMap, "startTime"));
+            metricsAdapter.setTotalCancelledJobs((int)safeLong(metricsMap, "totalCancelledJobs"));
+            metricsAdapter.setTotalCpus((int)safeLong(metricsMap, "totalCpus"));
+            metricsAdapter.setTotalExecutedJobs((int)safeLong(metricsMap, "totalExecutedJobs"));
+            metricsAdapter.setTotalIdleTime(safeLong(metricsMap, "totalIdleTime"));
+            metricsAdapter.setTotalRejectedJobs((int)safeLong(metricsMap, "totalRejectedJobs"));
+            metricsAdapter.setTotalStartedThreadCount(safeLong(metricsMap, "totalStartedThreadCount"));
+            metricsAdapter.setUpTime(safeLong(metricsMap, "upTime"));
+
+            node.metrics(metricsAdapter);
+        }
 
         return node;
     }

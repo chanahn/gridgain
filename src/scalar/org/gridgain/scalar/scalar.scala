@@ -119,17 +119,17 @@ import annotation.target.field
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 object scalar extends ScalarConversions {
     /** Visor copyright blurb. */
     private val COPYRIGHT = "2012 Copyright (C) GridGain Systems"
 
     /** Visor version number. */
-    private val VER = "4.0.0c"
+    private val VER = "4.0.1c"
 
     /** Visor build number. */
-    private val BUILD = "25032012"
+    private val BUILD = "07042012"
 
     /** Type alias for `GridCacheQuerySqlField`. */
     type ScalarCacheQuerySqlField = GridCacheQuerySqlField @field
@@ -169,7 +169,7 @@ object scalar extends ScalarConversions {
 
         t += ("scalar start", "Starts GridGain with the default configurtaion.")
         t += ("scalar stop", "Stops GridGain.")
-        t += ("scalar start(\"path/t/my/config.xml\")", "Starts GridGain with the provided configurtaion file.")
+        t += ("scalar start(\"path/to/my/config.xml\")", "Starts GridGain with the provided configurtaion file.")
         t += ("grid$", "Global grid projection (including all nodes).")
         t += ("cache$", "Default cache.")
         t += ("scalar ?", "Prints this help.")

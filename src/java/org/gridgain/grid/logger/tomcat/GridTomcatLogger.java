@@ -23,7 +23,7 @@ import org.jetbrains.annotations.*;
  * injection.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  * @see org.gridgain.grid.loaders.tomcat.GridTomcatLoader
  */
 public class GridTomcatLogger extends GridMetadataAwareAdapter implements GridLogger {

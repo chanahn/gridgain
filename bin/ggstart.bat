@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 4.0.0c.25032012
+:: Version: 4.0.1c.07042012
 ::
 
 ::
@@ -70,7 +70,7 @@ goto error_finish
 :run
 
 :: This is Ant-augmented variable.
-set ANT_AUGMENTED_GGJAR=gridgain-4.0.0c.jar
+set ANT_AUGMENTED_GGJAR=gridgain-4.0.1c.jar
 
 ::
 :: Set GRIDGAIN_LIBS
@@ -145,10 +145,11 @@ set JMX_MON=%JMX_MON% -Dcom.sun.management.jmxremote.port=%JMX_PORT% -Dcom.sun.m
 ::
 :: ADD YOUR/CHANGE ADDITIONAL OPTIONS HERE
 ::
-set JVM_OPTS=-Xms512m -Xmx512m -Xss16m -XX:MaxPermSize=384m -XX:+UseParNewGC -XX:MaxNewSize=128m -XX:NewSize=32m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
+set JVM_OPTS=-Xms512m -Xmx512m -XX:NewSize=64m -XX:MaxNewSize=64m -XX:PermSize=128m -XX:MaxPermSize=128m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
 
-:: For 32-bit JVMs comment the line above and uncomment the line below.
-:: set JVM_OPTS=-Xms128m -Xmx128m -Xss8m -XX:MaxPermSize=384m -XX:+UseParNewGC -XX:MaxNewSize=128m -XX:NewSize=32m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
+:: Uncomment if you get StackOverflowError.
+:: On 64 bit systems this value can be larger, e.g. -Xss16m
+:: set JVM_OPTS=%JVM_OPTS% -Xss4m
 
 :: Uncomment to set preference to IPv4 stack.
 :: set JVM_OPTS=%JVM_OPTS% -Djava.net.preferIPv4Stack=true

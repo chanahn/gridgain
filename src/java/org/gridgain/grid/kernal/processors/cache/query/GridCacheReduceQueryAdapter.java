@@ -26,7 +26,7 @@ import java.util.*;
  * Adapter for reduce cache queries.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridCacheReduceQueryAdapter<K, V, R1, R2> extends GridCacheQueryBaseAdapter<K, V>
     implements GridCacheReduceQuery<K, V, R1, R2> {
@@ -130,20 +130,12 @@ public class GridCacheReduceQueryAdapter<K, V, R1, R2> extends GridCacheQueryBas
      * @return Result future.
      */
     private GridFuture<R2> reduce(Collection<GridRichNode> nodes) {
-        if (rmtRdc == null) {
-            GridFutureAdapter<R2> err = new GridFutureAdapter<R2>(cctx.kernalContext());
-
-            err.onDone(new GridException("Remote reducer must be set."));
-
-            return err;
-        }
-
         if (locRdc == null) {
-            GridFutureAdapter<R2> err = new GridFutureAdapter<R2>(cctx.kernalContext());
+            GridFutureAdapter<R2> errFut = new GridFutureAdapter<R2>(cctx.kernalContext());
 
-            err.onDone(new GridException("Local reducer must be set."));
+            errFut.onDone(new GridException("Local reducer must be set."));
 
-            return err;
+            return errFut;
         }
 
         GridCacheQueryFuture<R2> fut = execute(nodes, false, false, null);
@@ -169,11 +161,11 @@ public class GridCacheReduceQueryAdapter<K, V, R1, R2> extends GridCacheQueryBas
     /** {@inheritDoc} */
     @Override public GridFuture<Collection<R1>> reduceRemote(GridProjection[] grid) {
         if (rmtRdc == null) {
-            GridFutureAdapter<Collection<R1>> err = new GridFutureAdapter<Collection<R1>>(cctx.kernalContext());
+            GridFutureAdapter<Collection<R1>> errFut = new GridFutureAdapter<Collection<R1>>(cctx.kernalContext());
 
-            err.onDone(new GridException("Remote reducer must be set."));
+            errFut.onDone(new GridException("Remote reducer must be set."));
 
-            return err;
+            return errFut;
         }
 
         Collection<GridRichNode> nodes = F.retain(CU.allNodes(cctx), true, nodes(grid));

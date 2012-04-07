@@ -78,7 +78,7 @@ import java.io.*;
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridXstreamMarshaller implements GridMarshaller {
     /** XStream instance to use with system class loader. */

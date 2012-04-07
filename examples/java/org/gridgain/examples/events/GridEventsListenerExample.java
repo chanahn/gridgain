@@ -19,7 +19,7 @@ import static org.gridgain.grid.GridEventType.*;
  * of all events that occur from a dummy task execution.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public final class GridEventsListenerExample {
     /**

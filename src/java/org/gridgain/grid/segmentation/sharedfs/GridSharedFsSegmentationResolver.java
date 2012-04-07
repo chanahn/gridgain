@@ -22,12 +22,12 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 /**
- * Segmentation checker implementation that checks whether
+ * Segmentation resolver implementation that checks whether
  * node is in the correct segment or not by writing to and reading from
  * shared directory.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridSharedFsSegmentationResolver extends GridSegmentationResolver {
     /** Path to shared directory. */

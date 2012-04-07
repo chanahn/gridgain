@@ -18,7 +18,7 @@ import java.util.*;
  * Data projection that serves one cache instance and handles communication errors.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridClientDataImpl extends GridClientAbstractProjection<GridClientDataImpl> implements GridClientData {
     /** Cache name. */
@@ -231,15 +231,15 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
     }
 
     /** {@inheritDoc} */
-    @Override public Map<String, ? extends Number> metrics() throws GridClientException {
+    @Override public GridClientDataMetrics metrics() throws GridClientException {
         return metricsAsync().get();
     }
 
     /** {@inheritDoc} */
-    @Override public GridClientFuture<Map<String, ? extends Number>> metricsAsync()
+    @Override public GridClientFuture<GridClientDataMetrics> metricsAsync()
         throws GridServerUnreachableException, GridClientClosedException {
-        return withReconnectHandling(new ClientProjectionClosure<Map<String, ? extends Number>>() {
-            @Override public GridClientFuture<Map<String, ? extends Number>> apply(GridClientConnection conn)
+        return withReconnectHandling(new ClientProjectionClosure<GridClientDataMetrics>() {
+            @Override public GridClientFuture<GridClientDataMetrics> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
                 return conn.cacheMetrics(cacheName, null);
             }
@@ -247,15 +247,15 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
     }
 
     /** {@inheritDoc} */
-    @Override public <K> Map<String, ? extends Number> metrics(K key) throws GridClientException {
+    @Override public <K> GridClientDataMetrics metrics(K key) throws GridClientException {
         return metricsAsync(key).get();
     }
 
     /** {@inheritDoc} */
-    @Override public <K> GridClientFuture<Map<String, ? extends Number>> metricsAsync(final K key)
+    @Override public <K> GridClientFuture<GridClientDataMetrics> metricsAsync(final K key)
         throws GridServerUnreachableException, GridClientClosedException {
-        return withReconnectHandling(new ClientProjectionClosure<Map<String, ? extends Number>>() {
-            @Override public GridClientFuture<Map<String, ? extends Number>> apply(GridClientConnection conn)
+        return withReconnectHandling(new ClientProjectionClosure<GridClientDataMetrics>() {
+            @Override public GridClientFuture<GridClientDataMetrics> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
                 return conn.cacheMetrics(cacheName, key);
             }

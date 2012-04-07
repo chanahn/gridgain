@@ -17,7 +17,7 @@ import java.util.*;
  * Management bean for {@link GridMulticastDiscoverySpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @GridMBeanDescription("MBean that provides access to IP-multicast based discovery SPI configuration.")
 public interface GridMulticastDiscoverySpiMBean extends GridSpiManagementMBean {

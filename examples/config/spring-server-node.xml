@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    _________        _____ __________________        _____
+    __  ____/___________(_)______  /__  ____/______ ____(_)_______
+    _  / __  __  ___/__  / _  __  / _  / __  _  __ `/__  / __  __ \
+    / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
+    \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
+
+    Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
+    Version: 4.0.1c.07042012
+-->
+
+<!--
+    GridGain Spring configuration file to startup grid cache.
+
+    When starting a standalone GridGain node, you need to execute the following command:
+    {GRIDGAIN_HOME}/bin/ggstart.{bat|sh} path-to-this-file/spring-cache.xml
+
+    When starting GridGain from Java IDE, pass path to this file into GridFactory:
+    GridFactory.start("path-to-this-file/spring-benchmark.xml");
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+    <!--
+        Optional description.
+    -->
+    <description>
+        Spring file for grid configuration with client available endpoints.
+    </description>
+
+    <!-- Load defaults. -->
+    <import resource="spring-defaults.xml"/>
+
+    <!--
+        Configuration below demonstrates how to setup a collision and failover SPI's
+        to enable work stealing from overloaded nodes to underloaded nodes.
+
+        Note that for job stealing to work, you must always use both,
+        GridJobStealingCollisionSpi and GridJobStealingFailoverSPI.
+    -->
+    <bean id="grid.cfg" class="org.gridgain.grid.GridConfigurationAdapter" scope="singleton">
+        <property name="gridName" value="http"/>
+
+        <!-- Set to local host address just for examples. -->
+        <property name="localHost" value="127.0.0.1"/>
+
+        <!-- Enable rest protocol. -->
+        <property name="restEnabled" value="true"/>
+
+        <!-- Configure TCP rest protocol. -->
+        <property name="restTcpPort" value="10080"/>
+
+        <!-- Configure HTTP rest protocol. -->
+        <property name="restJettyPort" value="11080"/>
+
+        <property name="cacheConfiguration">
+            <!--
+                Specify list of cache configurations here. Any property from
+                GridCacheConfiguration interface can be configured here.
+            -->
+            <list>
+                <!--
+                    Default cache example configuration.
+                -->
+                <bean parent="defaultCacheConfiguration">
+                    <!-- Cache name is null. -->
+                    <!--<property name="name"><null/></property>-->
+
+                    <!-- LOCAL cache mode. -->
+                    <property name="cacheMode" value="LOCAL"/>
+                </bean>
+
+                <!--
+                    Local cache example configuration.
+                -->
+                <bean parent="defaultCacheConfiguration">
+                    <!-- Cache name is 'local'. -->
+                    <property name="name" value="cache"/>
+
+                    <!-- LOCAL cache mode. -->
+                    <property name="cacheMode" value="LOCAL"/>
+                </bean>
+
+                <!--
+                    Partitioned cache example configuration.
+                -->
+                <bean parent="defaultCacheConfiguration">
+                    <!-- Cache name is 'partitioned'. -->
+                    <property name="name" value="partitioned"/>
+
+                    <!-- PARTITIONED cache mode. -->
+                    <property name="cacheMode" value="PARTITIONED"/>
+                </bean>
+
+                <!--
+                    Replicated cache example configuration.
+                -->
+                <bean parent="defaultCacheConfiguration">
+                    <!-- Cache name is 'replicated'. -->
+                    <property name="name" value="replicated"/>
+
+                    <!-- REPLICATED cache mode. -->
+                    <property name="cacheMode" value="REPLICATED"/>
+                </bean>
+            </list>
+        </property>
+
+        <property name="authenticationSpi">
+            <bean parent="defaultAuthenticationSpi"/>
+        </property>
+
+        <property name="secureSessionSpi">
+            <bean parent="defaultSecureSessionSpi"/>
+        </property>
+
+        <!--
+            TCP discovery SPI (uses VM-shared IP-finder).
+        -->
+        <property name="discoverySpi">
+            <bean parent="defaultDiscoverySpi"/>
+        </property>
+    </bean>
+
+</beans>

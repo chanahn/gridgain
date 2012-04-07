@@ -42,7 +42,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Adapter for different cache implementations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter implements GridCache<K, V>,
     Externalizable {
@@ -2005,6 +2005,9 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
                             else {
                                 map.put(key, ctx.cloneOnFlag(val));
 
+                                if (tx == null || (!tx.implicit() && tx.isolation() == READ_COMMITTED))
+                                    ctx.evicts().touch(entry);
+
                                 if (keys.size() == 1)
                                     // Safe to return because no locks are required in READ_COMMITTED mode.
                                     return new GridFinishedFuture<Map<K, V>>(ctx.kernalContext(), map);
@@ -2030,6 +2033,10 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
 
                     final Collection<K> redos = new LinkedList<K>();
 
+                    final GridCacheTxLocalAdapter<K, V> tx0 = tx;
+
+                    final Collection<K> loaded = new HashSet<K>();
+
                     return new GridEmbeddedFuture<Map<K, V>, Map<K, V>>(
                         ctx.kernalContext(),
                         ctx.closures().callLocalSafe(ctx.projectSafe(new GPC<Map<K, V>>() {
@@ -2053,35 +2060,43 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
                                         if (nextVer == null)
                                             nextVer = ctx.versions().next();
 
-                                        GridCacheEntryEx<K, V> entry = entryEx(key);
+                                        loaded.add(key);
 
-                                        try {
-                                            boolean set = entry.versionedValue(val, ver, nextVer);
+                                        while (true) {
+                                            GridCacheEntryEx<K, V> entry = entryEx(key);
 
-                                            if (log.isDebugEnabled())
-                                                log.debug("Set value loaded from store into entry [set=" + set +
-                                                    ", curVer=" + ver + ", newVer=" + nextVer + ", " +
-                                                    "entry=" + entry + ']');
+                                            try {
+                                                boolean set = entry.versionedValue(val, ver, nextVer);
 
-                                            if (val == null)
+                                                if (log.isDebugEnabled())
+                                                    log.debug("Set value loaded from store into entry [set=" + set +
+                                                        ", curVer=" + ver + ", newVer=" + nextVer + ", " +
+                                                        "entry=" + entry + ']');
+
                                                 // Don't put key-value pair into result map if value is null.
-                                                return;
+                                                if (val != null) {
+                                                    if (set || F.isEmpty(filter))
+                                                        map.put(key, ctx.cloneOnFlag(val));
+                                                    else
+                                                        // Try again, so we can return consistent values.
+                                                        redos.add(key);
+                                                }
 
-                                            if (set || F.isEmpty(filter))
-                                                map.put(key, ctx.cloneOnFlag(val));
-                                            else
-                                                // Try again, so we can return consistent values.
-                                                redos.add(key);
-                                        }
-                                        catch (GridCacheEntryRemovedException ignore) {
-                                            if (log.isDebugEnabled())
-                                                log.debug("Got removed entry during getAllAsync (will ignore): " +
-                                                    entry);
-                                        }
-                                        catch (GridException e) {
-                                            // Wrap errors (will be unwrapped).
-                                            throw new GridRuntimeException("Failed to set cache value for entry: " +
-                                                entry, e);
+                                                if (tx0 == null || (!tx0.implicit() &&
+                                                    tx0.isolation() == READ_COMMITTED))
+                                                    ctx.evicts().touch(entry);
+
+                                                break;
+                                            }
+                                            catch (GridCacheEntryRemovedException ignore) {
+                                                if (log.isDebugEnabled())
+                                                    log.debug("Got removed entry during getAllAsync (will retry): " +
+                                                        entry);
+                                            }
+                                            catch (GridException e) {
+                                                // Wrap errors (will be unwrapped).
+                                                throw new GridClosureException(e);
+                                            }
                                         }
                                     }
                                 });
@@ -2093,6 +2108,16 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
                             @Override public GridFuture<Map<K, V>> apply(Map<K, V> map, Exception e) {
                                 if (e != null)
                                     return new GridFinishedFuture<Map<K, V>>(ctx.kernalContext(), e);
+
+                                if (tx0 == null || (!tx0.implicit() && tx0.isolation() == READ_COMMITTED)) {
+                                    Collection<K> notFound = new HashSet<K>(loadKeys.keySet());
+
+                                    notFound.removeAll(loaded);
+
+                                    // Touch entries that were not found in store.
+                                    for (K key : notFound)
+                                        ctx.evicts().touch(entryEx(key));
+                                }
 
                                 if (!redos.isEmpty())
                                     // Future recursion.
@@ -2112,6 +2137,13 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
                             }
                         }
                     );
+                }
+                else {
+                    // If misses is not empty and store is disabled, we should touch missed entries.
+                    if (misses != null) {
+                        for (K key : misses.keySet())
+                            ctx.evicts().touch(entryEx(key));
+                    }
                 }
 
                 return new GridFinishedFuture<Map<K, V>>(ctx.kernalContext(), map);

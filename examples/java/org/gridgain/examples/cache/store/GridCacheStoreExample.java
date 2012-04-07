@@ -27,7 +27,7 @@ import java.util.*;
  * needed for the example compiled and put to node classpath.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridCacheStoreExample {
     /** Global person ID to use across entire example. */

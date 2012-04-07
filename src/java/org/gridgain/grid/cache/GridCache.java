@@ -13,7 +13,6 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.datastructures.*;
 import org.gridgain.grid.cache.query.*;
 import org.gridgain.grid.cache.store.*;
-import org.gridgain.grid.editions.*;
 import org.gridgain.grid.lang.*;
 import org.jetbrains.annotations.*;
 
@@ -62,7 +61,7 @@ import java.util.*;
  * To do that, {@link GridSystemProperties#GG_NO_DISCO_ORDER} must be provided at startup.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  * @param <K> Cache key type.
  * @param <V> Cache value type.
  */

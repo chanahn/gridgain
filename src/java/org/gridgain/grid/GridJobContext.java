@@ -52,7 +52,7 @@ import java.util.concurrent.*;
  * Attribute names that start with {@code "gridgain:"} are reserved for internal system use.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public interface GridJobContext extends GridJobContinuation, GridMetadataAware {
     /**

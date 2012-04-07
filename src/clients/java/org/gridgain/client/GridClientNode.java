@@ -16,7 +16,7 @@ import java.util.*;
  * Node descriptor.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public interface GridClientNode {
     /**
@@ -58,7 +58,7 @@ public interface GridClientNode {
     /**
      * @return Metrics.
      */
-    public Map<String, Object> metrics();
+    public GridClientNodeMetrics metrics();
 
     /**
      * Gets all configured caches and their types on remote node.

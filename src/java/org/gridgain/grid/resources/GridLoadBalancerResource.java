@@ -28,7 +28,7 @@ import java.lang.annotation.*;
  * <pre name="code" class="java">
  * public class MyGridTask extends GridTask&lt;String, Integer&gt; {
  *    &#64;GridLoadBalancerResource
- *    private GridLoadBalancer balancer;
+ *    private ` balancer;
  * }
  * </pre>
  * or
@@ -48,7 +48,7 @@ import java.lang.annotation.*;
  * See {@link GridConfiguration#getLoadBalancingSpi()} for Grid configuration details.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

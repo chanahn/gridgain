@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 4.0.0c.25032012
+:: Version: 4.0.1c.07042012
 ::
 
 ::
@@ -70,7 +70,7 @@ goto error_finish
 :run
 
 :: This is Ant-augmented variable.
-set ANT_AUGMENTED_GGJAR=gridgain-4.0.0c.jar
+set ANT_AUGMENTED_GGJAR=gridgain-4.0.1c.jar
 
 ::
 :: Set GRIDGAIN_LIBS
@@ -123,11 +123,20 @@ set JMX_MON=%JMX_MON% -Dcom.sun.management.jmxremote.port=%JMX_PORT% -Dcom.sun.m
 
 ::
 :: JVM options. See http://java.sun.com/javase/technologies/hotspot/vmoptions.jsp
-:: for more details. Note that default settings use parallel GC.
+:: for more details. Note that default settings use **PARALLEL GC**.
+::
+:: NOTE
+:: ====
+:: ASSERTIONS ARE DISABLE BY DEFAULT SINCE VERSION 3.5.
+:: IF YOU WANT TO ENABLE THEM - ADD '-ea' TO JVM_OPTS VARIABLE
 ::
 :: ADD YOUR/CHANGE ADDITIONAL OPTIONS HERE
 ::
-set JVM_OPTS=-ea -XX:MaxPermSize=128m -XX:+UseParNewGC -XX:MaxNewSize=32m -XX:NewSize=32m -Xms256m -Xmx256m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0  -XX:+UseTLAB -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
+set JVM_OPTS=-Xms512m -Xmx512m -XX:NewSize=64m -XX:MaxNewSize=64m -XX:PermSize=128m -XX:MaxPermSize=128m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
+
+:: Uncomment if you get StackOverflowError.
+:: On 64 bit systems this value can be larger, e.g. -Xss16m
+:: set JVM_OPTS=%JVM_OPTS% -Xss4m
 
 :: Uncomment to set preference to IPv4 stack.
 :: set JVM_OPTS=%JVM_OPTS% -Djava.net.preferIPv4Stack=true

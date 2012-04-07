@@ -209,6 +209,24 @@
       <SOURCES />
       <jarDirectory url="file://$PROJECT_DIR$/examples/libs/hadoop" recursive="false" />
     </library>
+    <library name="GridGain">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/gridgain-4.0.1c.jar!/" />
+      </CLASSES>
+      <JAVADOC>
+        <root url="file://$PROJECT_DIR$/javadoc" />
+      </JAVADOC>
+      <SOURCES />
+    </library>
+    <library name="Java client">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/clients/java/gridgain-client.jar!/" />
+      </CLASSES>
+      <JAVADOC>
+        <root url="file://$PROJECT_DIR$/clients/java/javadoc" />
+      </JAVADOC>
+      <SOURCES />
+    </library>
     <library name="Java client libraries">
       <CLASSES>
         <root url="file://$PROJECT_DIR$/clients/java/libs" />

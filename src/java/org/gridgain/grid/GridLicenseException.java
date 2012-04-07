@@ -17,7 +17,7 @@ import org.jetbrains.annotations.*;
  * Community Edition only for compilation compatibility.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridLicenseException extends GridException {
     /**

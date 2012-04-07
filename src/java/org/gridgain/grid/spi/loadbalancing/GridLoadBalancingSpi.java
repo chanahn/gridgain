@@ -14,6 +14,7 @@ import org.gridgain.grid.spi.*;
 import org.gridgain.grid.spi.loadbalancing.adaptive.*;
 import org.gridgain.grid.spi.loadbalancing.roundrobin.*;
 import org.gridgain.grid.spi.loadbalancing.weightedrandom.*;
+
 import java.util.*;
 
 /**
@@ -87,9 +88,9 @@ import java.util.*;
  * <p>
  * GridGain comes with the following load balancing SPI implementations out of the box:
  * <ul>
+ * <li>{@link GridRoundRobinLoadBalancingSpi} - default</li>
  * <li>{@link GridAdaptiveLoadBalancingSpi}</li>
  * <li>{@link GridWeightedRandomLoadBalancingSpi}</li>
- * <li>{@link GridRoundRobinLoadBalancingSpi}</li>
  * </ul>
  * <b>NOTE:</b> this SPI (i.e. methods in this interface) should never be used directly. SPIs provide
  * internal view on the subsystem and is used internally by GridGain kernal. In rare use cases when
@@ -99,7 +100,7 @@ import java.util.*;
  * to undefined behavior and explicitly not supported.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public interface GridLoadBalancingSpi extends GridSpi, GridSpiJsonConfigurable {
     /**

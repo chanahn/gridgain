@@ -44,7 +44,7 @@ import static org.gridgain.grid.lang.utils.GridConcurrentLinkedDeque.*;
  * Cache eviction manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /** Eviction policy. */
@@ -160,6 +160,10 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         evictSync = cfg.isEvictSynchronized() && (cctx.isReplicated() || cctx.isDht()) && !cctx.isSwapEnabled();
 
         nearSync = cfg.isEvictNearSynchronized() && cctx.isDht() && cctx.config().isNearEnabled();
+
+        if (cctx.isReplicated() && evictSync)
+            throw new GridException("Illegal configuration (synchronized evictions are not supported for replicated " +
+                "cache): " + cctx.name());
 
         if (cctx.isDht() && !nearSync && evictSync && cctx.config().isNearEnabled())
             throw new GridException("Illegal configuration (may lead to data inconsistency) " +
@@ -646,29 +650,9 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
         try {
             // If entry should be evicted from near cache it can be done safely
             // without any consistency risks. We don't use filter in this case.
-            if (near)
-                return evict0(cache, entry, obsoleteVer, null);
-
-            // Create filter that will not evict entry if its version changes after we get it.
-            GridPredicate<? super GridCacheEntry<K, V>>[] filter =
-                cctx.vararg(new P1<GridCacheEntry<K, V>>() {
-                    @Override public boolean apply(GridCacheEntry<K, V> e) {
-                        GridCacheVersion v = (GridCacheVersion)e.version();
-
-                        return ver.equals(v);
-                    }
-                });
-
-            GridCacheVersion v = entry.version();
-
-            // 1. If received version is less or greater than entry local version,
-            // then don't evict.
-            // 2. Do not touch DHT or replicated entry backup.
-            return ver.equals(v) && evict0(cache, entry, obsoleteVer, filter);
-        }
-        catch (GridCacheEntryRemovedException ignored) {
-            // Entry was concurrently removed.
-            return true;
+            // If entry should be evicted from DHT cache, we do not compare versions
+            // as well because versions may change outside the transaction.
+            return evict0(cache, entry, obsoleteVer, null);
         }
         catch (GridException e) {
             U.error(log, "Failed to evict entry on remote node [key=" + key + ", localNode=" + cctx.nodeId() + ']', e);
@@ -873,27 +857,6 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
                 log.debug("Added entry to eviction queue: " + entry);
         }
     }
-    /**
-     * Enqueues entry for synchronized eviction.
-     *
-     * @param entry Entry.
-     * @param filter Filter.
-     * @throws GridCacheEntryRemovedException If entry got removed.
-     */
-    private void enqueue0(GridCacheEntryEx<K, V> entry, GridPredicate<? super GridCacheEntry<K, V>>[] filter)
-        throws GridCacheEntryRemovedException {
-        Node<EvictionInfo> node = entry.meta(meta);
-
-        if (node == null) {
-            node = bufEvictQ.addLastx(new EvictionInfo(entry, entry.version(), filter));
-
-            if (entry.putMetaIfAbsent(meta, node) != null)
-                // Was concurrently added, need to clear it from queue.
-                bufEvictQ.unlinkx(node);
-            else if (log.isDebugEnabled())
-                log.debug("Added entry to eviction queue: " + entry);
-        }
-    }
 
     /**
      * Checks eviction queue.
@@ -927,10 +890,12 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
      * @return Max queue size.
      */
     private int maxQueueSize() {
-        int size = Math.min((int)(cctx.cache().keySize() * cctx.config().getEvictMaxOverflowRatio()) / 100,
-            cctx.config().getEvictSynchronizedKeyBufferSize());
+        int size = (int)(cctx.cache().keySize() * cctx.config().getEvictMaxOverflowRatio()) / 100;
 
-        return size > 0 ? size : 500;
+        if (size <= 0)
+            size = 500;
+
+        return Math.min(size, cctx.config().getEvictSynchronizedKeyBufferSize());
     }
 
     /**
@@ -1389,6 +1354,11 @@ public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
          */
         GridPredicate<? super GridCacheEntry<K, V>>[] filter() {
             return filter;
+        }
+
+        /** {@inheritDoc} */
+        @Override public String toString() {
+            return S.toString(EvictionInfo.class, this);
         }
     }
 

@@ -43,7 +43,7 @@ import java.util.concurrent.*;
  * will automatically pick default values for all values that are not set.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridConfigurationAdapter implements GridConfiguration {
     /** Optional grid name. */
@@ -937,7 +937,7 @@ public class GridConfigurationAdapter implements GridConfiguration {
      *
      * @param waitForSegOnStart {@code True} to wait for segment on start.
      */
-    public void setWaitForSegOnStart(boolean waitForSegOnStart) {
+    public void setWaitForSegmentOnStart(boolean waitForSegOnStart) {
         this.waitForSegOnStart = waitForSegOnStart;
     }
 

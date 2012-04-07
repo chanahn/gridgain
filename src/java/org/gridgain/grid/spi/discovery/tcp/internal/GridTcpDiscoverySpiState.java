@@ -15,7 +15,7 @@ import org.gridgain.grid.spi.discovery.tcp.*;
  * State of local node {@link GridTcpDiscoverySpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public enum GridTcpDiscoverySpiState {
     /** */

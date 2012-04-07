@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.*;
  * Processes job metrics.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridJobMetricsProcessor extends GridProcessorAdapter {
     /** Time to live. */
@@ -246,7 +246,7 @@ public class GridJobMetricsProcessor extends GridProcessorAdapter {
      * All metrics counters.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.25032012
+     * @version 4.0.1c.07042012
      */
     private class MetricCounters {
         /** */
@@ -413,9 +413,8 @@ public class GridJobMetricsProcessor extends GridProcessorAdapter {
                     }
                 }
                 else {
-                    if (!isIdle) {
+                    if (!isIdle)
                         isIdle = true;
-                    }
                     else {
                         curIdleTime += now - idleTimer;
 

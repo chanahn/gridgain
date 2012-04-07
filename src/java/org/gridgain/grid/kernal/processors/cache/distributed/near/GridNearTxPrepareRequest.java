@@ -22,7 +22,7 @@ import java.util.*;
  * Near transaction prepare request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridNearTxPrepareRequest<K, V> extends GridDistributedTxPrepareRequest<K, V> {
     /** Future ID. */

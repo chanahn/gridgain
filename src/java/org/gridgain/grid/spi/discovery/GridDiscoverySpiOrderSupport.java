@@ -30,7 +30,7 @@ import java.lang.annotation.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @Documented
 @Inherited
@@ -40,5 +40,6 @@ public @interface GridDiscoverySpiOrderSupport {
     /**
      * Whether or not target SPI supports node startup order.
      */
-    @SuppressWarnings({"JavaDoc"}) public boolean value();
+    @SuppressWarnings({"JavaDoc"})
+    public boolean value();
 }

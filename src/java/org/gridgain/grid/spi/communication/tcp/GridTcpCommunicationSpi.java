@@ -102,7 +102,7 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  * @see GridCommunicationSpi
  */
 @SuppressWarnings({"deprecation"}) @GridSpiInfo(
@@ -130,10 +130,10 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     public static final int DFLT_PORT = 47100;
 
     /** Default idle connection timeout (value is <tt>30000</tt>ms). */
-    public static final int DFLT_IDLE_CONN_TIMEOUT = 30000;
+    public static final long DFLT_IDLE_CONN_TIMEOUT = 30000;
 
     /** Default connection timeout (value is <tt>1000</tt>ms). */
-    public static final int DFLT_CONN_TIMEOUT = 1000;
+    public static final long DFLT_CONN_TIMEOUT = 1000;
 
     /** Default maximum count of simultaneously open client for one node (value is <tt>1</tt>). */
     public static final int DFLT_MAX_OPEN_CLIENTS = 1;
@@ -185,7 +185,7 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
     private long idleConnTimeout = DFLT_IDLE_CONN_TIMEOUT;
 
     /** Connect timeout. */
-    private int connTimeout = DFLT_CONN_TIMEOUT;
+    private long connTimeout = DFLT_CONN_TIMEOUT;
 
     /** NIO server. */
     private GridNioServer nioSrvr;
@@ -368,12 +368,12 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      * @param connTimeout Connect timeout.
      */
     @GridSpiConfiguration(optional = true)
-    public void setConnectTimeout(int connTimeout) {
+    public void setConnectTimeout(long connTimeout) {
         this.connTimeout = connTimeout;
     }
 
     /** {@inheritDoc} */
-    @Override public int getConnectTimeout() {
+    @Override public long getConnectTimeout() {
         return connTimeout;
     }
 
@@ -437,7 +437,8 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
      * Setting this option to {@code true} disables Nagle's algorithm
      * for socket decreasing latency and delivery time for small messages.
      * <p>
-     * In most cases this should be set to {@code false}.
+     * For systems that work under heavy network load it is advisable to
+     * set this value to {@code false}.
      * <p>
      * If not provided, default value is {@link #DFLT_TCP_NODELAY}.
      *
@@ -613,9 +614,9 @@ public class GridTcpCommunicationSpi extends GridSpiAdapter implements GridCommu
 
     /** {@inheritDoc} }*/
     @Override public void onContextInitialized0(GridSpiContext spiCtx) throws GridSpiException {
-        getSpiContext().registerPort(boundTcpPort, GridPortProtocol.TCP);
+        spiCtx.registerPort(boundTcpPort, GridPortProtocol.TCP);
 
-        getSpiContext().addLocalEventListener(discoLsnr, EVT_NODE_LEFT, EVT_NODE_FAILED);
+        spiCtx.addLocalEventListener(discoLsnr, EVT_NODE_LEFT, EVT_NODE_FAILED);
     }
 
     /**

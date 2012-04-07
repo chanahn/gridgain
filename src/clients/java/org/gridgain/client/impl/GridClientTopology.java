@@ -19,7 +19,7 @@ import java.util.logging.*;
  * Client topology cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 class GridClientTopology {
     /** Logger. */
@@ -253,7 +253,7 @@ class GridClientTopology {
      *      otherwise will return new node without attributes and metrics.
      */
     private GridClientNodeImpl clearAttributes(GridClientNodeImpl node) {
-        if (topCache || (node.attributes().isEmpty() && node.metrics().isEmpty()))
+        if (topCache || (node.attributes().isEmpty() && node.metrics() == null))
             return node;
         else {
             // Fill all fields but attributes and metrics since we do not cache them.

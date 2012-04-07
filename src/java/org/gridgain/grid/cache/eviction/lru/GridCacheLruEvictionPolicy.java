@@ -27,7 +27,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * information is maintained by attaching ordering metadata to cache entries.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,
     GridCacheLruEvictionPolicyMBean {
@@ -139,7 +139,8 @@ public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy
                     queue.unlinkx(node);
 
                 if (!entry.evict()) {
-                    entry.removeMeta(meta, node);
+                    if (node != null)
+                        entry.removeMeta(meta, node);
 
                     shrink = touch(entry);
                 }

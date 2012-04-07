@@ -18,7 +18,7 @@ import java.util.*;
  * Class contains common connection-error handling logic.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 abstract class GridClientAbstractProjection<T extends GridClientAbstractProjection> {
     /** List of nodes included in this projection. If null, all nodes in topology are included. */

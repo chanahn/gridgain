@@ -30,7 +30,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Cache atomic reference implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public final class GridCacheAtomicReferenceImpl<T> extends GridMetadataAwareAdapter implements
     GridCacheAtomicReferenceEx<T>, Externalizable {

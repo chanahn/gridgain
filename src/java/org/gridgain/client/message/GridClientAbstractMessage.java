@@ -14,7 +14,7 @@ import java.util.*;
  * This class provides implementation for commit message fields and cannot be used directly.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public abstract class GridClientAbstractMessage implements GridClientMessage {
     /** Request id. */

@@ -72,7 +72,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Collection of utility methods used throughout the system.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -1564,7 +1564,7 @@ public abstract class GridUtils {
      * Verifier always returns successful result for any host.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.25032012
+     * @version 4.0.1c.07042012
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.

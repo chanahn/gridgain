@@ -11,7 +11,6 @@ package org.gridgain.grid.spi.collision.jobstealing;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
-import org.gridgain.grid.lang.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.spi.*;
@@ -148,14 +147,14 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @SuppressWarnings( {"SynchronizationOnLocalVariableOrMethodParameter", "deprecation"})
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.25032012")
+    version = "4.0.1c.07042012")
 @GridSpiMultipleInstancesSupport(true)
 @GridSpiConsistencyChecked(optional = true)
 public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridCollisionSpi,
@@ -219,17 +218,10 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
     /** Stealing priority attribute name. */
     public static final String STEALING_PRIORITY_ATTR = "gridgain.stealing.priority";
 
-    /** Running (not held) jobs predicate. */
-    private static final GridPredicate<GridCollisionJobContext> RUNNING_JOBS = new P1<GridCollisionJobContext>() {
-        @Override public boolean apply(GridCollisionJobContext ctx) {
-            return !ctx.getJobContext().heldcc();
-        }
-    };
-
-
     /** Grid logger. */
     @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
-    @GridLoggerResource private GridLogger log;
+    @GridLoggerResource
+    private GridLogger log;
 
     /** Number of jobs that can be executed in parallel. */
     private int activeJobsThreshold = DFLT_ACTIVE_JOBS_THRESHOLD;
@@ -247,7 +239,8 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
     private boolean isStealingEnabled = true;
 
     /** */
-    @GridToStringInclude private Map<String, ? extends Serializable> stealAttrs;
+    @GridToStringInclude
+    private Map<String, ? extends Serializable> stealAttrs;
 
     /** Number of jobs that were active last time. */
     private final AtomicInteger runningCnt = new AtomicInteger(0);
@@ -266,7 +259,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
      * there is no way to predict number of concurrent threads and this is the closest
      * power of 2 that makes sense.
      */
-    private final ConcurrentMap<UUID, MessageInfo> sendMsgMap =
+    private final ConcurrentMap<UUID, MessageInfo> sndMsgMap =
         new ConcurrentHashMap<UUID, MessageInfo>(16, 0.75f, 64);
 
     /**
@@ -503,7 +496,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
         Collection<GridNode> rmtNodes = getSpiContext().remoteNodes();
 
         for (GridNode node : rmtNodes) {
-            sendMsgMap.put(node.id(), new MessageInfo());
+            sndMsgMap.put(node.id(), new MessageInfo());
             rcvMsgMap.put(node.id(), new MessageInfo());
         }
 
@@ -524,7 +517,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
                         if (node != null) {
                             nodeQueue.offer(node);
 
-                            sendMsgMap.put(node.id(), new MessageInfo());
+                            sndMsgMap.put(node.id(), new MessageInfo());
                             rcvMsgMap.put(node.id(), new MessageInfo());
                         }
 
@@ -543,7 +536,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
                             }
                         }
 
-                        sendMsgMap.remove(evtNodeId);
+                        sndMsgMap.remove(evtNodeId);
                         rcvMsgMap.remove(evtNodeId);
 
                         break;
@@ -655,9 +648,9 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
 
         int rejected = 0;
 
-        Collection<GridCollisionJobContext> waitPriorityJobs = sortJobs(waitJobs);
+        Collection<GridCollisionJobContext> waitPriJobs = sortJobs(waitJobs);
 
-        for (GridCollisionJobContext waitCtx : waitPriorityJobs) {
+        for (GridCollisionJobContext waitCtx : waitPriJobs) {
             if (activateCnt > 0 && cnt < activateCnt) {
                 cnt++;
 
@@ -688,7 +681,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
                 }
 
                 // Check if allowed to reject job.
-                int jobsToReject = waitPriorityJobs.size() - cnt - rejected - waitJobsThreshold;
+                int jobsToReject = waitPriJobs.size() - cnt - rejected - waitJobsThreshold;
 
                 if (log.isDebugEnabled()) {
                     log.debug("Jobs to reject count [jobsToReject=" + jobsToReject + ", waitCtx=" + waitCtx + ']');
@@ -698,10 +691,10 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
                     break;
                 }
 
-                Integer priority = (Integer)waitCtx.getJobContext().getAttribute(STEALING_PRIORITY_ATTR);
+                Integer pri = (Integer)waitCtx.getJobContext().getAttribute(STEALING_PRIORITY_ATTR);
 
-                if (priority == null) {
-                    priority = DFLT_JOB_PRIORITY;
+                if (pri == null) {
+                    pri = DFLT_JOB_PRIORITY;
                 }
 
                 // If we have an excess of waiting jobs, reject as many as there are
@@ -786,7 +779,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
                             // Mark job as stolen.
                             waitCtx.getJobContext().setAttribute(THIEF_NODE_ATTR, nodeId);
                             waitCtx.getJobContext().setAttribute(STEALING_ATTEMPT_COUNT_ATTR, stealingCnt + 1);
-                            waitCtx.getJobContext().setAttribute(STEALING_PRIORITY_ATTR, priority + 1);
+                            waitCtx.getJobContext().setAttribute(STEALING_PRIORITY_ATTR, pri + 1);
 
                             info.reset(jobsAsked - 1);
 
@@ -844,7 +837,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
         assert ctx != null;
 
         String attrKey = STEALING_PRIORITY_ATTR;
-        int dfltPriority = DFLT_JOB_PRIORITY;
+        int dfltPri = DFLT_JOB_PRIORITY;
 
         Integer p;
 
@@ -854,18 +847,18 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
         catch (ClassCastException e) {
             U.error(log, "Type of job context priority attribute '" + attrKey +
                 "' is not java.lang.Integer (will use default priority) [type=" +
-                ctx.getAttribute(attrKey).getClass() + ", dfltPriority=" + dfltPriority + ']', e);
+                ctx.getAttribute(attrKey).getClass() + ", dfltPriority=" + dfltPri + ']', e);
 
-            p = dfltPriority;
+            p = dfltPri;
         }
 
         if (p == null) {
             if (log.isDebugEnabled()) {
                 log.debug("Failed get priority from job context attribute '" + attrKey +
-                    "' (will use default priority): " + dfltPriority);
+                    "' (will use default priority): " + dfltPri);
             }
 
-            p = dfltPriority;
+            p = dfltPri;
         }
 
         assert p != null;
@@ -916,7 +909,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
                         }
                     }
 
-                    MessageInfo msgInfo = sendMsgMap.get(next.id());
+                    MessageInfo msgInfo = sndMsgMap.get(next.id());
 
                     if (msgInfo == null) {
                         if (log.isDebugEnabled()) {
@@ -993,27 +986,35 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
         private int jobsToSteal;
 
         /** */
-        private long timestamp = System.currentTimeMillis();
+        private long ts = System.currentTimeMillis();
 
         /**
          * @return Job to steal.
          */
-        int getJobsToSteal() { return jobsToSteal; }
+        int getJobsToSteal() {
+            return jobsToSteal;
+        }
 
         /**
          * @return Message send time.
          */
-        long getTimestamp() { return timestamp; }
+        long getTimestamp() {
+            return ts;
+        }
 
         /**
          * @return {@code True} if message is expired.
          */
-        boolean isExpired() { return jobsToSteal > 0 && System.currentTimeMillis() - timestamp >= msgExpireTime; }
+        boolean isExpired() {
+            return jobsToSteal > 0 && System.currentTimeMillis() - ts >= msgExpireTime;
+        }
 
         /**
          * @param jobsToSteal Jobs to steal.
          */
-        void setJobsToSteal(int jobsToSteal) { this.jobsToSteal = jobsToSteal; }
+        void setJobsToSteal(int jobsToSteal) {
+            this.jobsToSteal = jobsToSteal;
+        }
 
         /**
          * @param jobsToSteal Jobs to steal.
@@ -1021,7 +1022,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
         void reset(int jobsToSteal) {
             this.jobsToSteal = jobsToSteal;
 
-            timestamp = System.currentTimeMillis();
+            ts = System.currentTimeMillis();
         }
 
         /** {@inheritDoc} */

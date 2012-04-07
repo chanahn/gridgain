@@ -32,7 +32,7 @@ import java.util.concurrent.*;
  * Supports sending data to remote clients.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridNioServerImpl<T> implements GridNioServer<T> {
     /** Time, which server will wait before retry operation. */
@@ -469,7 +469,7 @@ public class GridNioServerImpl<T> implements GridNioServer<T> {
                 }
                 catch (IOException e) {
                     if (!closed)
-                        U.error(log, "Failed to process selector key (will close): " + ses, e);
+                        U.warn(log, "Failed to process selector key (will close): " + ses, e);
 
                     close(ses, new GridNioException(e));
                 }

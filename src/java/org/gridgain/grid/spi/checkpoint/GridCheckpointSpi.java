@@ -40,7 +40,7 @@ import org.jetbrains.annotations.*;
  * <p>
  * GridGain provides the following {@code GridCheckpointSpi} implementations:
  * <ul>
- * <li>{@link GridSharedFsCheckpointSpi}</li>
+ * <li>{@link GridSharedFsCheckpointSpi} - default</li>
  * <li>{@link GridS3CheckpointSpi}</li>
  * <li>{@link GridJdbcCheckpointSpi}</li>
  * <li>{@link GridCacheCheckpointSpi}</li>
@@ -53,7 +53,7 @@ import org.jetbrains.annotations.*;
  * to undefined behavior and explicitly not supported.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public interface GridCheckpointSpi extends GridSpi {
     /**

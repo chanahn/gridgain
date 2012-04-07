@@ -27,7 +27,7 @@ import java.util.concurrent.locks.*;
  * {@link #block} that blocks till all activities leave "busy" state.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @GridToStringExclude
 public class GridBusyLock {

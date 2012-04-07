@@ -18,27 +18,11 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="GridGain" level="project" />
+    <orderEntry type="library" name="Java client" level="project" />
     <orderEntry type="library" name="Libraries" level="project" />
-    <orderEntry type="library" name="Examples libraries" level="project" />
     <orderEntry type="library" name="Java client libraries" level="project" />
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/../gridgain-4.0.0c.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/../clients/java/gridgain-client.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
+    <orderEntry type="library" name="Examples libraries" level="project" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>

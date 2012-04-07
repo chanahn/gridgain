@@ -17,7 +17,7 @@ import org.jetbrains.annotations.*;
  * {@link GridCache#txSynchronize(GridCacheTxSynchronization...)} method.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public interface GridCacheTxSynchronization {
     /**

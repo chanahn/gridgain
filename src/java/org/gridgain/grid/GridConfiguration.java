@@ -13,21 +13,35 @@ import org.gridgain.client.ssl.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.logger.*;
+import org.gridgain.grid.logger.log4j.*;
 import org.gridgain.grid.marshaller.*;
+import org.gridgain.grid.marshaller.optimized.*;
 import org.gridgain.grid.segmentation.*;
 import org.gridgain.grid.spi.authentication.*;
+import org.gridgain.grid.spi.authentication.noop.*;
 import org.gridgain.grid.spi.checkpoint.*;
+import org.gridgain.grid.spi.checkpoint.sharedfs.*;
 import org.gridgain.grid.spi.collision.*;
+import org.gridgain.grid.spi.collision.fifoqueue.*;
 import org.gridgain.grid.spi.communication.*;
+import org.gridgain.grid.spi.communication.tcp.*;
 import org.gridgain.grid.spi.deployment.*;
+import org.gridgain.grid.spi.deployment.local.*;
 import org.gridgain.grid.spi.discovery.*;
+import org.gridgain.grid.spi.discovery.multicast.*;
 import org.gridgain.grid.spi.eventstorage.*;
+import org.gridgain.grid.spi.eventstorage.memory.*;
 import org.gridgain.grid.spi.failover.*;
+import org.gridgain.grid.spi.failover.always.*;
 import org.gridgain.grid.spi.loadbalancing.*;
+import org.gridgain.grid.spi.loadbalancing.roundrobin.*;
 import org.gridgain.grid.spi.metrics.*;
 import org.gridgain.grid.spi.securesession.*;
+import org.gridgain.grid.spi.securesession.noop.*;
 import org.gridgain.grid.spi.swapspace.*;
+import org.gridgain.grid.spi.swapspace.leveldb.*;
 import org.gridgain.grid.spi.topology.*;
+import org.gridgain.grid.spi.topology.basic.*;
 import org.jetbrains.annotations.*;
 
 import javax.management.*;
@@ -47,15 +61,13 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * Note, that absolutely every configuration property in {@code GridConfiguration} is optional.
  * One can simply create new instance of {@link GridConfigurationAdapter}, for example,
  * and pass it to {@link GridFactory#start(GridConfiguration)} to start grid with
- * default configuration. See {@link GridFactory} documentation for information about
- * default configuration properties used and more information on how to start grid.
+ * default configuration.
  * <p>
  * For more information about grid configuration and startup refer to {@link GridFactory}
- * documentation which includes description and default values for every configuration
- * property.
+ * documentation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public interface GridConfiguration {
     /** Courtesy notice log category. */
@@ -303,16 +315,16 @@ public interface GridConfiguration {
     public Map<String, ?> getUserAttributes();
 
     /**
-     * Should return an instance of logger to use in grid. If not provided, default value will be used.
-     * See {@link GridFactory} for information on default configuration.
+     * Should return an instance of logger to use in grid. If not provided, {@link GridLog4jLogger}
+     * will be used.
      *
      * @return Logger to use in grid.
      */
     public GridLogger getGridLogger();
 
     /**
-     * Should return an instance of marshaller to use in grid. If not provided, default value will be used.
-     * See {@link GridFactory} for information on default configuration.
+     * Should return an instance of marshaller to use in grid. If not provided,
+     * {@link GridOptimizedMarshaller} will be used.
      *
      * @return Marshaller to use in grid.
      */
@@ -323,8 +335,7 @@ public interface GridConfiguration {
      * This executor service will be in charge of processing {@link GridTask GridTasks}
      * and {@link GridJob GridJobs}.
      * <p>
-     * If not provided, default value will be used. See {@link GridFactory} for
-     * information on default configuration.
+     * If not provided, default value is defined by {@link #DFLT_PUBLIC_THREAD_CNT}.
      *
      * @return Thread pool implementation to be used in grid to process job execution
      *      requests and user messages sent to the node.
@@ -346,8 +357,7 @@ public interface GridConfiguration {
      * Executor service that is in charge of processing {@link GridTaskSession} messages
      * and job responses.
      * <p>
-     * If not provided, default value will be used. See {@link GridFactory} for
-     * information on default configuration.
+     * If not provided, default value is defined by {@link #DFLT_SYSTEM_THREAD_CNT}.
      *
      * @return Thread pool implementation to be used in grid for job responses
      *      and session attributes processing.
@@ -391,8 +401,7 @@ public interface GridConfiguration {
      * always unique and never repeat. Use node attributes (see {@link #getUserAttributes()}
      * to uniquely identify same logical nodes between restarts.
      * <p>
-     * Unique identifier for this node within grid. If not provided, default value will be used.
-     * See {@link GridFactory} for information on default configuration.
+     * Unique identifier for this node within grid.
      *
      * @return Unique identifier for this node within grid.
      */
@@ -443,8 +452,8 @@ public interface GridConfiguration {
     public GridLifecycleBean[] getLifecycleBeans();
 
     /**
-     * Should return fully configured discovery SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured discovery SPI implementation. If not provided,
+     * {@link GridMulticastDiscoverySpi} will be used by default.
      *
      * @return Grid discovery SPI implementation or {@code null} to use default implementation.
      */
@@ -516,96 +525,96 @@ public interface GridConfiguration {
     public long getSegmentCheckFrequency();
 
     /**
-     * Should return fully configured SPI communication  implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured SPI communication  implementation. If not provided,
+     * {@link GridTcpCommunicationSpi} will be used by default.
      *
      * @return Grid communication SPI implementation or {@code null} to use default implementation.
      */
     public GridCommunicationSpi getCommunicationSpi();
 
     /**
-     * Should return fully configured event SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured event SPI implementation. If not provided,
+     * {@link GridMemoryEventStorageSpi} will be used.
      *
      * @return Grid event SPI implementation or {@code null} to use default implementation.
      */
     public GridEventStorageSpi getEventStorageSpi();
 
     /**
-     * Should return fully configured collision SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured collision SPI implementation. If not provided,
+     * {@link GridFifoQueueCollisionSpi} will be used.
      *
      * @return Grid collision SPI implementation or {@code null} to use default implementation.
      */
     public GridCollisionSpi getCollisionSpi();
 
     /**
-     * Should return fully configured metrics SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured metrics SPI implementation. If not provided,
+     * {@link GridLocalMetricsSpi} will be used.
      *
      * @return Grid metrics SPI implementation or {@code null} to use default implementation.
      */
     public GridLocalMetricsSpi getMetricsSpi();
 
     /**
-     * Should return fully configured authentication SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured authentication SPI implementation. If not provided,
+     * {@link GridNoopAuthenticationSpi} will be used.
      *
      * @return Grid authentication SPI implementation or {@code null} to use default implementation.
      */
     public GridAuthenticationSpi getAuthenticationSpi();
 
     /**
-     * Should return fully configured secure session SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured secure session SPI implementation. If not provided,
+     * {@link GridNoopSecureSessionSpi} will be used.
      *
      * @return Grid secure session SPI implementation or {@code null} to use default implementation.
      */
     public GridSecureSessionSpi getSecureSessionSpi();
 
     /**
-     * Should return fully configured deployment SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured deployment SPI implementation. If not provided,
+     * {@link GridLocalDeploymentSpi} will be used.
      *
      * @return Grid deployment SPI implementation or {@code null} to use default implementation.
      */
     public GridDeploymentSpi getDeploymentSpi();
 
     /**
-     * Should return fully configured checkpoint SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured checkpoint SPI implementation. If not provided,
+     * {@link GridSharedFsCheckpointSpi} will be used.
      *
      * @return Grid checkpoint SPI implementation or {@code null} to use default implementation.
      */
     public GridCheckpointSpi[] getCheckpointSpi();
 
     /**
-     * Should return fully configured failover SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured failover SPI implementation. If not provided,
+     * {@link GridAlwaysFailoverSpi} will be used.
      *
      * @return Grid failover SPI implementation or {@code null} to use default implementation.
      */
     public GridFailoverSpi[] getFailoverSpi();
 
     /**
-     * Should return fully configured topology SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured topology SPI implementation. If not provided,
+     * {@link GridBasicTopologySpi} will be used.
      *
      * @return Grid topology SPI implementation or {@code null} to use default implementation.
      */
     public GridTopologySpi[] getTopologySpi();
 
     /**
-     * Should return fully configured load balancing SPI implementation. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured load balancing SPI implementation. If not provided,
+     * {@link GridRoundRobinLoadBalancingSpi} will be used.
      *
      * @return Grid load balancing SPI implementation or {@code null} to use default implementation.
      */
     public GridLoadBalancingSpi[] getLoadBalancingSpi();
 
     /**
-     * Should return fully configured swap space SPI implementations. If not provided, default
-     * implementation will be used. See {@link GridFactory} for information on default configuration.
+     * Should return fully configured swap space SPI implementations. If not provided,
+     * {@link GridLevelDbSwapSpaceSpi} will be used.
      * <p>
      * Note that user can provide one or multiple instances of this SPI (and select later which one
      * is used in a particular context).
@@ -684,8 +693,7 @@ public interface GridConfiguration {
      * peer class loading and use GAR deployment only we would recommend to decrease
      * the value of total threads to {@code 1}.
      * <p>
-     * If not provided, default value will be used. See {@link GridFactory} for
-     * information on default configuration.
+     * If not provided, default value is defined by {@link #DFLT_P2P_THREAD_CNT}.
      *
      * @return Thread pool implementation to be used for peer class loading
      *      requests handling.

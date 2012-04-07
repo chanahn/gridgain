@@ -12,6 +12,8 @@ package org.gridgain.grid;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.lang.*;
 
+import java.util.concurrent.*;
+
 /**
  * Data loader is responsible for loading external data into cache. It achieves it by
  * properly buffering updates and properly mapping keys to nodes responsible for the data
@@ -53,7 +55,7 @@ import org.gridgain.grid.lang.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public interface GridDataLoader<K, V> {
     /** Default max concurrent put operations count. */
@@ -126,6 +128,41 @@ public interface GridDataLoader<K, V> {
      * @param depCls Any class loaded by the class-loader for given data.
      */
     public void deployClass(Class<?> depCls);
+
+    /**
+     * Atomically loads value which is a function of a previous value stored in cache. This method
+     * has the following effect: {@code "cache.putx(key, function(cache.get(key))"} where
+     * function is the closure passed into this method.
+     * <p>
+     * Note that if several closures are added for the same key, all of them will be applied.
+     * <p>
+     * See {@link #addData(Object, Object)} for threading issues.
+     *
+     * @param key Key.
+     * @param clo Closure to apply.
+     * @throws GridException If failed to map key to node.
+     * @throws GridInterruptedException If thread has been interrupted.
+     * @throws IllegalStateException if grid has been concurrently stopped or
+     *      {@link #close(boolean)} has already been called on loader.
+     */
+    public void addData(K key, GridClosure<V, V> clo) throws GridException, GridInterruptedException,
+        IllegalStateException;
+
+    /**
+     * Loads data on remote node using passed in closure which serves as value factory. This method is
+     * useful for cases when there is no real benefit in generating value on the sender side and
+     * value can be generated on receiver side. This method has the following effect:
+     * {@code "cache.putx(key, c.call())"}.
+     *
+     * @param key Key.
+     * @param c Callable that returns result of type V.
+     * @throws GridException If failed to map key to node.
+     * @throws GridInterruptedException If thread has been interrupted.
+     * @throws IllegalStateException if grid has been concurrently stopped or
+     *      {@link #close(boolean)} has already been called on loader.
+     */
+    public void addData(K key, Callable<V> c) throws GridException, GridInterruptedException,
+        IllegalStateException;
 
     /**
      * Adds data for loading on remote node. This method can be called for multiple

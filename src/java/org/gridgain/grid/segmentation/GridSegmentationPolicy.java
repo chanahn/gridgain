@@ -11,12 +11,13 @@ package org.gridgain.grid.segmentation;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.loaders.cmdline.*;
+import org.gridgain.grid.spi.discovery.*;
 
 /**
  * Policy that defines how node will react on topology segmentation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  * @see GridSegmentationResolver
  */
 public enum GridSegmentationPolicy {
@@ -31,27 +32,28 @@ public enum GridSegmentationPolicy {
     /**
      * When segmentation policy is {@code STOP}, all listeners will receive
      * {@link GridEventType#EVT_NODE_SEGMENTED} event and then particular grid node
-     * will be stopped via call to {@link GridFactory#stop(boolean, boolean)}.
+     * will be stopped via call to {@link GridFactory#stop(String, boolean, boolean)}.
      */
     STOP,
 
     /**
      * When segmentation policy is {@code RECONNECT}, all listeners will receive
      * {@link GridEventType#EVT_NODE_SEGMENTED} and then discovery manager will
-     * try to reconnect discovery SPI to topology (issuing
+     * try to reconnect discovery SPI to topology issuing
      * {@link GridEventType#EVT_NODE_RECONNECTED} event on reconnect.
      * <p>
-     * Note, that this policy is not recommended when data grid is enabled.
+     * Note, that this policy is not allowed when distributed data grid is enabled.
+     * <p>
+     * This policy can be used only with {@link GridDiscoverySpi} implementation that
+     * has support for reconnect (i.e. annotated with {@link GridDiscoverySpiReconnectSupport}
+     * annotation).
      */
     RECONNECT,
 
     /**
      * When segmentation policy is {@code NOOP}, all listeners will receive
      * {@link GridEventType#EVT_NODE_SEGMENTED} event and it is up to user to
-     * a implement logic to handle this event.
-     * <p>
-     * This policy is intended to use when it is needed to perform user-defined
-     * logic on node stop and then start.
+     * implement logic to handle this event.
      */
     NOOP
 }

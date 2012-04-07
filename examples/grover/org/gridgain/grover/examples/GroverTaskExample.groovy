@@ -21,7 +21,7 @@ import static org.gridgain.grover.Grover.*
  * As a trade off in such cases the more code needs to be written vs. simple closure execution.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @Typed
 class GroverTaskExample {

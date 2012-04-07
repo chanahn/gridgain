@@ -19,7 +19,7 @@ import java.util.*;
  * protocol implementation (TCP, HTTP) from client code.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public abstract class GridClientConnection {
     /** Topology */
@@ -199,7 +199,7 @@ public abstract class GridClientConnection {
      * @throws GridClientConnectionResetException In case of error.
      * @throws GridClientClosedException If client was manually closed before request was sent over network.
      */
-    public abstract <K> GridClientFuture<Map<String, ? extends Number>> cacheMetrics(String cacheName, K key)
+    public abstract <K> GridClientFuture<GridClientDataMetrics> cacheMetrics(String cacheName, K key)
         throws GridClientConnectionResetException, GridClientClosedException;
 
     /**
@@ -271,5 +271,57 @@ public abstract class GridClientConnection {
      */
     protected Object credentials() {
         return cred;
+    }
+
+    /**
+     * Safely gets long value by given key.
+     *
+     * @param map Map to get value from.
+     * @param key Metrics name.
+     * @return Value or -1, if not found.
+     */
+    protected long safeLong(Map<String, Number> map, String key) {
+        Number val = map.get(key);
+
+        if (val == null)
+            return -1;
+
+        return val.longValue();
+    }
+
+    /**
+     * Safely gets double value by given key.
+     *
+     * @param map Map to get value from.
+     * @param key Metrics name.
+     * @return Value or -1, if not found.
+     */
+    protected double safeDouble(Map<String, Number> map, String key) {
+        Number val = map.get(key);
+
+        if (val == null)
+            return -1;
+
+        return val.doubleValue();
+    }
+
+    /**
+     * Converts metrics map to metrics object.
+     *
+     * @param metricsMap Map to convert.
+     * @return Metrics object.
+     */
+    protected GridClientDataMetrics metricsMapToMetrics(Map<String, Number> metricsMap) {
+        GridClientDataMetricsAdapter metrics = new GridClientDataMetricsAdapter();
+
+        metrics.createTime(safeLong(metricsMap, "createTime"));
+        metrics.readTime(safeLong(metricsMap, "readTime"));
+        metrics.writeTime(safeLong(metricsMap, "writeTime"));
+        metrics.reads((int)safeLong(metricsMap, "reads"));
+        metrics.writes((int)safeLong(metricsMap, "writes"));
+        metrics.hits((int)safeLong(metricsMap, "hits"));
+        metrics.misses((int)safeLong(metricsMap, "misses"));
+
+        return metrics;
     }
 }

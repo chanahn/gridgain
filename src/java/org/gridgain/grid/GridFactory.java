@@ -134,7 +134,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * For more information refer to {@link GridSpringBean} documentation.
 
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridFactory {
     /**
@@ -964,7 +964,6 @@ public class GridFactory {
      *      been started or Spring XML configuration file is invalid.
      */
     // Warning is due to Spring.
-    @SuppressWarnings("unchecked")
     public static Grid start(URL springCfgUrl, @Nullable ApplicationContext ctx) throws GridException {
         A.notNull(springCfgUrl, "springCfgUrl");
 
@@ -1005,10 +1004,9 @@ public class GridFactory {
                 springCfgUrl + ", err=" + e.getMessage() + ']', e);
         }
 
-        Map cfgMap;
+        Map<String, GridConfiguration> cfgMap;
 
         try {
-            // Note: Spring 2.x is not generics-friendly.
             cfgMap = springCtx.getBeansOfType(GridConfiguration.class);
         }
         catch (BeansException e) {
@@ -1037,7 +1035,7 @@ public class GridFactory {
         List<GridNamedInstance> grids = new ArrayList<GridNamedInstance>(cfgMap.size());
 
         try {
-            for (GridConfiguration cfg : (Collection<GridConfiguration>)cfgMap.values()) {
+            for (GridConfiguration cfg : cfgMap.values()) {
                 assert cfg != null;
 
                 // Use either user defined context or our one.
@@ -1304,7 +1302,7 @@ public class GridFactory {
      * Grid data container.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.0c.25032012
+     * @version 4.0.1c.07042012
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
@@ -1798,7 +1796,7 @@ public class GridFactory {
             myCfg.setSegmentationResolvers(cfg.getSegmentationResolvers());
             myCfg.setSegmentationPolicy(cfg.getSegmentationPolicy());
             myCfg.setSegmentCheckFrequency(cfg.getSegmentCheckFrequency());
-            myCfg.setWaitForSegOnStart(cfg.isWaitForSegmentOnStart());
+            myCfg.setWaitForSegmentOnStart(cfg.isWaitForSegmentOnStart());
             myCfg.setAllSegmentationResolversPassRequired(cfg.isAllSegmentationResolversPassRequired());
 
             // Override SMTP configuration from system properties
@@ -1920,7 +1918,11 @@ public class GridFactory {
                 // Init here to make grid available to lifecycle listeners.
                 grid = grid0;
 
-                grid0.start(myCfg);
+                grid0.start(myCfg, new CA() {
+                    @Override public void apply() {
+                        startLatch.countDown();
+                    }
+                });
 
                 state = STARTED;
 
@@ -2225,7 +2227,7 @@ public class GridFactory {
          * Contains necessary data for selected MBeanServer.
          *
          * @author 2012 Copyright (C) GridGain Systems
-         * @version 4.0.0c.25032012
+         * @version 4.0.1c.07042012
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

@@ -31,7 +31,7 @@ import java.lang.annotation.*;
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

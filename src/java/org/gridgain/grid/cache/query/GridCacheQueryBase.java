@@ -22,7 +22,7 @@ import java.io.*;
  * @param <K> Key type.
  * @param <V> Value type.
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public interface GridCacheQueryBase<K, V> extends GridMetadataAware, Closeable {
     /** Default query page size. */

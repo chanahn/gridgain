@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.*;
  * typedef.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridFunc {
     /** */
@@ -3714,6 +3714,123 @@ public class GridFunc {
     }
 
     /**
+     * Read-only view on map that supports transformation of values and key filtering. Resulting map will
+     * only "have" keys for which all provided predicates, if any, evaluates to {@code true}.
+     * Note that only wrapping map will be created and no duplication of data will occur.
+     * Also note that if array of given predicates is not empty then method {@code size()}
+     * uses full iteration through the entry set.
+     *
+     * @param m Input map that serves as a base for the view.
+     * @param trans Transformer for map value transformation.
+     * @param p Optional predicates. If predicates are not provided - all will be in the view.
+     * @param <K> Type of the key.
+     * @param <V> Type of the input map value.
+     * @param <V1> Type of the output map value.
+     * @return Light-weight view on given map with provided predicate and transformer.
+     */
+    public static <K0, K extends K0, V0, V extends V0, V1> Map<K, V1> viewReadOnly(@Nullable final Map<K, V> m,
+        final GridClosure2<K, V, V1> trans, @Nullable final GridPredicate<? super K>... p) {
+        A.notNull(trans, "trans");
+
+        if (isEmpty(m) || isAlwaysFalse(p))
+            return Collections.emptyMap();
+
+        assert m != null;
+
+        return new GridSerializableMap<K, V1>() {
+            /** Entry predicate. */
+            private GridPredicate<Map.Entry<K, V>> ep = new P1<Map.Entry<K, V>>() {
+                @Override public boolean apply(Entry<K, V> e) {
+                    return isAll(e.getKey(), p);
+                }
+            };
+
+            @Override public Set<Entry<K, V1>> entrySet() {
+                return new GridSerializableSet<Map.Entry<K, V1>>() {
+                    @Override public Iterator<Entry<K, V1>> iterator() {
+                        return new Iterator<Entry<K, V1>>() {
+                            private Iterator<Entry<K, V>> it = iterator0(m.entrySet(), true, ep);
+
+                            @Override public boolean hasNext() {
+                                return it.hasNext();
+                            }
+
+                            @Override public Entry<K, V1> next() {
+                                final Entry<K, V> e = it.next();
+
+                                return new Entry<K, V1>() {
+                                    @Override public K getKey() {
+                                        return e.getKey();
+                                    }
+
+                                    @Override public V1 getValue() {
+                                        return trans.apply(e.getKey(), e.getValue());
+                                    }
+
+                                    @Override public V1 setValue(V1 val) {
+                                        throw new UnsupportedOperationException("Put is not supported for readonly map view.");
+                                    }
+                                };
+                            }
+
+                            @Override public void remove() {
+                                throw new UnsupportedOperationException("Remove is not support for readonly map view.");
+                            }
+                        };
+                    }
+
+                    @Override public int size() {
+                        return F.size(m.keySet(), p);
+                    }
+
+                    @SuppressWarnings({"unchecked"})
+                    @Override public boolean remove(Object o) {
+                        throw new UnsupportedOperationException("Remove is not support for readonly map view.");
+                    }
+
+                    @SuppressWarnings({"unchecked"})
+                    @Override public boolean contains(Object o) {
+                        return F.isAll((Map.Entry<K, V>)o, ep) && m.entrySet().contains(o);
+                    }
+
+                    @Override public boolean isEmpty() {
+                        return !iterator().hasNext();
+                    }
+                };
+            }
+
+            @Override public boolean isEmpty() {
+                return entrySet().isEmpty();
+            }
+
+            @SuppressWarnings({"unchecked"})
+            @Nullable @Override public V1 get(Object key) {
+                if (isAll((K)key, p)) {
+                    V v = m.get(key);
+
+                    if (v != null)
+                        return trans.apply((K)key, v);
+                }
+
+                return null;
+            }
+
+            @Nullable @Override public V1 put(K key, V1 val) {
+                throw new UnsupportedOperationException("Put is not supported for readonly map view.");
+            }
+
+            @Override public V1 remove(Object key) {
+                throw new UnsupportedOperationException("Remove is not supported for readonly map view.");
+            }
+
+            @SuppressWarnings({"unchecked"})
+            @Override public boolean containsKey(Object key) {
+                return isAll((K)key, p) && m.containsKey(key);
+            }
+        };
+    }
+
+    /**
      * Tests if given string is {@code null} or empty.
      *
      * @param s String to test.
@@ -5483,6 +5600,26 @@ public class GridFunc {
                 peerDeployLike(U.peerDeployAware0(c));
             }
 
+            @Override public boolean apply(T t) {
+                assert c != null;
+
+                return !c.contains(t);
+            }
+        };
+    }
+
+    /**
+     * Gets predicate (not peer-deployable) that returns {@code true} if its free variable
+     * is not contained in given collection.
+     *
+     * @param c Collection to check for containment.
+     * @param <T> Type of the free variable for the predicate and type of the
+     *      collection elements.
+     * @return Predicate (not peer-deployable) that returns {@code true} if its free variable is not
+     *      contained in given collection.
+     */
+    public static <T> GridPredicate<T> notIn0(@Nullable final Collection<? extends T> c) {
+        return isEmpty(c) ? GridFunc.<T>alwaysTrue() : new P1<T>() {
             @Override public boolean apply(T t) {
                 assert c != null;
 

@@ -19,7 +19,7 @@ import java.io.*;
  * risk assessment application.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridCredit implements Serializable {
     /** Remaining crediting amount. */

@@ -17,7 +17,7 @@ import java.util.*;
  * Management bean for {@link GridAttributesTopologySpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @GridMBeanDescription("MBean that provides access to attributes based topology SPI configuration.")
 public interface GridAttributesTopologySpiMBean extends GridSpiManagementMBean {

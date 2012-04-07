@@ -28,7 +28,7 @@ import static org.gridgain.grid.GridEventType.*;
  * Replicated cache entry.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
@@ -232,7 +232,6 @@ public class GridNearCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
      * @return Tuple with version and value of this entry.
      * @throws GridCacheEntryRemovedException If entry has been removed.
      */
-    @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext"})
     @Nullable public GridTuple3<GridCacheVersion, V, byte[]> versionedValue() throws GridCacheEntryRemovedException {
         lock();
 

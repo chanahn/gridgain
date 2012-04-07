@@ -35,13 +35,16 @@ import static org.gridgain.grid.GridClosureCallMode.*;
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.cache.GridCacheMode.*;
 
+import static org.gridgain.grid.cache.GridCacheTxConcurrency.*;
+import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
+
 /**
  * Data loader implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
-public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
+public class GridDataLoaderImpl<K, V> implements GridDataLoader<K, V>, Externalizable {
     /** Log reference. */
     private static final AtomicReference<GridLogger> logRef = new AtomicReference<GridLogger>();
 
@@ -61,8 +64,8 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
     private ConcurrentMap<UUID, Buffer> bufMappings = new ConcurrentHashMap<UUID, Buffer>();
 
     /** Entries to remap. */
-    private GridConcurrentLinkedDeque<GridTuple2<K, V>> remapEntries =
-        new GridConcurrentLinkedDeque<GridTuple2<K, V>>();
+    private GridConcurrentLinkedDeque<GridTuple2<K, Object>> remapEntries =
+        new GridConcurrentLinkedDeque<GridTuple2<K, Object>>();
 
     /** Buffers to remap. */
     private GridConcurrentLinkedDeque<Buffer> remapBufs = new GridConcurrentLinkedDeque<Buffer>();
@@ -71,13 +74,13 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
     private final AtomicBoolean remapGuard = new AtomicBoolean();
 
     /** Logger. */
-    private final GridLogger log;
+    private GridLogger log;
 
     /** Cache mode. */
     private GridCacheMode cacheMode;
 
     /** Discovery listener. */
-    private final GridLocalEventListener discoLsnr;
+    private GridLocalEventListener discoLsnr;
 
     /** Busy lock. */
     private final GridBusyLock busyLock = new GridBusyLock();
@@ -86,10 +89,10 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
     private final AtomicBoolean closeGuard = new AtomicBoolean();
 
     /** Future to track loading finish. */
-    private final GridFutureAdapter<?> fut;
+    private GridFutureAdapter<?> fut;
 
     /** Context. */
-    private final GridKernalContext ctx;
+    private GridKernalContext ctx;
 
     /** Ignore events flag. */
     private boolean ignoreEvts;
@@ -109,6 +112,16 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
     /** Job peer deploy aware. */
     private GridPeerDeployAware jobPda;
 
+    /** Set to {@code false} on deserialization whenever loader is serialized. */
+    private boolean valid = true;
+
+    /**
+     * Empty constructor for {@link Externalizable} support.
+     */
+    public GridDataLoaderImpl() {
+        // No-op.
+    }
+
     /**
      * @param ctx Grid kernal context.
      * @param cacheName Cache name.
@@ -119,7 +132,7 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         this.ctx = ctx;
         this.cacheName = cacheName;
 
-        fut = new DataLoaderFuture(ctx);
+        fut = new GridDataLoaderFuture(ctx, this);
 
         log = U.logger(ctx, logRef, GridDataLoaderImpl.class);
 
@@ -202,6 +215,8 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
 
     /** {@inheritDoc} */
     @Override public void perNodeBufferSize(int bufSize) {
+        checkValid();
+
         A.ensure(bufSize > 0, "bufSize > 0");
 
         if (cSaved || cRef.get() != null)
@@ -217,6 +232,8 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
 
     /** {@inheritDoc} */
     @Override public void perNodeParallelLoadOperations(int parallelOps) {
+        checkValid();
+
         A.ensure(parallelOps > 0, "parallelOps > 0");
 
         if (cSaved || cRef.get() != null)
@@ -227,6 +244,8 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
 
     /** {@inheritDoc} */
     @Override public void deployClass(Class<?> depCls) {
+        checkValid();
+
         A.notNull(depCls, "depCls");
 
         if (cSaved || cRef.get() != null)
@@ -241,7 +260,38 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
     }
 
     /** {@inheritDoc} */
-    @Override public void addData(final K key, final V val) throws GridException, GridInterruptedException, IllegalStateException {
+    @Override public void addData(final K key, final GridClosure<V, V> clo) throws GridException,
+        GridInterruptedException, IllegalStateException {
+        addDataObject(key, clo);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void addData(final K key, final Callable<V> c) throws GridException, GridInterruptedException,
+        IllegalStateException {
+        addDataObject(key, c);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void addData(final K key, final V val) throws GridException, GridInterruptedException,
+        IllegalStateException {
+        addDataObject(key, val);
+    }
+
+    /**
+     * Internal method to handle all kind of data that may be passed via public methods -
+     * {@link #addData(Object, GridClosure)}, {@link #addData(Object, Callable), {@link #addData(Object, Object)}}.
+     *
+     * @param key Key.
+     * @param val Callable, closure or plain value.
+     * @throws GridException If failed to map key to node.
+     * @throws GridInterruptedException If thread has been interrupted.
+     * @throws IllegalStateException if grid has been concurrently stopped or
+     *      {@link #close(boolean)} has already been called on loader.
+     */
+    private void addDataObject(final K key, final Object val) throws GridException, GridInterruptedException,
+        IllegalStateException {
+        checkValid();
+
         A.notNull(key, "key");
         A.notNull(val, "val");
 
@@ -268,18 +318,25 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
 
                             @Override public Class<?> deployClass() {
                                 if (cls == null) {
+                                    Class<?> cls0 = null;
+
                                     if (depCls != null)
-                                        cls = depCls;
+                                        cls0 = depCls;
                                     else {
-                                        if (cls == null)
-                                            cls = detectClass(key);
+                                        if (cls0 == null)
+                                            cls0 = detectClass(key);
 
-                                        if (cls == null)
-                                            cls = detectClass(val);
+                                        if (cls0 == null)
+                                            cls0 = detectClass(val);
 
-                                        if (cls == null)
-                                            cls = GridDataLoaderImpl.class;
+                                        if (cls0 == null)
+                                            cls0 = GridDataLoaderImpl.class;
                                     }
+
+                                    assert cls0 != null : "Failed to detect deploy class [ldr=" +
+                                        GridDataLoaderImpl.this + ", key=" + key + ", val=" + val + ']';
+
+                                    cls = cls0;
                                 }
 
                                 return cls;
@@ -362,7 +419,7 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
      * @param val Value.
      * @throws GridInterruptedException If thread gets interrupted.
      */
-    private void addData0(K key, V val) throws GridException, GridInterruptedException {
+    private void addData0(K key, Object val) throws GridException, GridInterruptedException {
         assert key != null;
         assert val != null;
 
@@ -448,9 +505,8 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
      *
      * @throws GridException If failed to remap entries.
      */
-    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private void remap() throws GridException {
-        Collection<GridTuple2<K, V>> entries = null;
+        Collection<GridTuple2<K, Object>> entries = null;
         Collection<Buffer> bufs = null;
 
         if (remapGuard.compareAndSet(false, true)) {
@@ -460,7 +516,7 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
                 if (!remapEntries.isEmptyx()) {
                     entries = remapEntries;
 
-                    remapEntries = new GridConcurrentLinkedDeque<GridTuple2<K, V>>();
+                    remapEntries = new GridConcurrentLinkedDeque<GridTuple2<K, Object>>();
                 }
 
                 if (!remapBufs.isEmptyx()) {
@@ -480,17 +536,19 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
             return;
 
         if (entries != null)
-            for (GridTuple2<K, V> t : entries)
+            for (GridTuple2<K, Object> t : entries)
                 addData0(t.getKey(), t.getValue());
 
         if (bufs != null)
             for (Buffer buf : bufs)
-                for (GridTuple2<K, V> t : buf.entriesToRemap())
+                for (GridTuple2<K, Object> t : buf.entriesToRemap())
                     addData0(t.getKey(), t.getValue());
     }
 
     /** {@inheritDoc} */
     @Override public void close(boolean cancel) throws IllegalStateException, GridException {
+        checkValid();
+
         if (closeGuard.compareAndSet(false, true)) {
             // No more adds are possible.
             busyLock.block();
@@ -505,6 +563,9 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
                         @Override public Class<?> deployClass() {
                             if (cls == null)
                                 cls = depCls != null ? depCls : GridDataLoaderImpl.class;
+
+                            assert cls != null : "Failed to detect deploy class on close [ldr=" +
+                                GridDataLoaderImpl.this + ']';
 
                             return cls;
                         }
@@ -688,6 +749,32 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         }
     }
 
+    /**
+     * Checks that loader is in usable state.
+     */
+    protected void checkValid() {
+        if (!valid)
+            throw new IllegalStateException("Data loader cannot be used after deserialization.");
+    }
+
+    /** {@inheritDoc} */
+    @Override public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeObject(fut);
+        out.writeInt(bufSize);
+        out.writeInt(parallelOps);
+        U.writeString(out, cacheName);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        valid = false;
+
+        fut = (GridFutureAdapter<?>)in.readObject();
+        bufSize = in.readInt();
+        parallelOps = in.readInt();
+        cacheName = U.readString(in);
+    }
+
     /** {@inheritDoc} */
     @Override public String toString() {
         return S.toString(GridDataLoaderImpl.class, this);
@@ -709,9 +796,9 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         private String cacheName;
 
         /** Entries to put. */
-        private Collection<GridTuple2<K, V>> col;
+        private Collection<GridTuple2<K, Object>> col;
 
-        /** */
+        /** Peer deploy aware. */
         private GridPeerDeployAware pda;
 
         /**
@@ -726,7 +813,7 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
          * @param col Entries to put.
          * @param pda Peer deploy aware.
          */
-        private PutJob(@Nullable String cacheName, Collection<GridTuple2<K, V>> col, GridPeerDeployAware pda) {
+        private PutJob(@Nullable String cacheName, Collection<GridTuple2<K, Object>> col, GridPeerDeployAware pda) {
             assert col != null && !col.isEmpty();
             assert pda != null;
 
@@ -745,24 +832,88 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
 
                 assert cache != null;
 
-                Map<K, V> map = null;
+                Map<K, V> objMap = null;
+                Map<K, List<GridClosure<V, V>>> cloMap = null;
 
-                for (GridTuple2<K, V> t : col) {
+                for (GridTuple2<K, Object> t : col) {
                     K key = t.getKey();
 
-                    if (key instanceof Comparable) {
-                        if (map == null)
-                            map = new TreeMap<K, V>();
+                    Object obj = t.get2();
 
-                        map.put(key, t.get2());
+                    boolean unwrapped = false;
+
+                    if (obj instanceof Callable) {
+                        unwrapped = true;
+
+                        obj = ((Callable)obj).call();
                     }
-                    else
+
+                    if (key instanceof Comparable) {
+                        if (!unwrapped && obj instanceof GridClosure) {
+                            if (cloMap == null)
+                                cloMap = new TreeMap<K, List<GridClosure<V, V>>>();
+
+                            List<GridClosure<V, V>> clos = cloMap.isEmpty() ? null : cloMap.get(key);
+
+                            if (clos == null)
+                                cloMap.put(key, clos = new LinkedList<GridClosure<V, V>>());
+
+                            clos.add((GridClosure<V, V>)obj);
+                        }
+                        else {
+                            if (objMap == null)
+                                objMap = new TreeMap<K, V>();
+
+                            objMap.put(key, (V)obj);
+                        }
+                    }
+                    else {
                         // Key is not comparable, need to put in a separate tx.
-                        cache.putx(key, t.get2());
+                        if (!unwrapped && obj instanceof GridClosure) {
+                            GridCacheTx tx = cache.txStart(PESSIMISTIC, REPEATABLE_READ);
+
+                            try {
+                                V val = cache.get(key);
+
+                                cache.putx(key, ((GridClosure<V, V>)obj).apply(val));
+
+                                tx.commit();
+                            }
+                            finally {
+                                tx.end();
+                            }
+                        }
+                        else
+                            cache.putx(key, (V)obj);
+                    }
                 }
 
-                if (map != null)
-                    cache.putAll(map);
+                if (objMap != null)
+                    cache.putAll(objMap);
+
+                if (cloMap != null) {
+                    GridCacheTx tx = cache.txStart(PESSIMISTIC, REPEATABLE_READ);
+
+                    try {
+                        final Map<K, V> oldVals = cache.getAll(cloMap.keySet());
+
+                        cache.putAll(F.viewReadOnly(cloMap, new C2<K, List<GridClosure<V, V>>, V>() {
+                            @Override public V apply(K key, List<GridClosure<V, V>> l) {
+                                V val = oldVals.get(key);
+
+                                for (GridClosure<V, V> c: l)
+                                    val = c.apply(val);
+
+                                return val;
+                            }
+                        }));
+
+                        tx.commit();
+                    }
+                    finally {
+                        tx.end();
+                    }
+                }
 
                 return null;
             }
@@ -811,13 +962,13 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         private final Collection<GridFuture<?>> activeFuts;
 
         /** Buffered entries. */
-        private final GridConcurrentLinkedDeque<GridTuple2<K, V>> entries =
-            new GridConcurrentLinkedDeque<GridTuple2<K, V>>();
+        private final GridConcurrentLinkedDeque<GridTuple2<K, Object>> entries =
+            new GridConcurrentLinkedDeque<GridTuple2<K, Object>>();
 
         /** Remapped flag. */
         private boolean remapped;
 
-        /** */
+        /** All futures cancelled flag. */
         private volatile boolean allCancelled;
 
         /** Submit guard. */
@@ -831,13 +982,18 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         /** Buffer internal lock. */
         private final ReadWriteLock lock0 = new ReentrantReadWriteLock();
 
-        /** */
+        /** Buffer size (from snapshot). */
         private final int bufSize0;
+
+        /** Local node flag. */
+        private final boolean isLocNode;
 
         /**
          * @param nodeId Node ID.
          */
         private Buffer(UUID nodeId) {
+            assert nodeId != null;
+
             this.nodeId = nodeId;
 
             Configuration c = cRef.get();
@@ -852,6 +1008,9 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
 
             // 1 segment will be enough.
             activeFuts = new GridConcurrentHashSet<GridFuture<?>>(parallelOps0, 0.75f, 1);
+
+            // Cache local node flag.
+            isLocNode = nodeId.equals(ctx.localNodeId());
         }
 
         /**
@@ -859,7 +1018,7 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
          * @param val Value.
          * @return {@code True} if data was added.
          */
-        boolean add(K key, V val) {
+        boolean add(K key, Object val) {
             lock0.readLock().lock();
 
             try {
@@ -891,8 +1050,9 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
                     return;
             }
 
-            Collection<GridTuple2<K, V>> col = null;
-            GridFuture<?> fut = null;
+            Collection<GridTuple2<K, Object>> col = null;
+
+            GridNode node = null;
 
             if (force || (entries.sizex() >= bufSize0 && submitGuard.compareAndSet(false, true))) {
                 lock0.writeLock().lock();
@@ -901,9 +1061,9 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
                     if (remapped)
                         return;
 
-                    col = new ArrayList<GridTuple2<K, V>>(entries.sizex());
+                    col = new ArrayList<GridTuple2<K, Object>>(entries.sizex());
 
-                    for (GridTuple2<K, V> t = entries.poll(); t != null; t = entries.poll())
+                    for (GridTuple2<K, Object> t = entries.poll(); t != null; t = entries.poll())
                         col.add(t);
 
                     // If forced or remapped concurrently.
@@ -912,47 +1072,16 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
 
                     incrementActiveTasks();
 
-                    if (jobPda == null) {
-                        Configuration c = cRef.get();
+                    if (!isLocNode) {
+                        node = ctx.discovery().node(nodeId);
 
-                        assert c != null;
-
-                        jobPda = c.pda();
-                    }
-
-                    if (nodeId.equals(ctx.localNodeId()))
-                        fut = ctx.closure().callLocalSafe(new PutJob<K, V>(cacheName, col, jobPda), true);
-                    else {
-                        GridNode node = ctx.discovery().node(nodeId);
-
-                        if (node != null)
-                            fut = ctx.closure().callAsyncNoFailover(UNICAST, new PutJob<K, V>(cacheName, col, jobPda),
-                                Arrays.asList(node), true);
-                        else {
+                        if (node == null) {
                             // Node has left, will remap.
                             signalTaskFinished(null);
 
                             // This buffer cannot be used any more.
                             remapped = true;
                         }
-                    }
-
-                    if (fut != null) {
-                        activeFuts.add(fut);
-
-                        // Safety.
-                        if (allCancelled) {
-                            try {
-                                fut.cancel();
-                            }
-                            catch (GridException e) {
-                                if (log.isDebugEnabled())
-                                    log.debug("Failed to cancel task future: " + e);
-                            }
-                        }
-                        else if (log.isDebugEnabled())
-                            log.debug("Submitted buffer [buf=" + this + ", force=" + force +
-                                ", size=" + col.size() + ']');
                     }
                 }
                 finally {
@@ -965,7 +1094,42 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
                 // Submit is being handled concurrently.
                 return;
 
-            if (fut == null) {
+            if (jobPda == null) {
+                Configuration c = cRef.get();
+
+                assert c != null;
+
+                jobPda = c.pda();
+            }
+
+            GridFuture<?> fut = null;
+
+            if (isLocNode)
+                fut = ctx.closure().callLocalSafe(new PutJob<K, Object>(cacheName, col, jobPda), true);
+
+            else if (node != null)
+                fut = ctx.closure().callAsyncNoFailover(UNICAST, new PutJob<K, Object>(cacheName, col, jobPda),
+                    Arrays.asList(node), true);
+
+            if (fut != null) {
+                activeFuts.add(fut);
+
+                // Safety.
+                if (allCancelled) {
+                    try {
+                        fut.cancel();
+                    }
+                    catch (GridException e) {
+                        if (log.isDebugEnabled())
+                            log.debug("Failed to cancel task future: " + e);
+                    }
+                }
+                else if (log.isDebugEnabled())
+                    log.debug("Submitted buffer [buf=" + this + ", force=" + force +
+                        ", size=" + col.size() + ']');
+            }
+            else {
+                // Task has not been submitted since node has left.
                 if (col != null && !col.isEmpty()) {
                     if (log.isDebugEnabled())
                         log.debug("Node has left (will remap): " + nodeId);
@@ -977,7 +1141,7 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
                 return;
             }
 
-            final Collection<GridTuple2<K, V>> col0 = col;
+            final Collection<GridTuple2<K, Object>> col0 = col;
 
             fut.listenAsync(new GridInClosure<GridFuture<?>>() {
                 @Override public void apply(GridFuture<?> f) {
@@ -1000,7 +1164,11 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
                         err = false;
                     }
                     catch (GridException e) {
-                        U.error(log, "Put job has finished with error (will retry).", e);
+                        if (e.hasCause(ClassNotFoundException.class))
+                            U.error(log, "Put job has finished due to class-loading error (will retry, " +
+                                "most probably you should manually configure 'deployClass' for data loader).", e);
+                        else
+                            U.error(log, "Put job has finished with error (will retry).", e);
                     }
                     finally {
                         if (err)
@@ -1015,7 +1183,7 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         /**
          * @param col Entries to remap.
          */
-        private void scheduleRemap(Collection<GridTuple2<K, V>> col) {
+        private void scheduleRemap(Collection<GridTuple2<K, Object>> col) {
             // Add inside main read lock.
             lock.readLock().lock();
 
@@ -1030,7 +1198,7 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         /**
          * @return All entries currently contained in buffer.
          */
-        Collection<GridTuple2<K, V>> entriesToRemap() {
+        Collection<GridTuple2<K, Object>> entriesToRemap() {
             lock0.writeLock().lock();
 
             try {
@@ -1042,9 +1210,9 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
                 if (entries.isEmptyx())
                     return Collections.emptyList();
 
-                Collection<GridTuple2<K, V>> col = new ArrayList<GridTuple2<K, V>>(entries.sizex());
+                Collection<GridTuple2<K, Object>> col = new ArrayList<GridTuple2<K, Object>>(entries.sizex());
 
-                for (GridTuple2<K, V> t = entries.poll(); t != null; t = entries.poll())
+                for (GridTuple2<K, Object> t = entries.poll(); t != null; t = entries.poll())
                     col.add(t);
 
                 return col;
@@ -1124,41 +1292,6 @@ public class GridDataLoaderImpl<K, V>  implements GridDataLoader<K, V> {
         /** {@inheritDoc} */
         @Override public String toString() {
             return S.toString(Buffer.class, this, "entriesCnt", entries.sizex());
-        }
-    }
-
-    /**
-     *
-     */
-    private class DataLoaderFuture extends GridFutureAdapter<Object> {
-        /**
-         * Default constructor for {@link Externalizable} support.
-         */
-        public DataLoaderFuture() {
-            // No-op.
-        }
-
-        /**
-         * @param ctx Context.
-         */
-        private DataLoaderFuture(GridKernalContext ctx) {
-            super(ctx);
-        }
-
-        /** {@inheritDoc} */
-        @Override public boolean cancel() throws GridException {
-            if (onCancelled()) {
-                close(true);
-
-                return true;
-            }
-
-            return false;
-        }
-
-        /** {@inheritDoc} */
-        @Override public String toString() {
-            return S.toString(DataLoaderFuture.class, this, super.toString());
         }
     }
 

@@ -22,7 +22,7 @@ import java.lang.reflect.*;
  * This class defines a grid authentication manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridSecureSessionManager extends GridManagerAdapter<GridSecureSessionSpi> {
     /** Secure session handler. */

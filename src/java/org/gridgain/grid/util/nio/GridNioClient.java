@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.*;
  * Grid client for NIO server.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridNioClient {
     /** Socket. */
@@ -41,7 +41,7 @@ public class GridNioClient {
      * @param tcpNoDelay Value for {@code TCP_NODELAY} socket option.
      * @throws GridException If failed.
      */
-    public GridNioClient(InetAddress addr, int port, InetAddress locHost, int connTimeout, boolean tcpNoDelay)
+    public GridNioClient(InetAddress addr, int port, InetAddress locHost, long connTimeout, boolean tcpNoDelay)
         throws GridException {
         assert addr != null;
         assert port > 0 && port < 0xffff;
@@ -57,7 +57,7 @@ public class GridNioClient {
 
             sock.setTcpNoDelay(tcpNoDelay);
 
-            sock.connect(new InetSocketAddress(addr, port), connTimeout);
+            sock.connect(new InetSocketAddress(addr, port), (int)connTimeout);
 
             success = true;
         }

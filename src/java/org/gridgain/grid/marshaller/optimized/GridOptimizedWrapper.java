@@ -9,14 +9,14 @@ import static org.gridgain.grid.marshaller.optimized.GridOptimizedUtils.*;
  * Responsible for serialization of non-serializable objects.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 class GridOptimizedWrapper implements Externalizable {
     /** */
     private Object obj;
 
     /**
-     * Default public constructor as required by {@link Externalizable}. 
+     * Default public constructor as required by {@link Externalizable}.
      */
     public GridOptimizedWrapper() {
         // No-op.

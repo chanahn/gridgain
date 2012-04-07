@@ -16,7 +16,7 @@ import java.util.*;
  * This class for internal use in examples.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 class GridNumberUtilExample {
     /** Random numbers generator. */

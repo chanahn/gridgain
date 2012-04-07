@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * an overall top {@code 10} list within the grid.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridPopularWordsRealTimeExample {
     /** Number of most popular words to retrieve from grid. */
@@ -60,10 +60,10 @@ public class GridPopularWordsRealTimeExample {
 
         Timer popularWordsQryTimer = new Timer("words-query-worker");
 
-        // Start grid.
-        Grid g = G.start("examples/config/spring-cache-popularwords.xml");
-
         try {
+            // Start grid.
+            Grid g = G.start("examples/config/spring-cache-popularwords.xml");
+
             TimerTask task = scheduleQuery(g, popularWordsQryTimer, POPULAR_WORDS_CNT);
 
             realTimePopulate(g, new ExecutorCompletionService<Object>(threadPool), inputDir);
@@ -92,6 +92,18 @@ public class GridPopularWordsRealTimeExample {
         throws Exception {
         String[] books = inputDir.list();
 
+        // Count closure which increments a count for a word on remote node.
+        final GridClosure<Integer, Integer> cntClo = new GridClosure<Integer, Integer>() {
+            @Override public Integer apply(Integer cnt) {
+                return cnt == null ? 1 : cnt + 1;
+            }
+        };
+
+        final GridDataLoader<String, Integer> ldr = g.dataLoader(null);
+
+        // Set larger per-node buffer size since our state is relatively small.
+        ldr.perNodeBufferSize(300);
+
         for (final String name : books) {
             // Read text files from multiple threads and cache individual words with their counts.
             threadPool.submit(new Callable<Object>() {
@@ -101,39 +113,12 @@ public class GridPopularWordsRealTimeExample {
                     BufferedReader in = new BufferedReader(new FileReader(new File(inputDir, name)));
 
                     try {
-                        final GridCache<String, Integer> cache = g.cache();
-
-                        GridFuture<?> fut = null;
-
-                        for (String line = in.readLine(); line != null; line = in.readLine()) {
-                            for (final String w : line.split("[^a-zA-Z0-9]")) {
-                                if (!w.isEmpty()) {
-                                    if (fut != null)
-                                        fut.get();
-
-                                    fut = g.affinityCallAsync(null, w, new GridCallable<Object>() {
-                                        @Override public Object call() throws Exception {
-                                            // Start transaction to make sure that 'get' and 'put' are
-                                            // consistent with each other.
-                                            GridCacheTx tx = cache.txStart();
-
-                                            try {
-                                                Integer cntr = cache.get(w);
-
-                                                cache.put(w, cntr == null ? 1 : cntr + 1);
-
-                                                tx.commit();
-                                            }
-                                            finally {
-                                                tx.end();
-                                            }
-
-                                            return null;
-                                        }
-                                    });
-                                }
-                            }
-                        }
+                        for (String line = in.readLine(); line != null; line = in.readLine())
+                            for (final String w : line.split("[^a-zA-Z0-9]"))
+                                if (!w.isEmpty())
+                                    // Note that we are loading our closure which
+                                    // will then calculate proper value on remote node.
+                                    ldr.addData(w, cntClo);
                     }
                     finally {
                         in.close();
@@ -148,12 +133,20 @@ public class GridPopularWordsRealTimeExample {
 
         int idx = 0;
 
-        while (++idx <= books.length)
-            threadPool.take().get();
+        while (++idx <= books.length) {
+            try {
+                threadPool.take().get();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        ldr.close(false);
     }
 
     /**
-     * Query popular words.
+     * Schedule our popular words query to run every 3 seconds.
      *
      * @param g Grid.
      * @param timer Timer.
@@ -162,10 +155,11 @@ public class GridPopularWordsRealTimeExample {
      */
     private static TimerTask scheduleQuery(final Grid g, Timer timer, final int cnt) {
         TimerTask task = new TimerTask() {
-            private GridCacheReduceQuery<String, Integer, Map<Integer, Collection<String>>, Object> qry;
+            private GridCacheReduceQuery<String, Integer, Map.Entry<String, Integer>, Object> qry;
 
             @Override public void run() {
                 try {
+                    // Get reference to cache.
                     GridCache<String, Integer> cache = g.cache();
 
                     if (qry == null) {
@@ -173,40 +167,26 @@ public class GridPopularWordsRealTimeExample {
                         qry = cache.createReduceQuery(
                             SQL,
                             Integer.class,
-                            "length(_key) > 3 order by _val desc limit " + cnt
+                            "length(_key) > 3 order by _val desc limit " + cnt // Standard SQL.
                         );
 
-                        qry.remoteReducer(new C1<Object[], GridReducer<Map.Entry<String, Integer>, Map<Integer, Collection<String>>>>() {
-                            @Override
-                            public GridReducer<Map.Entry<String, Integer>, Map<Integer, Collection<String>>> apply(Object[] o) {
-                                return new GridReducer<Map.Entry<String, Integer>, Map<Integer, Collection<String>>>() {
-                                    private Map<Integer, Collection<String>> m = new HashMap<Integer, Collection<String>>();
+                        // This step is done locally (not on remote nodes).
+                        qry.localReducer(new GridClosure<Object[], GridReducer<Map.Entry<String, Integer>, Object>>() {
+                            @Override public GridReducer<Map.Entry<String, Integer>, Object> apply(Object[] o) {
+                                return new GridReducer<Map.Entry<String, Integer>, Object>() {
+                                    // Sorted map keyed by word counts.
+                                    private NavigableMap<Integer, Collection<String>> words =
+                                        new TreeMap<Integer, Collection<String>>();
 
-                                    @Override public boolean collect(Map.Entry<String, Integer> e) {
-                                        Collection<String> words = m.get(e.getValue());
+                                    @Override public boolean collect(Map.Entry<String, Integer> entry) {
+                                        // Get collection of words for given count.
+                                        Collection<String> ws = words.get(entry.getValue());
 
-                                        if (words == null)
-                                            m.put(e.getValue(), words = new LinkedList<String>());
+                                        if (ws == null)
+                                            words.put(entry.getValue(), ws = new LinkedList<String>());
 
-                                        words.add(e.getKey());
-
-                                        return true;
-                                    }
-
-                                    @Override public Map<Integer, Collection<String>> apply() {
-                                        return m;
-                                    }
-                                };
-                            }
-                        });
-
-                        qry.localReducer(new C1<Object[], GridReducer<Map<Integer, Collection<String>>, Object>>() {
-                            @Override public GridReducer<Map<Integer, Collection<String>>, Object> apply(Object[] o) {
-                                return new GridReducer<Map<Integer, Collection<String>>, Object>() {
-                                    private NavigableMap<Integer, Collection<String>> words = new TreeMap<Integer, Collection<String>>();
-
-                                    @Override public boolean collect(Map<Integer, Collection<String>> m) {
-                                        words.putAll(m);
+                                        // Add word to collection of words for given count.
+                                        ws.add(entry.getKey());
 
                                         return true;
                                     }
@@ -214,6 +194,7 @@ public class GridPopularWordsRealTimeExample {
                                     @Override public Object apply() {
                                         int idx = 0;
 
+                                        // Print out 10 most popular words.
                                         for (Map.Entry<Integer, Collection<String>> e : words.descendingMap().entrySet()) {
                                             for (String w : e.getValue()) {
                                                 X.println(">>> " + e.getKey() + '=' + w);
@@ -235,6 +216,9 @@ public class GridPopularWordsRealTimeExample {
                         });
                     }
 
+                    // Get projection of grid nodes that have cache
+                    // without name (null name) running and execute
+                    // our query on it.
                     qry.reduce(g.projectionForCaches(null)).get();
                 }
                 catch (GridException e) {

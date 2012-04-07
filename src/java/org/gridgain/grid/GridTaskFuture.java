@@ -18,7 +18,7 @@ import java.util.concurrent.*;
  * hierarchy. 
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  * @param <R> Type of the task result returning from {@link GridTask#reduce(List)} method.
  */
 public interface GridTaskFuture<R> extends GridFuture<R> {

@@ -35,7 +35,7 @@ import static org.gridgain.grid.kernal.processors.cache.datastructures.GridCache
  * Queue implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridCacheQueueImpl<T> extends AbstractCollection<T> implements GridCacheQueueEx<T>,
     Externalizable {

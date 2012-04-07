@@ -10,16 +10,16 @@
 package org.gridgain.grid.util;
 
 import org.gridgain.grid.lang.*;
-import org.gridgain.grid.typedef.*;
+import org.gridgain.grid.lang.utils.*;
 
+import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
 
 /**
  * Caches class loaders for classes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public final class GridClassLoaderCache {
     /** Class loader. */
@@ -28,9 +28,19 @@ public final class GridClassLoaderCache {
     /** Maximum cache size. */
     private static final int MAX = 1024;
 
-    /** Cache. */
-    private static volatile GridTuple2<ConcurrentHashMap<Class<?>, ClassLoader>, AtomicInteger> ldrCache =
-        F.t(new ConcurrentHashMap<Class<?>, ClassLoader>(MAX), new AtomicInteger());
+    /** Predicate to evict from map. */
+    private static final GridPredicate2<?, ?> PRED = new GridPredicate2<GridConcurrentLinkedHashMap<?, ?>,
+        GridConcurrentLinkedHashMap.HashEntry<?, ?>>() {
+        @Override public boolean apply(GridConcurrentLinkedHashMap<?, ?> map,
+            GridConcurrentLinkedHashMap.HashEntry<?, ?> e) {
+            return map.sizex() > MAX;
+        }
+    };
+
+    /** Fields cache. */
+    private static ConcurrentMap<Class<?>, ClassLoader> cache = new GridConcurrentLinkedHashMap<Class<?>, ClassLoader>(
+        16, 0.75f, 16, true, (GridPredicate2<GridConcurrentLinkedHashMap<Class<?>, ClassLoader>,
+            GridConcurrentLinkedHashMap.HashEntry<Class<?>, ClassLoader>>)PRED);
 
     /**
      * Gets cached ClassLoader for efficiency since class loader detection has proven to be slow.
@@ -39,11 +49,6 @@ public final class GridClassLoaderCache {
      * @return ClassLoader for the class.
      */
     public static ClassLoader classLoader(Class<?> cls) {
-        GridTuple2<ConcurrentHashMap<Class<?>, ClassLoader>, AtomicInteger> t = ldrCache;
-
-        ConcurrentHashMap<Class<?>, ClassLoader> cache = t.get1();
-        AtomicInteger size = t.get2();
-
         ClassLoader cached = cache.get(cls);
 
         if (cached == null) {
@@ -51,11 +56,21 @@ public final class GridClassLoaderCache {
 
             if (old != null)
                 cached = old;
-            else if (size.incrementAndGet() == MAX)
-                ldrCache = F.t(new ConcurrentHashMap<Class<?>, ClassLoader>(MAX), new AtomicInteger());
         }
 
         return cached;
+    }
+
+    /**
+     * @param ldr Undeployed class loader.
+     */
+    public static void onUndeployed(ClassLoader ldr) {
+        assert ldr != null;
+
+        for (Map.Entry<Class<?>, ClassLoader> e : cache.entrySet()) {
+            if (e.getValue().equals(ldr))
+                cache.remove(e.getKey(), ldr);
+        }
     }
 
     /**

@@ -96,7 +96,7 @@ import static org.gridgain.grid.spi.discovery.tcp.messages.GridTcpDiscoveryStatu
  * <li>Join timeout (see {@link #setJoinTimeout(long)})</li>
  * <li>Thread priority for threads started by SPI (see {@link #setThreadPriority(int)})</li>
  * <li>IP finder and Metrics Store clean frequency (see {@link #setStoresCleanFrequency(long)})</li>
- * <li>Status print frequency (see {@link #setStatisticsPrintFrequency(long)}</li>
+ * <li>Statistics print frequency (see {@link #setStatisticsPrintFrequency(long)}</li>
  * <li>Fast forward failure detection (see {@link #setFastForwardFailureDetection(boolean)}</li>
  * </ul>
  * <h2 class="header">Java Example</h2>
@@ -137,14 +137,14 @@ import static org.gridgain.grid.spi.discovery.tcp.messages.GridTcpDiscoveryStatu
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  * @see GridDiscoverySpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.25032012")
+    version = "4.0.1c.07042012")
 @GridSpiMultipleInstancesSupport(true)
 @GridDiscoverySpiOrderSupport(true)
 @GridDiscoverySpiReconnectSupport(true)
@@ -578,6 +578,8 @@ public class GridTcpDiscoverySpi extends GridSpiAdapter implements GridDiscovery
      * If not set default value is {@link #DFLT_STATS_PRINT_FREQ}.
      * 0 indicates that no print is required. If value is greater than 0 and log is
      * not quiet then statistics are printed out with INFO level.
+     * <p>
+     * This may be very helpful for tracing topology problems.
      *
      * @param statsPrintFreq Statistics print frequency in milliseconds.
      */

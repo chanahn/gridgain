@@ -34,7 +34,7 @@ import java.util.*;
  * default configuration.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public interface GridCacheConfiguration {
     /** Default query log name. */
@@ -262,13 +262,16 @@ public interface GridCacheConfiguration {
 
     /**
      * Gets flag indicating whether eviction is synchronized between primary and
-     * backup nodes. In case of replicated cache all nodes are synchronized. If
-     * this parameter is {@code true} and swap is disabled then
-     * {@link GridCacheProjection#evict(Object, GridPredicate[])} and all its
-     * variations will involve all nodes where an entry is kept. For replicated
-     * cache this is a group of nodes responsible for partition to which
+     * backup nodes on partitioned cache. If this parameter is {@code true} and
+     * swap is disabled then {@link GridCacheProjection#evict(Object, GridPredicate[])}
+     * and all its variations will involve all nodes where an entry is kept -
+     * this is a group of nodes responsible for partition to which
      * corresponding key belongs. If this property is set to {@code false} then
      * eviction is done independently on cache nodes.
+     * <p>
+     * For replicated cache this parameter is not supported. If this parameter
+     * is set to {@code true} for replicated cache, an exception will be thrown during
+     * node startup.
      * <p>
      * Default value is defined by {@link #DFLT_EVICT_SYNCHRONIZED}.
      * <p>

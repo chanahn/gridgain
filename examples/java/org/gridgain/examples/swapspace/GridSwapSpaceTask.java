@@ -23,7 +23,7 @@ import java.util.*;
  * This task has {@link GridTaskSession} injected.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridSwapSpaceTask extends GridTaskSplitAdapter<String, String> {
     /** Grid task session. */

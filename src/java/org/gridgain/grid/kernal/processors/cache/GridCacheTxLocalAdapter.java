@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Transaction adapter for cache transactions.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K, V>
     implements GridCacheTxLocalEx<K, V> {
@@ -236,11 +236,11 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
     /** {@inheritDoc} */
     @Override public GridFuture<Boolean> loadMissing(boolean async, final Collection<? extends K> keys,
-        final GridInClosure2<K, V> closure) {
+        final GridInClosure2<K, V> c) {
         if (!async) {
             try {
                 return new GridFinishedFuture<Boolean>(cctx.kernalContext(),
-                    CU.loadAllFromStore(cctx, log, this, keys, closure));
+                    CU.loadAllFromStore(cctx, log, this, keys, c));
             }
             catch (GridException e) {
                 return new GridFinishedFuture<Boolean>(cctx.kernalContext(), e);
@@ -249,7 +249,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
         else {
             return cctx.closures().callLocalSafe(new GPC<Boolean>() {
                     @Override public Boolean call() throws Exception {
-                        return CU.loadAllFromStore(cctx, log, GridCacheTxLocalAdapter.this, keys, closure);
+                        return CU.loadAllFromStore(cctx, log, GridCacheTxLocalAdapter.this, keys, c);
                     }
             }, true);
         }
@@ -1081,6 +1081,8 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
         if (log.isDebugEnabled())
             log.debug("Loading missed values for missed map: " + missedMap);
 
+        final Collection<K> loaded = new HashSet<K>();
+
         return new GridEmbeddedFuture<Map<K, V>, Boolean>(cctx.kernalContext(),
             loadMissing(false, missedMap.keySet(), new CI2<K, V>() {
                 private GridCacheVersion nextVer;
@@ -1155,6 +1157,8 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                             assert set || !pessimistic();
 
                             if (readCommitted()) {
+                                cctx.evicts().touch(e);
+
                                 if (pass && val != null)
                                     map.put(key, val);
                             }
@@ -1177,6 +1181,8 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                                     redos.add(key);
                                 }
                             }
+
+                            loaded.add(key);
 
                             if (log.isDebugEnabled())
                                 log.debug("Set value loaded from store into entry from transaction [set=" + set +
@@ -1205,6 +1211,22 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
                             if (txEntry != null)
                                 txEntry.mark();
+                        }
+                    }
+
+                    if (readCommitted()) {
+                        Collection<K> notFound = new HashSet<K>(missedMap.keySet());
+
+                        notFound.removeAll(loaded);
+
+                        // In read-committed mode touch entries that have just been read.
+                        for (K key : notFound) {
+                            GridCacheTxEntry<K, V> txEntry = entry(key);
+
+                            GridCacheEntryEx<K, V> entry = txEntry == null ? cctx.cache().entryEx(key) :
+                                txEntry.cached();
+
+                            cctx.evicts().touch(entry);
                         }
                     }
 

@@ -17,6 +17,7 @@ import org.gridgain.grid.kernal.processors.timeout.*;
 import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.spi.deployment.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
@@ -28,7 +29,7 @@ import static org.gridgain.grid.GridEventType.*;
  * {@link GridDeploymentMode#ISOLATED} modes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
     /** Cache keyed by class loader ID. */
@@ -63,7 +64,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
 
     /** {@inheritDoc} */
     @Override public void stop() {
-        Collection<IsolatedDeployment> copy = new HashSet<IsolatedDeployment>();
+        Collection<IsolatedDeployment> cp = new HashSet<IsolatedDeployment>();
 
         synchronized (mux) {
             for (IsolatedDeployment dep : cache.values()) {
@@ -71,13 +72,13 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
                 // undeployment won't happen twice.
                 dep.undeploy();
 
-                copy.add(dep);
+                cp.add(dep);
             }
 
             cache.clear();
         }
 
-        for (IsolatedDeployment dep : copy)
+        for (IsolatedDeployment dep : cp)
             dep.recordUndeployed(null);
 
         if (log.isDebugEnabled())
@@ -100,7 +101,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
                         for (Iterator<IsolatedDeployment> iter = cache.values().iterator(); iter.hasNext();) {
                             IsolatedDeployment dep = iter.next();
 
-                            if (dep.getSenderNodeId().equals(nodeId)) {
+                            if (dep.senderNodeId().equals(nodeId)) {
                                 dep.undeploy();
 
                                 iter.remove();
@@ -128,7 +129,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
             for (Iterator<IsolatedDeployment> iter = cache.values().iterator(); iter.hasNext();) {
                 IsolatedDeployment dep = iter.next();
 
-                GridNode node = ctx.discovery().node(dep.getSenderNodeId());
+                GridNode node = ctx.discovery().node(dep.senderNodeId());
 
                 if (node == null) {
                     dep.undeploy();
@@ -185,10 +186,10 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
         if (log.isDebugEnabled())
             log.debug("Starting to peer-load class based on deployment metadata: " + meta);
 
-        GridNode sender = ctx.discovery().node(meta.senderNodeId());
+        GridNode snd = ctx.discovery().node(meta.senderNodeId());
 
-        if (sender == null) {
-            U.warn(log, "Failed to create Private or Isolated mode deployment (sender node left grid): " + sender);
+        if (snd == null) {
+            U.warn(log, "Failed to create Private or Isolated mode deployment (sender node left grid): " + snd);
 
             return null;
         }
@@ -199,7 +200,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
             dep = cache.get(meta.classLoaderId());
 
             if (dep != null) {
-                if (!dep.getSenderNodeId().equals(meta.senderNodeId())) {
+                if (!dep.senderNodeId().equals(meta.senderNodeId())) {
                     U.error(log, "Sender node ID does not match for Private or Isolated deployment [expected=" +
                         meta.senderNodeId() + ", dep=" + dep + ']');
 
@@ -212,7 +213,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
                 // If could not find deployment, make sure to perform clean up.
                 // Check if any deployments must be undeployed.
                 for (IsolatedDeployment d : cache.values()) {
-                    if (d.getSenderNodeId().equals(meta.senderNodeId()) &&
+                    if (d.senderNodeId().equals(meta.senderNodeId()) &&
                         !d.isUndeployed() && !d.isPendingUndeploy()) {
                         if (d.sequenceNumber() < meta.sequenceNumber()) {
                             // Undeploy previous class deployments.
@@ -344,7 +345,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
 
                 /** {@inheritDoc} */
                 @Override public void onTimeout() {
-                    boolean removed = false;
+                    boolean rmv = false;
 
                     // Hot redeployment.
                     synchronized (mux) {
@@ -353,11 +354,11 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
 
                             cache.remove(dep.classLoaderId());
 
-                            removed = true;
+                            rmv = true;
                         }
                     }
 
-                    if (removed)
+                    if (rmv)
                         dep.recordUndeployed(null);
                 }
             });
@@ -375,7 +376,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
             for (Iterator<IsolatedDeployment> iter = cache.values().iterator(); iter.hasNext();) {
                 IsolatedDeployment dep = iter.next();
 
-                if (dep.getSenderNodeId().equals(nodeId)) {
+                if (dep.senderNodeId().equals(nodeId)) {
                     if (dep.hasName(rsrcName)) {
                         iter.remove();
 
@@ -402,7 +403,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
     /** */
     private class IsolatedDeployment extends GridDeployment {
         /** Sender node ID. */
-        private final UUID senderNodeId;
+        private final UUID sndNodeId;
 
         /**
          * @param depMode Deployment mode.
@@ -410,14 +411,14 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
          * @param clsLdrId Class loader ID.
          * @param seqNum Sequence number.
          * @param userVer User version.
-         * @param senderNodeId Sender node ID.
+         * @param sndNodeId Sender node ID.
          * @param sampleClsName Sample class name.
          */
         IsolatedDeployment(GridDeploymentMode depMode, ClassLoader clsLdr, GridUuid clsLdrId, long seqNum,
-            String userVer, UUID senderNodeId, String sampleClsName) {
+            String userVer, UUID sndNodeId, String sampleClsName) {
             super(depMode, clsLdr, clsLdrId, seqNum, userVer, sampleClsName, false);
 
-            this.senderNodeId = senderNodeId;
+            this.sndNodeId = sndNodeId;
         }
 
         /**
@@ -425,8 +426,8 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
          *
          * @return Property senderNodeId.
          */
-        UUID getSenderNodeId() {
-            return senderNodeId;
+        UUID senderNodeId() {
+            return sndNodeId;
         }
 
         /** {@inheritDoc} */
@@ -452,7 +453,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
 
                 // Record task event.
                 evt.type(isTask ? EVT_TASK_DEPLOYED : EVT_CLASS_DEPLOYED);
-                evt.nodeId(senderNodeId);
+                evt.nodeId(sndNodeId);
                 evt.message(msg);
                 evt.alias(cls.getName());
 
@@ -483,7 +484,7 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
                     if (evts.isRecordable(!isTask ? EVT_CLASS_UNDEPLOYED : EVT_TASK_UNDEPLOYED)) {
                         GridDeploymentEvent evt = new GridDeploymentEvent();
 
-                        evt.nodeId(senderNodeId);
+                        evt.nodeId(sndNodeId);
                         evt.message(msg);
                         evt.type(!isTask ? EVT_CLASS_UNDEPLOYED : EVT_TASK_UNDEPLOYED);
                         evt.alias(depCls.getKey());
@@ -500,7 +501,11 @@ public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
                 // Resource cleanup.
                 ctx.resource().onUndeployed(this);
 
-                ctx.cache().onUndeployed(leftNodeId, classLoader());
+                ClassLoader ldr = classLoader();
+
+                ctx.cache().onUndeployed(leftNodeId, ldr);
+
+                GridClassLoaderCache.onUndeployed(ldr);
 
                 clearSerializationCaches();
             }

@@ -25,7 +25,7 @@ import java.util.concurrent.*;
  * for more details.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  * @param <T> Return type of {@link Callable}.
  */
 @SuppressWarnings({"TransientFieldNotInitialized"})

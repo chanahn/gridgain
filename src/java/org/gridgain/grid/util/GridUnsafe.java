@@ -17,7 +17,7 @@ import java.lang.reflect.*;
  * Provides handle on Unsafe class from SUN which cannot be instantiated directly.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridUnsafe {
     /**

@@ -42,7 +42,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Grid communication manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
     /** Max closed topics to store. */
@@ -94,7 +94,7 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
     private final long discoDelay;
 
     /** Cache for messages that were received prior to discovery. */
-    private final ConcurrentMap<UUID, GridConcurrentLinkedDeque<GridIoMessage>> discoWaitMap =
+    private final ConcurrentMap<UUID, GridConcurrentLinkedDeque<GridIoMessage>> waitMap =
         new ConcurrentHashMap<UUID, GridConcurrentLinkedDeque<GridIoMessage>>();
 
     /** Disco wait map processing flag. */
@@ -123,6 +123,9 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
 
     /** Default class loader. */
     private final ClassLoader dfltClsLdr = getClass().getClassLoader();
+
+    /** Fully started flag. When set to true, can send and receive messages. */
+    private boolean started;
 
     /**
      * @param ctx Grid kernal context.
@@ -192,11 +195,6 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
                 }
 
                 try {
-                    GridNode node = ctx.discovery().node(nodeId);
-
-                    // Get the same ID instance as the node.
-                    commMsg.senderId(nodeId = node == null ? nodeId : node.id());
-
                     // Although we check closed topics prior to processing
                     // every message, we still check it here to avoid redundant
                     // placement of messages on wait list whenever possible.
@@ -210,14 +208,33 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
                     // Remove expired messages from wait list.
                     processWaitList();
 
-                    if (node == null) {
-                        // Received message before a node got discovered or after it left.
-                        if (log.isDebugEnabled())
-                            log.debug("Adding message to waiting list [senderId=" + nodeId + ", msg=" + msg + ']');
+                    lock.readLock().lock();
 
-                        addToWaitList(commMsg);
+                    try {
+                        // Check discovery inside read lock not to miss messages.
+                        GridNode node = ctx.discovery().node(nodeId);
 
-                        return;
+                        // Get the same ID instance as the node.
+                        commMsg.senderId(nodeId = node == null ? nodeId : node.id());
+
+                        if (node == null || !started) {
+                            // Received message before a node got discovered or after it left.
+                            // Or before valid context is set to manager.
+                            if (log.isDebugEnabled())
+                                log.debug("Adding message to waiting list [senderId=" + nodeId + ", msg=" + msg + ']');
+
+                            GridConcurrentLinkedDeque<GridIoMessage> list =
+                                F.addIfAbsent(waitMap, commMsg.senderId(), F.<GridIoMessage>newDeque());
+
+                            assert list != null;
+
+                            list.add(commMsg);
+
+                            return;
+                        }
+                    }
+                    finally {
+                        lock.readLock().unlock();
                     }
 
                     // If message is P2P, then process in P2P service.
@@ -264,27 +281,23 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
 
                 switch (evt.type()) {
                     case EVT_NODE_JOINED:
-                        Collection<GridIoMessage> delayedMsgs = new LinkedList<GridIoMessage>();
+                        GridConcurrentLinkedDeque<GridIoMessage> delayedMsgs;
 
                         lock.writeLock().lock();
 
                         try {
-                            GridConcurrentLinkedDeque<GridIoMessage> waitList = discoWaitMap.remove(nodeId);
-
-                            if (log.isDebugEnabled())
-                                log.debug("Processing messages from discovery startup delay list " +
-                                    "(sender node joined topology): " + waitList);
-
-                            if (waitList != null)
-                                for (GridIoMessage msg : waitList)
-                                    delayedMsgs.add(msg);
+                            delayedMsgs = waitMap.remove(nodeId);
                         }
                         finally {
                             lock.writeLock().unlock();
                         }
 
+                        if (log.isDebugEnabled())
+                            log.debug("Processing messages from discovery startup delay list " +
+                                "(sender node joined topology): " + delayedMsgs);
+
                         // After write lock released.
-                        if (!delayedMsgs.isEmpty())
+                        if (delayedMsgs != null)
                             for (GridIoMessage msg : delayedMsgs)
                                 msgLsnr.onMessage(msg.senderId(), msg);
 
@@ -296,7 +309,7 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
                         lock.writeLock().lock();
 
                         try {
-                            GridConcurrentLinkedDeque<GridIoMessage> waitList = discoWaitMap.remove(nodeId);
+                            GridConcurrentLinkedDeque<GridIoMessage> waitList = waitMap.remove(nodeId);
 
                             if (log.isDebugEnabled())
                                 log.debug("Removed messages from discovery startup delay list " +
@@ -349,17 +362,18 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
         lock.writeLock().lock();
 
         try {
+            started = true;
+
             // 1. Process wait list.
-            for (Map.Entry<UUID, GridConcurrentLinkedDeque<GridIoMessage>> e : discoWaitMap.entrySet()) {
+            for (Map.Entry<UUID, GridConcurrentLinkedDeque<GridIoMessage>> e : waitMap.entrySet()) {
                 if (ctx.discovery().node(e.getKey()) != null) {
-                    GridConcurrentLinkedDeque<GridIoMessage> waitList = discoWaitMap.remove(e.getKey());
+                    GridConcurrentLinkedDeque<GridIoMessage> waitList = waitMap.remove(e.getKey());
 
                     if (log.isDebugEnabled())
                         log.debug("Processing messages from discovery startup delay list: " + waitList);
 
                     if (waitList != null)
-                        for (GridIoMessage msg : waitList)
-                            delayedMsgs.add(msg);
+                        delayedMsgs.addAll(waitList);
                 }
             }
 
@@ -401,31 +415,10 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
     }
 
     /**
-     * Adds new message to discovery wait list.
-     *
-     * @param msg Message to add.
-     */
-    private void addToWaitList(GridIoMessage msg) {
-        lock.readLock().lock();
-
-        try {
-            GridConcurrentLinkedDeque<GridIoMessage> list =
-                F.addIfAbsent(discoWaitMap, msg.senderId(), F.<GridIoMessage>newDeque());
-
-            assert list != null;
-
-            list.add(msg);
-        }
-        finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    /**
      * Removes expired messages from wait list.
      */
     private void processWaitList() {
-        if (discoWaitMap.isEmpty())
+        if (waitMap.isEmpty())
             return;
 
         if (discoWaitMapProc.compareAndSet(false, true)) {
@@ -434,11 +427,11 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
             try {
                 long now = System.currentTimeMillis();
 
-                for (Iterator<GridConcurrentLinkedDeque<GridIoMessage>> iter1 = discoWaitMap.values().iterator();
+                for (Iterator<GridConcurrentLinkedDeque<GridIoMessage>> iter1 = waitMap.values().iterator();
                     iter1.hasNext();) {
                     GridConcurrentLinkedDeque<GridIoMessage> msgs = iter1.next();
 
-                    assert msgs != null && !msgs.isEmpty();
+                    assert msgs != null && !msgs.isEmptyx();
 
                     for (Iterator<GridIoMessage> iter2 = msgs.iterator(); iter2.hasNext();) {
                         GridIoMessage msg = iter2.next();
@@ -1373,7 +1366,7 @@ public class GridIoManager extends GridManagerAdapter<GridCommunicationSpi> {
         X.println(">>>  msgSetMapSize: " + msgSetMap.size());
         X.println(">>>  msgIdMapSize: " + msgIdMap.size());
         X.println(">>>  closedTopicsSize: " + closedTopics.sizex());
-        X.println(">>>  discoWaitMapSize: " + discoWaitMap.size());
+        X.println(">>>  discoWaitMapSize: " + waitMap.size());
     }
 
     /**

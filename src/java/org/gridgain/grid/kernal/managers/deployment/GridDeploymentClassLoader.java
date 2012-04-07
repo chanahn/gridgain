@@ -31,7 +31,7 @@ import java.util.concurrent.*;
  * remote node this class will throw exception.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @SuppressWarnings({"CustomClassloader"})
 class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInfo {
@@ -90,7 +90,6 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      * If there is a security manager, its
      * {@link SecurityManager#checkCreateClassLoader()}
      * method is invoked. This may result in a security exception.
-     *
      *
      * @param id Class loader ID.
      * @param usrVer User version.
@@ -169,9 +168,6 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
      * If there is a security manager, its
      * {@link SecurityManager#checkCreateClassLoader()}
      * method is invoked. This may result in a security exception.
-     *
-     *
-     *
      *
      * @param id Class loader ID.
      * @param usrVer User version.
@@ -333,7 +329,6 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
     }
 
     /**
-     *
      * @param nodeId Node ID.
      * @return Class loader ID for node ID.
      */
@@ -345,7 +340,6 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
 
     /**
      * Checks if node is participating in deployment.
-     *
      *
      * @param nodeId Node ID to check.
      * @param ldrId Class loader ID.
@@ -573,7 +567,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
                 GridDeploymentResponse res = comm.sendResourceRequest(path, ldrId.get1(), node, endTime);
 
                 if (res == null) {
-                    String msg = "Failed to send class-loading node request to node (is node alive?) [node=" +
+                    String msg = "Failed to send class-loading request to node (is node alive?) [node=" +
                         node.id() + ", clsName=" + name + ", clsPath=" + path + ", clsLdrId=" + ldrId +
                         ", parentClsLdr=" + getParent() + ']';
 
@@ -607,7 +601,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
                 if (Thread.currentThread().isInterrupted())
                     U.error(log, "Failed to find class probably due to task/job cancellation: " + name, e);
                 else {
-                    U.warn(log, "Failed to send class-loading node request to node (is node alive?) [node=" +
+                    U.warn(log, "Failed to send class-loading request to node (is node alive?) [node=" +
                         node.id() + ", clsName=" + name + ", clsPath=" + path + ", clsLdrId=" + ldrId +
                         ", parentClsLdr=" + getParent() + ", err=" + e + ']');
 
@@ -621,8 +615,7 @@ class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInf
     }
 
     /** {@inheritDoc} */
-    @Override @Nullable
-    public InputStream getResourceAsStream(String name) {
+    @Override @Nullable public InputStream getResourceAsStream(String name) {
         assert !Thread.holdsLock(mux);
 
         if (byteMap != null && name.endsWith(".class")) {

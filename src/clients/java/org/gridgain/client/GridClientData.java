@@ -15,7 +15,7 @@ import java.util.*;
  * A data projection of grid client. Contains various methods for cache operations ant metrics retrieval.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public interface GridClientData {
     /**
@@ -243,7 +243,7 @@ public interface GridClientData {
      * @return Cache metrics.
      * @throws GridClientException In case of error.
      */
-    public Map<String, ? extends Number> metrics() throws GridClientException;
+    public GridClientDataMetrics metrics() throws GridClientException;
 
     /**
      * Asynchronously gets metrics for default cache.
@@ -252,7 +252,7 @@ public interface GridClientData {
      * @throws GridServerUnreachableException If none of the servers can be reached.
      * @throws GridClientClosedException If client was closed manually.
      */
-    public GridClientFuture<Map<String, ? extends Number>> metricsAsync() throws GridServerUnreachableException,
+    public GridClientFuture<GridClientDataMetrics> metricsAsync() throws GridServerUnreachableException,
         GridClientClosedException;
 
     /**
@@ -262,7 +262,7 @@ public interface GridClientData {
      * @return Entry metrics.
      * @throws GridClientException In case of error.
      */
-    public <K> Map<String, ? extends Number> metrics(K key) throws GridClientException;
+    public <K> GridClientDataMetrics metrics(K key) throws GridClientException;
 
     /**
      * Asynchronously gets metrics for entry.
@@ -272,6 +272,6 @@ public interface GridClientData {
      * @throws GridServerUnreachableException If none of the servers can be reached.
      * @throws GridClientClosedException If client was closed manually.
      */
-    public <K> GridClientFuture<Map<String, ? extends Number>> metricsAsync(K key)
+    public <K> GridClientFuture<GridClientDataMetrics> metricsAsync(K key)
         throws GridServerUnreachableException, GridClientClosedException;
 }

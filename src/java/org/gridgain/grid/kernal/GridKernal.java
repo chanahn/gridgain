@@ -77,17 +77,17 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * misspelling.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridKernal extends GridProjectionAdapter implements Grid, GridKernalMBean, Externalizable {
     /** Ant-augmented version number. */
-    private static final String VER = "4.0.0c";
+    private static final String VER = "4.0.1c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "25032012";
+    private static final String BUILD = "07042012";
 
     /** Ant-augmented release date. */
-    private static final String RELEASE_DATE = "25032012";
+    private static final String RELEASE_DATE = "07042012";
 
     /** Ant-augmented copyright blurb. */
     private static final String COPYRIGHT = "2012 Copyright (C) GridGain Systems";
@@ -506,10 +506,11 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
 
     /**
      * @param cfg Grid configuration to use.
+     * @param errHnd Error handler to use for notification about startup problems.
      * @throws GridException Thrown in case of any errors.
      */
     @SuppressWarnings({"CatchGenericClass", "deprecation"})
-    public void start(final GridConfiguration cfg) throws GridException {
+    public void start(final GridConfiguration cfg, GridAbsClosure errHnd) throws GridException {
         gw.compareAndSet(null, new GridKernalGatewayImpl(cfg.getGridName()));
 
         GridKernalGateway gw = this.gw.get();
@@ -721,10 +722,21 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
             // Notify discovery manager the first to make sure that topology is discovered.
             ctx.discovery().onKernalStart();
 
+            // Notify IO manager the second so further components can send and receive messages.
+            ctx.io().onKernalStart();
+
             // Callbacks.
-            for (GridComponent comp : ctx)
-                if (!(comp instanceof GridDiscoveryManager)) // Skip discovery manager.
-                    comp.onKernalStart();
+            for (GridComponent comp : ctx) {
+                // Skip discovery manager.
+                if (comp instanceof GridDiscoveryManager)
+                    continue;
+
+                // Skip IO manager.
+                if (comp instanceof GridIoManager)
+                    continue;
+
+                comp.onKernalStart();
+            }
 
             // Ack the license.
             ctx.license().ackLicense();
@@ -740,7 +752,9 @@ public class GridKernal extends GridProjectionAdapter implements Grid, GridKerna
         catch (Throwable e) {
             U.error(log, "Got exception while starting. Will rollback startup routine.", e);
 
-            stop(false, false);
+            errHnd.apply();
+
+            stop(true, false);
 
             throw new GridException(e);
         }

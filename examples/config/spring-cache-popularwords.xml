@@ -8,7 +8,7 @@
     \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 
     Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
-    Version: 4.0.0c.25032012
+    Version: 4.0.1c.07042012
 -->
 
 <!--
@@ -77,9 +77,6 @@
                         <!--</bean>-->
                     </property>
 
-                    <!-- Overflow cache entries that don't fit in memory to swap. -->
-                    <property name="swapEnabled" value="true"/>
-
                     <!--
                         This shows how to configure number of backups. The below configuration
                         sets the number of backups to 0 .
@@ -117,6 +114,40 @@
                 </bean>
             </list>
         </property>
+
+        <!--
+            Configure pools.
+
+            If data loader is configured with significant 'perNodeParallelOperations' value,
+            you may need to increase pools sizes.
+        -->
+        <!--
+        <property name="executorService">
+            <bean class="org.gridgain.grid.thread.GridThreadPoolExecutor">
+                <constructor-arg type="int" value="200"/>
+                <constructor-arg type="int" value="200"/>
+                <constructor-arg type="long">
+                    <util:constant static-field="java.lang.Long.MAX_VALUE"/>
+                </constructor-arg>
+                <constructor-arg type="java.util.concurrent.BlockingQueue">
+                    <bean class="java.util.concurrent.LinkedBlockingQueue"/>
+                </constructor-arg>
+            </bean>
+        </property>
+
+        <property name="systemExecutorService">
+            <bean class="org.gridgain.grid.thread.GridThreadPoolExecutor">
+                <constructor-arg type="int" value="200"/>
+                <constructor-arg type="int" value="200"/>
+                <constructor-arg type="long">
+                    <util:constant static-field="java.lang.Long.MAX_VALUE"/>
+                </constructor-arg>
+                <constructor-arg type="java.util.concurrent.BlockingQueue">
+                    <bean class="java.util.concurrent.LinkedBlockingQueue"/>
+                </constructor-arg>
+            </bean>
+        </property>
+        -->
 
         <!--
             Uncomment this to provide TCP discovery SPI (Amazon EC2).

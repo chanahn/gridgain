@@ -31,7 +31,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Cache communication manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
     /** Number of retries using to send messages. */
@@ -50,8 +50,9 @@ public class GridCacheIoManager<K, V> extends GridCacheManager<K, V> {
     private String topic;
 
     /** Handler registry. */
-    private ConcurrentMap<Class<? extends GridCacheMessage>, GridInClosure2<UUID, ? extends GridCacheMessage<K, V>>> clsHandlers =
-        new ConcurrentHashMap<Class<? extends GridCacheMessage>, GridInClosure2<UUID, ? extends GridCacheMessage<K, V>>>();
+    private ConcurrentMap<Class<? extends GridCacheMessage>, GridInClosure2<UUID, ? extends GridCacheMessage<K, V>>>
+        clsHandlers = new ConcurrentHashMap<Class<? extends GridCacheMessage>,
+            GridInClosure2<UUID, ? extends GridCacheMessage<K, V>>>();
 
     /** Ordered handler registry. */
     private ConcurrentMap<String, GridInClosure2<UUID, ? extends GridCacheMessage<K, V>>> orderedHandlers =

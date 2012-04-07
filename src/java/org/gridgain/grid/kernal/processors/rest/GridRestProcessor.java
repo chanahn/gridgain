@@ -32,7 +32,7 @@ import static org.gridgain.grid.spi.GridSecuritySubjectType.REMOTE_CLIENT;
  * Rest processor implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridRestProcessor extends GridProcessorAdapter {
     /** Protocols. */

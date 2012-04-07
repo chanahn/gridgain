@@ -36,7 +36,7 @@ import static org.gridgain.grid.kernal.GridTopic.*;
  * Thread pool for demanding entries.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 class GridReplicatedPreloadDemandPool<K, V> {
     /** Dummy message to wake up demand worker. */

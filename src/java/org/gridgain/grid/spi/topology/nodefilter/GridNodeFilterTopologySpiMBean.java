@@ -18,7 +18,7 @@ import org.gridgain.grid.util.mbean.*;
  * Management bean for {@link GridNodeFilterTopologySpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @GridMBeanDescription("MBean that provides access to node filter based topology SPI configuration.")
 public interface GridNodeFilterTopologySpiMBean  extends GridSpiManagementMBean {

@@ -93,8 +93,16 @@
     <classpathentry kind="lib" path="libs/xstream-1.4.2.jar"/>
     <classpathentry kind="lib" path="examples/libs/hadoop/commons-configuration-1.6.jar"/>
     <classpathentry kind="lib" path="examples/libs/hadoop/hadoop-core-1.0.1.jar"/>
-    <classpathentry kind="lib" path="clients/java/gridgain-client.jar"/>
-    <classpathentry kind="lib" path="gridgain-4.0.0c.jar"/>
+    <classpathentry kind="lib" path="gridgain-4.0.1c.jar">
+        <attributes>
+            <attribute name="javadoc_location" value="platform:/resource/GridGain 4.0.1c/javadoc/"/>
+        </attributes>
+    </classpathentry>
+    <classpathentry kind="lib" path="clients/java/gridgain-client.jar">
+        <attributes>
+            <attribute name="javadoc_location" value="platform:/resource/GridGain 4.0.1c/clients/java/javadoc/"/>
+        </attributes>
+    </classpathentry>
     <classpathentry kind="lib" path="config/aop/aspectj"/>
     <classpathentry kind="output" path="out"/>
 </classpath>

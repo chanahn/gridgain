@@ -20,7 +20,7 @@ import java.util.*;
  * value from closures.
  *  
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  * @see GridClosureException
  */
 public class GridEither<L/*left*/, R/*right*/> extends GridOutClosure<GridTuple2<L, R>> implements GridProduct {

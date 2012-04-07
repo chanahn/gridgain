@@ -7,7 +7,7 @@ import org.gridgain.grid.util.mbean.*;
  * MBean provide access to TCP-based communication SPI.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @GridMBeanDescription("MBean provide access to TCP-based communication SPI.")
 public interface GridTcpCommunicationSpiMBean extends GridSpiManagementMBean {
@@ -203,7 +203,7 @@ public interface GridTcpCommunicationSpiMBean extends GridSpiManagementMBean {
      * @return Connect timeout.
      */
     @GridMBeanDescription("Connect timeout.")
-    public int getConnectTimeout();
+    public long getConnectTimeout();
 
     /**
      * Gets value for {@code TCP_NODELAY} socket option.

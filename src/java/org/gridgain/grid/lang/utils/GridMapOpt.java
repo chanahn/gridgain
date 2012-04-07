@@ -17,7 +17,7 @@ import java.util.*;
  * which case it will act as an empty map.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridMapOpt<K, V> extends GridSerializableMap<K, V> {
     private final Map<K, V> impl;

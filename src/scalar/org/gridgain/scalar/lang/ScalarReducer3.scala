@@ -19,7 +19,7 @@ import collection._
  * Peer deploy aware adapter for Java's `GridReducer3`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 class ScalarReducer3[E1, E2, E3, R](private val r: (Seq[E1], Seq[E2], Seq[E3]) => R)
     extends GridReducer3[E1, E2, E3, R] {

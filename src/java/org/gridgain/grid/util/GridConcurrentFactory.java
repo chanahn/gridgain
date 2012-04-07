@@ -20,7 +20,7 @@ import static org.gridgain.grid.GridSystemProperties.*;
  * Concurrent map factory.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridConcurrentFactory {
     /** Default concurrency level. */
@@ -65,22 +65,22 @@ public class GridConcurrentFactory {
     /**
      * Creates concurrent map with default concurrency level and given {@code initialCapacity}.
      *
-     * @param initialCapacity Initial capacity.
+     * @param initCap Initial capacity.
      * @return New concurrent map.
      */
-    public static <K, V> ConcurrentMap<K, V> newMap(int initialCapacity) {
-        return new ConcurrentHashMap<K, V>(initialSize(initialCapacity, CONCURRENCY_LEVEL), 0.75f, CONCURRENCY_LEVEL);
+    public static <K, V> ConcurrentMap<K, V> newMap(int initCap) {
+        return new ConcurrentHashMap<K, V>(initialSize(initCap, CONCURRENCY_LEVEL), 0.75f, CONCURRENCY_LEVEL);
     }
 
     /**
      * Creates concurrent map with given concurrency level and initialCapacity.
      *
-     * @param initialCapacity Initial capacity.
+     * @param initCap Initial capacity.
      * @param concurrencyLevel Concurrency level.
      * @return New concurrent map.
      */
-    public static <K, V> ConcurrentMap<K, V> newMap(int initialCapacity, int concurrencyLevel) {
-        return new ConcurrentHashMap<K, V>(initialSize(initialCapacity, concurrencyLevel), 0.75f, concurrencyLevel);
+    public static <K, V> ConcurrentMap<K, V> newMap(int initCap, int concurrencyLevel) {
+        return new ConcurrentHashMap<K, V>(initialSize(initCap, concurrencyLevel), 0.75f, concurrencyLevel);
     }
 
     /**
@@ -95,22 +95,22 @@ public class GridConcurrentFactory {
     /**
      * Creates concurrent set with default concurrency level and given {@code initialCapacity}.
      *
-     * @param initialCapacity Initial capacity.
+     * @param initCap Initial capacity.
      * @return New concurrent map.
      */
-    public static <V> GridConcurrentHashSet<V> newSet(int initialCapacity) {
-        return new GridConcurrentHashSet<V>(initialSize(initialCapacity, CONCURRENCY_LEVEL), 0.75f, CONCURRENCY_LEVEL);
+    public static <V> GridConcurrentHashSet<V> newSet(int initCap) {
+        return new GridConcurrentHashSet<V>(initialSize(initCap, CONCURRENCY_LEVEL), 0.75f, CONCURRENCY_LEVEL);
     }
 
     /**
      * Creates concurrent set with given concurrency level and initialCapacity.
      *
-     * @param initialCapacity Initial capacity.
+     * @param initCap Initial capacity.
      * @param concurrencyLevel Concurrency level.
      * @return New concurrent map.
      */
-    public static <V> GridConcurrentHashSet<V> newSet(int initialCapacity, int concurrencyLevel) {
-        return new GridConcurrentHashSet<V>(initialSize(initialCapacity, concurrencyLevel), 0.75f, concurrencyLevel);
+    public static <V> GridConcurrentHashSet<V> newSet(int initCap, int concurrencyLevel) {
+        return new GridConcurrentHashSet<V>(initialSize(initCap, concurrencyLevel), 0.75f, concurrencyLevel);
     }
 
     /**

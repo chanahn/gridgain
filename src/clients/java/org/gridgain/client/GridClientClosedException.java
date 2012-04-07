@@ -12,7 +12,7 @@ package org.gridgain.client;
  * This exception is thrown whenever a closed client is attempted to be used.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridClientClosedException extends GridClientException {
     /**

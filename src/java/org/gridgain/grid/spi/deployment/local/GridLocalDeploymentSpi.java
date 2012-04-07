@@ -40,14 +40,14 @@ import java.util.Map.*;
  * configuration parameters.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  * @see GridDeploymentSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.25032012")
+    version = "4.0.1c.07042012")
 @GridSpiMultipleInstancesSupport(true)
 @GridSpiConsistencyChecked(optional = false)
 public class GridLocalDeploymentSpi extends GridSpiAdapter implements GridDeploymentSpi, GridLocalDeploymentSpiMBean {

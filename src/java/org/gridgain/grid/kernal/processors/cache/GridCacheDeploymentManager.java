@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.*;
  * Deployment manager for cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
     /** Node filter. */
@@ -100,9 +100,9 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
         if (cctx.gridDeploy().isGlobalLoader(ldr)) {
             GridDeploymentInfo info = (GridDeploymentInfo)ldr;
 
-            UUID senderId = F.first(info.participants().keySet());
+            UUID sndId = F.first(info.participants().keySet());
 
-            p2pContext(senderId, info.classLoaderId(), info.userVersion(), info.deployMode(), info.participants());
+            p2pContext(sndId, info.classLoaderId(), info.userVersion(), info.deployMode(), info.participants());
         }
     }
 
@@ -133,10 +133,9 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
 
         GridCacheAdapter<K, V> cache = cctx.cache();
 
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug("Received onUndeploy() request [ldr=" + ldr + ", cctx=" + cctx +
                 ", cacheCls=" + cctx.cache().getClass().getSimpleName() + ", cacheSize=" + cache.size() + ']');
-        }
 
         undeploys.add(new CA() {
             @Override public void apply() {
@@ -186,12 +185,11 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
                                     }
                                 }
 
-                                if (log.isDebugEnabled()) {
+                                if (log.isDebugEnabled())
                                     log.debug("Finished examining entry [entryCls=" + e.getClass() +
                                         ", key=" + k + ", keyCls=" + k.getClass() +
                                         ", valCls=" + (v != null ? v.getClass() : "null") +
                                         ", keyLdr=" + keyLdr + ", valLdr=" + valLdr + ", res=" + res + ']');
-                                }
 
                                 return res;
                             }
@@ -236,15 +234,15 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
     }
 
     /**
-     * @param senderId Sender node ID.
+     * @param sndId Sender node ID.
      * @param ldrId Loader ID.
      * @param userVer User version.
      * @param mode Deployment mode.
      * @param participants Node participants.
      */
-    public void p2pContext(UUID senderId, GridUuid ldrId, String userVer, GridDeploymentMode mode,
+    public void p2pContext(UUID sndId, GridUuid ldrId, String userVer, GridDeploymentMode mode,
         Map<UUID, GridTuple2<GridUuid, Long>> participants) {
-        depBean.get().set(senderId, ldrId, userVer, mode, participants);
+        depBean.get().set(sndId, ldrId, userVer, mode, participants);
     }
 
     /**
@@ -405,24 +403,23 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheManager<K, V> {
 
             assert t != null;
 
-            UUID senderId = t.get(0);
+            UUID sndId = t.get(0);
             GridUuid ldrId = t.get(1);
             String userVer = t.get(2);
             GridDeploymentMode mode = t.get(3);
             Map<UUID, GridTuple2<GridUuid, Long>> participants = t.get(4);
 
-            GridDeployment d = senderId == null ? cctx.gridDeploy().getLocalDeployment(name) :
+            GridDeployment d = sndId == null ? cctx.gridDeploy().getLocalDeployment(name) :
                 cctx.gridDeploy().getGlobalDeployment(
                     mode,
                     name,
                     name,
                     -1,
                     userVer,
-                    senderId,
+                    sndId,
                     ldrId,
                     participants,
-                    nodeFilter
-                );
+                    nodeFilter);
 
             if (d != null) {
                 Class cls = d.deployedClass(name);

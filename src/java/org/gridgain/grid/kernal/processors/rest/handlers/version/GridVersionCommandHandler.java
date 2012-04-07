@@ -21,7 +21,7 @@ import static org.gridgain.grid.kernal.processors.rest.GridRestCommand.*;
  * Handler for {@link GridRestCommand#VERSION} command.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridVersionCommandHandler extends GridRestCommandHandlerAdapter {
     /**

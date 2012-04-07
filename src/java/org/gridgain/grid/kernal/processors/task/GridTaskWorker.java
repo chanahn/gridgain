@@ -38,7 +38,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
  * Grid task worker. Handles full task life cycle.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  * @param <T> Task argument type.
  * @param <R> Task return value type.
  */
@@ -1040,8 +1040,10 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
             }
         }
         catch (GridException e) {
+            boolean deadNode = isDeadNode(res.getNode().id());
+
             // Avoid stack trace if node has left grid.
-            if (isDeadNode(res.getNode().id()))
+            if (deadNode)
                 U.warn(log, "Failed to send job request because remote node left grid (will attempt fail-over to " +
                     "another node) [node=" + node + ", taskName=" + ses.getTaskName() +
                     ", taskSesId=" + ses.getId() + ", jobSesId=" + res.getJobContext().getJobId() + ']');
@@ -1051,8 +1053,11 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
             GridJobExecuteResponse fakeRes = new GridJobExecuteResponse(node.id(), ses.getId(),
                 res.getJobContext().getJobId(), null, null, null, false);
 
-            //noinspection ThrowableInstanceNeverThrown
-            fakeRes.setFakeException(new GridTopologyException("Failed to send job due to node failure: " + node, e));
+            if (deadNode)
+                fakeRes.setFakeException(new GridTopologyException("Failed to send job due to node failure: " +
+                    node, e));
+            else
+                fakeRes.setFakeException(e);
 
             onResponse(fakeRes);
         }

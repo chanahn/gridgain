@@ -18,7 +18,7 @@ import org.gridgain.grid.util.mbean.*;
  * about jdbc checkpoint SPI.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @GridMBeanDescription("MBean that provides information about jdbc checkpoint SPI.")
 public interface GridJdbcCheckpointSpiMBean extends GridSpiManagementMBean {

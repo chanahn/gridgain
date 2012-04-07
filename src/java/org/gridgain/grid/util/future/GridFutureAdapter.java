@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.*;
  * Future adapter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements GridFuture<R>, Externalizable {
     /** Logger reference. */
@@ -575,42 +575,38 @@ public class GridFutureAdapter<R> extends GridMetadataAwareAdapter implements Gr
     }
 
     /** {@inheritDoc} */
-    @SuppressWarnings({"TooBroadScope"})
     @Override public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(done.get());
+        boolean done0 = done.get();
+
+        out.writeBoolean(done0);
         out.writeBoolean(syncNotify);
         out.writeBoolean(concurNotify);
 
         // Don't write any further if not done, as deserialized future
         // will be invalid anyways.
-        if (done.get()) {
+        if (done0) {
             out.writeBoolean(cancelled.get());
             out.writeObject(res);
             out.writeObject(err);
+            out.writeObject(ctx);
         }
     }
 
     /** {@inheritDoc} */
-    @SuppressWarnings({"unchecked"})
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        boolean done = in.readBoolean();
+        boolean done0 = in.readBoolean();
 
         syncNotify = in.readBoolean();
         concurNotify = in.readBoolean();
 
-        if (!done)
+        if (!done0)
             valid = false;
         else {
-            boolean cancelled = in.readBoolean();
-
-            R res = (R)in.readObject();
-
-            Throwable err = (Throwable)in.readObject();
-
-            this.done.set(done);
-            this.cancelled.set(cancelled);
-            this.res = res;
-            this.err = err;
+            done.set(done0);
+            cancelled.set(in.readBoolean());
+            res = (R)in.readObject();
+            err = (Throwable)in.readObject();
+            ctx = (GridKernalContext)in.readObject();
         }
     }
 

@@ -25,7 +25,7 @@ import static org.gridgain.grid.spi.discovery.multicast.GridMulticastDiscoveryNo
  * IP address and port.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 class GridMulticastDiscoveryNode extends GridMetadataAwareAdapter implements GridNode {
     /** Node unique identifier. */

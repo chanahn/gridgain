@@ -16,7 +16,7 @@ import org.gridgain.grid.util.mbean.*;
  * Management bean for {@link GridJobStealingFailoverSpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @GridMBeanDescription("MBean that provides access to job stealing failover SPI configuration.")
 public interface GridJobStealingFailoverSpiMBean extends GridSpiManagementMBean {

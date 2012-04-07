@@ -13,7 +13,6 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.datastructures.*;
 import org.gridgain.grid.cache.query.*;
-import org.gridgain.grid.editions.*;
 import org.gridgain.grid.kernal.processors.cache.*;
 import org.gridgain.grid.kernal.processors.cache.query.*;
 import org.gridgain.grid.lang.*;
@@ -38,7 +37,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * new {@code order by} clauses in {@link #queueOrder(GridCacheQueueType)} method.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 class GridCacheQueueQueryFactory<T> implements Externalizable {
     /** Deserialization stash. */

@@ -16,7 +16,7 @@ import org.gridgain.client.*;
  * be invoked if first filter returned {@code false}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridClientAndPredicate<T> implements GridClientPredicate<T> {
     /** First filter to check. */

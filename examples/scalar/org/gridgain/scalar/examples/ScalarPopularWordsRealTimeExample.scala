@@ -29,7 +29,7 @@ import GridClosureCallMode._
  * an overall top `10` list within the grid.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 object ScalarPopularWordsRealTimeExample {
     private final val POPULAR_WORDS_CNT = 10;
@@ -38,7 +38,7 @@ object ScalarPopularWordsRealTimeExample {
     type JInt = java.lang.Integer
 
     def main(args: Array[String]) {
-        val bookDir = new File(X.getSystemOrEnv("GRIDGAIN_HOME"), BOOK_PATH);
+        val bookDir = new File(X.getSystemOrEnv("GRIDGAIN_HOME"), BOOK_PATH)
 
         if (!bookDir.exists) {
             println("Input directory does not exist: " + bookDir.getAbsolutePath)
@@ -94,7 +94,7 @@ object ScalarPopularWordsRealTimeExample {
 
                     val cache = grid$.cache[String, JInt]
 
-                    var fut: GridFuture[_] = null;
+                    var fut: GridFuture[_] = null
 
                     Source.fromFile(new File(bookDir, name), "ISO-8859-1").getLines().foreach(line => {
                         line.split("[^a-zA-Z0-9]").foreach(word => {
@@ -114,7 +114,7 @@ object ScalarPopularWordsRealTimeExample {
                         })
                     })
 
-                    println(">>> Finished storing all words from book in data grid: " + name);
+                    println(">>> Finished storing all words from book in data grid: " + name)
 
                     None
                 }
@@ -136,15 +136,18 @@ object ScalarPopularWordsRealTimeExample {
         grid$.cache[String, JInt].sqlReduce(
             // PROJECTION (where to run):
             grid$.projectionForCaches(null),
-            // QUERY (what to run):
+
+            // SQL QUERY (what to run):
             "length(_key) > 3 order by _val desc limit " + cnt,
+
             // REMOTE REDUCER (how to reduce on remote nodes):
             (it: Iterable[(String, JInt)]) =>
                 // Pre-reduce by converting Seq[(String, JInt)] to Map[JInt, Seq[String]].
                 (it :\ Map.empty[JInt, SSeq])((e, m) => m + (e._2 -> (m.getOrElse(e._2, Seq.empty[String]) :+ e._1))),
+
             // LOCAL REDUCER (how to finally reduce on local node):
             (it: Iterable[Map[JInt, SSeq]]) => {
-                // Print 'cnt' most popular words collected from all remote nodes.
+                // Print 'cnt' or most popular words collected from all remote nodes.
                 (new TreeMap()(implicitly[Ordering[JInt]].reverse) ++ it.flatten).take(cnt).foreach(println _)
 
                 println("------------")

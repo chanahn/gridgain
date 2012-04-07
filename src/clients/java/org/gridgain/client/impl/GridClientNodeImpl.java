@@ -18,12 +18,12 @@ import java.util.concurrent.atomic.*;
  * Client node implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridClientNodeImpl implements GridClientNode {
     /** Node id. */
     private UUID nodeId;
-    
+
     /** Internal addresses. */
     private List<String> internalAddrs = Collections.emptyList();
 
@@ -40,14 +40,14 @@ public class GridClientNodeImpl implements GridClientNode {
     private Map<String, Object> attrs = Collections.emptyMap();
 
     /** Node metrics. */
-    private Map<String, Object> metrics = Collections.emptyMap();
+    private GridClientNodeMetrics metrics;
 
     /** Node caches. */
     private Map<String, GridClientCacheMode> caches = Collections.emptyMap();
 
     /** Reference to a list of addresses. */
     private AtomicReference<List<InetSocketAddress>> restAddresses = new AtomicReference<List<InetSocketAddress>>();
-    
+
     /** {@inheritDoc} */
     @Override public UUID nodeId() {
         return nodeId;
@@ -137,7 +137,7 @@ public class GridClientNodeImpl implements GridClientNode {
     }
 
     /** {@inheritDoc} */
-    @Override public Map<String, Object> metrics() {
+    @Override public GridClientNodeMetrics metrics() {
         return metrics;
     }
 
@@ -146,7 +146,7 @@ public class GridClientNodeImpl implements GridClientNode {
      *
      * @param metrics Metrics.
      */
-    public void metrics(Map<String, Object> metrics) {
+    public void metrics(GridClientNodeMetrics metrics) {
         this.metrics = metrics;
     }
 
@@ -172,7 +172,7 @@ public class GridClientNodeImpl implements GridClientNode {
      */
     @Override public List<InetSocketAddress> availableAddresses(GridClientProtocol proto) {
         List<InetSocketAddress> res = restAddresses.get();
-        
+
         if (res == null) {
             res = new ArrayList<InetSocketAddress>(internalAddrs.size() + externalAddrs.size());
 
@@ -185,14 +185,14 @@ public class GridClientNodeImpl implements GridClientNode {
                 for (String internalAddr : internalAddrs)
                     res.add(new InetSocketAddress(internalAddr, port));
             }
-            
+
             restAddresses.compareAndSet(null, res);
-            
+
             res = restAddresses.get();
         }
-        
+
         assert res != null;
-        
+
         return res;
     }
 

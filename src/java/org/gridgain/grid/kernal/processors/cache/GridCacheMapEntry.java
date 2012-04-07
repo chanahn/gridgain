@@ -27,14 +27,13 @@ import java.util.concurrent.atomic.*;
 import static org.gridgain.grid.GridEventType.*;
 import static org.gridgain.grid.cache.GridCacheFlag.*;
 import static org.gridgain.grid.cache.GridCachePeekMode.*;
-import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
 import static org.gridgain.grid.cache.GridCacheTxState.*;
 
 /**
  * Adapter for cache entry.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapter implements GridCacheEntryEx<K, V> {
@@ -425,204 +424,189 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
     private V innerGet0(GridCacheTx tx, boolean readSwap, boolean readThrough, boolean evt, boolean failFast,
         boolean updateMetrics, GridPredicate<? super GridCacheEntry<K, V>>[] filter)
         throws GridException, GridCacheEntryRemovedException, GridCacheFilterFailedException {
-        boolean touch = false;
+        // Disable read-through if there is no store.
+        if (readThrough && !cctx.isStoreEnabled())
+            readThrough = false;
+
+        GridCacheMvccCandidate<K> owner = null;
+
+        V old = null;
+        V ret = null;
+
+        if (!cctx.isAll(this, filter))
+            return CU.<V>failed(failFast);
+
+        boolean asyncRefresh = false;
+
+        GridCacheVersion startVer;
+
+        boolean expired = false;
+
+        V expiredVal = null;
+
+        lock();
 
         try {
-            // Disable read-through if there is no store.
-            if (readThrough && !cctx.isStoreEnabled())
-                readThrough = false;
+            checkObsolete();
 
-            GridCacheMvccCandidate<K> owner = null;
+            // Cache version for optimistic check.
+            startVer = ver;
 
-            V old = null;
-            V ret = null;
+            owner = mvcc.anyOwner();
 
-            if (!cctx.isAll(this, filter))
-                return CU.<V>failed(failFast);
+            double delta = Double.MAX_VALUE;
 
-            boolean asyncRefresh = false;
+            if (expireTime > 0) {
+                delta = expireTime - System.currentTimeMillis();
 
-            GridCacheVersion startVer;
+                if (log.isDebugEnabled())
+                    log.debug("Checked expiration time for entry [timeLeft=" + delta + ", entry=" + this + ']');
 
-            boolean expired = false;
+                if (delta <= 0)
+                    expired = true;
+            }
 
-            V expiredVal = null;
+            // Attempt to load from swap.
+            if (val == null && readSwap) {
+                // Only unswap when loading initial state.
+                if (isNew()) {
+                    // If this entry is already expired (expiration time was too low),
+                    // we simply remove from swap and clear index.
+                    if (expired) {
+                        releaseSwap();
 
-            lock();
+                        clearIndex();
+                    }
+                    else {
+                        // Read and remove swap entry.
+                        unswap();
 
-            try {
-                checkObsolete();
+                        // Recalculate expiration after swap read.
+                        if (expireTime > 0) {
+                            delta = expireTime - System.currentTimeMillis();
 
-                // Cache version for optimistic check.
-                startVer = ver;
+                            if (log.isDebugEnabled())
+                                log.debug("Checked expiration time for entry [timeLeft=" + delta +
+                                    ", entry=" + this + ']');
 
-                owner = mvcc.anyOwner();
-
-                double delta = Double.MAX_VALUE;
-
-                if (expireTime > 0) {
-                    delta = expireTime - System.currentTimeMillis();
-
-                    if (log.isDebugEnabled())
-                        log.debug("Checked expiration time for entry [timeLeft=" + delta + ", entry=" + this + ']');
-
-                    if (delta <= 0)
-                        expired = true;
-                }
-
-                // Attempt to load from swap.
-                if (val == null && readSwap) {
-                    // Only unswap when loading initial state.
-                    if (isNew()) {
-                        // If this entry is already expired (expiration time was too low),
-                        // we simply remove from swap and clear index.
-                        if (expired) {
-                            releaseSwap();
-
-                            clearIndex();
-                        }
-                        else {
-                            // Read and remove swap entry.
-                            unswap();
-
-                            // Recalculate expiration after swap read.
-                            if (expireTime > 0) {
-                                delta = expireTime - System.currentTimeMillis();
-
-                                if (log.isDebugEnabled())
-                                    log.debug("Checked expiration time for entry [timeLeft=" + delta +
-                                        ", entry=" + this + ']');
-
-                                if (delta <= 0)
-                                    expired = true;
-                            }
+                            if (delta <= 0)
+                                expired = true;
                         }
                     }
                 }
-
-                // Only calculate asynchronous refresh-ahead, if there is no other
-                // one in progress and if not expired.
-                if (delta > 0 && expireTime > 0 && !isRefreshing) {
-                    double refreshRatio = cctx.config().getRefreshAheadRatio();
-
-                    if (1 - delta / ttl >= refreshRatio)
-                        asyncRefresh = true;
-                }
-
-                old = expired || !valid() ? null : val;
-
-                if (expired)
-                    expiredVal = val;
-
-                if (old == null) {
-                    asyncRefresh = false;
-
-                    if (updateMetrics)
-                        metrics.onRead(false);
-                }
-                else {
-                    if (updateMetrics)
-                        metrics.onRead(true);
-
-                    // Set retVal here for event notification.
-                    ret = old;
-
-                    // Mark this entry as refreshing, so other threads won't schedule
-                    // asynchronous refresh while this one is in progress.
-                    if (asyncRefresh || readThrough)
-                        isRefreshing = true;
-                }
-
-                if (evt && expired && cctx.events().isRecordable(EVT_CACHE_OBJECT_EXPIRED)) {
-                    cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_EXPIRED, null, expiredVal);
-
-                    // No more notifications.
-                    evt = false;
-                }
-
-                if (evt && !expired && cctx.events().isRecordable(EVT_CACHE_OBJECT_READ)) {
-                    cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_READ, ret, old);
-
-                    // No more notifications.
-                    evt = false;
-                }
-            }
-            finally {
-                unlock();
             }
 
-            if (asyncRefresh && !readThrough && cctx.isStoreEnabled()) {
-                assert ret != null;
+            // Only calculate asynchronous refresh-ahead, if there is no other
+            // one in progress and if not expired.
+            if (delta > 0 && expireTime > 0 && !isRefreshing) {
+                double refreshRatio = cctx.config().getRefreshAheadRatio();
 
-                refreshAhead(key, startVer);
+                if (1 - delta / ttl >= refreshRatio)
+                    asyncRefresh = true;
             }
 
-            // Check before load.
-            if (!cctx.isAll(this, filter))
-                return CU.<V>failed(failFast, ret);
+            old = expired || !valid() ? null : val;
 
-            if (ret != null) {
-                // If return value is consistent, then done.
-                if (F.isEmpty(filter) || version().equals(startVer)) {
-                    touch = true;
+            if (expired)
+                expiredVal = val;
 
-                    return ret;
-                }
+            if (old == null) {
+                asyncRefresh = false;
 
-                // Try again (recursion).
-                return innerGet0(tx, readSwap, readThrough, false, failFast, updateMetrics, filter);
+                if (updateMetrics)
+                    metrics.onRead(false);
+            }
+            else {
+                if (updateMetrics)
+                    metrics.onRead(true);
+
+                // Set retVal here for event notification.
+                ret = old;
+
+                // Mark this entry as refreshing, so other threads won't schedule
+                // asynchronous refresh while this one is in progress.
+                if (asyncRefresh || readThrough)
+                    isRefreshing = true;
             }
 
-            boolean loadedFromStore = false;
+            if (evt && expired && cctx.events().isRecordable(EVT_CACHE_OBJECT_EXPIRED)) {
+                cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_EXPIRED, null, expiredVal);
 
-            if (ret == null && readThrough) {
-                ret = readThrough(tx, key, false, filter);
-
-                loadedFromStore = true;
+                // No more notifications.
+                evt = false;
             }
 
-            boolean match = false;
+            if (evt && !expired && cctx.events().isRecordable(EVT_CACHE_OBJECT_READ)) {
+                cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_READ, ret, old);
 
-            lock();
-
-            try {
-                // If version matched, set value.
-                if (startVer.equals(ver)) {
-                    match = true;
-
-                    if (ret != null) {
-                        GridCacheVersion nextVer = cctx.versions().next();
-
-                        // Don't change version for read-through.
-                        update(ret, null, toExpireTime(ttl), ttl, nextVer, metrics);
-
-                        if (loadedFromStore)
-                            // Update indexes.
-                            updateIndex(ret);
-                    }
-
-                    if (evt && cctx.events().isRecordable(EVT_CACHE_OBJECT_READ))
-                        cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_READ, ret, old);
-                }
+                // No more notifications.
+                evt = false;
             }
-            finally {
-                unlock();
-            }
+        }
+        finally {
+            unlock();
+        }
 
-            if (F.isEmpty(filter) || match) {
-                touch = true;
+        if (asyncRefresh && !readThrough && cctx.isStoreEnabled()) {
+            assert ret != null;
 
+            refreshAhead(key, startVer);
+        }
+
+        // Check before load.
+        if (!cctx.isAll(this, filter))
+            return CU.<V>failed(failFast, ret);
+
+        if (ret != null) {
+            // If return value is consistent, then done.
+            if (F.isEmpty(filter) || version().equals(startVer))
                 return ret;
-            }
 
             // Try again (recursion).
             return innerGet0(tx, readSwap, readThrough, false, failFast, updateMetrics, filter);
         }
-        finally {
-            // Touch entry right away for read-committed mode.
-            if (touch && (tx == null || (!tx.implicit() && tx.isolation() == READ_COMMITTED)))
-                cctx.evicts().touch(this);
+
+        boolean loadedFromStore = false;
+
+        if (ret == null && readThrough) {
+            ret = readThrough(tx, key, false, filter);
+
+            loadedFromStore = true;
         }
+
+        boolean match = false;
+
+        lock();
+
+        try {
+            // If version matched, set value.
+            if (startVer.equals(ver)) {
+                match = true;
+
+                if (ret != null) {
+                    GridCacheVersion nextVer = cctx.versions().next();
+
+                    // Don't change version for read-through.
+                    update(ret, null, toExpireTime(ttl), ttl, nextVer, metrics);
+
+                    if (loadedFromStore)
+                        // Update indexes.
+                        updateIndex(ret);
+                }
+
+                if (evt && cctx.events().isRecordable(EVT_CACHE_OBJECT_READ))
+                    cctx.events().addEvent(partition(), key, tx, owner, EVT_CACHE_OBJECT_READ, ret, old);
+            }
+        }
+        finally {
+            unlock();
+        }
+
+        if (F.isEmpty(filter) || match)
+            return ret;
+
+        // Try again (recursion).
+        return innerGet0(tx, readSwap, readThrough, false, failFast, updateMetrics, filter);
     }
 
     /** {@inheritDoc} */

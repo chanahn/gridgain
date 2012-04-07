@@ -150,13 +150,13 @@ import java.util.concurrent.atomic.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.0c.25032012")
+    version = "4.0.1c.07042012")
 @GridSpiMultipleInstancesSupport(true)
 @GridSpiConsistencyChecked(optional = true)
 public class GridPriorityQueueCollisionSpi extends GridSpiAdapter implements GridCollisionSpi,
@@ -217,7 +217,7 @@ public class GridPriorityQueueCollisionSpi extends GridSpiAdapter implements Gri
     private String jobAttrKey = DFLT_JOB_PRIORITY_ATTRIBUTE_KEY;
 
     /** */
-    private int dfltPriority = DFLT_PRIORITY;
+    private int dfltPri = DFLT_PRIORITY;
 
     /** */
     private int starvationInc = DFLT_STARVATION_INCREMENT;
@@ -321,7 +321,7 @@ public class GridPriorityQueueCollisionSpi extends GridSpiAdapter implements Gri
 
     /** {@inheritDoc} */
     @Override public int getDefaultPriority() {
-        return dfltPriority;
+        return dfltPri;
     }
 
     /** {@inheritDoc} */
@@ -340,11 +340,11 @@ public class GridPriorityQueueCollisionSpi extends GridSpiAdapter implements Gri
      * <p>
      * If not provided, default value is {@code {@link #DFLT_PRIORITY}}.
      *
-     * @param dfltPriority Default job priority.
+     * @param dfltPri Default job priority.
      */
     @GridSpiConfiguration(optional = true)
-    public void setDefaultPriority(int dfltPriority) {
-        this.dfltPriority = dfltPriority;
+    public void setDefaultPriority(int dfltPri) {
+        this.dfltPri = dfltPri;
     }
 
     /**
@@ -392,7 +392,7 @@ public class GridPriorityQueueCollisionSpi extends GridSpiAdapter implements Gri
             log.debug(configInfo("parallelJobsNum", parallelJobsNum));
             log.debug(configInfo("taskAttrKey", taskAttrKey));
             log.debug(configInfo("jobAttrKey", jobAttrKey));
-            log.debug(configInfo("dfltPriority", dfltPriority));
+            log.debug(configInfo("dfltPri", dfltPri));
             log.debug(configInfo("starvationInc", starvationInc));
             log.debug(configInfo("preventStarvation", preventStarvation));
         }
@@ -574,10 +574,10 @@ public class GridPriorityQueueCollisionSpi extends GridSpiAdapter implements Gri
                 if (log.isDebugEnabled()) {
                     log.debug("Failed get priority from job context attribute '" + jobAttrKey +
                         "' and task session attribute '" + taskAttrKey + "' (will use default priority): " +
-                        dfltPriority);
+                        dfltPri);
                 }
 
-                p = dfltPriority;
+                p = dfltPri;
             }
         }
 

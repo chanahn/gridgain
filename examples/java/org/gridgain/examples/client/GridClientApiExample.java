@@ -34,7 +34,7 @@ import java.util.*;
  * as the grid node - we do it here only for example purposes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridClientApiExample {
     /** Count of keys to be stored in this example. */

@@ -19,7 +19,7 @@ import java.io.*;
  * Atomic long value.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public final class GridCacheAtomicLongValue implements GridCacheInternalStorable<Long>, Externalizable, Cloneable {
     /** Value. */

@@ -29,7 +29,7 @@ import static org.gridgain.client.message.GridClientCacheRequest.GridCacheOperat
  * provided.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 class GridTcpClientConnection extends GridClientConnection {
     /** Logger */
@@ -601,14 +601,21 @@ class GridTcpClientConnection extends GridClientConnection {
      * @return Metrics.
      * @throws GridClientConnectionResetException In case of error.
      */
-    @Override public <K> GridClientFuture<Map<String, ? extends Number>> cacheMetrics(String cacheName, K key)
+    @SuppressWarnings("unchecked")
+    @Override public <K> GridClientFuture<GridClientDataMetrics> cacheMetrics(String cacheName, K key)
         throws GridClientConnectionResetException, GridClientClosedException {
         GridClientCacheRequest<K, Object> metrics = new GridClientCacheRequest<K, Object>(METRICS);
 
         metrics.cacheName(cacheName);
         metrics.key(key);
 
-        return makeRequest(metrics);
+        TcpClientFuture fut = new TcpClientFuture() {
+            @Override public void onDone(Object res) {
+                super.onDone(metricsMapToMetrics((Map<String, Number>)res));
+            }
+        };
+
+        return makeRequest(metrics, fut);
     }
 
     /**
@@ -821,55 +828,55 @@ class GridTcpClientConnection extends GridClientConnection {
         GridClientNodeMetricsBean metricsBean = nodeBean.getMetrics();
 
         if (metricsBean != null) {
-            Map<String, Object> metrics = new HashMap<String, Object>();
+            GridClientNodeMetricsAdapter metrics = new GridClientNodeMetricsAdapter();
 
-            metrics.put("startTime", metricsBean.getStartTime());
-            metrics.put("averageActiveJobs", metricsBean.getAverageActiveJobs());
-            metrics.put("averageCancelledJobs", metricsBean.getAverageCancelledJobs());
-            metrics.put("averageCpuLoad", metricsBean.getAverageCpuLoad());
-            metrics.put("averageJobExecuteTime", metricsBean.getAverageJobExecuteTime());
-            metrics.put("averageJobWaitTime", metricsBean.getAverageJobWaitTime());
-            metrics.put("averageRejectedJobs", metricsBean.getAverageRejectedJobs());
-            metrics.put("averageWaitingJobs", metricsBean.getAverageWaitingJobs());
-            metrics.put("currentActiveJobs", metricsBean.getCurrentActiveJobs());
-            metrics.put("currentCancelledJobs", metricsBean.getCurrentCancelledJobs());
-            metrics.put("currentCpuLoad", metricsBean.getCurrentCpuLoad());
-            metrics.put("currentDaemonThreadCount", metricsBean.getCurrentDaemonThreadCount());
-            metrics.put("currentIdleTime", metricsBean.getCurrentIdleTime());
-            metrics.put("currentJobExecuteTime", metricsBean.getCurrentJobExecuteTime());
-            metrics.put("currentJobWaitTime", metricsBean.getCurrentJobWaitTime());
-            metrics.put("currentRejectedJobs", metricsBean.getCurrentRejectedJobs());
-            metrics.put("currentThreadCount", metricsBean.getCurrentThreadCount());
-            metrics.put("currentWaitingJobs", metricsBean.getCurrentWaitingJobs());
-            metrics.put("fileSystemFreeSpace", metricsBean.getFileSystemFreeSpace());
-            metrics.put("fileSystemTotalSpace", metricsBean.getFileSystemTotalSpace());
-            metrics.put("fileSystemUsableSpace", metricsBean.getFileSystemUsableSpace());
-            metrics.put("heapMemoryCommitted", metricsBean.getHeapMemoryCommitted());
-            metrics.put("heapMemoryInitialized", metricsBean.getHeapMemoryInitialized());
-            metrics.put("heapMemoryMaximum", metricsBean.getHeapMemoryMaximum());
-            metrics.put("heapMemoryUsed", metricsBean.getHeapMemoryUsed());
-            metrics.put("lastDataVersion", metricsBean.getLastDataVersion());
-            metrics.put("lastUpdateTime", metricsBean.getLastUpdateTime());
-            metrics.put("maximumActiveJobs", metricsBean.getMaximumActiveJobs());
-            metrics.put("maximumCancelledJobs", metricsBean.getMaximumCancelledJobs());
-            metrics.put("maximumJobExecuteTime", metricsBean.getMaximumJobExecuteTime());
-            metrics.put("maximumJobWaitTime", metricsBean.getMaximumJobWaitTime());
-            metrics.put("maximumRejectedJobs", metricsBean.getMaximumRejectedJobs());
-            metrics.put("maximumThreadCount", metricsBean.getMaximumThreadCount());
-            metrics.put("maximumWaitingJobs", metricsBean.getMaximumWaitingJobs());
-            metrics.put("nodeStartTime", metricsBean.getNodeStartTime());
-            metrics.put("nonHeapMemoryCommitted", metricsBean.getNonHeapMemoryCommitted());
-            metrics.put("nonHeapMemoryInitialized", metricsBean.getNonHeapMemoryInitialized());
-            metrics.put("nonHeapMemoryMaximum", metricsBean.getNonHeapMemoryMaximum());
-            metrics.put("nonHeapMemoryUsed", metricsBean.getNonHeapMemoryUsed());
-            metrics.put("startTime", metricsBean.getStartTime());
-            metrics.put("totalCancelledJobs", metricsBean.getTotalCancelledJobs());
-            metrics.put("totalCpus", metricsBean.getTotalCpus());
-            metrics.put("totalExecutedJobs", metricsBean.getTotalExecutedJobs());
-            metrics.put("totalIdleTime", metricsBean.getTotalIdleTime());
-            metrics.put("totalRejectedJobs", metricsBean.getTotalRejectedJobs());
-            metrics.put("totalStartedThreadCount", metricsBean.getTotalStartedThreadCount());
-            metrics.put("upTime", metricsBean.getUpTime());
+            metrics.setStartTime(metricsBean.getStartTime());
+            metrics.setAverageActiveJobs(metricsBean.getAverageActiveJobs());
+            metrics.setAverageCancelledJobs(metricsBean.getAverageCancelledJobs());
+            metrics.setAverageCpuLoad(metricsBean.getAverageCpuLoad());
+            metrics.setAverageJobExecuteTime(metricsBean.getAverageJobExecuteTime());
+            metrics.setAverageJobWaitTime(metricsBean.getAverageJobWaitTime());
+            metrics.setAverageRejectedJobs(metricsBean.getAverageRejectedJobs());
+            metrics.setAverageWaitingJobs(metricsBean.getAverageWaitingJobs());
+            metrics.setCurrentActiveJobs(metricsBean.getCurrentActiveJobs());
+            metrics.setCurrentCancelledJobs(metricsBean.getCurrentCancelledJobs());
+            metrics.setCurrentCpuLoad(metricsBean.getCurrentCpuLoad());
+            metrics.setCurrentDaemonThreadCount(metricsBean.getCurrentDaemonThreadCount());
+            metrics.setCurrentIdleTime(metricsBean.getCurrentIdleTime());
+            metrics.setCurrentJobExecuteTime(metricsBean.getCurrentJobExecuteTime());
+            metrics.setCurrentJobWaitTime(metricsBean.getCurrentJobWaitTime());
+            metrics.setCurrentRejectedJobs(metricsBean.getCurrentRejectedJobs());
+            metrics.setCurrentThreadCount(metricsBean.getCurrentThreadCount());
+            metrics.setCurrentWaitingJobs(metricsBean.getCurrentWaitingJobs());
+            metrics.setFileSystemFreeSpace(metricsBean.getFileSystemFreeSpace());
+            metrics.setFileSystemTotalSpace(metricsBean.getFileSystemTotalSpace());
+            metrics.setFileSystemUsableSpace(metricsBean.getFileSystemUsableSpace());
+            metrics.setHeapMemoryCommitted(metricsBean.getHeapMemoryCommitted());
+            metrics.setHeapMemoryInitialized(metricsBean.getHeapMemoryInitialized());
+            metrics.setHeapMemoryMaximum(metricsBean.getHeapMemoryMaximum());
+            metrics.setHeapMemoryUsed(metricsBean.getHeapMemoryUsed());
+            metrics.setLastDataVersion(metricsBean.getLastDataVersion());
+            metrics.setLastUpdateTime(metricsBean.getLastUpdateTime());
+            metrics.setMaximumActiveJobs(metricsBean.getMaximumActiveJobs());
+            metrics.setMaximumCancelledJobs(metricsBean.getMaximumCancelledJobs());
+            metrics.setMaximumJobExecuteTime(metricsBean.getMaximumJobExecuteTime());
+            metrics.setMaximumJobWaitTime(metricsBean.getMaximumJobWaitTime());
+            metrics.setMaximumRejectedJobs(metricsBean.getMaximumRejectedJobs());
+            metrics.setMaximumThreadCount(metricsBean.getMaximumThreadCount());
+            metrics.setMaximumWaitingJobs(metricsBean.getMaximumWaitingJobs());
+            metrics.setNodeStartTime(metricsBean.getNodeStartTime());
+            metrics.setNonHeapMemoryCommitted(metricsBean.getNonHeapMemoryCommitted());
+            metrics.setNonHeapMemoryInitialized(metricsBean.getNonHeapMemoryInitialized());
+            metrics.setNonHeapMemoryMaximum(metricsBean.getNonHeapMemoryMaximum());
+            metrics.setNonHeapMemoryUsed(metricsBean.getNonHeapMemoryUsed());
+            metrics.setStartTime(metricsBean.getStartTime());
+            metrics.setTotalCancelledJobs(metricsBean.getTotalCancelledJobs());
+            metrics.setTotalCpus(metricsBean.getTotalCpus());
+            metrics.setTotalExecutedJobs(metricsBean.getTotalExecutedJobs());
+            metrics.setTotalIdleTime(metricsBean.getTotalIdleTime());
+            metrics.setTotalRejectedJobs(metricsBean.getTotalRejectedJobs());
+            metrics.setTotalStartedThreadCount(metricsBean.getTotalStartedThreadCount());
+            metrics.setUpTime(metricsBean.getUpTime());
 
             node.metrics(metrics);
         }

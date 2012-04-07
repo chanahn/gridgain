@@ -27,7 +27,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Transaction created by system implicitly on remote nodes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridDhtTxRemote<K, V> extends GridDistributedTxRemoteAdapter<K, V> {
     /** Near node ID. */

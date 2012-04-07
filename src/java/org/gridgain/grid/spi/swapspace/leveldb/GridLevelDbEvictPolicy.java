@@ -15,7 +15,7 @@ import org.jetbrains.annotations.*;
  * Enumeration of all supported eviction policies.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public enum GridLevelDbEvictPolicy {
     /**

@@ -26,11 +26,13 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.*;
 
+import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
+
 /**
  *
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Map<K, V>>
     implements GridCacheFuture<Map<K, V>> {
@@ -303,9 +305,13 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
                 boolean near = entry != null;
 
                 // First we peek into near cache.
-                if (entry != null)
+                if (entry != null) {
                     v = entry.innerGet(tx, /*swap*/false, /*read-through*/false, /*fail-fast*/true,
                         true, true, filters);
+
+                    if (tx == null || (!tx.implicit() && tx.isolation() == READ_COMMITTED))
+                        cctx.evicts().touch(entry);
+                }
 
                 if (v == null) {
                     try {
@@ -315,11 +321,16 @@ public final class GridNearGetFuture<K, V> extends GridCompoundIdentityFuture<Ma
 
                         // If near cache does not have value, then we peek DHT cache.
                         if (entry != null) {
+                            boolean isNew = entry.isNewLocked();
+
                             v = entry.innerGet(tx, /*swap*/true, /*read-through*/false, /*fail-fast*/true, true, !near,
                                 filters);
 
+                            if (tx == null || (!tx.implicit() && tx.isolation() == READ_COMMITTED))
+                                cctx.evicts().touch(entry);
+
                             // Entry was not in memory or in swap, so we remove it from cache.
-                            if (v == null && entry.markObsolete(ver))
+                            if (v == null && isNew && entry.markObsolete(ver))
                                 cache().dht().removeIfObsolete(key);
                         }
                     }

@@ -18,10 +18,10 @@ import java.io.*;
  * Adapter for {@link GridLocalMetrics} interface.
  * <p>
  * Note that whenever adding or removing metric parameters, care
- * must be taken to update {@link GridDiscoveryMetricsHelper} as well. 
+ * must be taken to update {@link GridDiscoveryMetricsHelper} as well.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridDiscoveryMetricsAdapter implements GridNodeMetrics, Externalizable {
     /** */
@@ -719,7 +719,7 @@ public class GridDiscoveryMetricsAdapter implements GridNodeMetrics, Externaliza
     /**
      * Sets VM up time.
      *
-     * @param upTime VN up time.
+     * @param upTime VM up time.
      */
     public void setUpTime(long upTime) {
         this.upTime = upTime;

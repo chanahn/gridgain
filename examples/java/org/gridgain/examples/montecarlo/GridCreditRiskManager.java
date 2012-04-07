@@ -18,7 +18,7 @@ import java.util.*;
  * This class abstracts out the calculation of risk for a credit portfolio.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 @SuppressWarnings({"FloatingPointEquality"})
 public class GridCreditRiskManager {

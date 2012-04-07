@@ -19,7 +19,7 @@ import java.util.*;
  * Exception thrown when projection flags check fails.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.0c.25032012
+ * @version 4.0.1c.07042012
  */
 public class GridCacheFlagException extends GridRuntimeException {
     /** Flags that caused this exception. */
