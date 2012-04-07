@@ -68,7 +68,7 @@ We spend significant amount of time on writing and maintaining Javadoc and Scala
 product. All documentation is shipped with it and you can find it under +javadoc+, +groovydoc+,
 and +scaladoc+ sub-folder respectively.
 
-You can also find latest released Javadoc online: http://www.gridgain.com/javadoc30C/index.html
+You can also find latest released Javadoc online: http://www.gridgain.com/javadoc40C/index.html
 
 Scripts
 -------
@@ -83,7 +83,7 @@ GridGain comes with several support and documentation resources:
 . Community http://jive.gridgain.org[Support Forum]
 . Working draft of http://www.gridgain.com/book/book.html["Real Time Big Data Processing with GridGain"] book
 . GridGain http://wiki.gridgain.org[Wiki]
-. Video http://gridgain.com/screencasts.html[screencast]
+. Video http://www.vimeo.com/gridgain[screencast]
 . Online newspaper http://paper.li/gridgain/1299724823[GridGain Daily]
 . Follow us on http://www.twitter.com/gridgain[@Twitter]
 

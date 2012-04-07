@@ -1,12 +1,12 @@
-.Net Client README
+.NET Client README
 
-.Net Client is a lightweight gateway to GridGain nodes. Client communicates with grid nodes via REST interface and
-provides reduced but powerful subset of GridGain API. .Net Client allows to use GridGain features from devices and
+.NET Client is a lightweight gateway to GridGain nodes. Client communicates with grid nodes via REST interface and
+provides reduced but powerful subset of GridGain API. .NET Client allows to use GridGain features from devices and
 environments where fully-functional GridGain node could not (or should not) be started.
 
 Files list:
 
-* GridGainClient.dll - GridGain .Net client library.
+* GridGainClient.dll - GridGain .NET client library.
 * GridGainClient.xml - Client library XML documentation.
 * GridGainClient.pdb - Client library debugging info.
 * Google.ProtocolBuffers.dll - Google protocol buffers library to work with binary TCP protocol.
