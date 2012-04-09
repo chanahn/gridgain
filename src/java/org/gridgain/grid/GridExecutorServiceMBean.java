@@ -15,7 +15,7 @@ import org.gridgain.grid.util.mbean.*;
  * MBean that provides access to information about executor service.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 @GridMBeanDescription("MBean that provides access to information about executor service.")
 public interface GridExecutorServiceMBean {

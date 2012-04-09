@@ -13,7 +13,6 @@ import org.gridgain.client.*;
 import org.gridgain.client.ssl.*;
 import org.gridgain.grid.*;
 import org.gridgain.grid.typedef.*;
-import org.gridgain.grid.util.*;
 
 import java.util.*;
 
@@ -21,7 +20,7 @@ import java.util.*;
  * Shows client authentication feature.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridAuthenticationAndSecureSessionClientExample {
     /** Change this property to start example in SSL mode. */
@@ -32,22 +31,15 @@ public class GridAuthenticationAndSecureSessionClientExample {
      * Depending on {@link #useSsl} flag value either passcode authentication spi will be used or SSL will be enabled.
      *
      * @param args Command line arguments, none required.
-     * @throws GridException If example execution failed.
      */
-    public static void main(String[] args) throws GridException {
-        if (!GridUtils.isEnterprise()) {
-            X.println(">>> This example is available in enterprise edition only.");
-
-            return;
-        }
-
+    public static void main(String[] args) {
         String passcode = args.length > 0 ? args[0] : "s3cret";
 
-        // Start up a grid node.
-        G.start(useSsl ? "examples/config/spring-cache-ssl.xml" :
-            "examples/config/spring-cache-authentication-passcode.xml");
-
         try {
+            // Start up a grid node.
+            G.start(useSsl ? "examples/config/spring-cache-ssl.xml" :
+                    "examples/config/spring-cache-authentication-passcode.xml");
+
             GridClient client = createClient(passcode);
 
             X.println(">>> Client successfully authenticated.");
@@ -71,6 +63,13 @@ public class GridAuthenticationAndSecureSessionClientExample {
         catch (GridClientException e) {
             X.println(">>> Failed to create client (did you specify correct keystore?): " + e.getMessage());
         }
+        catch (GridException e) {
+            if (e.hasCause(ClassNotFoundException.class))
+                X.println("Failed to create grid " +
+                    "('security' is enterprise feature, are you using community edition?): " + e.getMessage());
+            else
+                X.println("Failed to create grid: " + e.getMessage());
+        }
         finally {
             G.stopAll(false);
 
@@ -90,10 +89,8 @@ public class GridAuthenticationAndSecureSessionClientExample {
     private static GridClient createClient(String passcode) throws GridClientException {
         String ggHome = X.getSystemOrEnv("GRIDGAIN_HOME");
 
-        if(ggHome == null) {
-            X.error("GRIDGAIN_HOME must be set to the GridGain installation root.");
-            System.exit(1);
-        }
+        if(ggHome == null)
+            throw new GridClientException("GRIDGAIN_HOME must be set to GridGain installation root.");
 
         GridClientConfigurationAdapter cc = new GridClientConfigurationAdapter();
 

@@ -42,7 +42,7 @@ namespace GridGain.Client {
          * <returns>Client data which will only contact server with given node ID.</returns>
          * <exception cref="GridClientException">If resulting projection is empty.</exception>
          */
-        IGridClientData PinNodes(IGridClientNode node, IGridClientNode[] nodes);
+        IGridClientData PinNodes(IGridClientNode node, params IGridClientNode[] nodes);
 
         /**
          * <summary>

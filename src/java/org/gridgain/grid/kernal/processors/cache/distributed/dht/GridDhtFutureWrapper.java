@@ -19,7 +19,7 @@ import java.util.*;
  * DHT future wrapper.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridDhtFutureWrapper<A, T> extends GridFutureWrapper<T, A> implements GridDhtFuture<T> {
     /** Retries. */

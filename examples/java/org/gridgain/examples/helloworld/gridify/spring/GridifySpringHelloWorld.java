@@ -17,7 +17,7 @@ import org.gridgain.grid.gridify.*;
  * will simply print out the state set on this instance.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public interface GridifySpringHelloWorld {
     /**

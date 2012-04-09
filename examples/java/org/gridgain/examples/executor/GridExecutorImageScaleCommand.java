@@ -27,7 +27,7 @@ import java.util.concurrent.*;
  * by "java.io.tmpdir" system property.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridExecutorImageScaleCommand implements Callable<GridExecutorImage>, Serializable {
     /** */

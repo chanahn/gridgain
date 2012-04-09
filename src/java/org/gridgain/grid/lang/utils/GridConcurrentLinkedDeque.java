@@ -60,7 +60,7 @@ import java.util.concurrent.atomic.*;
  * at http://creativecommons.org/publicdomain/zero/1.0/
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 @SuppressWarnings( {"ALL"})
 public class GridConcurrentLinkedDeque<E> extends AbstractCollection<E> implements Deque<E> {

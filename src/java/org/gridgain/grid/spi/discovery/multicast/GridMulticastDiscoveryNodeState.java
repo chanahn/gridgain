@@ -18,7 +18,7 @@ package org.gridgain.grid.spi.discovery.multicast;
  * one state to {@link #LEFT}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 enum GridMulticastDiscoveryNodeState {
     /** Node appears in grid. */

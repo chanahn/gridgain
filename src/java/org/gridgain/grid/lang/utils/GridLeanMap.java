@@ -21,7 +21,7 @@ import java.util.*;
  * {@code Null}-keys are not supported.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridLeanMap<K, V> extends GridSerializableMap<K, V> implements Cloneable {
     /** Implementation used internally. */

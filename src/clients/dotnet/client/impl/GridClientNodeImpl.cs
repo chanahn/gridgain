@@ -148,8 +148,8 @@ namespace GridGain.Client.Impl {
             StringBuilder sb = new StringBuilder("GridClientNodeImpl");
 
             sb.AppendFormat(" [NodeId={0}", Id);
-            sb.AppendFormat(", InternalAddresses={0}", InternalAddresses);
-            sb.AppendFormat(", ExternalAddresses={0}", ExternalAddresses);
+            sb.AppendFormat(", InternalAddresses={0}", String.Join<String>(",", InternalAddresses));
+            sb.AppendFormat(", ExternalAddresses={0}", String.Join<String>(",", ExternalAddresses));
             sb.AppendFormat(", TcpPort={0}", TcpPort);
             sb.AppendFormat(", HttpPort={0}", HttpPort);
             sb.Append(']');

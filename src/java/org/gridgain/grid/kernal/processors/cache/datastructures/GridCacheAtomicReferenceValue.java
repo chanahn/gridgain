@@ -21,7 +21,7 @@ import java.io.*;
  * Atomic reference value.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public final class GridCacheAtomicReferenceValue<T> implements GridCacheInternalStorable<T>, GridPeerDeployAware,
     Externalizable, Cloneable {

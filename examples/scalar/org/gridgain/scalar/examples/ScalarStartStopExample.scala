@@ -19,7 +19,7 @@ import org.gridgain.grid.Grid
  * Demonstrates various starting and stopping ways of grid using Scalar.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 object ScalarStartStopExample {
     /**

@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.GridAbsPredicate
  * Wrapping Scala function for `GridAbsPredicate`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 class ScalarAbsPredicateFunction(val inner: GridAbsPredicate) extends (() => Boolean) {
     assert(inner != null)

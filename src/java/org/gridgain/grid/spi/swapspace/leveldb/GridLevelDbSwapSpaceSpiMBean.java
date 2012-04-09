@@ -17,7 +17,7 @@ import org.jetbrains.annotations.*;
  * Management bean for {@link GridLevelDbSwapSpaceSpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 @GridMBeanDescription("MBean that provides administrative and configuration information on LevelDB-based swapspace SPI.")
 public interface GridLevelDbSwapSpaceSpiMBean extends GridSpiManagementMBean {

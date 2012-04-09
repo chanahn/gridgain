@@ -15,7 +15,7 @@ import org.jetbrains.annotations.*;
  * Kernal life cycle states.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 enum GridKernalState {
     /** Kernal is started. */

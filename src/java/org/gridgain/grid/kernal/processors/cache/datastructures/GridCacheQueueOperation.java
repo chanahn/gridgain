@@ -9,7 +9,7 @@ import java.util.concurrent.*;
  * Enumeration of all queue operation, which have common implementation and need operation name for logging.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 enum GridCacheQueueOperation {
     /** {@link GridCacheQueueImpl#addx(Object)}*/

@@ -29,7 +29,7 @@ import static org.gridgain.grid.GridEventType.*;
  * {@link GridDeploymentMode#ISOLATED} modes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridDeploymentPerLoaderStore extends GridDeploymentStoreAdapter {
     /** Cache keyed by class loader ID. */

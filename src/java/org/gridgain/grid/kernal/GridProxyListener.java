@@ -20,7 +20,7 @@ import java.util.*;
  * is made to get invocation result and exception, if there was one.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public interface GridProxyListener extends EventListener {
     /**

@@ -18,7 +18,7 @@ import java.util.*;
  * Full partition map.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridDhtPartitionFullMap extends HashMap<UUID, GridDhtPartitionMap>
     implements Comparable<GridDhtPartitionFullMap>, Externalizable {

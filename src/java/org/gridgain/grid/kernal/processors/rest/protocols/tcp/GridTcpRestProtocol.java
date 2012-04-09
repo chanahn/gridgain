@@ -29,7 +29,7 @@ import java.net.*;
  * TCP binary protocol implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridTcpRestProtocol extends GridRestProtocolAdapter {
     /** TCP port rebind attempt frequency. */
@@ -91,7 +91,7 @@ public class GridTcpRestProtocol extends GridRestProtocolAdapter {
 
                 final SSLContext sslCtx0 = sslCtx;
 
-                binder = new GridThread(new GridWorker(ctx.gridName(), "grid-connector-jetty-binder", log) {
+                binder = new GridThread(new GridWorker(ctx.gridName(), "grid-tcp-rest-binder", log) {
                     @SuppressWarnings({"BusyWait"})
                     @Override public void body() {
                         while (!Thread.currentThread().isInterrupted()) {
@@ -100,7 +100,7 @@ public class GridTcpRestProtocol extends GridRestProtocolAdapter {
                             }
                             catch (InterruptedException ignore) {
                                 if (log.isDebugEnabled())
-                                    log.debug("Jetty binder thread was interrupted.");
+                                    log.debug("TCP REST binder thread was interrupted.");
 
                                 break;
                             }

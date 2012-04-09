@@ -44,7 +44,7 @@ import static org.gridgain.grid.lang.utils.GridConcurrentLinkedDeque.*;
  * Cache eviction manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridCacheEvictionManager<K, V> extends GridCacheManager<K, V> {
     /** Eviction policy. */

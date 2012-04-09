@@ -7,13 +7,15 @@
  *  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
  */
 
-package org.gridgain.client;
+package org.gridgain.client.impl;
+
+import org.gridgain.client.*;
 
 /**
  * Adapter for cache metrics.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridClientDataMetricsAdapter implements GridClientDataMetrics {
     /** Create time. */
@@ -72,31 +74,79 @@ public class GridClientDataMetricsAdapter implements GridClientDataMetrics {
         return misses;
     }
 
+    /**
+     * Sets creation time.
+     *
+     * @param createTime Creation time.
+     */
     public void createTime(long createTime) {
         this.createTime = createTime;
     }
 
+    /**
+     * Sets read time.
+     *
+     * @param readTime Read time.
+     */
     public void readTime(long readTime) {
         this.readTime = readTime;
     }
 
+    /**
+     * Sets write time.
+     *
+     * @param writeTime Write time.
+     */
     public void writeTime(long writeTime) {
         this.writeTime = writeTime;
     }
 
+    /**
+     * Sets number of reads.
+     *
+     * @param reads Number of reads.
+     */
     public void reads(int reads) {
         this.reads = reads;
     }
 
+    /**
+     * Sets number of writes.
+     *
+     * @param writes Number of writes.
+     */
     public void writes(int writes) {
         this.writes = writes;
     }
 
+    /**
+     * Sets number of hits.
+     *
+     * @param hits Number of hits.
+     */
     public void hits(int hits) {
         this.hits = hits;
     }
 
+    /**
+     * Sets number of misses.
+     *
+     * @param misses Number of misses.
+     */
     public void misses(int misses) {
         this.misses = misses;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return "GridClientDataMetricsAdapter [" +
+            "createTime=" + createTime +
+            ", hits=" + hits +
+            ", misses=" + misses +
+            ", reads=" + reads +
+            ", readTime=" + readTime +
+            ", writes=" + writes +
+            ", writeTime=" + writeTime +
+            ']';
     }
 }

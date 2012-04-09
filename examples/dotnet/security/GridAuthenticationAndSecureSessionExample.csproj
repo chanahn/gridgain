@@ -51,13 +51,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="C5">
-      <HintPath>..\..\clients\dotnet\C5.dll</HintPath>
+      <HintPath>..\..\..\clients\dotnet\C5.dll</HintPath>
     </Reference>
     <Reference Include="Google.ProtocolBuffers">
-      <HintPath>..\..\clients\dotnet\Google.ProtocolBuffers.dll</HintPath>
+      <HintPath>..\..\..\clients\dotnet\Google.ProtocolBuffers.dll</HintPath>
     </Reference>
     <Reference Include="GridGainClient">
-      <HintPath>..\..\clients\dotnet\GridGainClient.dll</HintPath>
+      <HintPath>..\..\..\clients\dotnet\GridGainClient.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -68,7 +68,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GridClientExample.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -95,6 +94,9 @@
       <ProductName>Windows Installer 3.1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="GridAuthenticationAndSecureSessionExample.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

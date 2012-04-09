@@ -57,7 +57,7 @@ import java.util.*;
  * if this predicate is to be used from multiple threads.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  * @param <T1> Type of the first free variable, i.e. the element the closure is called on.
  * @param <T2> Type of the second free variable, i.e. the element the closure is called on.
  * @see GridFunc#x2(String)

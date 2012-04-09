@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.*;
  * Client node implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridClientNodeImpl implements GridClientNode {
     /** Node id. */
@@ -212,8 +212,8 @@ public class GridClientNodeImpl implements GridClientNode {
         return nodeId.hashCode();
     }
 
-    @Override
-    public String toString() {
+    /** {@inheritDoc} */
+    @Override public String toString() {
         final StringBuilder sb = new StringBuilder("GridClientNodeImpl [nodeId=");
 
         sb.append(nodeId);

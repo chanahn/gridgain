@@ -13,7 +13,7 @@ package org.gridgain.client;
  * Protocol that will be used when client connections are created.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public enum GridClientProtocol {
     /** Communication via HTTP protocol. */

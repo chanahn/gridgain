@@ -112,7 +112,7 @@ namespace GridGain.Client.Impl {
             int retries = 3;
 
             while (true) {
-                IGridClientConnection conn = null; 
+                IGridClientConnection conn = null;
 
                 try {
                     // Create connection to a server from the list of endpoints.
@@ -123,6 +123,14 @@ namespace GridGain.Client.Impl {
                     conn.Topology(false, false).WaitDone();
 
                     break;
+                }
+                catch (GridClientAuthenticationException) {
+                    if (conn != null)
+                        conn.Close(false);
+
+                    top.Dispose();
+
+                    throw;
                 }
                 catch (GridClientException e) {
                     if (conn != null)
@@ -145,7 +153,7 @@ namespace GridGain.Client.Impl {
 
             foreach (KeyValuePair<String, GridClientCacheMode> entry in overallCaches)
                 if (Affinity(entry.Key) is GridClientPartitionedAffinity && entry.Value != GridClientCacheMode.Partitioned)
-                    Dbg.Write(typeof(GridClientPartitionedAffinity) + " is used for a cache configured " +
+                    Dbg.WriteLine(typeof(GridClientPartitionedAffinity) + " is used for a cache configured " +
                         "for non-partitioned mode [cacheName=" + entry.Key + ", cacheMode=" + entry.Value + ']');
 
             idleCheckThread = new Thread(checkIdle);
@@ -325,7 +333,7 @@ namespace GridGain.Client.Impl {
                     topPrj.RefreshTopology(false, false);
                 }
                 catch (GridClientException e) {
-                    Dbg.Write("Failed to update topology: " + e.Message);
+                    Dbg.WriteLine("Failed to update topology: " + e.Message);
                 }
                 catch (ThreadInterruptedException) {
                     break;

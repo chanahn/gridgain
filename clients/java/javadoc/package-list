@@ -1,2 +1,3 @@
 org.gridgain.client
 org.gridgain.client.balancer
+org.gridgain.client.ssl

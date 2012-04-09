@@ -19,6 +19,9 @@ namespace GridGain.Client {
         /** <summary>Default client protocol.</summary> */
         public const GridClientProtocol DefaultClientProtocol = GridClientProtocol.Tcp;
 
+        /** <summary>Default TCP server port.</summary> */
+        public static readonly int DefaultTcpPort = 11211;
+
         /** <summary>Default topology refresh frequency is 2 sec.</summary> */
         public static readonly TimeSpan DefaultTopologyRefreshFrequency = TimeSpan.FromSeconds(2);
 

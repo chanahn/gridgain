@@ -62,5 +62,18 @@ namespace GridGain.Client.Impl {
             get;
             set;
         }
+
+        /** <inheritDoc/> */
+        override public String ToString() {
+            return "GridClientDataMetrics [" +
+                "createTime=" + CreateTime +
+                ", hits=" + Hits +
+                ", misses=" + Misses +
+                ", reads=" + Reads +
+                ", readTime=" + ReadTime +
+                ", writes=" + Writes +
+                ", writeTime=" + WriteTime +
+                ']';
+        }
     }
 }

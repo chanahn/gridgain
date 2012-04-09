@@ -27,7 +27,7 @@ import org.jetbrains.annotations.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public enum GridCachePeekMode {
     /** Peeks value only from in-transaction memory of an ongoing transaction, if any. */

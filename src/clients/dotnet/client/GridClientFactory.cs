@@ -138,7 +138,7 @@ namespace GridGain.Client {
          */
         private static void StopSilent(GridClientImpl client, bool waitCompletion) {
             U.DoSilent<Exception>(() => client.stop(waitCompletion), e =>
-                Dbg.Write("Client stop process failed (exception ignored) [client=" + client + ", e=" + e.Message + "]"));
+                Dbg.WriteLine("Client stop process failed (exception ignored) [client=" + client + ", e=" + e.Message + "]"));
         }
     }
 }

@@ -7,7 +7,7 @@ import org.gridgain.grid.util.mbean.*;
  * MBean provide access to TCP-based communication SPI.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 @GridMBeanDescription("MBean provide access to TCP-based communication SPI.")
 public interface GridTcpCommunicationSpiMBean extends GridSpiManagementMBean {

@@ -27,7 +27,7 @@ import static java.util.concurrent.TimeUnit.*;
  * Client implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridClientImpl implements GridClient {
     /** Null mask object */
@@ -259,8 +259,7 @@ public class GridClientImpl implements GridClient {
                     }
 
                     @Override public String toString() {
-                        return new StringBuilder("GridClientHasCacheFilter [cacheName=").append(cacheName)
-                            .append("]").toString();
+                        return "GridClientHasCacheFilter [cacheName=" + cacheName + "]";
                     }
                 };
 
@@ -539,11 +538,6 @@ public class GridClientImpl implements GridClient {
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        final StringBuilder sb = new StringBuilder();
-        sb.append("GridClientImpl [id=");
-
-        sb.append(id).append(", closed=").append(closed).append(']');
-
-        return sb.toString();
+        return "GridClientImpl [id=" + id + ", closed=" + closed + ']';
     }
 }

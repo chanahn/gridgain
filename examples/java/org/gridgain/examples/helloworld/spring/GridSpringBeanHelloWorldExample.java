@@ -46,7 +46,7 @@ import java.util.concurrent.*;
  * uncomment another one to use.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public final class GridSpringBeanHelloWorldExample {
     /**
@@ -82,7 +82,7 @@ public final class GridSpringBeanHelloWorldExample {
      * Callable that prints out <tt>Hello world!</tt> statement.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.1c.07042012
+     * @version 4.0.1c.09042012
      */
     private static final class GridHelloWorldCallable implements Callable<String>, Serializable {
         /**

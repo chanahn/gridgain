@@ -23,7 +23,7 @@ import static javax.swing.JOptionPane.*;
  * {@code 'ggstart.sh examples/config/spring-authentication-passcode.xml'}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridAuthenticationNodeStartup {
     /**
@@ -32,12 +32,11 @@ public class GridAuthenticationNodeStartup {
      * @param args Command line arguments, none required but if provided
      *      first one should point to the Spring XML configuration file. See
      *      {@code "examples/config/"} for configuration file examples.
-     * @throws GridException If example execution failed.
      */
-    public static void main(String[] args) throws GridException {
-        G.start(args.length == 0 ? "examples/config/spring-authentication-passcode.xml" : args[0]);
-
+    public static void main(String[] args) {
         try {
+            G.start(args.length == 0 ? "examples/config/spring-authentication-passcode.xml" : args[0]);
+
             // Wait until Ok is pressed.
             JOptionPane.showMessageDialog(
                 null,
@@ -48,6 +47,13 @@ public class GridAuthenticationNodeStartup {
                 "GridGain",
                 INFORMATION_MESSAGE
             );
+        }
+        catch (GridException e) {
+            if (e.hasCause(ClassNotFoundException.class))
+                X.println("Failed to create grid " +
+                        "('security' is enterprise feature, are you using community edition?): " + e.getMessage());
+            else
+                X.println("Failed to create grid: " + e.getMessage());
         }
         finally {
             G.stop(true);

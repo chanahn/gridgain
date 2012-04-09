@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.*;
  * Statistics for {@link GridTcpDiscoverySpi}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridTcpDiscoveryStatistics {
     /** Join started timestamp. */

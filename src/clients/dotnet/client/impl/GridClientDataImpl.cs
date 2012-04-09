@@ -42,10 +42,13 @@ namespace GridGain.Client.Impl {
         }
 
         /** <inheritdoc /> */
-        public IGridClientData PinNodes(N node, N[] nodes) {
+        public IGridClientData PinNodes(N node, params N[] nodes) {
             LinkedList<N> n = new LinkedList<N>(nodes);
 
             n.AddFirst(node);
+
+            if (nodes != null)
+                n.AddAll(nodes);
 
             return CreateProjection(n, null, null);
         }

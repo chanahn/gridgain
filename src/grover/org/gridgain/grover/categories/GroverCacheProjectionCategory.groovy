@@ -25,7 +25,7 @@ import org.gridgain.grover.lang.*
  * to be annotated: {@code @Use(GroverCacheProjectionCategory)}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 @Typed
 class GroverCacheProjectionCategory {
@@ -984,7 +984,7 @@ class GroverCacheProjectionCategory {
      * Entry reducer.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.1c.07042012
+     * @version 4.0.1c.09042012
      */
     private static class EntryReducer<K, V, R> extends GridReducer<Map.Entry<K, V>, R> {
         private final List<GroverTuple<K, V>> buf = new ArrayList<GroverTuple<K, V>>()

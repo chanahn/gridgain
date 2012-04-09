@@ -20,7 +20,7 @@ import java.util.*;
  * Deployment request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 class GridDeploymentRequest implements Externalizable {
     /** Response topic name. Response should be sent back to this topic. */

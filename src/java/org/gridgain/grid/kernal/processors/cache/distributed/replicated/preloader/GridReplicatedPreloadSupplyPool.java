@@ -27,7 +27,7 @@ import java.util.concurrent.locks.*;
  * Thread pool for supplying entries to demanding nodes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 class GridReplicatedPreloadSupplyPool<K, V> {
     /** Cache context. */

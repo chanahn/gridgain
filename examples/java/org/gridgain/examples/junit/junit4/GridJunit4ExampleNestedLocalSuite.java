@@ -19,7 +19,7 @@ import org.junit.runners.Suite.*;
  * on local node, however still in parallel with other tests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 @RunWith(GridJunit4LocalSuite.class) // Specify local suite to run tests.
 @SuiteClasses(TestC.class)

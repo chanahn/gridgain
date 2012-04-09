@@ -41,13 +41,13 @@
             <summary>Simple balancer that implements the round-robin balancing.</summary> 
         </member>
         <member name="T:GridGain.Client.IGridClientTopologyListener">
-             <summary>
+            <summary>
             Listener interface for notifying on nodes joining or leaving remote grid.
-             <para/>
-             Since the topology refresh is performed in background, the listeners will
-             not be notified immediately after the node leaves grid, but the maximum time
-             window between remote grid detects node leaving and client receives topology
-             update is <see ctype="GridClientConfiguration#getTopologyRefreshFrequency()"/>.</summary>
+            <para/>
+            Since the topology refresh is performed in background, the listeners will
+            not be notified immediately after the node leaves grid, but the maximum time
+            window between remote grid detects node leaving and client receives topology
+            update is <see ctype="GridClientConfiguration#getTopologyRefreshFrequency()"/>.</summary>
         </member>
         <member name="M:GridGain.Client.IGridClientTopologyListener.OnNodeAdded(GridGain.Client.IGridClientNode)">
              <summary>
@@ -406,6 +406,9 @@
         </member>
         <member name="M:GridGain.Client.Impl.GridClientDataMetrics.#ctor">
             <summary>Constructs empty cache metrics.</summary> 
+        </member>
+        <member name="M:GridGain.Client.Impl.GridClientDataMetrics.ToString">
+            <inheritDoc/> 
         </member>
         <member name="P:GridGain.Client.Impl.GridClientDataMetrics.CreateTime">
             <summary>Gets create time of the owning entity (either cache or entry).</summary> 
@@ -1123,6 +1126,9 @@
         </member>
         <member name="F:GridGain.Client.GridClientConfiguration.DefaultClientProtocol">
             <summary>Default client protocol.</summary> 
+        </member>
+        <member name="F:GridGain.Client.GridClientConfiguration.DefaultTcpPort">
+            <summary>Default TCP server port.</summary> 
         </member>
         <member name="F:GridGain.Client.GridClientConfiguration.DefaultTopologyRefreshFrequency">
             <summary>Default topology refresh frequency is 2 sec.</summary> 

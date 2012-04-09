@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.*;
  * connection to configured host and port and immediately closing it.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridTcpSegmentationResolver extends GridSegmentationResolver {
     /** Default value for local port. */

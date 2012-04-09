@@ -20,7 +20,7 @@ import java.util.Arrays;
  * It is identical to {@link java.io.ByteArrayOutputStream} with no synchronization.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridByteArrayOutputStream extends OutputStream {
     /** The buffer where data is stored. */

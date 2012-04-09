@@ -32,7 +32,7 @@ import static org.gridgain.grid.util.gridify.GridifyUtils.*;
  * {@code gridified} methods.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  * @see GridifySetToValue
  */
 @Aspect(scope = Scope.PER_VM)

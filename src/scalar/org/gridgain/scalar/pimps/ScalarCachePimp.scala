@@ -33,7 +33,7 @@ import org.gridgain.grid.cache._
  * Scala's side method with `$` suffix.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 class ScalarCachePimp[K, V] extends ScalarCacheProjectionPimp[K, V] with Ordered[GridCache[K, V]] {
     /**
@@ -48,7 +48,7 @@ class ScalarCachePimp[K, V] extends ScalarCacheProjectionPimp[K, V] with Ordered
  * Companion object.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 object ScalarCachePimp {
     /**

@@ -36,15 +36,14 @@ import java.util.concurrent.*;
  * <p>
  * Following short video provides quick overview of basic Compute Grid capabilities:
  * <p>
- * <a href="http://www.youtube.com/user/gridgain?hd=1#p/a/u/0/MXIUc6Tm5uU" target="youtube"><img
- * src="http://gridgain.com/images/video_mapreduce_thumb.png"></a>
+ * <a href="http://www.vimeo.com/gridgain" target="vimeo"><img src="http://www.gridgain.com/images/vimeo.png"></a>
  * <p>
  * For more information see
  * <a target=wiki href="http://www.gridgainsystems.com:8080/wiki/display/GG15UG/Grid+Interface">Grid Interface</a>
  * on Wiki.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public interface Grid extends GridProjection {
     /**

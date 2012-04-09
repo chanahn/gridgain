@@ -15,7 +15,7 @@ import org.gridgain.grid.lang.utils.*;
  * All objects that can timeout should implement this interface.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public interface GridTimeoutObject {
     /**

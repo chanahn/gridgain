@@ -10,7 +10,7 @@
 namespace GridGain.Client {
     /**
      * <summary>
-     *Listener interface for notifying on nodes joining or leaving remote grid.
+     * Listener interface for notifying on nodes joining or leaving remote grid.
      * <para/>
      * Since the topology refresh is performed in background, the listeners will
      * not be notified immediately after the node leaves grid, but the maximum time

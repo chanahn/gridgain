@@ -16,7 +16,7 @@ import org.jetbrains.annotations.*;
  * documentation for more information about cache transaction isolation levels.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public enum GridCacheTxIsolation {
     /** Read committed isolation level. */

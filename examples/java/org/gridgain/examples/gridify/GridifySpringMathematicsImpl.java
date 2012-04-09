@@ -17,7 +17,7 @@ import java.util.*;
  * Bean implementation for Spring AOP-based annotations example.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridifySpringMathematicsImpl implements GridifySpringMathematics {
     /**

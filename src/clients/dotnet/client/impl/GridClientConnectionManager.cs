@@ -184,7 +184,7 @@ namespace GridGain.Client.Impl {
                     return connect(srv);
                 }
                 catch (IOException e) {
-                    Dbg.Write("Unable to connect to grid node [srvAddr=" + srv + ", msg=" + e.Message + ']');
+                    Dbg.WriteLine("Unable to connect to grid node [srvAddr=" + srv + ", msg=" + e.Message + ']');
 
                     cause = e;
                 }
@@ -192,7 +192,8 @@ namespace GridGain.Client.Impl {
 
             A.NotNull(cause, "cause");
 
-            throw new GridClientServerUnreachableException("Failed to connect to any of the servers in list: " + srvs, cause);
+            throw new GridClientServerUnreachableException("Failed to connect to any of the servers in list: " 
+                + String.Join<IPEndPoint>(",", srvs), cause);
         }
 
         /**
@@ -228,7 +229,7 @@ namespace GridGain.Client.Impl {
          * <param name="e">Exception.</param>
          */
         public void onFacadeFailed(IGridClientNode node, C conn, GridClientConnectionResetException e) {
-            Dbg.Write("Connection with remote node was terminated" +
+            Dbg.WriteLine("Connection with remote node was terminated" +
                 "[node=" + node + ", srvAddr=" + conn.ServerAddress + ", errMsg=" + e.Message + ']');
 
             guard.AcquireWriterLock(Timeout.Infinite);
@@ -347,7 +348,7 @@ namespace GridGain.Client.Impl {
          */
         private static void closeSilent(C conn, bool waitCompletion) {
             U.DoSilent<Exception>(() => conn.Close(waitCompletion), e =>
-                Dbg.Write("Failed to close connection [conn=" + conn + ", e=" + e.Message + "]"));
+                Dbg.WriteLine("Failed to close connection [conn=" + conn + ", e=" + e.Message + "]"));
         }
     }
 }

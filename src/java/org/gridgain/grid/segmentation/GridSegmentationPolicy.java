@@ -17,7 +17,7 @@ import org.gridgain.grid.spi.discovery.*;
  * Policy that defines how node will react on topology segmentation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  * @see GridSegmentationResolver
  */
 public enum GridSegmentationPolicy {

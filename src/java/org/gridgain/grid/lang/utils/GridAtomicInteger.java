@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.*;
  * also adds greater than and less than atomic set operations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridAtomicInteger extends AtomicInteger {
     /**

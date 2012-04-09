@@ -32,7 +32,7 @@ import static org.gridgain.grid.GridSystemProperties.*;
  * Jetty REST protocol implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridJettyRestProtocol extends GridRestProtocolAdapter {
     /** Default Jetty configuration file path. */

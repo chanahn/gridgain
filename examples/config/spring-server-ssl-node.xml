@@ -8,7 +8,7 @@
     \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 
     Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
-    Version: 4.0.1c.07042012
+    Version: 4.0.1c.09042012
 -->
 
 <!--
@@ -31,8 +31,13 @@
         Spring file for grid configuration with client available endpoints.
     </description>
 
-    <!-- Load defaults. -->
-    <import resource="spring-defaults.xml"/>
+    <!--
+        Initialize property configurer so we can reference environment variables.
+    -->
+    <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_FALLBACK"/>
+        <property name="searchSystemEnvironment" value="true"/>
+    </bean>
 
     <!--
         Configuration below demonstrates how to setup a collision and failover SPI's
@@ -52,9 +57,16 @@
 
         <!-- Configure TCP+SSL rest protocol. -->
         <property name="restTcpSslEnabled" value="true"/>
+
         <property name="restTcpSslContextFactory">
-            <bean parent="defaultSslContextFactory"/>
+            <bean class="org.gridgain.client.ssl.GridSslBasicContextFactory">
+                <property name="keyStoreFilePath" value="${GRIDGAIN_HOME}/examples/keystore/server.store"/>
+                <property name="keyStorePassword" value="123456"/>
+                <property name="trustStoreFilePath" value="${GRIDGAIN_HOME}/examples/keystore/trust.store"/>
+                <property name="trustStorePassword" value="123456"/>
+            </bean>
         </property>
+
         <property name="restTcpPort" value="10443"/>
 
         <!-- Configure HTTPs rest protocol. -->
@@ -68,64 +80,67 @@
             -->
             <list>
                 <!--
-                    Default cache example configuration.
-                -->
-                <bean parent="defaultCacheConfiguration">
-                    <!-- Cache name is null. -->
-                    <!--<property name="name"><null/></property>-->
-
-                    <!-- LOCAL cache mode. -->
-                    <property name="cacheMode" value="LOCAL"/>
-                </bean>
-
-                <!--
-                    Local cache example configuration.
-                -->
-                <bean parent="defaultCacheConfiguration">
-                    <!-- Cache name is 'local'. -->
-                    <property name="name" value="cache"/>
-
-                    <!-- LOCAL cache mode. -->
-                    <property name="cacheMode" value="LOCAL"/>
-                </bean>
-
-                <!--
                     Partitioned cache example configuration.
                 -->
-                <bean parent="defaultCacheConfiguration">
+                <bean class="org.gridgain.grid.cache.GridCacheConfigurationAdapter">
                     <!-- Cache name is 'partitioned'. -->
                     <property name="name" value="partitioned"/>
 
                     <!-- PARTITIONED cache mode. -->
                     <property name="cacheMode" value="PARTITIONED"/>
-                </bean>
 
-                <!--
-                    Replicated cache example configuration.
-                -->
-                <bean parent="defaultCacheConfiguration">
-                    <!-- Cache name is 'replicated'. -->
-                    <property name="name" value="replicated"/>
+                    <!--
+                        Set to false because text queries are not supported for in-memory indexes.
+                    -->
+                    <property name="indexMemoryOnly" value="false"/>
 
-                    <!-- REPLICATED cache mode. -->
-                    <property name="cacheMode" value="REPLICATED"/>
+                    <!-- Initial cache size. -->
+                    <property name="startSize" value="20"/>
+
+                    <!--
+                        Allow to index key-value pairs where key type may be associated with different
+                        value types, and vice versa, value type may be associated with different key types.
+                    -->
+                    <property name="indexFixedTyping" value="false" />
+
+                    <!--
+                        Turn on the auto-indexing of primitive types for SQL queries.
+                        Turn it off for to improve performance.
+                    -->
+                    <property name="autoIndexQueryTypes" value="SQL"/>
                 </bean>
             </list>
         </property>
 
+        <!--
+            Use passcode authentication SPI.
+        -->
         <property name="authenticationSpi">
-            <bean parent="defaultAuthenticationSpi"/>
+            <bean class="org.gridgain.grid.spi.authentication.passcode.GridPasscodeAuthenticationSpi">
+                <property name="passcodes">
+                    <map>
+                        <entry key="REMOTE_NODE" value="s3cret"/>
+                        <entry key="REMOTE_CLIENT" value="s3cret"/>
+                    </map>
+                </property>
+            </bean>
         </property>
 
+        <!--
+            Use remember me secure session SPI.
+        -->
         <property name="secureSessionSpi">
-            <bean parent="defaultSecureSessionSpi"/>
+            <bean class="org.gridgain.grid.spi.securesession.rememberme.GridRememberMeSecureSessionSpi">
+                <!-- Session TTL = 1 hour -->
+                <property name="ttl" value="3600000"/>
+            </bean>
         </property>
 
         <!--
             TCP discovery SPI (uses VM-shared IP-finder).
         -->
         <property name="discoverySpi">
-            <bean parent="defaultDiscoverySpi">
+            <bean class="org.gridgain.grid.spi.discovery.tcp.GridTcpDiscoverySpi">
                 <!-- Make sure both servers (unsecured and SSL-protected) can start as independent grids. -->
                 <property name="localPort" value="48500"/>
 
@@ -156,5 +171,4 @@
             </bean>
         </property>
     </bean>
-
 </beans>

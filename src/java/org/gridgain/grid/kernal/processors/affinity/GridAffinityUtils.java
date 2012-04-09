@@ -28,7 +28,7 @@ import static org.gridgain.grid.GridJobResultPolicy.*;
  * Affinity utility methods.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 class GridAffinityUtils {
     /**

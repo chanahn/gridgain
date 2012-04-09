@@ -22,7 +22,7 @@ import static org.gridgain.grid.spi.deployment.uri.GridUriDeploymentUnitDescript
  * Container for information about tasks and file where classes placed. It also contains tasks instances.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 class GridUriDeploymentUnitDescriptor {
     /**

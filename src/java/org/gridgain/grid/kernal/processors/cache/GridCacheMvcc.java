@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.*;
  * generated to prevent starvation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public final class GridCacheMvcc<K> {
     /** Logger reference. */

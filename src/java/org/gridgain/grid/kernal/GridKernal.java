@@ -77,17 +77,17 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * misspelling.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridKernal extends GridProjectionAdapter implements Grid, GridKernalMBean, Externalizable {
     /** Ant-augmented version number. */
     private static final String VER = "4.0.1c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "07042012";
+    private static final String BUILD = "09042012";
 
     /** Ant-augmented release date. */
-    private static final String RELEASE_DATE = "07042012";
+    private static final String RELEASE_DATE = "09042012";
 
     /** Ant-augmented copyright blurb. */
     private static final String COPYRIGHT = "2012 Copyright (C) GridGain Systems";

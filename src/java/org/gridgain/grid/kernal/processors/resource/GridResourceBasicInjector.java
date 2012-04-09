@@ -17,7 +17,7 @@ import org.gridgain.grid.typedef.internal.*;
  * Simple injector which wraps only one resource object.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  * @param <T> Type of injected resource.
  */
 class GridResourceBasicInjector<T> implements GridResourceInjector {

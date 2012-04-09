@@ -15,7 +15,7 @@ import org.gridgain.client.*;
  * In this case client will try to reconnect to any of the servers specified in configuration.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 class GridClientConnectionResetException extends GridClientException {
     /**

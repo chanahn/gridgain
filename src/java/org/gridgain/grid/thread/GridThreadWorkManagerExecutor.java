@@ -22,7 +22,7 @@ import java.util.concurrent.*;
  * such as Weblogic, Websphere, Spring, Globus, apache projects, etc.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridThreadWorkManagerExecutor extends AbstractExecutorService {
     /** Work manager with all tasks are delegated to. */

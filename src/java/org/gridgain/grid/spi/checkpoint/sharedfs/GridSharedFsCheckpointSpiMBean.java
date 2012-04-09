@@ -18,7 +18,7 @@ import java.util.*;
  * about shared file system checkpoints.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 @GridMBeanDescription("MBean for shared file system based checkpoint SPI.")
 public interface GridSharedFsCheckpointSpiMBean extends GridSpiManagementMBean {

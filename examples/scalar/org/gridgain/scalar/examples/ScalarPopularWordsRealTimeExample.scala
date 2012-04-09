@@ -19,7 +19,7 @@ import io.Source
 import java.util.{TimerTask, Timer}
 import actors.threadpool.{ExecutorCompletionService, Callable, CompletionService, Executors}
 import collection.immutable.{TreeMap}
-import org.gridgain.grid.{GridClosureCallMode, GridFuture}
+import org.gridgain.grid.{GridDataLoader, GridClosureCallMode}
 import GridClosureCallMode._
 
 /**
@@ -29,7 +29,7 @@ import GridClosureCallMode._
  * an overall top `10` list within the grid.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 object ScalarPopularWordsRealTimeExample {
     private final val POPULAR_WORDS_CNT = 10;
@@ -85,6 +85,11 @@ object ScalarPopularWordsRealTimeExample {
     def populate(threadPool: CompletionService, bookDir: File) {
         val books = bookDir.list()
 
+        val ldr: GridDataLoader[String, JInt] = grid$.dataLoader(null)
+
+        // Set larger per-node buffer size since our state is relatively small.
+        ldr.perNodeBufferSize(300);
+
         // For every book, start a new thread and start populating cache
         // with words and their counts.
         for (name <- books) {
@@ -92,25 +97,10 @@ object ScalarPopularWordsRealTimeExample {
                 def call() = {
                     println(">>> Storing all words from book in data grid: " + name);
 
-                    val cache = grid$.cache[String, JInt]
-
-                    var fut: GridFuture[_] = null
-
                     Source.fromFile(new File(bookDir, name), "ISO-8859-1").getLines().foreach(line => {
                         line.split("[^a-zA-Z0-9]").foreach(word => {
-                            if (!word.isEmpty) {
-                                if (fut != null)
-                                    fut.get()
-
-                                fut = grid$.affinityRunAsync(null, word, () => {
-                                    // Increment word counter and store it in cache.
-                                    // We use cache transaction to make sure that
-                                    // gets and puts are consistent and atomic.
-                                    cache.inTx(() => cache += (word -> (cache.getOrElse(word, 0) + 1)))
-
-                                    ()
-                                })
-                            }
+                            if (!word.isEmpty)
+                                ldr.addData(word, (cnt: JInt) => (if (cnt == null) 1 else cnt + 1).asInstanceOf[JInt])
                         })
                     })
 

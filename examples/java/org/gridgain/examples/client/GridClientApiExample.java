@@ -12,8 +12,6 @@ package org.gridgain.examples.client;
 import org.gridgain.client.*;
 import org.gridgain.client.balancer.*;
 import org.gridgain.grid.*;
-import org.gridgain.grid.cache.*;
-import org.gridgain.grid.resources.*;
 import org.gridgain.grid.typedef.*;
 
 import java.net.*;
@@ -23,7 +21,7 @@ import java.util.*;
  * Starts up an empty node with cache configuration.
  * You can also start a stand-alone GridGain instance by passing the path
  * to configuration file to {@code 'ggstart.{sh|bat}'} script, like so:
- * {@code 'ggstart.sh examples/config/spring-cache-secondary.xml'}.
+ * {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  * <p>
  * Note that different nodes cannot share the same port for rest services. If you want
  * to start more than one node on the same physical machine you must provide different
@@ -34,9 +32,12 @@ import java.util.*;
  * as the grid node - we do it here only for example purposes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  */
 public class GridClientApiExample {
+    /** Grid node address to connect to. */
+    private static final String SERVER_ADDRESS = "127.0.0.1";
+
     /** Count of keys to be stored in this example. */
     public static final int KEYS_CNT = 10;
 
@@ -45,208 +46,58 @@ public class GridClientApiExample {
      * compute example.
      *
      * @param args Command line arguments, none required.
-     * @throws GridException If example execution failed.
-     * @throws GridClientException If client encountered an error.
+     * @throws GridException If failed.
      */
-    public static void main(String[] args) throws GridException, GridClientException {
-        // Start up a grid node.
-        Grid g = G.start("examples/config/spring-cache.xml");
+    public static void main(String[] args) throws Exception {
+        clientCacheExample();
 
-        try {
-            // Get id of a started node to start task execution.
-            UUID locNodeId = g.localNode().id();
-
-            clientCacheExample(locNodeId);
-
-            clientComputeExample(locNodeId);
-        }
-        finally {
-            G.stopAll(true);
-        }
+        clientComputeExample();
     }
 
     /**
-     * Selects a particular node to run example task on, executes it and prints out the task result.
+     * This method will create a client with default configuration. Note that this method expects that
+     * first node will bind rest binary protocol on default port. It also expects that partitioned cache is
+     * configured in grid.
      *
-     * @param locNodeId Example node id.
-     * @throws GridClientException If client encountered exception.
+     * @return Client instance.
+     * @throws GridClientException If client could not be created.
      */
-    private static void clientComputeExample(final UUID locNodeId) throws GridClientException {
-        GridClient client = createClient();
+    private static GridClient createClient() throws GridClientException {
+        GridClientConfigurationAdapter cfg = new GridClientConfigurationAdapter();
 
-        try {
-            // Show grid topology.
-            X.println(">>> Client created, current grid topology: " + client.compute().nodes());
+        GridClientDataConfigurationAdapter cacheCfg = new GridClientDataConfigurationAdapter();
 
-            // Note that in this example we get a fixed projection for task call because we cannot guarantee that
-            // other nodes contain ClientExampleTask in classpath.
-            GridClientCompute prj = client.compute().projection(new GridClientPredicate<GridClientNode>() {
-                @Override public boolean apply(GridClientNode node) {
-                    return node.nodeId().equals(locNodeId);
-                }
-            });
+        // Set remote cache name.
+        cacheCfg.setName("partitioned");
 
-            // Execute test task that will count total count of cache entries in grid.
-            Integer entryCnt = prj.execute(ClientExampleTask.class.getName(), null);
+        // Set client partitioned affinity for this cache.
+        cacheCfg.setAffinity(new GridClientPartitionedAffinity());
 
-            X.println(">>> Predicate projection : there are totally " + entryCnt + " test entries on the grid");
+        cfg.setDataConfigurations(Collections.singletonList(cacheCfg));
 
-            // Same as above, using different projection API.
-            GridClientNode clntNode = prj.node(locNodeId);
+        // Point client to a local node. Note that this server is only used
+        // for initial connection. After having established initial connection
+        // client will make decisions which grid node to use based on collocation
+        // with key affinity or load balancing.
+        cfg.setServers(Collections.singletonList(SERVER_ADDRESS + ':' + GridConfigurationAdapter.DFLT_TCP_PORT));
 
-            prj = prj.projection(clntNode);
-
-            entryCnt = prj.execute(ClientExampleTask.class.getName(), null);
-
-            X.println(">>> GridClientNode projection : there are totally " + entryCnt + " test entries on the grid");
-
-            // Use of collections is also possible.
-            prj = prj.projection(Collections.singleton(clntNode));
-
-            entryCnt = prj.execute(ClientExampleTask.class.getName(), null);
-
-            X.println(">>> Collection projection : there are totally " + entryCnt + " test entries on the grid");
-
-            // Balancing - may be random or round-robin. Users can create
-            // custom load balancers as well.
-            GridClientLoadBalancer balancer = new GridClientRandomBalancer();
-
-            // Balancer may be added to predicate or collection examples.
-            prj = client.compute().projection(new GridClientPredicate<GridClientNode>() {
-                @Override public boolean apply(GridClientNode node) {
-                    return node.nodeId().equals(locNodeId);
-                }
-            }, balancer);
-
-            entryCnt = prj.execute(ClientExampleTask.class.getName(), null);
-
-            X.println(">>> Predicate projection with balancer : there are totally " + entryCnt +
-                " test entries on the grid");
-
-            // Now let's try round-robin load balancer.
-            balancer = new GridClientRoundRobinBalancer();
-
-            prj = prj.projection(Collections.singleton(clntNode), balancer);
-
-            entryCnt = prj.execute(ClientExampleTask.class.getName(), null);
-
-            X.println(">>> GridClientNode projection : there are totally " + entryCnt + " test entries on the grid");
-
-            // Execution may be asynchronous.
-            GridClientFuture<Integer> fut = prj.executeAsync(ClientExampleTask.class.getName(), null);
-
-            X.println(">>> Execute async : there are totally " + fut.get() + " test entries on the grid");
-
-            // Execution may use affinity.
-            GridClientData rmtCache = client.data("partitioned");
-
-            String key = String.valueOf(0);
-
-            rmtCache.put(key, "new value for 0");
-
-            entryCnt = prj.affinityExecute(ClientExampleTask.class.getName(), "partitioned", key, null);
-
-            X.println(">>> Affinity execute : there are totally " + entryCnt + " test entries on the grid");
-
-            // Affinity execution may be asynchronous, too.
-            fut = prj.affinityExecuteAsync(ClientExampleTask.class.getName(), "partitioned", key, null);
-
-            X.println(">>> Affinity execute async : there are totally " + fut.get() + " test entries on the grid");
-
-            // GridClientCompute can be queried for nodes participating in it.
-            Collection c = prj.nodes(Collections.singleton(locNodeId));
-
-            X.println(">>> Nodes with UUID " + locNodeId + " : " + c);
-
-            // Nodes may also be filtered with predicate. Here
-            // we create projection which only contains local node.
-            c = prj.nodes(new GridClientPredicate<GridClientNode>() {
-                @Override public boolean apply(GridClientNode node) {
-                    return node.nodeId().equals(locNodeId);
-                }
-            });
-
-            X.println(">>> Nodes filtered with predicate : " + c);
-
-            // Information about nodes may be refreshed explicitly.
-            clntNode = prj.refreshNode(locNodeId, true, true);
-
-            X.println(">>> Refreshed node : " + clntNode);
-
-            // As usual, there's also an asynchronous version.
-            GridClientFuture<GridClientNode> futClntNode = prj.refreshNodeAsync(locNodeId, false, false);
-
-            X.println(">>> Refreshed node asynchronously : " + futClntNode.get());
-
-            // Nodes may also be refreshed by IP address.
-            String clntAddr = "127.0.0.1";
-
-            for (InetSocketAddress addr : clntNode.availableAddresses(GridClientProtocol.TCP))
-                if (addr != null)
-                    clntAddr = addr.getAddress().getHostAddress();
-
-            // Force node metrics refresh (by default it happens periodically in the background).
-            clntNode = prj.refreshNode(clntAddr, true, true);
-
-            X.println(">>> Refreshed node by IP : " + clntNode.toString());
-
-            // Asynchronous version.
-            futClntNode = prj.refreshNodeAsync(clntAddr, false, false);
-
-            X.println(">>> Refreshed node by IP asynchronously : " + futClntNode.get());
-
-            // Topology as a whole may be refreshed, too.
-            Collection<GridClientNode> top = prj.refreshTopology(true, true);
-
-            X.println(">>> Refreshed topology : " + top);
-
-            // Asynchronous version.
-            GridClientFuture<List<GridClientNode>> topFut = prj.refreshTopologyAsync(false, false);
-
-            X.println(">>> Refreshed topology asynchronously : " + topFut.get());
-
-            try {
-                // Client can be used to query logs.
-                Collection<String> log = prj.log(0, 1);
-
-                X.println(">>> First log lines : " + log);
-
-                // Log entries may be fetched asynchronously.
-                GridClientFuture<List<String>> futLog = prj.logAsync(1, 2);
-
-                X.println(">>> First log lines fetched asynchronously : " + futLog.get());
-
-                // Log file name can also be specified explicitly.
-                log = prj.log("work/log/gridgain.log", 0, 1);
-
-                X.println(">>> First log lines from log file work/log/gridgain.log : " + log);
-
-                // Asynchronous version supported as well.
-                futLog = prj.logAsync("work/log/gridgain.log", 1, 2);
-
-                X.println(">>> First log lines fetched asynchronously : " + futLog.get());
-            }
-            catch (GridClientException e) {
-                X.println("Log file was not found: " + e);
-            }
-        }
-        finally {
-            GridClientFactory.stopAll(true);
-        }
+        return GridClientFactory.start(cfg);
     }
 
     /**
      * Shows simple cache usage via GridGain client.
      *
-     * @param locNodeId Identifier of node started by this example.
      * @throws GridClientException If client encountered exception.
      */
-    private static void clientCacheExample(UUID locNodeId) throws GridClientException {
+    private static void clientCacheExample() throws GridClientException {
         GridClient client = createClient();
 
         try {
             // Show grid topology.
             X.println(">>> Client created, current grid topology: " + client.compute().nodes());
+
+            // Random node ID.
+            final UUID randNodeId = client.compute().nodes().iterator().next().nodeId();
 
             // Get client projection of grid partitioned cache.
             GridClientData rmtCache = client.data("partitioned");
@@ -269,7 +120,7 @@ public class GridClientApiExample {
 
             // Pin a remote node for communication. All further communication
             // on returned projection will happen through this pinned node.
-            GridClientData prj = rmtCache.pinNodes(client.compute().node(locNodeId));
+            GridClientData prj = rmtCache.pinNodes(client.compute().node(randNodeId));
 
             // Request batch from our local node in pinned mode.
             Map<String, Object> vals = prj.getAll(keys);
@@ -415,93 +266,174 @@ public class GridClientApiExample {
     }
 
     /**
-     * This method will create a client with default configuration. Note that this method expects that
-     * first node will bind rest binary protocol on default port. It also expects that partitioned cache is
-     * configured in grid.
+     * Selects a particular node to run example task on, executes it and prints out the task result.
      *
-     * @return Client instance.
-     * @throws GridClientException If client could not be created.
+     * @throws GridClientException If client encountered exception.
      */
-    private static GridClient createClient() throws GridClientException {
-        GridClientConfigurationAdapter cfg = new GridClientConfigurationAdapter();
+    private static void clientComputeExample() throws GridClientException {
+        GridClient client = createClient();
 
-        GridClientDataConfigurationAdapter cacheCfg = new GridClientDataConfigurationAdapter();
+        try {
+            // Show grid topology.
+            X.println(">>> Client created, current grid topology: " + client.compute().nodes());
 
-        // Set remote cache name.
-        cacheCfg.setName("partitioned");
+            // Random node ID.
+            final UUID randNodeId = client.compute().nodes().iterator().next().nodeId();
 
-        // Set client partitioned affinity for this cache.
-        cacheCfg.setAffinity(new GridClientPartitionedAffinity());
+            // Note that in this example we get a fixed projection for task call because we cannot guarantee that
+            // other nodes contain ClientExampleTask in classpath.
+            GridClientCompute prj = client.compute().projection(new GridClientPredicate<GridClientNode>() {
+                @Override public boolean apply(GridClientNode node) {
+                    return node.nodeId().equals(randNodeId);
+                }
+            });
 
-        cfg.setDataConfigurations(Collections.singletonList(cacheCfg));
+            // Execute test task that will count total count of cache entries in grid.
+            Integer entryCnt = prj.execute(GridClientExampleTask.class.getName(), null);
 
-        // Point client to a local node. Note that this server is only used
-        // for initial connection. After having established initial connection
-        // client will make decisions which grid node to use based on collocation
-        // with key affinity or load balancing.
-        cfg.setServers(Collections.singletonList("localhost:" + GridConfigurationAdapter.DFLT_TCP_PORT));
+            X.println(">>> Predicate projection : there are totally " + entryCnt + " test entries on the grid");
 
-        return GridClientFactory.start(cfg);
-    }
+            // Same as above, using different projection API.
+            GridClientNode clntNode = prj.node(randNodeId);
 
-    /**
-     * Test task that checks key ownership by nodes. This task will produce as many grid jobs as there are
-     * nodes in the grid. Each produced job will iterate through all possible keys and peek value from cache.
-     * If a value found, corresponding output will be printed. The overall task result is a total count of
-     * entries on all nodes.
-     */
-    private static class ClientExampleTask extends GridTaskSplitAdapter<Object, Integer> {
-        /** Local grid instance. */
-        @GridInstanceResource
-        private Grid grid;
+            prj = prj.projection(clntNode);
 
-        /** {@inheritDoc} */
-        @Override protected Collection<? extends GridJob> split(int gridSize, Object arg) throws GridException {
-            Collection<GridJob> res = new ArrayList<GridJob>(gridSize);
+            entryCnt = prj.execute(GridClientExampleTask.class.getName(), null);
 
-            for (int i = 0; i < gridSize; i++) {
-                res.add(new GridJobAdapterEx() {
-                    @Override public Integer execute() {
-                        GridCache<String, String> cache = grid.cache("partitioned");
+            X.println(">>> GridClientNode projection : there are totally " + entryCnt + " test entries on the grid");
 
-                        if (cache == null) {
-                            X.println(">>> Partitioned cache is not configured on node: " + grid.localNode().id());
+            // Use of collections is also possible.
+            prj = prj.projection(Collections.singleton(clntNode));
 
-                            return 0;
-                        }
-                        else {
-                            int cnt = 0;
+            entryCnt = prj.execute(GridClientExampleTask.class.getName(), null);
 
-                            for (int i = 0; i < KEYS_CNT; i++) {
-                                String key = String.valueOf(i);
+            X.println(">>> Collection projection : there are totally " + entryCnt + " test entries on the grid");
 
-                                String val = cache.peek(key);
+            // Balancing - may be random or round-robin. Users can create
+            // custom load balancers as well.
+            GridClientLoadBalancer balancer = new GridClientRandomBalancer();
 
-                                if (val != null) {
-                                    X.println(">>> Found cache entry [key=" + key + ", val=" + val + ", locNodeId=" +
-                                        grid.localNode().id());
+            // Balancer may be added to predicate or collection examples.
+            prj = client.compute().projection(new GridClientPredicate<GridClientNode>() {
+                @Override public boolean apply(GridClientNode node) {
+                    return node.nodeId().equals(randNodeId);
+                }
+            }, balancer);
 
-                                    cnt++;
-                                }
-                            }
+            entryCnt = prj.execute(GridClientExampleTask.class.getName(), null);
 
-                            return cnt;
-                        }
-                    }
-                });
+            X.println(">>> Predicate projection with balancer : there are totally " + entryCnt +
+                " test entries on the grid");
+
+            // Now let's try round-robin load balancer.
+            balancer = new GridClientRoundRobinBalancer();
+
+            prj = prj.projection(Collections.singleton(clntNode), balancer);
+
+            entryCnt = prj.execute(GridClientExampleTask.class.getName(), null);
+
+            X.println(">>> GridClientNode projection : there are totally " + entryCnt + " test entries on the grid");
+
+            // Execution may be asynchronous.
+            GridClientFuture<Integer> fut = prj.executeAsync(GridClientExampleTask.class.getName(), null);
+
+            X.println(">>> Execute async : there are totally " + fut.get() + " test entries on the grid");
+
+            // Execution may use affinity.
+            GridClientData rmtCache = client.data("partitioned");
+
+            String key = String.valueOf(0);
+
+            rmtCache.put(key, "new value for 0");
+
+            entryCnt = prj.affinityExecute(GridClientExampleTask.class.getName(), "partitioned", key, null);
+
+            X.println(">>> Affinity execute : there are totally " + entryCnt + " test entries on the grid");
+
+            // Affinity execution may be asynchronous, too.
+            fut = prj.affinityExecuteAsync(GridClientExampleTask.class.getName(), "partitioned", key, null);
+
+            X.println(">>> Affinity execute async : there are totally " + fut.get() + " test entries on the grid");
+
+            // GridClientCompute can be queried for nodes participating in it.
+            Collection c = prj.nodes(Collections.singleton(randNodeId));
+
+            X.println(">>> Nodes with UUID " + randNodeId + " : " + c);
+
+            // Nodes may also be filtered with predicate. Here
+            // we create projection which only contains local node.
+            c = prj.nodes(new GridClientPredicate<GridClientNode>() {
+                @Override public boolean apply(GridClientNode node) {
+                    return node.nodeId().equals(randNodeId);
+                }
+            });
+
+            X.println(">>> Nodes filtered with predicate : " + c);
+
+            // Information about nodes may be refreshed explicitly.
+            clntNode = prj.refreshNode(randNodeId, true, true);
+
+            X.println(">>> Refreshed node : " + clntNode);
+
+            // As usual, there's also an asynchronous version.
+            GridClientFuture<GridClientNode> futClntNode = prj.refreshNodeAsync(randNodeId, false, false);
+
+            X.println(">>> Refreshed node asynchronously : " + futClntNode.get());
+
+            // Nodes may also be refreshed by IP address.
+            String clntAddr = "127.0.0.1";
+
+            for (InetSocketAddress addr : clntNode.availableAddresses(GridClientProtocol.TCP))
+                if (addr != null)
+                    clntAddr = addr.getAddress().getHostAddress();
+
+            // Force node metrics refresh (by default it happens periodically in the background).
+            clntNode = prj.refreshNode(clntAddr, true, true);
+
+            X.println(">>> Refreshed node by IP : " + clntNode.toString());
+
+            // Asynchronous version.
+            futClntNode = prj.refreshNodeAsync(clntAddr, false, false);
+
+            X.println(">>> Refreshed node by IP asynchronously : " + futClntNode.get());
+
+            // Topology as a whole may be refreshed, too.
+            Collection<GridClientNode> top = prj.refreshTopology(true, true);
+
+            X.println(">>> Refreshed topology : " + top);
+
+            // Asynchronous version.
+            GridClientFuture<List<GridClientNode>> topFut = prj.refreshTopologyAsync(false, false);
+
+            X.println(">>> Refreshed topology asynchronously : " + topFut.get());
+
+            try {
+                // Client can be used to query logs.
+                Collection<String> log = prj.log(0, 1);
+
+                X.println(">>> First log lines : " + log);
+
+                // Log entries may be fetched asynchronously.
+                GridClientFuture<List<String>> futLog = prj.logAsync(1, 2);
+
+                X.println(">>> First log lines fetched asynchronously : " + futLog.get());
+
+                // Log file name can also be specified explicitly.
+                log = prj.log("work/log/gridgain.log", 0, 1);
+
+                X.println(">>> First log lines from log file work/log/gridgain.log : " + log);
+
+                // Asynchronous version supported as well.
+                futLog = prj.logAsync("work/log/gridgain.log", 1, 2);
+
+                X.println(">>> First log lines fetched asynchronously : " + futLog.get());
             }
-
-            return res;
+            catch (GridClientException e) {
+                X.println("Log file was not found: " + e);
+            }
         }
-
-        /** {@inheritDoc} */
-        @Override public Integer reduce(List<GridJobResult> results) throws GridException {
-            int sum = 0;
-
-            for (GridJobResult res : results)
-                sum += res.<Integer>getData();
-
-            return sum;
+        finally {
+            GridClientFactory.stopAll(true);
         }
     }
 }

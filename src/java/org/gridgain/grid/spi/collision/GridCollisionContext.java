@@ -22,7 +22,7 @@ import java.util.*;
  * waiting to be executed.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.07042012
+ * @version 4.0.1c.09042012
  * @since 3.5
  */
 public interface GridCollisionContext {

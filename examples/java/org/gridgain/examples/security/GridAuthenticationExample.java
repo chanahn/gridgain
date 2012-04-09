@@ -28,7 +28,7 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * to configuration file to {@code 'ggstart.{sh|bat}'} script, like so:
  * {@code 'ggstart.sh examples/config/spring-authentication-passcode.xml'}.
  */
-public final class GridAuthenticationNodeExample {
+public final class GridAuthenticationExample {
     /**
      * Executes <tt>Authentication</tt> example on the grid and sends broadcast message
      * to all nodes in the grid.
@@ -36,9 +36,8 @@ public final class GridAuthenticationNodeExample {
      * @param args Command line arguments, none required but if provided
      *      first one should point to the Spring XML configuration file. See
      *      {@code "examples/config/"} for configuration file examples.
-     * @throws GridException If example execution failed.
      */
-    public static void main(String[] args) throws GridException {
+    public static void main(String[] args) {
         // Typedefs:
         // ---------
         // G -> GridFactory
@@ -49,18 +48,27 @@ public final class GridAuthenticationNodeExample {
         // When you start remote nodes, authentication process is invoked automatically,
         // so if you see topology change events, it means that authentication succeeded.
 
-        G.in(args.length == 0 ? "examples/config/spring-authentication-passcode.xml" : args[0], new CIX1<Grid>() {
-            @Override public void applyx(Grid g) throws GridException {
-                String title = "GridGain started at " + new Date();
-                String msg = "Press OK to send broadcast message, cancel to exit.";
+        try {
+            G.in(args.length == 0 ? "examples/config/spring-authentication-passcode.xml" : args[0], new CIX1<Grid>() {
+                @Override public void applyx(Grid g) throws GridException {
+                    String title = "GridGain started at " + new Date();
+                    String msg = "Press OK to send broadcast message, cancel to exit.";
 
-                // Ask user to send broadcast message.
-                while (confirm(title, msg)) {
-                    // Send notification message to all nodes in topology.
-                    g.run(BROADCAST, F.println(">>> Broadcast message sent from node=" + g.localNode().id()));
+                    // Ask user to send broadcast message.
+                    while (confirm(title, msg)) {
+                        // Send notification message to all nodes in topology.
+                        g.run(BROADCAST, F.println(">>> Broadcast message sent from node=" + g.localNode().id()));
+                    }
                 }
-            }
-        });
+            });
+        }
+        catch (GridException e) {
+            if (e.hasCause(ClassNotFoundException.class))
+                X.println("Failed to create grid " +
+                    "('security' is enterprise feature, are you using community edition?): " + e.getMessage());
+            else
+                X.println("Failed to create grid: " + e.getMessage());
+        }
     }
 
     /**

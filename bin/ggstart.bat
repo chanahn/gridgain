@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 4.0.1c.07042012
+:: Version: 4.0.1c.09042012
 ::
 
 ::
@@ -140,7 +140,7 @@ set JMX_MON=%JMX_MON% -Dcom.sun.management.jmxremote.port=%JMX_PORT% -Dcom.sun.m
 ::
 :: NOTE
 :: ====
-:: ASSERTIONS ARE DISABLE BY DEFAULT SINCE VERSION 3.5.
+:: ASSERTIONS ARE DISABLED BY DEFAULT SINCE VERSION 3.5.
 :: IF YOU WANT TO ENABLE THEM - ADD '-ea' TO JVM_OPTS VARIABLE
 ::
 :: ADD YOUR/CHANGE ADDITIONAL OPTIONS HERE
