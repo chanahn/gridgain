@@ -39,7 +39,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * Grid event storage SPI manager.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridEventStorageManager extends GridManagerAdapter<GridEventStorageSpi> {
     /** Internally-used events. */
@@ -422,13 +422,14 @@ public class GridEventStorageManager extends GridManagerAdapter<GridEventStorage
         if (!F.isEmpty(set)) {
             assert set != null;
 
-            for (GridLocalEventListener lsnr : set)
+            for (GridLocalEventListener lsnr : set) {
                 try {
                     lsnr.onEvent(evt);
                 }
                 catch (Throwable e) {
                     U.error(log, "Unexpected exception in listener notification for event: " + evt, e);
                 }
+            }
         }
     }
 

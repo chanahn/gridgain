@@ -15,7 +15,7 @@ import java.util.concurrent.*;
  * Callable instance that should never be deployed or injected.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public interface GridPlainCallable<T> extends Callable<T> {
     // No-op.

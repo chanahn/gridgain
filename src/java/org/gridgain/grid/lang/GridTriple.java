@@ -16,7 +16,7 @@ import java.io.*;
  * Simple extension over {@link GridTuple3} for three objects of the same type.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridTriple<T> extends GridTuple3<T, T, T> {
     /**

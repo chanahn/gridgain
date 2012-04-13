@@ -61,7 +61,7 @@ import java.util.concurrent.*;
  * <p>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, DisposableBean, InitializingBean,
     ApplicationContextAware, Externalizable {
@@ -160,6 +160,22 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
         assert g != null;
 
         return g.projectionForCaches(cacheName, cacheNames);
+    }
+
+    /** {@inheritDoc} */
+    @Override public <K> GridProjection projectionForKeys(@Nullable String cacheName, Collection<K> keys)
+        throws GridException {
+        assert g != null;
+
+        return g.projectionForKeys(cacheName, keys);
+    }
+
+    /** {@inheritDoc} */
+    @Override public <K> GridProjection projectionForKeys(@Nullable String cacheName, K key, K... keys)
+        throws GridException {
+        assert g != null;
+
+        return g.projectionForKeys(cacheName, key, keys);
     }
 
     /** {@inheritDoc} */

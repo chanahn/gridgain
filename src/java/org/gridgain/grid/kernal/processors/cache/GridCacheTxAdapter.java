@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Managed transaction adapter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     implements GridCacheTxEx<K, V>, Externalizable {
@@ -81,7 +81,6 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
     protected GridCacheContext<K, V> cctx;
 
     /** Logger. */
-    @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
     protected GridLogger log;
 
     /**
@@ -692,7 +691,7 @@ public abstract class GridCacheTxAdapter<K, V> extends GridMetadataAwareAdapter
      * @param timedOut Timeout flag.
      * @return {@code True} if state changed.
      */
-    @SuppressWarnings({"NotifyWithoutCorrespondingWait", "NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
+    @SuppressWarnings({"TooBroadScope"})
     private boolean state(GridCacheTxState state, boolean timedOut) {
         boolean valid = false;
 

@@ -36,7 +36,7 @@ import static org.gridgain.grid.util.nodestart.GridNodeStartUtils.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements GridProjection {
     /** Log reference. */
@@ -731,6 +731,47 @@ abstract class GridProjectionAdapter extends GridMetadataAwareAdapter implements
                 return true;
             }
         });
+    }
+
+    /** {@inheritDoc} */
+    @Override public <K> GridProjection projectionForKeys(@Nullable final String cacheName, final Collection<K> keys)
+        throws GridException {
+        A.ensure(!F.isEmpty(keys), "collection of keys cannot be empty.");
+
+        return projectionForPredicate(new GridPredicate<GridRichNode>() {
+            @Override public boolean apply(GridRichNode node) {
+                try {
+                    Collection<GridRichNode> nodes = F.viewReadOnly(ctx.discovery().allNodes(), ctx.rich().richNode());
+
+                    Map<GridRichNode, Collection<K>> map = ctx.affinity().mapKeysToNodes(cacheName, nodes, keys, true);
+
+                    return map.keySet().contains(node);
+                }
+                catch (GridException e) {
+                    LT.warn(log, e, "Failed to map keys to nodes [cacheName=" + cacheName + ", keys=" + keys + ']');
+
+                    return false;
+                }
+            }
+        });
+    }
+
+    /** {@inheritDoc} */
+    @Override public <K> GridProjection projectionForKeys(@Nullable String cacheName, K key, K... keys)
+        throws GridException {
+        Collection<K> keysCol;
+
+        if (keys == null || keys.length == 0)
+            keysCol = Collections.singletonList(key);
+        else {
+            keysCol = new ArrayList<K>(keys.length + 1);
+
+            keysCol.add(key);
+
+            Collections.addAll(keysCol, keys);
+        }
+
+        return projectionForKeys(cacheName, keysCol);
     }
 
     /** {@inheritDoc} */

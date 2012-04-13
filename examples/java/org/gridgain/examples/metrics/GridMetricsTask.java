@@ -27,7 +27,7 @@ import java.util.*;
  * node is used for execution.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridMetricsTask extends GridTaskAdapter<Object, Object> {
     /** Injected grid instance. */
@@ -85,7 +85,7 @@ public class GridMetricsTask extends GridTaskAdapter<Object, Object> {
      * the local node.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.1c.09042012
+     * @version 4.0.2c.12042012
      */
     private static class GridMetricsJob extends GridJobAdapterEx {
         /** Injected grid instance. */

@@ -134,7 +134,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * For more information refer to {@link GridSpringBean} documentation.
 
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridFactory {
     /**
@@ -1302,7 +1302,7 @@ public class GridFactory {
      * Grid data container.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.1c.09042012
+     * @version 4.0.2c.12042012
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
@@ -2227,7 +2227,7 @@ public class GridFactory {
          * Contains necessary data for selected MBeanServer.
          *
          * @author 2012 Copyright (C) GridGain Systems
-         * @version 4.0.1c.09042012
+         * @version 4.0.2c.12042012
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

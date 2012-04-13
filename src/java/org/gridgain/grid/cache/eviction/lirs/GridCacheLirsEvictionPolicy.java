@@ -41,7 +41,7 @@ import static org.gridgain.grid.lang.utils.GridConcurrentLinkedDeque.*;
  * algorithm by Sone Jiang and Xiaodong Zhang.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridCacheLirsEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,
     GridCacheLirsEvictionPolicyMBean {
@@ -63,7 +63,7 @@ public class GridCacheLirsEvictionPolicy<K, V> implements GridCacheEvictionPolic
     private final HirsQueue queue = new HirsQueue();
 
     /** Maximum stack size. */
-    private volatile int max = -1;
+    private volatile int max = GridCacheConfiguration.DFLT_CACHE_SIZE;
 
     /** Flag indicating whether to allow empty entries. */
     private volatile boolean allowEmptyEntries = true;

@@ -32,7 +32,7 @@ import static org.gridgain.grid.kernal.GridTopic.*;
  * It uses communication manager as a way of sending and receiving requests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 @SuppressWarnings({"deprecation"})
 @GridToStringExclude

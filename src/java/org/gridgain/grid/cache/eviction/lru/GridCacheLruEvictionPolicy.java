@@ -27,7 +27,7 @@ import static org.gridgain.grid.cache.GridCachePeekMode.*;
  * information is maintained by attaching ordering metadata to cache entries.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy<K, V>,
     GridCacheLruEvictionPolicyMBean {
@@ -35,7 +35,7 @@ public class GridCacheLruEvictionPolicy<K, V> implements GridCacheEvictionPolicy
     private final String meta = UUID.randomUUID().toString();
 
     /** Maximum size. */
-    private volatile int max = -1;
+    private volatile int max = GridCacheConfiguration.DFLT_CACHE_SIZE;
 
     /** Allow empty entries flag. */
     private volatile boolean allowEmptyEntries = true;

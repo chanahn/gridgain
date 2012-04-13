@@ -23,6 +23,6 @@ import org.gridgain.grid.lang.*;
  * @see GridFunc
  * @see GridClosure3
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public abstract class C3<E1, E2, E3, R> extends GridClosure3<E1, E2, E3, R> { /* No-op. */ }

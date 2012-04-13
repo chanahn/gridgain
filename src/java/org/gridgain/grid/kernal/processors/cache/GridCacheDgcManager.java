@@ -34,7 +34,7 @@ import static org.gridgain.grid.cache.GridCacheConfiguration.*;
  * Distributed Garbage Collector for cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
     /** Flag to log trace enabled/disabled message. */
@@ -913,7 +913,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
      * DGC request.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.1c.09042012
+     * @version 4.0.2c.12042012
      */
     private static class GridCacheDgcRequest<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable {
         /** */
@@ -1020,7 +1020,7 @@ public class GridCacheDgcManager<K, V> extends GridCacheManager<K, V> {
      * DGC response.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.1c.09042012
+     * @version 4.0.2c.12042012
      */
     private static class GridCacheDgcResponse<K, V> extends GridCacheMessage<K, V> implements GridCacheDeployable {
         /** */

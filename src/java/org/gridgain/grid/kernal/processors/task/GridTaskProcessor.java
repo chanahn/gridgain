@@ -33,7 +33,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
  * This class defines task processor.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridTaskProcessor extends GridProcessorAdapter {
     /** Wait for 5 seconds to allow discovery to take effect (best effort). */
@@ -1058,7 +1058,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
      * Listener to node discovery events.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.1c.09042012
+     * @version 4.0.2c.12042012
      */
     private class TaskDiscoveryListener implements GridLocalEventListener {
         /** {@inheritDoc} */

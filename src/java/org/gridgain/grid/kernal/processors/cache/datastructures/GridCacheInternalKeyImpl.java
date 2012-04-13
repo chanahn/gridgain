@@ -20,7 +20,7 @@ import java.io.*;
  * Key is used for caching cache data structures.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridCacheInternalKeyImpl implements GridCacheInternalKey, Externalizable, Cloneable {
     /** Name of cache data structure. */

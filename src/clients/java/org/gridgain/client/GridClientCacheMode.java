@@ -12,7 +12,7 @@ package org.gridgain.client;
  * Cache type on remote node.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public enum GridClientCacheMode {
     /** Local cache. */

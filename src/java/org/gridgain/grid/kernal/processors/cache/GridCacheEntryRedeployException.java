@@ -13,7 +13,7 @@ package org.gridgain.grid.kernal.processors.cache;
  * Thrown when an entry could not be redeployed.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridCacheEntryRedeployException extends Exception {
     /**

@@ -61,7 +61,7 @@ import java.util.*;
  * To do that, {@link GridSystemProperties#GG_NO_DISCO_ORDER} must be provided at startup.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  * @param <K> Cache key type.
  * @param <V> Cache value type.
  */
@@ -291,11 +291,11 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      *
      * @param name Name of queue.
      * @param type Type of queue.
-     * @param capacity Capacity of queue, {@code 0} for unbounded queue.
+     * @param cap Capacity of queue, {@code 0} for unbounded queue.
      * @return Queue.
      * @throws GridException If removing failed.
      */
-    public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int capacity) throws GridException;
+    public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int cap) throws GridException;
 
     /**
      * Will get a named queue from cache and create one if it has not been created yet.
@@ -308,7 +308,7 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      *
      * @param name Name of queue.
      * @param type Type of queue.
-     * @param capacity Capacity of queue, {@code 0} for unbounded queue.
+     * @param cap Capacity of queue, {@code 0} for unbounded queue.
      * @param collocated If {@code true} then all items within the same queue will be collocated on the same node.
      *      Otherwise elements of the same queue maybe be cached on different nodes. If you have lots of relatively
      *      small queues, then you should use collocation. If you have few large queues, then you should turn off
@@ -316,7 +316,7 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * @return Queue with given properties.
      * @throws GridException If remove failed.
      */
-    public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int capacity, boolean collocated)
+    public <T> GridCacheQueue<T> queue(String name, GridCacheQueueType type, int cap, boolean collocated)
         throws GridException;
 
     /**
@@ -417,13 +417,13 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      * it is created using provided name and count parameter.
      *
      * @param name Name of the latch.
-     * @param count Count for new latch creation.
-     * @param autoDelete {@code True} to automatically delete latch from cache
+     * @param cnt Count for new latch creation.
+     * @param autoDel {@code True} to automatically delete latch from cache
      *      when its count reaches zero.
      * @return Count down latch for the given name.
      * @throws GridException If operation failed.
      */
-    public GridCacheCountDownLatch countDownLatch(String name, int count, boolean autoDelete) throws GridException;
+    public GridCacheCountDownLatch countDownLatch(String name, int cnt, boolean autoDel) throws GridException;
 
     /**
      * Gets count down latch. If count down latch is not found in cache
@@ -465,7 +465,7 @@ public interface GridCache<K, V> extends GridCacheProjection<K, V> {
      *
      * @param suspectLockTimeout Custom suspect lock timeout (should be greater than or equal to 0).
      * @param global If {@code true} then GC procedure will start on all nodes having this cache.
-     * @param removeLocks If {@code false} then DGC does not remove locks, just report them to log.
+     * @param rmvLocks If {@code false} then DGC does not remove locks, just report them to log.
      */
-    public void dgc(long suspectLockTimeout, boolean global, boolean removeLocks);
+    public void dgc(long suspectLockTimeout, boolean global, boolean rmvLocks);
 }

@@ -42,7 +42,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Data loader implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridDataLoaderImpl<K, V> implements GridDataLoader<K, V>, Externalizable {
     /** Log reference. */
@@ -1102,7 +1102,7 @@ public class GridDataLoaderImpl<K, V> implements GridDataLoader<K, V>, Externali
                 jobPda = c.pda();
             }
 
-            GridFuture<?> fut = null;
+            GridFuture<Object> fut = null;
 
             if (isLocNode)
                 fut = ctx.closure().callLocalSafe(new PutJob<K, Object>(cacheName, col, jobPda), true);
@@ -1112,12 +1112,58 @@ public class GridDataLoaderImpl<K, V> implements GridDataLoader<K, V>, Externali
                     Arrays.asList(node), true);
 
             if (fut != null) {
-                activeFuts.add(fut);
+                final Collection<GridTuple2<K, Object>> col0 = col;
+
+                C2<Object, Exception, Object> lsnr = new C2<Object, Exception, Object>() {
+                    @Override public Object apply(Object o, Exception e) {
+                        boolean err = true;
+
+                        if (e != null) {
+                            if (e instanceof GridEmptyProjectionException) {
+                                if (log.isDebugEnabled())
+                                    log.debug("Failed to send put job to node (node has left): " + nodeId);
+                            }
+                            else if (e instanceof GridFutureCancelledException) {
+                                if (log.isDebugEnabled())
+                                    log.debug("Future has been cancelled.");
+
+                                // Do not remap.
+                                err = false;
+                            }
+                            else {
+                                if (X.hasCause(e, ClassNotFoundException.class))
+                                    U.error(log, "Put job has finished due to class-loading error (will retry, " +
+                                        "most probably you should manually configure 'deployClass' for data loader).", e);
+                                else if (X.hasCause(e, GridInterruptedException.class, InterruptedException.class))
+                                    U.warn(log, "Put job was cancelled due to node stop (will retry).");
+                                else
+                                    U.error(log, "Put job has finished with error (will retry).", e);
+                            }
+                        }
+                        else
+                            err = false;
+
+                        if (err)
+                            scheduleRemap(col0);
+
+                        return o;
+                    }
+                };
+
+                GridFuture<Object> f = new GridEmbeddedFuture<Object, Object>(ctx, fut, lsnr);
+
+                activeFuts.add(f);
+
+                f.listenAsync(new CIX1<GridFuture<Object>>() {
+                    @Override public void applyx(GridFuture<Object> fin) {
+                        signalTaskFinished(fin);
+                    }
+                });
 
                 // Safety.
                 if (allCancelled) {
                     try {
-                        fut.cancel();
+                        f.cancel();
                     }
                     catch (GridException e) {
                         if (log.isDebugEnabled())
@@ -1137,47 +1183,7 @@ public class GridDataLoaderImpl<K, V> implements GridDataLoader<K, V>, Externali
                     // Remap polled entries outside of synchronization.
                     scheduleRemap(col);
                 }
-
-                return;
             }
-
-            final Collection<GridTuple2<K, Object>> col0 = col;
-
-            fut.listenAsync(new GridInClosure<GridFuture<?>>() {
-                @Override public void apply(GridFuture<?> f) {
-                    boolean err = true;
-
-                    try {
-                        f.get();
-
-                        err = false;
-                    }
-                    catch (GridEmptyProjectionException ignored) {
-                        if (log.isDebugEnabled())
-                            log.debug("Failed to send put job to node (node has left): " + nodeId);
-                    }
-                    catch (GridFutureCancelledException ignored) {
-                        if (log.isDebugEnabled())
-                            log.debug("Future has been cancelled.");
-
-                        // Do not remap.
-                        err = false;
-                    }
-                    catch (GridException e) {
-                        if (e.hasCause(ClassNotFoundException.class))
-                            U.error(log, "Put job has finished due to class-loading error (will retry, " +
-                                "most probably you should manually configure 'deployClass' for data loader).", e);
-                        else
-                            U.error(log, "Put job has finished with error (will retry).", e);
-                    }
-                    finally {
-                        if (err)
-                            scheduleRemap(col0);
-
-                        signalTaskFinished(f);
-                    }
-                }
-            });
         }
 
         /**

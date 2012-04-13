@@ -10,13 +10,13 @@
 namespace GridGain.Client {
     using System;
     using System.Text;
-    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Globalization;
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
 
     using GridGain.Client.Ssl;
-    using GridGain.Client.Balancer;
-
+    
     using X = System.Console;
 
     /** <summary>Shows client authentication feature.</summary>*/
@@ -25,8 +25,11 @@ namespace GridGain.Client {
      * Starts up an empty node with cache configuration.
      * You can also start a stand-alone GridGain instance by passing the path
      * to configuration file to <c>'ggstart.{sh|bat}'</c> script, like so:
-     * <c>ggstart.sh examples/config/spring-authentication-passcode.xml</c> or 
-     * <c>ggstart.sh examples/config/spring-cache-authentication-passcode.xml</c>.
+     * <c>ggstart.sh examples/config/spring-authentication-passcode.xml</c> or
+     * <c>ggstart.sh examples/config/spring-cache-authentication-passcode.xml</c> 
+     * to work with client without SSL (UseSsl=false) or
+     * <c>ggstart.sh examples/config/spring-cache-ssl.xml</c>
+     * to work with client with SSL (UseSsl=true).
      * <para/>
      * Note that different nodes cannot share the same port for rest services. If you want
      * to start more than one node on the same physical machine you must provide different
@@ -43,11 +46,12 @@ namespace GridGain.Client {
 
         /**
          * <summary>
-         * Starts up an empty node with specified configuration, then runs client with security 
-         * credentials supplied. Depending on <see cref="UseSsl"/> flag value either passcode 
-         * authentication spi will be used or SSL will be enabled.</summary>
+         * Creates a C# client and authenticates it on server with credentials supplied.
+         * If authentication passes, secure session is created for further communication
+         * between client and server.
+         * </summary>
          *
-         * <param name="args">Command line arguments, none required. 
+         * <param name="args">Command line arguments, none required.
          * The first argument interpreted as client credentials passcode.</param>
          */
         [STAThread]
@@ -114,7 +118,11 @@ namespace GridGain.Client {
 
             // If we use ssl, set appropriate key- and trust-store.
             if (UseSsl) {
-                cc.SslContext = new GridClientSslContext();
+                var sslCtx = new GridClientSslContext();
+
+                sslCtx.ClientCertificates.Add(new X509Certificate2("cert\\client.pfx", "123456"));
+
+                cc.SslContext = sslCtx;
             }
 
             return GridClientFactory.Start(cc);

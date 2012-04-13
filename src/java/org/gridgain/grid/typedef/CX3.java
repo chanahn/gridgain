@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.*;
  * concise code in cases when readability won't be sacrificed. For more information see {@link GridClosure3X}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  * @param <E1> Type of the first free variable, i.e. the element the closure is called or closed on.
  * @param <E2> Type of the second free variable, i.e. the element the closure is called or closed on.
  * @param <E3> Type of the third free variable, i.e. the element the closure is called or closed on.

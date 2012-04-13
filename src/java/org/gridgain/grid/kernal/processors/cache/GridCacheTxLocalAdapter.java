@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Transaction adapter for cache transactions.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K, V>
     implements GridCacheTxLocalEx<K, V> {
@@ -1781,9 +1781,8 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                     isInvalidate(), CU.<K, V>empty());
 
                 return new GridEmbeddedFuture<GridCacheReturn<V>, Boolean>(
-                    cctx.kernalContext(),
                     fut,
-                    new PLC1<GridCacheReturn<V>>() {
+                    new PLC1<GridCacheReturn<V>>(ret) {
                         @Override public GridCacheReturn<V> postLock(GridCacheReturn<V> ret) throws GridException {
                             if (log.isDebugEnabled())
                                 log.debug("Acquired transaction lock for put on keys: " + keys);
@@ -1796,7 +1795,8 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
 
                             return ret;
                         }
-                    }, ret);
+                    },
+                    cctx.kernalContext());
             }
             else {
                 // Write-through (if there is cache-store, persist asynchronously).
@@ -1890,9 +1890,8 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                     isolation, isInvalidate(), CU.<K, V>empty());
 
                 return new GridEmbeddedFuture<GridCacheReturn<V>, Boolean>(
-                    cctx.kernalContext(),
                     fut,
-                    new PLC1<GridCacheReturn<V>>() {
+                    new PLC1<GridCacheReturn<V>>(ret) {
                         @Override protected GridCacheReturn<V> postLock(GridCacheReturn<V> ret) throws GridException {
                             if (log.isDebugEnabled())
                                 log.debug("Acquired transaction lock for remove on keys: " + passedKeys);
@@ -1908,7 +1907,7 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                             return ret;
                         }
                     },
-                    ret);
+                    cctx.kernalContext());
             }
             else {
                 // Write-through (if there is cache-store, persist asynchronously).
@@ -2139,7 +2138,9 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      * @param <T> Return type.
      */
     protected abstract class PLC1<T> extends PostLockClosure1<T> {
-        // No-op.
+        protected PLC1(T arg) {
+            super(arg);
+        }
     }
 
     /**
@@ -2176,8 +2177,21 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
      *
      * @param <T> Return type.
      */
-    protected abstract class PostLockClosure1<T> extends GridClosure3<Boolean, T, Exception, T> {
-        @Override public final T apply(Boolean locked, T t, Exception e) {
+    protected abstract class PostLockClosure1<T> extends GridClosure2<Boolean, Exception, GridFuture<T>> {
+        /** Closure argument. */
+        private T arg;
+
+        /**
+         * Creates a Post-Lock closure that will pass the argument given to the {@code postLock} method.
+         *
+         * @param arg Argument for {@code postLock}.
+         */
+        protected PostLockClosure1(T arg) {
+            this.arg = arg;
+        }
+
+        /** {@inheritDoc} */
+        @Override public final GridFuture<T> apply(Boolean locked, Exception e) {
             try {
                 if (e != null) {
                     setRollbackOnly();
@@ -2192,13 +2206,18 @@ public abstract class GridCacheTxLocalAdapter<K, V> extends GridCacheTxAdapter<K
                         "transaction [timeout=" + lockTimeout() + ", tx=" + this + ']');
                 }
 
-                T r = postLock(t);
+                final T r = postLock(arg);
 
                 // Commit implicit transactions.
-                if (implicit() && !dht())
-                    commit();
+                if (implicit() && !dht()) {
+                    return new GridFutureWrapper<T, GridCacheTx>(commitAsync(), new C1<GridCacheTx, T>() {
+                        @Override public T apply(GridCacheTx gridCacheTx) {
+                            return r;
+                        }
+                    });
+                }
 
-                return r;
+                return new GridFinishedFuture<T>(cctx.kernalContext(), r);
             }
             catch (Error ex) {
                 setRollbackOnly();

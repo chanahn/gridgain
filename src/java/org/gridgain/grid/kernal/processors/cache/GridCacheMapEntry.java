@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Adapter for cache entry.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 @SuppressWarnings({"NonPrivateFieldAccessedInSynchronizedContext", "TooBroadScope"})
 public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapter implements GridCacheEntryEx<K, V> {
@@ -896,12 +896,19 @@ public abstract class GridCacheMapEntry<K, V> extends GridMetadataAwareLockAdapt
                     continue;
 
                 try {
-                    if (readers)
-                        clearReaders();
+                    if ((!hasReaders() || readers)) {
+                        if (!markObsolete(ver)) {
+                            if (log.isDebugEnabled())
+                                log.debug("Entry could not be marked obsolete (it is still used): " + this);
 
-                    if (hasReaders() || !markObsolete(ver)) {
+                            break;
+                        }
+
+                        clearReaders();
+                    }
+                    else {
                         if (log.isDebugEnabled())
-                            log.debug("Entry could not be marked obsolete (it is still used or has readers): " + this);
+                            log.debug("Entry could not be marked obsolete (it still has readers): " + this);
 
                         break;
                     }

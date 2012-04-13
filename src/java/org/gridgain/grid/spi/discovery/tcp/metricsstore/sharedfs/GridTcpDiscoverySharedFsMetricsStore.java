@@ -49,7 +49,7 @@ import java.util.concurrent.locks.*;
  * 94816A59-EB51-44EE-BB67-8B24B9C10A09.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridTcpDiscoverySharedFsMetricsStore extends GridTcpDiscoveryMetricsStoreAdapter {
     /** Default path for local testing only. */

@@ -14,7 +14,7 @@ import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.cache.cloner.*;
 import org.gridgain.grid.cache.datastructures.*;
 import org.gridgain.grid.cache.eviction.*;
-import org.gridgain.grid.cache.eviction.lirs.*;
+import org.gridgain.grid.cache.eviction.lru.*;
 import org.gridgain.grid.cache.jta.*;
 import org.gridgain.grid.cache.query.*;
 import org.gridgain.grid.cache.store.*;
@@ -34,7 +34,7 @@ import java.util.*;
  * default configuration.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public interface GridCacheConfiguration {
     /** Default query log name. */
@@ -230,7 +230,7 @@ public interface GridCacheConfiguration {
     public long getDefaultTimeToLive();
 
     /**
-     * Gets cache eviction policy. By default, {@link GridCacheLirsEvictionPolicy}
+     * Gets cache eviction policy. By default, {@link GridCacheLruEvictionPolicy}
      * will be used with default settings.
      *
      * @return Cache eviction policy.
@@ -239,7 +239,7 @@ public interface GridCacheConfiguration {
 
     /**
      * Gets eviction policy for {@code near} cache which is different from the one used for
-     * {@code partitioned} cache. By default, {@link GridCacheLirsEvictionPolicy}
+     * {@code partitioned} cache. By default, {@link GridCacheLruEvictionPolicy}
      * will be used with maximum size set to {@link #DFLT_NEAR_SIZE} value.
      *
      * @return Cache eviction policy.

@@ -27,7 +27,7 @@ import static org.gridgain.grid.kernal.managers.communication.GridIoPolicy.*;
  * This class provide implementation for task future.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  * @param <R> Type of the task result returning from {@link GridTask#reduce(List)} method.
  */
 public class GridTaskFutureImpl<R> extends GridFutureAdapter<R> implements GridTaskFuture<R> {

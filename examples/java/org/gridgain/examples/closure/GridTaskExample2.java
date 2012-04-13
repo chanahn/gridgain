@@ -19,7 +19,7 @@ import java.util.*;
  * example code to see the difference in coding approach.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  * @see GridClosureExample2
  */
 public class GridTaskExample2 {
@@ -74,7 +74,7 @@ public class GridTaskExample2 {
      * Each job will calculate and print GCD and LCM for each pair.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.1c.09042012
+     * @version 4.0.2c.12042012
      */
     private static class GridNumberCalculationTask extends GridTaskNoReduceSplitAdapter<Collection<int[]>> {
         @Override protected Collection<? extends GridJob> split(int gridSize, Collection<int[]> pairs)

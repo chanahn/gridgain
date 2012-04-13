@@ -22,7 +22,7 @@ import java.util.*;
 
 /**
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridDataLoaderProcessor extends GridProcessorAdapter {
     /** Loaders map (access is not supposed to be highly concurrent). */

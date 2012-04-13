@@ -20,7 +20,7 @@ import java.util.*;
  * Shows client authentication feature.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridAuthenticationAndSecureSessionClientExample {
     /** Change this property to start example in SSL mode. */
@@ -38,7 +38,7 @@ public class GridAuthenticationAndSecureSessionClientExample {
         try {
             // Start up a grid node.
             G.start(useSsl ? "examples/config/spring-cache-ssl.xml" :
-                    "examples/config/spring-cache-authentication-passcode.xml");
+                "examples/config/spring-cache-authentication-passcode.xml");
 
             GridClient client = createClient(passcode);
 

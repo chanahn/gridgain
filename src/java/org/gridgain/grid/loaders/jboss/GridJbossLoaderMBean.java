@@ -15,7 +15,7 @@ import org.jboss.system.*;
  * This MBean interface defines service interface for JBoss loader.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public interface GridJbossLoaderMBean extends ServiceMBean {
     /**

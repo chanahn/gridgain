@@ -20,7 +20,7 @@ import java.util.concurrent.*;
  * Convenient metrics store adapter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public abstract class GridTcpDiscoveryMetricsStoreAdapter implements GridTcpDiscoveryMetricsStore {
     /** Default metrics expire time in milliseconds (value is <tt>10000</tt>). */

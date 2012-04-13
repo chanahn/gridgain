@@ -17,7 +17,7 @@ import java.util.*;
  * Keys to retry.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public interface GridDhtFuture<T> extends GridFuture<T> {
     /**

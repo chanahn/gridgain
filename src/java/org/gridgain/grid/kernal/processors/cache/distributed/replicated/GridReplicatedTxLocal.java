@@ -29,7 +29,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Replicated user transaction.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
     /** All keys participating in transaction. */
@@ -384,6 +384,9 @@ class GridReplicatedTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> {
                     fut.onError(new GridException("Invalid transaction state for prepare [state=" + state() +
                         ", tx=" + this + ']'));
             }
+            else
+                fut.onError(new GridCacheTxRollbackException("Invalid transaction state for prepare [state=" + state()
+                    + ", tx=" + this + ']'));
 
             return fut;
         }

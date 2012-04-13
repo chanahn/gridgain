@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 4.0.1c.09042012
+:: Version: 4.0.2c.12042012
 ::
 
 ::
@@ -70,7 +70,7 @@ goto error_finish
 :run
 
 :: This is Ant-augmented variable.
-set ANT_AUGMENTED_GGJAR=gridgain-4.0.1c.jar
+set ANT_AUGMENTED_GGJAR=gridgain-4.0.2c.jar
 
 ::
 :: Set GRIDGAIN_LIBS
@@ -125,21 +125,31 @@ set JMX_MON=%JMX_MON% -Dcom.sun.management.jmxremote.port=%JMX_PORT% -Dcom.sun.m
 :: JVM options. See http://java.sun.com/javase/technologies/hotspot/vmoptions.jsp
 :: for more details. Note that default settings use **PARALLEL GC**.
 ::
-:: NOTE
-:: ====
-:: ASSERTIONS ARE DISABLE BY DEFAULT SINCE VERSION 3.5.
-:: IF YOU WANT TO ENABLE THEM - ADD '-ea' TO JVM_OPTS VARIABLE
-::
 :: ADD YOUR/CHANGE ADDITIONAL OPTIONS HERE
 ::
 set JVM_OPTS=-Xms512m -Xmx512m -XX:NewSize=64m -XX:MaxNewSize=64m -XX:PermSize=128m -XX:MaxPermSize=128m -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled
 
+::
 :: Uncomment if you get StackOverflowError.
 :: On 64 bit systems this value can be larger, e.g. -Xss16m
+::
 :: set JVM_OPTS=%JVM_OPTS% -Xss4m
 
+::
 :: Uncomment to set preference to IPv4 stack.
+::
 :: set JVM_OPTS=%JVM_OPTS% -Djava.net.preferIPv4Stack=true
+
+::
+:: Assertions are disabled by default since version 3.5.
+:: If you want to enable them - set 'ENABLE_ASSERTIONS' flag to '1'.
+::
+set ENABLE_ASSERTIONS=0
+
+::
+:: Set '-ea' options if assertions are enabled.
+::
+if %ENABLE_ASSERTIONS% == 1 set JVM_OPTS=%JVM_OPTS% -ea
 
 ::
 :: Set program name.

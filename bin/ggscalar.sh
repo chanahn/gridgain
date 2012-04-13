@@ -7,7 +7,7 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 4.0.1c.09042012
+# Version: 4.0.2c.12042012
 #
 
 #
@@ -51,7 +51,7 @@ fi
 #
 # Set property JAR name during the Ant build.
 #
-ANT_AUGMENTED_GGJAR=gridgain-4.0.1c.jar
+ANT_AUGMENTED_GGJAR=gridgain-4.0.2c.jar
 
 osname=`uname`
 
@@ -119,23 +119,35 @@ done
 # JVM options. See http://java.sun.com/javase/technologies/hotspot/vmoptions.jsp
 # for more details. Note that default settings use ** PARALLEL GC**.
 #
-# NOTE
-# ====
-# ASSERTIONS ARE DISABLED BY DEFAULT SINCE VERSION 3.5.
-# IF YOU WANT TO ENABLE THEM - ADD '-ea' TO JVM_OPTS VARIABLE
-#
 # ADD YOUR ADDITIONAL PARAMETERS/OPTIONS HERE
 #
 JVM_OPTS="-Xms512m -Xmx512m -XX:NewSize=64m -XX:MaxNewSize=64m -XX:PermSize=128m -XX:MaxPermSize=128m \
 -XX:SurvivorRatio=128 -XX:MaxTenuringThreshold=0 -XX:+UseTLAB -XX:+UseParNewGC -XX:+UseConcMarkSweepGC \
 -XX:+CMSClassUnloadingEnabled"
 
+#
 # Uncomment if you get StackOverflowError.
 # On 64 bit systems this value can be larger, e.g. -Xss16m
+#
 # JVM_OPTS="${JVM_OPTS} -Xss4m"
 
+#
 # Uncomment to set preference for IPv4 stack.
+#
 # JVM_OPTS="${JVM_OPTS} -Djava.net.preferIPv4Stack=true"
+
+#
+# Assertions are disabled by default since version 3.5.
+# If you want to enable them - set 'ENABLE_ASSERTIONS' flag to '1'.
+#
+ENABLE_ASSERTIONS="0"
+
+#
+# Set '-ea' options if assertions are enabled.
+#
+if [ "${ENABLE_ASSERTIONS}" = "1" ]; then
+    JVM_OPTS="${JVM_OPTS} -ea"
+fi
 
 #
 # Save terminal setting. Used to restore terminal on finish.

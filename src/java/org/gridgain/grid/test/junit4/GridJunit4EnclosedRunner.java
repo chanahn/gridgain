@@ -17,7 +17,7 @@ import java.util.*;
  * JUnit 4 enclosed runner.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 class GridJunit4EnclosedRunner extends GridJunit4SuiteRunner {
     /**

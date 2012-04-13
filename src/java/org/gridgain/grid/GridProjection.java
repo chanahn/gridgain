@@ -10,7 +10,6 @@
 package org.gridgain.grid;
 
 import org.gridgain.grid.cache.affinity.*;
-import org.gridgain.grid.editions.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.typedef.*;
 import org.jetbrains.annotations.*;
@@ -41,7 +40,7 @@ import java.util.concurrent.*;
  * in {@link NullPointerException} and may be harder to catch.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAware {
     /**
@@ -1732,6 +1731,29 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * @return Monadic projection.
      */
     public GridProjection projectionForCaches(@Nullable String cacheName, @Nullable String... cacheNames);
+
+    /**
+     * Creates monadic projection with the nodes from this projection that are primary for
+     * the given set of keys.
+     *
+     * @param cacheName Cache name to calculate affinity.
+     * @param keys Keys for which primary nodes will be selected.
+     * @return Projection instance.
+     * @throws GridException If projection cannot be created.
+     */
+    public <K> GridProjection projectionForKeys(@Nullable String cacheName, Collection<K> keys) throws GridException;
+
+    /**
+     * Creates monadic projection with the nodes from this projection that are primary for
+     * the given set of keys.
+     *
+     * @param cacheName Cache name to calculate affinity.
+     * @param key First key for which primary node will be selected..
+     * @param keys Rest of the keys for which primary nodes will be selected.
+     * @return Projection instance.
+     * @throws GridException If projection cannot be created.
+     */
+    public <K> GridProjection projectionForKeys(@Nullable String cacheName, K key, K... keys) throws GridException;
 
     /**
      * Splits this projection into two: first will have nodes that evaluate to {@code true} for all

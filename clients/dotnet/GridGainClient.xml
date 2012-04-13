@@ -4069,6 +4069,19 @@
              <param name="client">Tcp client for client-server communication.</param>
              <returns>Configured SSL stream.</returns>
         </member>
+        <member name="P:GridGain.Client.Ssl.GridClientSslContext.ClientCertificates">
+            <summary>Certificates collection to provide client SSL authentication. </summary> 
+        </member>
+        <member name="P:GridGain.Client.Ssl.GridClientSslContext.EnabledSslProtocols">
+            <summary>
+            The value that represents the protocol used for authentication 
+            (default <c>SslProtocols.Default</c>).</summary> 
+        </member>
+        <member name="P:GridGain.Client.Ssl.GridClientSslContext.CheckCertificateRevocation">
+            <summary>
+            The value that specifies whether the certificate revocation list is 
+            checked during authentication (default <c>false</c>).</summary> 
+        </member>
         <member name="P:GridGain.Client.Ssl.GridClientSslContext.ValidateCallback">
             <summary>Validate certificates chain user-defined callback.</summary> 
         </member>

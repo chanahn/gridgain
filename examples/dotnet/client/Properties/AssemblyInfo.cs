@@ -9,8 +9,8 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("GridGain")]
-[assembly: AssemblyProduct("GridClientExample")]
-[assembly: AssemblyCopyright("Copyright ©  2011 GridGain")]
+[assembly: AssemblyProduct("GridClientApiExample")]
+[assembly: AssemblyCopyright("Copyright ©  2012 GridGain")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -31,5 +31,5 @@ using System.Runtime.InteropServices;
 //
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
-[assembly: AssemblyVersion("4.0.1")]
-[assembly: AssemblyFileVersion("4.0.1")]
+[assembly: AssemblyVersion("4.0.2")]
+[assembly: AssemblyFileVersion("4.0.2")]

@@ -27,7 +27,7 @@ import java.util.*;
  * the task class definition.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 @GridTaskSpis(topologySpi="topologyB")
 public class GridSegmentBTask extends GridTaskSplitAdapter<String, Integer> {

@@ -18,7 +18,7 @@ import java.lang.reflect.*;
  * Bean contains {@link Method} and {@link Annotation} for that method.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 class GridResourceMethod {
     /** Method which used to inject resource. */

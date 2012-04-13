@@ -34,7 +34,7 @@ import static org.gridgain.grid.kernal.processors.cache.GridCacheOperation.*;
  * Replicated user transaction.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implements GridCacheMappedVersion {
     /** */
@@ -709,9 +709,8 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
             lockTimeout(), this, read, /*retval*/false, isolation, isInvalidate(), CU.<K, V>empty());
 
         return new GridEmbeddedFuture<GridCacheReturn<V>, Boolean>(
-            cctx.kernalContext(),
             fut,
-            new PLC1<GridCacheReturn<V>>() {
+            new PLC1<GridCacheReturn<V>>(ret) {
                 @Override protected GridCacheReturn<V> postLock(GridCacheReturn<V> ret) throws GridException {
                     if (log.isDebugEnabled())
                         log.debug("Acquired transaction lock on keys: " + passedKeys);
@@ -721,7 +720,7 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
                     return ret;
                 }
             },
-            ret);
+            cctx.kernalContext());
     }
 
     /** {@inheritDoc} */
@@ -863,6 +862,9 @@ public class GridDhtTxLocal<K, V> extends GridCacheTxLocalAdapter<K, V> implemen
                     fut.onError(new GridException("Invalid transaction state for prepare [state=" + state() +
                         ", tx=" + this + ']'));
             }
+            else
+                fut.onError(new GridCacheTxRollbackException("Invalid transaction state for prepare [state=" + state()
+                    + ", tx=" + this + ']'));
 
             return fut;
         }

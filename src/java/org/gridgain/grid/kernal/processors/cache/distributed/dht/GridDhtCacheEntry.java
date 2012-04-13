@@ -25,7 +25,7 @@ import java.util.*;
  * Replicated cache entry.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 @SuppressWarnings({"TooBroadScope"}) public class GridDhtCacheEntry<K, V> extends GridDistributedCacheEntry<K, V> {
     /** Gets node value from reader ID. */
@@ -447,24 +447,16 @@ import java.util.*;
         lock();
 
         try {
-            try {
-                clearReaders();
-
-                // Call super.markObsolete to avoid recursive calls to clear if
-                // we are clearing dht local partition.
-                if (hasReaders() || !super.markObsolete(ver)) {
-                    if (log.isDebugEnabled())
-                        log.debug("Entry could not be marked obsolete (it is still used or has readers): " + this);
-
-                    return false;
-                }
-            }
-            catch (GridCacheEntryRemovedException ignore) {
+            // Call super.markObsolete to avoid recursive calls to clear if
+            // we are clearing dht local partition.
+            if (!super.markObsolete(ver)) {
                 if (log.isDebugEnabled())
-                    log.debug("Got removed entry when clearing (will simply return): " + this);
+                    log.debug("Entry could not be marked obsolete (it is still used or has readers): " + this);
 
-                return true;
+                return false;
             }
+
+            readers = Collections.emptyList();
 
             if (log.isDebugEnabled())
                 log.debug("Entry has been marked obsolete: " + this);

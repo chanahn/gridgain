@@ -55,13 +55,13 @@ import org.jetbrains.annotations.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.1c.09042012")
+    version = "4.0.2c.12042012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridNoopAuthenticationSpi extends GridSpiAdapter
     implements GridAuthenticationSpi, GridNoopAuthenticationSpiMBean {

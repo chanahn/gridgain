@@ -211,7 +211,7 @@
     </library>
     <library name="GridGain">
       <CLASSES>
-        <root url="jar://$PROJECT_DIR$/gridgain-4.0.1c.jar!/" />
+        <root url="jar://$PROJECT_DIR$/gridgain-4.0.2c.jar!/" />
       </CLASSES>
       <JAVADOC>
         <root url="file://$PROJECT_DIR$/javadoc" />

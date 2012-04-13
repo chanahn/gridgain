@@ -31,7 +31,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Fully replicated cache implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Preloader. */
@@ -679,33 +679,46 @@ public class GridReplicatedCache<K, V> extends GridDistributedCacheAdapter<K, V>
                 tx.rollback();
             }
 
-            if (req.replyRequired()) {
-                GridCacheMessage<K, V> res = new GridDistributedTxFinishResponse<K, V>(req.version(), req.futureId());
-
-                try {
-                    ctx.io().send(nodeId, res);
-                }
-                catch (Throwable e) {
-                    // Double-check.
-                    if (ctx.discovery().node(nodeId) == null) {
-                        if (log.isDebugEnabled())
-                            log.debug("Node left while sending finish response [nodeId=" + nodeId + ", res=" + res +
-                                ']');
-                    }
-                    else
-                        U.error(log, "Failed to send finish response to node [nodeId=" + nodeId + ", res=" + res + ']', e);
-                }
-            }
+            sendReply(nodeId, req);
         }
         catch (GridCacheTxRollbackException e) {
             if (log.isDebugEnabled())
                 log.debug("Attempted to start a completed transaction (will ignore): " + e);
+
+            sendReply(nodeId, req);
         }
         catch (Throwable e) {
             U.error(log, "Failed completing transaction [commit=" + req.commit() + ", tx=" + CU.txString(tx) + ']', e);
 
             if (tx != null)
                 tx.rollback();
+        }
+    }
+
+    /**
+     * Send finish reply to the source node, if required.
+     *
+     * @param nodeId Node id that originated finish request.
+     * @param req Finish request itself.
+     */
+    private void sendReply(UUID nodeId, GridDistributedTxFinishRequest req) {
+        if (req.replyRequired()) {
+            GridCacheMessage<K, V> res = new GridDistributedTxFinishResponse<K, V>(req.version(), req.futureId());
+
+            try {
+                ctx.io().send(nodeId, res);
+            }
+            catch (Throwable th) {
+                // Double-check.
+                if (ctx.discovery().node(nodeId) == null) {
+                    if (log.isDebugEnabled())
+                        log.debug("Node left while sending finish response [nodeId=" + nodeId + ", res=" + res +
+                            ']');
+                }
+                else
+                    U.error(log, "Failed to send finish response to node [nodeId=" + nodeId + ", res=" + res + ']',
+                        th);
+            }
         }
     }
 

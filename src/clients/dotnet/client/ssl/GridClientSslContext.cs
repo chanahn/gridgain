@@ -9,8 +9,10 @@
 
 namespace GridGain.Client.Ssl {
     using System;
+    using System.Net;
     using System.Net.Sockets;
     using System.Net.Security;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
 
     using A = GridGain.Client.Util.GridClientArgumentCheck;
@@ -44,6 +46,36 @@ namespace GridGain.Client.Ssl {
          */
         public GridClientSslContext(bool permanentResult) {
             ValidateCallback = permanentResult ? AllowAllCerts : DenyAllCerts;
+
+            ClientCertificates = new X509Certificate2Collection();
+            EnabledSslProtocols = SslProtocols.Default;
+            CheckCertificateRevocation = false;
+        }
+
+        /** <summary>Certificates collection to provide client SSL authentication. </summary> */
+        public X509Certificate2Collection ClientCertificates {
+            get;
+            private set;
+        }
+
+        /** 
+         * <summary>
+         * The value that represents the protocol used for authentication 
+         * (default <c>SslProtocols.Default</c>).</summary> 
+         */
+        public SslProtocols EnabledSslProtocols {
+            get;
+            set;
+        }
+
+        /** 
+         * <summary>
+         * The value that specifies whether the certificate revocation list is 
+         * checked during authentication (default <c>false</c>).</summary> 
+         */
+        public bool CheckCertificateRevocation {
+            get;
+            set;
         }
 
         /** <summary>Validate certificates chain user-defined callback.</summary> */
@@ -66,7 +98,17 @@ namespace GridGain.Client.Ssl {
          * <returns>Configured SSL stream.</returns>
          */
         public SslStream CreateStream(TcpClient client) {
-            return new SslStream(client.GetStream(), false, callback, null);
+            var ep = client.Client.RemoteEndPoint as IPEndPoint;
+
+            var stream = new SslStream(client.GetStream(), false, callback, null);
+
+            if (ClientCertificates.Count == 0)
+                stream.AuthenticateAsClient(ep.Address.ToString());
+            else {
+                stream.AuthenticateAsClient(ep.Address.ToString(), ClientCertificates, EnabledSslProtocols, CheckCertificateRevocation);
+            }
+
+            return stream;
         }
     }
 }

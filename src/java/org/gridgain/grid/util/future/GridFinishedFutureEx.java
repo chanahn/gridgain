@@ -24,7 +24,7 @@ import java.util.concurrent.*;
  * performs notifications in the same thread.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridFinishedFutureEx<T> extends GridMetadataAwareAdapter implements GridFuture<T>, Externalizable {
     /** Complete value. */

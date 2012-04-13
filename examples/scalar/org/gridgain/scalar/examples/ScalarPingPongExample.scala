@@ -23,7 +23,7 @@ import GridClosureCallMode._
  * two nodes. It is analogous to `GridMessagingPingPongExample` on Java side.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 object ScalarPingPongExample {
     def main(args: Array[String]) {

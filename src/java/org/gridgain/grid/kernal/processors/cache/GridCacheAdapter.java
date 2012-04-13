@@ -42,7 +42,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * Adapter for different cache implementations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter implements GridCache<K, V>,
     Externalizable {
@@ -3594,6 +3594,9 @@ public abstract class GridCacheAdapter<K, V> extends GridMetadataAwareAdapter im
                 assert tx.done() : "Transaction is not done: " + tx;
 
                 return t;
+            }
+            catch (GridInterruptedException e) {
+                throw e;
             }
             catch (GridCacheTxRollbackException e) {
                 throw e;

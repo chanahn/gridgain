@@ -41,7 +41,7 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * Cache query index. Manages full life-cycle of query index database (h2).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 @SuppressWarnings({"UnnecessaryFullyQualifiedName"})
 public class GridCacheQueryIndex<K, V> {

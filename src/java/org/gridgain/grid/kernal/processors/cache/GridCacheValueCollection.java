@@ -23,7 +23,7 @@ import java.util.*;
  * by underlying cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridCacheValueCollection<K, V> extends GridSerializableCollection<V> {
     /** Cache context. */

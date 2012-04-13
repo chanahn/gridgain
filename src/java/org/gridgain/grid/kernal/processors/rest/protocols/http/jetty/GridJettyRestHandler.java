@@ -31,7 +31,7 @@ import static org.gridgain.grid.kernal.processors.rest.GridRestResponse.STATUS_F
  * {@code /gridgain?cmd=cmdName&param1=abc&param2=123}
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridJettyRestHandler extends AbstractHandler {
     /** Logger. */

@@ -17,7 +17,7 @@ import org.jetbrains.annotations.*;
  * Return value for cases where both, value and success flag need to be returned.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridCacheReturn<V> {
     /** Value. */

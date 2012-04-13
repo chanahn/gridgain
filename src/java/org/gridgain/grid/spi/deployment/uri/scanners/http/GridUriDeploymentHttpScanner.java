@@ -30,7 +30,7 @@ import java.util.*;
  * URI deployment HTTP scanner.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridUriDeploymentHttpScanner extends GridUriDeploymentScanner {
     /** Secure socket protocol to use. */
@@ -419,7 +419,7 @@ public class GridUriDeploymentHttpScanner extends GridUriDeploymentScanner {
      * Verifier always return successful result for any host.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.1c.09042012
+     * @version 4.0.2c.12042012
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         /** {@inheritDoc} */

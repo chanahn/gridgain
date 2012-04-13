@@ -38,7 +38,7 @@ import static org.gridgain.grid.kernal.processors.task.GridTaskThreadContextKey.
  * Grid task worker. Handles full task life cycle.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  * @param <T> Task argument type.
  * @param <R> Task return value type.
  */
@@ -989,9 +989,9 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
             // that we make this check because we cannot count on exception being
             // thrown in case of send failure.
             if (curNode == null) {
-                U.warn(log, "Failed to send job request because remote node left grid (will attempt fail-over to " +
-                    "another node) [node=" + node + ", taskName=" + ses.getTaskName() + ", taskSesId=" +
-                    ses.getId() + ", jobSesId=" + res.getJobContext().getJobId() + ']');
+                U.warn(log, "Failed to send job request because remote node left grid (if fail-over is enabled, " +
+                    "will attempt fail-over to another node) [node=" + node + ", taskName=" + ses.getTaskName() +
+                    ", taskSesId=" + ses.getId() + ", jobSesId=" + res.getJobContext().getJobId() + ']');
 
                 ctx.resource().invokeAnnotated(dep, res.<GridJob>getJob(), GridJobAfterSend.class);
 
@@ -1044,8 +1044,8 @@ class GridTaskWorker<T, R> extends GridWorker implements GridTimeoutObject {
 
             // Avoid stack trace if node has left grid.
             if (deadNode)
-                U.warn(log, "Failed to send job request because remote node left grid (will attempt fail-over to " +
-                    "another node) [node=" + node + ", taskName=" + ses.getTaskName() +
+                U.warn(log, "Failed to send job request because remote node left grid (if failover is enabled, " +
+                    "will attempt fail-over to another node) [node=" + node + ", taskName=" + ses.getTaskName() +
                     ", taskSesId=" + ses.getId() + ", jobSesId=" + res.getJobContext().getJobId() + ']');
             else
                 U.error(log, "Failed to send job request: " + req, e);

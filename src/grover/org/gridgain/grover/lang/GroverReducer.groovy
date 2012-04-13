@@ -17,7 +17,7 @@ import org.gridgain.grid.lang.*
  * Adapter for Java's {@code GridReducer}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 @Typed
 abstract class GroverReducer<E, R> extends GridReducer<E, R> {

@@ -44,7 +44,7 @@ import java.util.concurrent.locks.*;
  * transaction objects are passed to the underlying store.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridCacheWriteFromBehindStore<K, V> implements GridCacheStore<K, V> {
     /** Default write cache initial capacity. */

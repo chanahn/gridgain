@@ -20,18 +20,20 @@ namespace GridGain.Client {
 
     /**
      * <summary>
-     * Starts up an empty node with cache configuration.
+     * This example demonstrates use of C# remote client API. To execute
+     * this example you should start an instance of <c>GridClientExampleNodeStartup</c>
+     * Java class which will start up a GridGain node with proper configuration.
+     * <para/>
      * You can also start a stand-alone GridGain instance by passing the path
-     * to configuration file to {@code 'ggstart.{sh|bat}'} script, like so:
-     * {@code 'ggstart.sh examples/config/spring-cache.xml'}.
+     * to configuration file to <c>ggstart.{sh|bat}</c> script, like so:
+     * <c>ggstart.sh examples/config/spring-cache.xml'</c>, but some examples may not work.
+     * <para/>
+     * After node has been started this example creates a client and performs several cache
+     * puts and executes a test task.
      * <para/>
      * Note that different nodes cannot share the same port for rest services. If you want
      * to start more than one node on the same physical machine you must provide different
-     * configurations for each node. Otherwise, this example would not work.
-     * <para/>
-     * After node has been started this example creates a client and performs several cache
-     * puts and executes a test task. Usually you would not start client in the same process
-     * as the grid node - we do it here only for example purposes.</summary>
+     * configurations for each node. Otherwise, this example would not work.</summary>
      */
     public class GridClientApiExample {
         /** <summary>Grid node address to connect to.</summary> */
@@ -450,7 +452,7 @@ namespace GridGain.Client {
         /**
          * <summary>
          * Concatenates the members of a collection, using the specified separator between each member.</summary>
-         * 
+         *
          * <param name="list">A collection that contains the objects to concatenate.</param>
          * <param name="separator">The string to use as a separator.</param>
          * <returns>A string that consists of the members of values delimited by the separator string.</return>
@@ -462,7 +464,7 @@ namespace GridGain.Client {
         /**
          * <summary>
          * Concatenates the members of a map, using the specified separator between each member.</summary>
-         * 
+         *
          * <param name="map">A map that contains the objects to concatenate.</param>
          * <param name="separator">The string to use as a separator.</param>
          * <returns>A string that consists of the members of values delimited by the separator string.</return>

@@ -31,7 +31,7 @@ import java.util.concurrent.*;
  * remote node this class will throw exception.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 @SuppressWarnings({"CustomClassloader"})
 class GridDeploymentClassLoader extends ClassLoader implements GridDeploymentInfo {

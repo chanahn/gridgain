@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable
  * the more values it will be cached on remote nodes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 object ScalarContinuationExample {
     def main(args: Array[String]) {

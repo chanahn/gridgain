@@ -30,7 +30,7 @@ import static org.gridgain.grid.cache.GridCacheTxState.*;
  * Replicated cache transaction future.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public final class GridReplicatedTxPrepareFuture<K, V> extends GridFutureAdapter<GridCacheTxEx<K, V>>
     implements GridCacheFuture<GridCacheTxEx<K, V>> {

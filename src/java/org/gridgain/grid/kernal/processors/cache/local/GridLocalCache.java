@@ -24,7 +24,7 @@ import java.util.*;
  * Local cache implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridLocalCache<K, V> extends GridCacheAdapter<K, V> {
     /** */

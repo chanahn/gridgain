@@ -18,7 +18,7 @@ import java.util.*;
  * over TCP/IP protocol. Beside message itself it provides sender node id.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 class GridTcpCommunicationMessage implements Externalizable {
     /** Communication message. */

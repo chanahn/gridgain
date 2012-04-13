@@ -19,7 +19,7 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * Demonstrates new functional APIs.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  * @see GridTaskExample2
  */
 public class GridClosureExample2 {

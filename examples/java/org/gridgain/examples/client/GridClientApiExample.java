@@ -18,21 +18,19 @@ import java.net.*;
 import java.util.*;
 
 /**
- * Starts up an empty node with cache configuration.
- * You can also start a stand-alone GridGain instance by passing the path
- * to configuration file to {@code 'ggstart.{sh|bat}'} script, like so:
- * {@code 'ggstart.sh examples/config/spring-cache.xml'}.
+ * This example demonstrates use of Java remote client API. To execute
+ * this example you should start an instance of {@link GridClientExampleNodeStartup}
+ * class which will start up a GridGain node with proper configuration.
+ * <p>
+ * After node has been started this example creates a client and performs several cache
+ * puts and executes a test task.
  * <p>
  * Note that different nodes cannot share the same port for rest services. If you want
  * to start more than one node on the same physical machine you must provide different
  * configurations for each node. Otherwise, this example would not work.
- * <p>
- * After node has been started this example creates a client and performs several cache
- * puts and executes a test task. Usually you would not start client in the same process
- * as the grid node - we do it here only for example purposes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridClientApiExample {
     /** Grid node address to connect to. */

@@ -159,8 +159,7 @@ namespace GridGain.Client.Impl {
                 stream = sslCtx.CreateStream(tcp);
 
                 lock (stream) {
-                    ((SslStream)stream).AuthenticateAsClient(srvAddr.Address.ToString());
-
+                    // Flush client authentication packets (if any).
                     stream.Flush();
                 }
             }

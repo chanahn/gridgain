@@ -8,10 +8,15 @@ import java.util.*;
 
 /**
  * This class is an extension of {@link ObjectOutputStream}. It's able to serialize non-serializable objects.
- * It performs optimization. It considers {@link GridMarshallerExclusions}.
+ * It performs optimization. It considers {@link GridMarshallerExclusions}. If the serialized object is
+ * {@link java.util.HashMap}, its keys are checked to be {@link java.io.Serializable}. Requirement for
+ * keys of collection to be serializable is caused by complexity of collection serialization that may
+ * break if serialization is performed not by Java native serializers but with custom wrappers. Same
+ * check is performed in case of {@link java.util.Set} for its contents. Check is light weight - only first
+ * key in map or item in set is checked. It's ultimately up to the user to pass map with serializable keys.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 class GridOptimizedObjectOutput extends ObjectOutputStream {
     /** Whether or not to require an object to be serializable in order to be serialized. */
@@ -46,6 +51,29 @@ class GridOptimizedObjectOutput extends ObjectOutputStream {
     @Nullable @Override protected Object replaceObject(Object obj) throws IOException {
         if (obj == null || GridMarshallerExclusions.isExcluded(obj.getClass()))
             return null;
+
+        if (obj instanceof Map) {
+            Iterator iter = ((Map)obj).keySet().iterator();
+
+            if (iter.hasNext()) {
+                Object key = iter.next();
+
+                if (!(key instanceof Serializable))
+                    throw new NotSerializableException("Serialization of map with non-serializable keys is not " +
+                        "supported.");
+            }
+        }
+        else if (obj instanceof Set) {
+            Iterator iter = ((Iterable)obj).iterator();
+
+            if (iter.hasNext()) {
+                Object elem = iter.next();
+
+                if (!(elem instanceof Serializable))
+                    throw new NotSerializableException("Serialization of sets with non-serializable values is not " +
+                        "supported.");
+            }
+        }
 
         if (requireSer || obj instanceof Serializable)
             return obj;

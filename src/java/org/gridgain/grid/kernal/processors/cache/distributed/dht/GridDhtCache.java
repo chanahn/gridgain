@@ -33,7 +33,7 @@ import static org.gridgain.grid.cache.GridCacheTxIsolation.*;
  * DHT cache.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
     /** Near cache. */
@@ -561,6 +561,26 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
         if (tx == null && !req.explicitLock()) {
             U.warn(log, "Received finish request for completed transaction (the message may be too late " +
                 "and transaction could have been DGCed by now) [commit=" + req.commit() + ", xid=" + req.xid() + ']');
+
+            if (req.replyRequired()) {
+                GridCacheMessage<K, V> res = new GridNearTxFinishResponse<K, V>(req.version(), req.futureId(),
+                    req.miniId(), new GridException("Transaction has been already completed."));
+
+                try {
+                    ctx.io().send(nodeId, res);
+                }
+                catch (Throwable e) {
+                    // Double-check.
+                    if (ctx.discovery().node(nodeId) == null) {
+                        if (log.isDebugEnabled())
+                            log.debug("Node left while sending finish response [nodeId=" + nodeId + ", res=" + res +
+                                ']');
+                    }
+                    else
+                        U.error(log, "Failed to send finish response to node [nodeId=" + nodeId + ", " +
+                            "res=" + res + ']', e);
+                }
+            }
 
             return null;
         }
@@ -1276,6 +1296,8 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
                 log.debug("Received finish request for completed transaction (will ignore) [req=" + req + ", err=" +
                     e.getMessage() + ']');
 
+            sendReply(nodeId, req);
+
             return;
         }
         catch (GridException e) {
@@ -1309,8 +1331,19 @@ public class GridDhtCache<K, V> extends GridDistributedCacheAdapter<K, V> {
         if (nearTx != null)
             finish(near.context(), nodeId, (GridCacheTxRemoteEx<K, V>)nearTx, req, req.nearWrites());
 
+        sendReply(nodeId, req);
+    }
+
+    /**
+     * Sends tx finish response to remote node, if response is requested.
+     *
+     * @param nodeId Node id that originated finish request.
+     * @param req Request.
+     */
+    private void sendReply(UUID nodeId, GridDhtTxFinishRequest<K, V> req) {
         if (req.replyRequired()) {
-            GridCacheMessage res = new GridDhtTxFinishResponse<K, V>(req.version(), req.futureId(), req.miniId());
+            GridCacheMessage<K, V> res = new GridDhtTxFinishResponse<K, V>(req.version(), req.futureId(),
+                req.miniId());
 
             try {
                 ctx.io().send(nodeId, res);

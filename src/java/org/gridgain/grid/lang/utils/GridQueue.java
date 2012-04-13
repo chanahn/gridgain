@@ -23,7 +23,7 @@ import java.util.*;
  * This queue is not thread-safe.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.1c.09042012
+ * @version 4.0.2c.12042012
  */
 public class GridQueue<E> extends AbstractCollection<E> implements Queue<E> {
     /** Queue size. */
