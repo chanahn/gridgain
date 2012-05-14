@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 4.0.2c.12042012
+:: Version: 4.0.3c.14052012
 ::
 
 ::
@@ -46,31 +46,58 @@ if not "%GRIDGAIN_HOME%" == "" goto checkGridGainHome2
     pushd "%~dp0"/..
     set GRIDGAIN_HOME=%CD%
     popd
-    goto checkGridGainHome3
 
 :checkGridGainHome2
-if "%GRIDGAIN_HOME%\bin\" == "%~dp0" goto :checkGridGainHome3
-    echo %0, WARN: GRIDGAIN_HOME environment variable may be pointing to wrong folder: %GRIDGAIN_HOME%
-
-:checkGridGainHome3
 :: remove all trailing slashes from GRIDGAIN_HOME.
 if %GRIDGAIN_HOME:~-1,1% == \ goto removeTrailingSlash
 if %GRIDGAIN_HOME:~-1,1% == / goto removeTrailingSlash
-goto checkGridGainHome4
+goto checkGridGainHome3
 :removeTrailingSlash
 set GRIDGAIN_HOME=%GRIDGAIN_HOME:~0,-1%
-goto checkGridGainHome3
+goto checkGridGainHome2
 
-:checkGridGainHome4
-if exist "%GRIDGAIN_HOME%\config" goto run
+:checkGridGainHome3
+if exist "%GRIDGAIN_HOME%\config" goto checkGridGainHome4
     echo %0, ERROR: GRIDGAIN_HOME environment variable is not valid installation home.
     echo %0, ERROR: GRIDGAIN_HOME variable must point to GridGain installation folder.
-goto error_finish
+    goto error_finish
+
+:checkGridGainHome4
+set GRIDGAIN_HOME_LOWER=%GRIDGAIN_HOME%
+call :toLowerCase GRIDGAIN_HOME_LOWER
+
+set SCRIPT_DIR=%~dp0
+call :toLowerCase SCRIPT_DIR
+
+if "%GRIDGAIN_HOME_LOWER%\bin\" == "%SCRIPT_DIR%" goto parseArgs
+    echo %0, WARN: GRIDGAIN_HOME environment variable may be pointing to wrong folder: %GRIDGAIN_HOME%
+
+::
+:: Process command lime arguments.
+::
+:parseArgs
+if "%1" == "" goto run
+
+if "%1" == "-i" (
+    set INTERACTIVE=1
+) else if "%1" == "-v" (
+    set QUIET=-DGRIDGAIN_QUIET=false
+) else if "%1" == "-np" (
+    set NO_PAUSE=1
+) else (
+    set CONFIG=%1
+)
+
+shift
+
+goto parseArgs
 
 :run
 
+if "%CONFIG%" == "" set CONFIG=%GRIDGAIN_HOME%\config\default-spring.xml
+
 :: This is Ant-augmented variable.
-set ANT_AUGMENTED_GGJAR=gridgain-4.0.2c.jar
+set ANT_AUGMENTED_GGJAR=gridgain-4.0.3c.jar
 
 ::
 :: Set GRIDGAIN_LIBS
@@ -82,44 +109,13 @@ set CP=%GRIDGAIN_LIBS%;%GRIDGAIN_HOME%\%ANT_AUGMENTED_GGJAR%
 ::
 :: Process 'restart'.
 ::
-set RESTART_SUCCESS_FILE="%GRIDGAIN_HOME%\work\gridgain_success_%random%"
+set RESTART_SUCCESS_FILE="%GRIDGAIN_HOME%\work\gridgain_success_%RANDOM%%TIME:~6,2%%TIME:~9,2%"
 set RESTART_SUCCESS_OPT=-DGRIDGAIN_SUCCESS_FILE=%RESTART_SUCCESS_FILE%
-
-::
-:: Process 'interactive' and 'verbose' modes and optional Spring configuration file.
-::
-if [%1] == [-i] (
-    set INTERACTIVE=1
-
-    if  [%2] == [-v] (
-        set QUIET=-DGRIDGAIN_QUIET=false
-    ) else (
-        set QUIET=-DGRIDGAIN_QUIET=true
-    )
-) else if [%1] == [-v] (
-    set QUIET=-DGRIDGAIN_QUIET=false
-
-    if [%2] == [-i] (
-        set INTERACTIVE=1
-    ) else if [%2] == [] (
-        set CONFIG=%GRIDGAIN_HOME%\config\default-spring.xml
-    ) else (
-        set CONFIG=%2
-    )
-) else (
-    set QUIET=-DGRIDGAIN_QUIET=true
-
-    if [%1] == [] (
-        set CONFIG=%GRIDGAIN_HOME%\config\default-spring.xml
-    ) else (
-        set CONFIG=%1
-    )
-)
 
 ::
 :: Find available port for JMX
 ::
-for /F "tokens=*" %%A in ('java -cp "%GRIDGAIN_HOME%\%ANT_AUGMENTED_GGJAR%" org.gridgain.grid.tools.portscanner.GridPortScanner') do set JMX_PORT=%%A
+for /F "tokens=*" %%A in ('""%JAVA_HOME%\bin\java" -cp "%GRIDGAIN_HOME%\%ANT_AUGMENTED_GGJAR%" org.gridgain.grid.tools.portscanner.GridPortScanner"') do set JMX_PORT=%%A
 
 ::
 :: This variable defines necessary parameters for JMX
@@ -200,5 +196,12 @@ if not exist %RESTART_SUCCESS_FILE% goto error_finish
 del %RESTART_SUCCESS_FILE%
 
 :error_finish
+:error_finish
 
-pause
+if not "%NO_PAUSE%" == "1" pause
+
+goto :EOF
+
+:toLowerCase
+for %%i in ("A=a" "B=b" "C=c" "D=d" "E=e" "F=f" "G=g" "H=h" "I=i" "J=j" "K=k" "L=l" "M=m" "N=n" "O=o" "P=p" "Q=q" "R=r" "S=s" "T=t" "U=u" "V=v" "W=w" "X=x" "Y=y" "Z=z") do call set "%1=%%%1:%%~i%%"
+goto :EOF

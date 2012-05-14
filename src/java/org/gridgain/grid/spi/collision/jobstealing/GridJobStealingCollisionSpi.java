@@ -11,6 +11,7 @@ package org.gridgain.grid.spi.collision.jobstealing;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.spi.*;
@@ -147,14 +148,14 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 @SuppressWarnings( {"SynchronizationOnLocalVariableOrMethodParameter", "deprecation"})
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.2c.12042012")
+    version = "4.0.3c.14052012")
 @GridSpiMultipleInstancesSupport(true)
 @GridSpiConsistencyChecked(optional = true)
 public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridCollisionSpi,
@@ -260,7 +261,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
      * power of 2 that makes sense.
      */
     private final ConcurrentMap<UUID, MessageInfo> sndMsgMap =
-        new ConcurrentHashMap<UUID, MessageInfo>(16, 0.75f, 64);
+        new GridConcurrentHashMap<UUID, MessageInfo>();
 
     /**
      * Map of received messages. Note that we choose concurrency level of {@code 64} as
@@ -268,7 +269,7 @@ public class GridJobStealingCollisionSpi extends GridSpiAdapter implements GridC
      * power of 2 that makes sense.
      */
     private final ConcurrentMap<UUID, MessageInfo> rcvMsgMap =
-        new ConcurrentHashMap<UUID, MessageInfo>(16, 0.75f, 64);
+        new GridConcurrentHashMap<UUID, MessageInfo>();
 
     /** */
     private final ConcurrentLinkedQueue<GridNode> nodeQueue = new ConcurrentLinkedQueue<GridNode>();

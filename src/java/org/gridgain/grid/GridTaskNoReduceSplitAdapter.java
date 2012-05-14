@@ -17,7 +17,7 @@ import java.util.*;
  * be used for tasks that don't return any value.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @param <T> Type of the task argument.
  */
 public abstract class GridTaskNoReduceSplitAdapter<T> extends GridTaskSplitAdapter<T, Void> {

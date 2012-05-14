@@ -15,7 +15,7 @@ import java.io.*;
  * Factory that allow to acquire/release Print Stream for test logging.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public final class GridTestPrintStreamFactory {
     /** */

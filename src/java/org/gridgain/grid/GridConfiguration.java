@@ -9,47 +9,49 @@
 
 package org.gridgain.grid;
 
-import org.gridgain.client.ssl.*;
-import org.gridgain.grid.cache.*;
-import org.gridgain.grid.lang.*;
-import org.gridgain.grid.logger.*;
-import org.gridgain.grid.logger.log4j.*;
-import org.gridgain.grid.marshaller.*;
-import org.gridgain.grid.marshaller.optimized.*;
-import org.gridgain.grid.segmentation.*;
-import org.gridgain.grid.spi.authentication.*;
-import org.gridgain.grid.spi.authentication.noop.*;
-import org.gridgain.grid.spi.checkpoint.*;
-import org.gridgain.grid.spi.checkpoint.sharedfs.*;
-import org.gridgain.grid.spi.collision.*;
-import org.gridgain.grid.spi.collision.fifoqueue.*;
-import org.gridgain.grid.spi.communication.*;
-import org.gridgain.grid.spi.communication.tcp.*;
-import org.gridgain.grid.spi.deployment.*;
-import org.gridgain.grid.spi.deployment.local.*;
-import org.gridgain.grid.spi.discovery.*;
-import org.gridgain.grid.spi.discovery.multicast.*;
-import org.gridgain.grid.spi.eventstorage.*;
-import org.gridgain.grid.spi.eventstorage.memory.*;
-import org.gridgain.grid.spi.failover.*;
-import org.gridgain.grid.spi.failover.always.*;
-import org.gridgain.grid.spi.loadbalancing.*;
-import org.gridgain.grid.spi.loadbalancing.roundrobin.*;
-import org.gridgain.grid.spi.metrics.*;
-import org.gridgain.grid.spi.securesession.*;
-import org.gridgain.grid.spi.securesession.noop.*;
-import org.gridgain.grid.spi.swapspace.*;
-import org.gridgain.grid.spi.swapspace.leveldb.*;
-import org.gridgain.grid.spi.topology.*;
-import org.gridgain.grid.spi.topology.basic.*;
-import org.jetbrains.annotations.*;
+import org.gridgain.client.ssl.GridSslContextFactory;
+import org.gridgain.grid.cache.GridCacheConfiguration;
+import org.gridgain.grid.lang.GridPredicate;
+import org.gridgain.grid.logger.GridLogger;
+import org.gridgain.grid.logger.log4j.GridLog4jLogger;
+import org.gridgain.grid.marshaller.GridMarshaller;
+import org.gridgain.grid.marshaller.optimized.GridOptimizedMarshaller;
+import org.gridgain.grid.segmentation.GridSegmentationPolicy;
+import org.gridgain.grid.segmentation.GridSegmentationResolver;
+import org.gridgain.grid.spi.authentication.GridAuthenticationSpi;
+import org.gridgain.grid.spi.authentication.noop.GridNoopAuthenticationSpi;
+import org.gridgain.grid.spi.checkpoint.GridCheckpointSpi;
+import org.gridgain.grid.spi.checkpoint.sharedfs.GridSharedFsCheckpointSpi;
+import org.gridgain.grid.spi.collision.GridCollisionSpi;
+import org.gridgain.grid.spi.collision.fifoqueue.GridFifoQueueCollisionSpi;
+import org.gridgain.grid.spi.communication.GridCommunicationSpi;
+import org.gridgain.grid.spi.communication.tcp.GridTcpCommunicationSpi;
+import org.gridgain.grid.spi.deployment.GridDeploymentSpi;
+import org.gridgain.grid.spi.deployment.local.GridLocalDeploymentSpi;
+import org.gridgain.grid.spi.discovery.GridDiscoverySpi;
+import org.gridgain.grid.spi.discovery.multicast.GridMulticastDiscoverySpi;
+import org.gridgain.grid.spi.eventstorage.GridEventStorageSpi;
+import org.gridgain.grid.spi.eventstorage.memory.GridMemoryEventStorageSpi;
+import org.gridgain.grid.spi.failover.GridFailoverSpi;
+import org.gridgain.grid.spi.failover.always.GridAlwaysFailoverSpi;
+import org.gridgain.grid.spi.loadbalancing.GridLoadBalancingSpi;
+import org.gridgain.grid.spi.loadbalancing.roundrobin.GridRoundRobinLoadBalancingSpi;
+import org.gridgain.grid.spi.metrics.GridLocalMetricsSpi;
+import org.gridgain.grid.spi.securesession.GridSecureSessionSpi;
+import org.gridgain.grid.spi.securesession.noop.GridNoopSecureSessionSpi;
+import org.gridgain.grid.spi.swapspace.GridSwapSpaceSpi;
+import org.gridgain.grid.spi.swapspace.leveldb.GridLevelDbSwapSpaceSpi;
+import org.gridgain.grid.spi.topology.GridTopologySpi;
+import org.gridgain.grid.spi.topology.basic.GridBasicTopologySpi;
+import org.jetbrains.annotations.Nullable;
 
-import javax.management.*;
-import java.lang.management.*;
-import java.util.*;
-import java.util.concurrent.*;
+import javax.management.MBeanServer;
+import java.lang.management.ManagementFactory;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
-import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
+import static org.gridgain.grid.segmentation.GridSegmentationPolicy.STOP;
 
 /**
  * This interface defines grid runtime configuration. This configuration is passed to
@@ -67,7 +69,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * documentation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public interface GridConfiguration {
     /** Courtesy notice log category. */

@@ -14,7 +14,7 @@ import java.net.*;
  * This interface represents established or closed connection between nio server and remote client.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public interface GridNioSession {
     /**

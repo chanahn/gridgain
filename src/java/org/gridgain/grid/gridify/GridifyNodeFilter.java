@@ -16,7 +16,7 @@ import org.gridgain.grid.lang.*;
  * Predicate node filter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public abstract class GridifyNodeFilter extends GridPredicate2<GridNode, GridTaskSession> {
     // No-op.

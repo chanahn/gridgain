@@ -25,7 +25,7 @@ import org.gridgain.grid.typedef.*;
  * if any.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @param <E1> Type of the free variable, i.e. the element the predicate is called on.
  * @see P1
  * @see GridFunc

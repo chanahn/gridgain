@@ -30,7 +30,7 @@ import static org.gridgain.grid.GridEventType.*;
  * This class provides convenient adapter for SPI implementations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean, GridSpiJsonConfigurable {
     /** System line separator. */
@@ -588,7 +588,7 @@ public abstract class GridSpiAdapter implements GridSpi, GridSpiManagementMBean,
      * Temporarily SPI context.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.2c.12042012
+     * @version 4.0.3c.14052012
      */
     private static class GridDummySpiContext implements GridSpiContext {
         /** */

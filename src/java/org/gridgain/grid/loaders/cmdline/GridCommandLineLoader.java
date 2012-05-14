@@ -10,11 +10,13 @@
 package org.gridgain.grid.loaders.cmdline;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.lang.*;
 import org.gridgain.grid.loaders.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.gridgain.grid.util.*;
 import org.jetbrains.annotations.*;
+
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -33,16 +35,16 @@ import static org.gridgain.grid.GridSystemProperties.*;
  * this loader and you can use them as an example.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 @SuppressWarnings({"CallToSystemExit"})
 @GridLoader(description = "Command line loader")
 public final class GridCommandLineLoader {
     /** Ant-augmented version number. */
-    private static final String VER = "4.0.2c";
+    private static final String VER = "4.0.3c";
 
     /** Ant-augmented build number. */
-    private static final String BUILD = "12042012";
+    private static final String BUILD = "14052012";
 
     /** Ant-augmented copyright blurb. */
     private static final String COPYRIGHT = "2012 Copyright (C) GridGain Systems";
@@ -121,16 +123,15 @@ public final class GridCommandLineLoader {
      * @throws IOException In case of error.
      */
     @Nullable private static String askConfigFile() throws IOException {
-        List<String> files = GridConfigurationFinder.getConfigurationFiles();
+        List<GridTuple2<String, Long>> files = GridConfigurationFinder.getConfigFiles();
 
         String title = "Available configuration files:";
 
         X.println(title);
         X.println(U.dash(title.length()));
 
-        for (int i = 0; i < files.size(); i++) {
-            System.out.println(i + ":\t" + files.get(i));
-        }
+        for (int i = 0; i < files.size(); i++)
+            System.out.println(i + ":\t" + files.get(i).get1());
 
         X.print("\nChoose configuration file ('c' to cancel) [0]: ");
 
@@ -144,11 +145,11 @@ public final class GridCommandLineLoader {
             return null;
         }
 
-        if ("".equals(line))
+        if (line != null && line.isEmpty())
             line = "0";
 
         try {
-            String file = files.get(Integer.valueOf(line));
+            String file = files.get(Integer.valueOf(line)).get1();
 
             X.println("\nUsing configuration: " + file + "\n");
 
@@ -177,6 +178,9 @@ public final class GridCommandLineLoader {
         if (args.length > 0 && isHelp(args[0]))
             exit(null, true, 0);
 
+        if (args.length > 0 && args[0].isEmpty())
+            exit("Empty argument.", true, 1);
+
         if (args.length > 0 && args[0].charAt(0) == '-')
             exit("Invalid arguments: " + args[0], true, -1);
 
@@ -199,7 +203,7 @@ public final class GridCommandLineLoader {
         try {
             G.start(cfg);
         }
-        catch (GridException e) {
+        catch (Throwable e) {
             e.printStackTrace();
 
             exit("Failed to start grid: " + e.getMessage(), false, -1);

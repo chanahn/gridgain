@@ -11,7 +11,7 @@ namespace GridGain.Client {
     using System;
     using GridGain.Client.Balancer;
 
-    /** <summary>Java client data projection configuration.</summary> */
+    /** <summary>Client data projection configuration.</summary> */
     public interface IGridClientDataConfiguration {
         /** <summary>Remote cache name.</summary> */
         String Name {

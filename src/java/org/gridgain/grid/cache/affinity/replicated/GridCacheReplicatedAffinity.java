@@ -22,7 +22,7 @@ import java.util.*;
  * used.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridCacheReplicatedAffinity<K> implements GridCacheAffinity<K> {
     /** Filter. */
@@ -88,6 +88,12 @@ public class GridCacheReplicatedAffinity<K> implements GridCacheAffinity<K> {
 
     /** {@inheritDoc} */
     @Override public void reset() {
+        // No-op.
+    }
+
+    /** {@inheritDoc}
+     * @param nodeId*/
+    @Override public void removeNode(UUID nodeId) {
         // No-op.
     }
 }

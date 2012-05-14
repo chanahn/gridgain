@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * {@link GridScheduleFuture#get()} blocking current thread and waiting for result of the next execution.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 @Typed
 @Use(GroverGridCategory)

@@ -16,7 +16,7 @@ import org.gridgain.grid.typedef.internal.*;
  * IP finder interface implementation adapter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public abstract class GridTcpDiscoveryIpFinderAdapter implements GridTcpDiscoveryIpFinder {
     /** Shared flag. */
@@ -41,5 +41,9 @@ public abstract class GridTcpDiscoveryIpFinderAdapter implements GridTcpDiscover
     /** {@inheritDoc} */
     @Override public String toString() {
         return S.toString(GridTcpDiscoveryIpFinderAdapter.class, this);
+    }
+
+    @Override public void close() {
+        // No-op.
     }
 }

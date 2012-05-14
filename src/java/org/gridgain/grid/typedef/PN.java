@@ -19,7 +19,7 @@ import org.gridgain.grid.lang.*;
  * readability. For more information see {@link GridPredicate} and {@link GridRichNode}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @see GridPredicate
  * @see GridRichNode
  * @see GridFunc

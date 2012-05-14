@@ -136,7 +136,7 @@ import java.util.concurrent.*;
  * No explicit deployment step is required.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public interface GridCacheProjection<K, V> extends Iterable<GridCacheEntry<K, V>>, GridMetadataAware {
     /**
@@ -166,6 +166,8 @@ public interface GridCacheProjection<K, V> extends Iterable<GridCacheEntry<K, V>
     public <K, V> GridCache<K, V> cache();
 
     /**
+     * Gets cache flags enabled on this projection.
+     *
      * @return Flags for this projection (empty set if no flags have been set).
      */
     public Set<GridCacheFlag> flags();

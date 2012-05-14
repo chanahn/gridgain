@@ -23,7 +23,7 @@ import org.jetbrains.annotations.*;
  * creating new projections and passing entries to predicate filters. 
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public enum GridCacheFlag {
     /**

@@ -15,7 +15,7 @@ import java.io.*;
  * Cache metrics used to obtain statistics on cache itself or any of its entries.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public interface GridClientDataMetrics extends Serializable {
     /**

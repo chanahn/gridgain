@@ -61,7 +61,7 @@ import java.util.concurrent.*;
  * <p>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, DisposableBean, InitializingBean,
     ApplicationContextAware, Externalizable {
@@ -1580,37 +1580,19 @@ public class GridSpringBean extends GridMetadataAwareAdapter implements Grid, Di
     }
 
     /** {@inheritDoc} */
-    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(
-        File file,
-        @Nullable String dfltUname,
-        @Nullable String dfltPasswd,
-        @Nullable File key,
-        int nodes,
-        @Nullable String ggHome,
-        @Nullable String cfg,
-        @Nullable String script,
-        @Nullable String log,
-        boolean restart) throws GridException {
+    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(File file,
+        @Nullable Map<String, Object> params) throws GridException {
         assert g != null;
 
-        return g.startNodes(file, dfltUname, dfltPasswd, key, nodes, ggHome, cfg, script, log, restart);
+        return g.startNodes(file, params);
     }
 
     /** {@inheritDoc} */
-    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(
-        Collection<String> hostSpecs,
-        @Nullable String dfltUname,
-        @Nullable String dfltPasswd,
-        @Nullable File key,
-        int nodes,
-        @Nullable String ggHome,
-        @Nullable String cfg,
-        @Nullable String script,
-        @Nullable String log,
-        boolean restart) throws GridException {
+    @Override public Collection<GridTuple3<String, Boolean, String>> startNodes(Collection<String> hostSpecs,
+        @Nullable Map<String, Object> params) throws GridException {
         assert g != null;
 
-        return g.startNodes(hostSpecs, dfltUname, dfltPasswd, key, nodes, ggHome, cfg, script, log, restart);
+        return g.startNodes(hostSpecs, params);
     }
 
     /** {@inheritDoc} */

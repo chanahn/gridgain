@@ -21,7 +21,7 @@ import java.util.*;
  * SSH-based node starter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridNodeRunnable implements Runnable {
     /** Default GridGain home path for Windows (taken from environment variable). */
@@ -31,19 +31,16 @@ public class GridNodeRunnable implements Runnable {
     private static final String DFLT_GG_HOME_LINUX = "$GRIDGAIN_HOME";
 
     /** Default start script path for Windows. */
-    private static final String DFLT_SCRIPT_WIN = "bin\\ggstart.bat -v";
+    private static final String DFLT_SCRIPT_WIN = "bin\\ggstart.bat -v -np";
 
     /** Default start script path for Linux. */
     private static final String DFLT_SCRIPT_LINUX = "bin/ggstart.sh -v";
 
-    /** Default log location for Windows. */
-    private static final String DFLT_LOG_PATH_WIN = "work\\log\\gridgain.log";
+    /** Default log folder. */
+    private static final String DFLT_LOG_DIR = "work/log";
 
-    /** Default log location for Linux. */
-    private static final String DFLT_LOG_PATH_LINUX = "work/log/gridgain.log";
-
-    /** Node number. */
-    private final int i;
+    /** Windows service executable. */
+    private static final String SVC_EXE = "bin\\ggservice.exe";
 
     /** Hostname. */
     private final String host;
@@ -69,8 +66,8 @@ public class GridNodeRunnable implements Runnable {
     /** Configuration file path. */
     private String cfg;
 
-    /** Log file path. */
-    private String log;
+    /** Log folder path. */
+    private String logDir;
 
     /** Start results. */
     private final Collection<GridTuple3<String, Boolean, String>> res;
@@ -78,7 +75,6 @@ public class GridNodeRunnable implements Runnable {
     /**
      * Constructor.
      *
-     * @param i Node number.
      * @param host Hostname.
      * @param port Port number.
      * @param uname Username.
@@ -87,18 +83,17 @@ public class GridNodeRunnable implements Runnable {
      * @param ggHome GridGain installation path.
      * @param script Start script path.
      * @param cfg Configuration file path.
-     * @param log Log file path.
+     * @param logDir Log folder path.
      * @param res Start results.
      */
-    public GridNodeRunnable(int i, String host, int port, String uname, @Nullable String passwd,
+    public GridNodeRunnable(String host, int port, String uname, @Nullable String passwd,
         @Nullable File key, @Nullable String ggHome, @Nullable String script, @Nullable String cfg,
-        @Nullable String log, Collection<GridTuple3<String, Boolean, String>> res) {
+        @Nullable String logDir, Collection<GridTuple3<String, Boolean, String>> res) {
         assert host != null;
         assert port > 0;
         assert uname != null;
         assert res != null;
 
-        this.i = i;
         this.host = host;
         this.port = port;
         this.uname = uname;
@@ -107,7 +102,7 @@ public class GridNodeRunnable implements Runnable {
         this.ggHome = ggHome;
         this.script = script;
         this.cfg = cfg;
-        this.log = log;
+        this.logDir = logDir;
         this.res = res;
     }
 
@@ -130,8 +125,6 @@ public class GridNodeRunnable implements Runnable {
 
             ses.connect();
 
-            ChannelExec ch = (ChannelExec)ses.openChannel("exec");
-
             boolean win = isWindows(ses);
 
             String separator = win ? "\\" : "/";
@@ -145,39 +138,101 @@ public class GridNodeRunnable implements Runnable {
             if (cfg == null)
                 cfg = "";
 
-            if (log == null)
-                log = win ? DFLT_LOG_PATH_WIN : DFLT_LOG_PATH_LINUX;
+            if (logDir == null)
+                logDir = DFLT_LOG_DIR;
 
-            SB sb = new SB();
+            // Replace all slashes with correct separator.
+            ggHome = ggHome.replace("\\", separator).replace("/", separator);
+            script = script.replace("\\", separator).replace("/", separator);
+            cfg = cfg.replace("\\", separator).replace("/", separator);
+            logDir = logDir.replace("\\", separator).replace("/", separator);
 
-            String cmd = sb.
-                a(ggHome).a(separator).a(script).a(" ").a(cfg).a(" > ").
-                a(ggHome).a(separator).a(log).a(".").a(i).
-                a(win ? "" : " 2>& 1 &").
+            UUID id = UUID.randomUUID();
+
+            String createLogDirCmd = new SB().
+                a("mkdir ").a(ggHome).a(separator).a(logDir).
                 toString();
 
-            ch.setCommand(cmd);
+            String startNodeCmd;
 
-            try {
-                ch.connect();
+            if (win) {
+                String svcName = "GridGain-" + id;
+
+                startNodeCmd = new SB().
+                    a("sc create ").a(svcName).
+                    a(" binPath= \"").a(ggHome).a(separator).a(SVC_EXE).a("\"").
+                    a(" & ").
+                    a("sc start ").a(svcName).
+                    a(" ").a(svcName).
+                    a(" \"").a(ggHome).a(separator).a(script).
+                    a(" ").a(cfg).a("\"").
+                    a(" \"").a(ggHome).a(separator).a(logDir).a(separator).
+                    a("gridgain.").a(id).a(".log\"").
+                    toString();
             }
-            finally {
-                if (ch.isConnected())
-                    ch.disconnect();
+            else {
+                int spaceIdx = script.indexOf(' ');
+
+                String scriptPath = spaceIdx > -1 ? script.substring(0, spaceIdx) : script;
+                String scriptArgs = spaceIdx > -1 ? script.substring(spaceIdx + 1) : "";
+
+                startNodeCmd = new SB().
+                    a("nohup ").
+                    a("\"").a(ggHome).a(separator).a(scriptPath).a("\"").
+                    a(" ").a(scriptArgs).
+                    a(!cfg.isEmpty() ? " \"" : "").a(cfg).a(!cfg.isEmpty() ? "\"" : "").
+                    a(" > ").
+                    a("\"").a(ggHome).a(separator).a(logDir).a(separator).
+                    a("gridgain.").a(id).a(".log\"").
+                    a(" 2>& 1 &").
+                    toString();
             }
+
+            execute(ses, createLogDirCmd);
+            execute(ses, startNodeCmd);
 
             synchronized (res) {
                 res.add(new GridTuple3<String, Boolean, String>(host, true, null));
             }
         }
-        catch (JSchException e) {
+        catch (Exception e) {
             synchronized (res) {
                 res.add(new GridTuple3<String, Boolean, String>(host, false, e.getMessage()));
             }
         }
         finally {
-            if (ses.isConnected())
+            if (ses != null && ses.isConnected())
                 ses.disconnect();
+        }
+    }
+
+    /**
+     * Executes command using {@code shell} channel.
+     *
+     * @param ses SSH session.
+     * @param cmd Command.
+     * @throws Exception If execution failed.
+     */
+    private void execute(Session ses, String cmd) throws Exception {
+        ChannelShell ch = null;
+        PrintStream out = null;
+
+        try {
+            ch = (ChannelShell)ses.openChannel("shell");
+
+            ch.connect();
+
+            out = new PrintStream(ch.getOutputStream(), true);
+
+            out.println(cmd);
+
+            Thread.sleep(1000);
+        }
+        finally {
+            U.closeQuiet(out);
+
+            if (ch != null && ch.isConnected())
+                ch.disconnect();
         }
     }
 

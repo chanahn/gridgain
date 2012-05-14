@@ -23,7 +23,7 @@ import java.util.*;
  * Scanner doesn't search files in subfolders.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridUriDeploymentFtpScanner extends GridUriDeploymentScanner {
     /** */
@@ -189,7 +189,7 @@ public class GridUriDeploymentFtpScanner extends GridUriDeploymentScanner {
                             getListener().onNewOrUpdatedFile(diskFile, fileUri, fileTstamp.getTimeInMillis());
                         }
                         catch (IOException e) {
-                            getLogger().error("Failed to download file from FTP server: " + fileName, e);
+                            U.error(getLogger(), "Failed to download file from FTP server: " + fileName, e);
                         }
                     }
                 }

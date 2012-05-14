@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.*;
  * with {@link Executor} implementations. Only for internal use.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public abstract class GridWorker implements Runnable {
     /** Grid logger. */
@@ -291,7 +291,7 @@ public abstract class GridWorker implements Runnable {
         catch (CancellationException e) {
             String err = "Grid runnable got cancelled via Future.cancel() which should never be called: " + this;
 
-            log.error(err, e);
+            U.error(log, err, e);
 
             assert false : err;
         }

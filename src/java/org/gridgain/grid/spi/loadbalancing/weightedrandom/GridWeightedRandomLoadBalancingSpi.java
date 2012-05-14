@@ -147,13 +147,13 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.2c.12042012")
+    version = "4.0.3c.14052012")
 @GridSpiMultipleInstancesSupport(true)
 @GridSpiConsistencyChecked(optional = true)
 public class GridWeightedRandomLoadBalancingSpi extends GridSpiAdapter implements GridLoadBalancingSpi,
@@ -179,14 +179,14 @@ public class GridWeightedRandomLoadBalancingSpi extends GridSpiAdapter implement
     private boolean isUseWeights;
 
     /** Local event listener to listen to task completion events. */
-    private GridLocalEventListener evtListener;
+    private GridLocalEventListener evtLsnr;
 
     /** Weight of this node. */
     private int nodeWeight = DFLT_NODE_WEIGHT;
 
     /** Task topologies. First pair value indicates whether or not jobs have been mapped. */
     private ConcurrentMap<GridUuid, GridTuple2<Boolean, WeightedTopology>> taskTops =
-        new ConcurrentHashMap<GridUuid, GridTuple2<Boolean, WeightedTopology>>();
+        new GridConcurrentHashMap<GridUuid, GridTuple2<Boolean, WeightedTopology>>();
 
     /**
      * Sets a flag to indicate whether node weights should be checked when
@@ -259,7 +259,7 @@ public class GridWeightedRandomLoadBalancingSpi extends GridSpiAdapter implement
 
     /** {@inheritDoc} */
     @Override protected void onContextInitialized0(GridSpiContext spiCtx) throws GridSpiException {
-        getSpiContext().addLocalEventListener(evtListener = new GridLocalEventListener() {
+        getSpiContext().addLocalEventListener(evtLsnr = new GridLocalEventListener() {
             @Override public void onEvent(GridEvent evt) {
                 assert evt instanceof GridTaskEvent || evt instanceof GridJobEvent;
 
@@ -299,11 +299,11 @@ public class GridWeightedRandomLoadBalancingSpi extends GridSpiAdapter implement
 
     /** {@inheritDoc} */
     @Override protected void onContextDestroyed0() {
-        if (evtListener != null) {
+        if (evtLsnr != null) {
             GridSpiContext ctx = getSpiContext();
 
             if (ctx != null)
-                ctx.removeLocalEventListener(evtListener);
+                ctx.removeLocalEventListener(evtLsnr);
         }
     }
 
@@ -353,7 +353,7 @@ public class GridWeightedRandomLoadBalancingSpi extends GridSpiAdapter implement
      * Holder for weighted topology.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.2c.12042012
+     * @version 4.0.3c.14052012
      */
     private class WeightedTopology {
         /** Total topology weight. */

@@ -31,7 +31,7 @@ import java.io.*;
  * as a graph.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @see GridProjectionMetrics
  */
 public interface GridNodeMetrics extends Serializable {
@@ -409,11 +409,6 @@ public interface GridNodeMetrics extends Serializable {
      * Windows Vista) and in many cases provides wrong values.
      * In such cases Hyperic Sigar should be used (which is default configuration)
      * to provide proper system load average value.
-     * <p>
-     * Note that Hyperic CIGAR is licensed under GPL. If this license is not
-     * suitable for your business, remove hyperic libs from your classpath. In
-     * case if this method will not detect JDK 1.6 and will not find CIGAR
-     * libraries in the classpath, {@code -1} will be returned.
      *
      * @return The system load average in <code>[0, 1]</code> range.
      *      Negative value if not available.

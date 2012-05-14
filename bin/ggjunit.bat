@@ -6,7 +6,7 @@
 :: / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 :: \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 ::
-:: Version: 4.0.2c.12042012
+:: Version: 4.0.3c.14052012
 ::
 
 ::
@@ -46,31 +46,36 @@ if not "%GRIDGAIN_HOME%" == "" goto checkGridGainHome2
     pushd "%~dp0"/..
     set GRIDGAIN_HOME=%CD%
     popd
-    goto checkGridGainHome3
 
 :checkGridGainHome2
-if "%GRIDGAIN_HOME%\bin\" == "%~dp0" goto :checkGridGainHome3
-    echo %0, WARN: GRIDGAIN_HOME environment variable may be pointing to wrong folder: %GRIDGAIN_HOME%
-
-:checkGridGainHome3
 :: remove all trailing slashes from GRIDGAIN_HOME.
 if %GRIDGAIN_HOME:~-1,1% == \ goto removeTrailingSlash
 if %GRIDGAIN_HOME:~-1,1% == / goto removeTrailingSlash
-goto checkGridGainHome4
+goto checkGridGainHome3
 :removeTrailingSlash
 set GRIDGAIN_HOME=%GRIDGAIN_HOME:~0,-1%
-goto checkGridGainHome3
+goto checkGridGainHome2
 
-:checkGridGainHome4
-if exist "%GRIDGAIN_HOME%\config" goto run
+:checkGridGainHome3
+if exist "%GRIDGAIN_HOME%\config" goto checkGridGainHome4
     echo %0, ERROR: GRIDGAIN_HOME environment variable is not valid installation home.
     echo %0, ERROR: GRIDGAIN_HOME variable must point to GridGain installation folder.
-goto error_finish
+    goto error_finish
+
+:checkGridGainHome4
+set GRIDGAIN_HOME_LOWER=%GRIDGAIN_HOME%
+call :toLowerCase GRIDGAIN_HOME_LOWER
+
+set SCRIPT_DIR=%~dp0
+call :toLowerCase SCRIPT_DIR
+
+if "%GRIDGAIN_HOME_LOWER%\bin\" == "%SCRIPT_DIR%" goto run
+    echo %0, WARN: GRIDGAIN_HOME environment variable may be pointing to wrong folder: %GRIDGAIN_HOME%
 
 :run
 
 :: This is Ant-augmented variable.
-set ANT_AUGMENTED_GGJAR=gridgain-4.0.2c.jar
+set ANT_AUGMENTED_GGJAR=gridgain-4.0.3c.jar
 
 ::
 :: Set GRIDGAIN_LIBS
@@ -106,7 +111,7 @@ goto parseParameters
 ::
 :: Find available port for JMX
 ::
-for /F "tokens=*" %%A in ('java -cp "%GRIDGAIN_HOME%\%ANT_AUGMENTED_GGJAR%" org.gridgain.grid.tools.portscanner.GridPortScanner') do set JMX_PORT=%%A
+for /F "tokens=*" %%A in ('""%JAVA_HOME%\bin\java" -cp "%GRIDGAIN_HOME%\%ANT_AUGMENTED_GGJAR%" org.gridgain.grid.tools.portscanner.GridPortScanner"') do set JMX_PORT=%%A
 
 ::
 :: This variable defines necessary parameters for JMX
@@ -166,5 +171,12 @@ if "%OS%" == "Windows_NT" set PROG_NAME=%~nx0%
 "%JAVA_HOME%\bin\java.exe" %JVM_OPTS% %JMX_MON% %QUIET% -DGRIDGAIN_SCRIPT  -DGRIDGAIN_HOME="%GRIDGAIN_HOME%" -DGRIDGAIN_PROG_NAME="%PROG_NAME%" -cp "%CP%" org.gridgain.grid.loaders.cmdline.GridCommandLineLoader "%CONFIG%"
 
 :error_finish
+:error_finish
 
 pause
+
+goto :EOF
+
+:toLowerCase
+for %%i in ("A=a" "B=b" "C=c" "D=d" "E=e" "F=f" "G=g" "H=h" "I=i" "J=j" "K=k" "L=l" "M=m" "N=n" "O=o" "P=p" "Q=q" "R=r" "S=s" "T=t" "U=u" "V=v" "W=w" "X=x" "Y=y" "Z=z") do call set "%1=%%%1:%%~i%%"
+goto :EOF

@@ -30,7 +30,7 @@ import java.util.*;
  * URI deployment HTTP scanner.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridUriDeploymentHttpScanner extends GridUriDeploymentScanner {
     /** Secure socket protocol to use. */
@@ -249,7 +249,7 @@ public class GridUriDeploymentHttpScanner extends GridUriDeploymentScanner {
 
             String href = element.getAttribute("href");
 
-            if (href != null && href.length() > 0) {
+            if (href != null && !href.isEmpty()) {
                 URL url = null;
 
                 try {
@@ -261,7 +261,7 @@ public class GridUriDeploymentHttpScanner extends GridUriDeploymentScanner {
                             href.charAt(0) == '/' ? href : baseUrl.getFile() + '/' + href);
                     }
                     catch (MalformedURLException e1) {
-                        getLogger().error("Skipping bad URL: " + url, e1);
+                        U.error(getLogger(), "Skipping bad URL: " + url, e1);
                     }
                 }
 
@@ -419,11 +419,11 @@ public class GridUriDeploymentHttpScanner extends GridUriDeploymentScanner {
      * Verifier always return successful result for any host.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.2c.12042012
+     * @version 4.0.3c.14052012
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         /** {@inheritDoc} */
-        @Override public boolean verify(String hostname, SSLSession session) {
+        @Override public boolean verify(String hostname, SSLSession ses) {
             // Remote host trusted by default.
             return true;
         }

@@ -56,7 +56,7 @@ import java.util.*;
  * @param <V> Value type.
  * @param <T> Transformed value type.
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public interface GridCacheTransformQuery<K, V, T> extends GridCacheQueryBase<K, V> {
     /**

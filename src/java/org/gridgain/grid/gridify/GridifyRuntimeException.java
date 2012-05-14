@@ -16,7 +16,7 @@ import org.gridgain.grid.*;
  * methods in case if method execution resulted in undeclared exception.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridifyRuntimeException extends GridRuntimeException {
     /**

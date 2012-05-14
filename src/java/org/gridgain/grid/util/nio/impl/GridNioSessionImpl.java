@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.*;
  * Implementation of session.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 class GridNioSessionImpl implements GridNioSession {
     /** Logger to use. */
@@ -35,7 +35,7 @@ class GridNioSessionImpl implements GridNioSession {
     private final AtomicBoolean closed = new AtomicBoolean();
 
     /** Metadata map. */
-    private final ConcurrentMap<String, Object> meta = new ConcurrentHashMap<String, Object>();
+    private final ConcurrentMap<String, Object> meta = new GridConcurrentHashMap<String, Object>();
 
     /** Pending write requests. */
     private final GridConcurrentLinkedDeque<GridNioFuture<?>> queue = new GridConcurrentLinkedDeque<GridNioFuture<?>>();

@@ -30,7 +30,7 @@ import java.lang.reflect.*;
  * {@code gridified} methods.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @see org.gridgain.grid.gridify.Gridify
  */
 public class GridifyJobAdapter extends GridJobAdapterEx {

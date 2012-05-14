@@ -22,7 +22,7 @@ import java.util.*;
  * efficient implementations.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public abstract class GridSerializableMap<K, V> extends AbstractMap<K, V> implements Serializable {
     // No-op.

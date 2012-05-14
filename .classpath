@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-    <classpathentry kind="lib" path="gridgain-4.0.2c.jar">
+    <classpathentry kind="lib" path="gridgain-4.0.3c.jar">
         <attributes>
-            <attribute name="javadoc_location" value="platform:/resource/GridGain 4.0.2c/javadoc/"/>
+            <attribute name="javadoc_location" value="platform:/resource/GridGain 4.0.3c/javadoc/"/>
         </attributes>
     </classpathentry>
     <classpathentry kind="lib" path="clients/java/gridgain-client.jar">
         <attributes>
-            <attribute name="javadoc_location" value="platform:/resource/GridGain 4.0.2c/clients/java/javadoc/"/>
+            <attribute name="javadoc_location" value="platform:/resource/GridGain 4.0.3c/clients/java/javadoc/"/>
         </attributes>
     </classpathentry>
     <classpathentry kind="src" path="examples/gar/src"/>

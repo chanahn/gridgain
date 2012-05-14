@@ -10,6 +10,7 @@
 package org.gridgain.grid.util;
 
 import org.gridgain.grid.lang.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
@@ -26,7 +27,7 @@ import java.util.concurrent.*;
  * classes.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridLogThrottle {
     /** Default throttle timeout in milliseconds (value is <tt>5 * 60 * 1000</tt>). */
@@ -37,7 +38,7 @@ public class GridLogThrottle {
 
     /** Errors. */
     private static final ConcurrentMap<GridTuple2<Class<? extends Throwable>, String>, Long> errors =
-        new ConcurrentHashMap<GridTuple2<Class<? extends Throwable>, String>, Long>();
+        new GridConcurrentHashMap<GridTuple2<Class<? extends Throwable>, String>, Long>();
 
     /**
      * Sets system-wide log throttle timeout.

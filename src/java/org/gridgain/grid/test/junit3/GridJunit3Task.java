@@ -17,7 +17,7 @@ import java.util.*;
  * Task for JUnit3 grid-enabled tests.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 /*@hide.from.javadoc*/public class GridJunit3Task extends GridTaskAdapter<GridJunit3Argument, Object> {
     /** Deploy class. */

@@ -19,7 +19,7 @@ import java.util.concurrent.locks.*;
  * Client factory opens and closes clients. It also tracks all currently opened clients as well.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridClientFactory {
     /** Map that contain all opened clients. */
@@ -52,9 +52,9 @@ public class GridClientFactory {
             GridClientImpl client = new GridClientImpl(clientId, cfg);
 
             GridClientImpl old = openClients.putIfAbsent(clientId, client);
-            
+
             assert old == null : "Random unique UUID generation failed.";
-            
+
             return client;
         }
         finally {

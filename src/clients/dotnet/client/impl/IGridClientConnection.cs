@@ -142,17 +142,24 @@ namespace GridGain.Client.Impl {
         IGridClientFuture<Boolean> CacheReplace<K, V>(String cacheName, K key, V val);
         /**
          * <summary>
+         * <table>
+         *     <tr><th>New value</th><th>Actual/old value</th><th>Behaviour</th></tr>
+         *     <tr><td>null     </td><td>null   </td><td>Remove entry for key.</td></tr>
+         *     <tr><td>newVal   </td><td>null   </td><td>Put newVal into cache if such key doesn't exist.</td></tr>
+         *     <tr><td>null     </td><td>oldVal </td><td>Remove if actual value oldVal is equals to value in cache.</td></tr>
+         *     <tr><td>newVal   </td><td>oldVal </td><td>Replace if actual value oldVal is equals to value in cache.</td></tr>
+         * </table>
          * </summary>
          *
          * <param name="cacheName">Cache name.</param>
          * <param name="key">Key.</param>
-         * <param name="val1">Value 1.</param>
-         * <param name="val2">Value 2.</param>
+         * <param name="newVal">Value 1.</param>
+         * <param name="oldVal">Value 2.</param>
          * <returns>Whether new value was actually set.</returns>
          * <exception cref="GridClientConnectionResetException">In case of error.</exception>
          * <exception cref="GridClientClosedException">If client was manually closed before request was sent over network.</exception>
          */
-        IGridClientFuture<Boolean> CacheCompareAndSet<K, V>(String cacheName, K key, V val1, V val2);
+        IGridClientFuture<Boolean> CacheCompareAndSet<K, V>(String cacheName, K key, V newVal, V oldVal);
 
         /**
          * <summary>

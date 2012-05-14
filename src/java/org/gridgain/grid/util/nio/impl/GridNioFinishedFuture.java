@@ -19,7 +19,7 @@ import java.util.concurrent.*;
  * Future that represents already completed result.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridNioFinishedFuture<R> implements GridNioFuture<R> {
     /** Future result. */

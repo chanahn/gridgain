@@ -14,7 +14,7 @@ import java.util.*;
  * Generic cache request.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridClientCacheRequest<K, V> extends GridClientAbstractMessage {
     /**
@@ -23,86 +23,34 @@ public class GridClientCacheRequest<K, V> extends GridClientAbstractMessage {
     @SuppressWarnings("PublicInnerClass")
     public enum GridCacheOperation {
         /** Cache put. */
-        PUT((byte)0x01),
+        PUT,
 
         /** Cache put all. */
-        PUT_ALL((byte)0x02),
+        PUT_ALL,
 
         /** Cache get. */
-        GET((byte)0x03),
+        GET,
 
         /** Cache get all. */
-        GET_ALL((byte)0x04),
+        GET_ALL,
 
         /** Cache remove. */
-        RMV((byte)0x05),
+        RMV,
 
         /** Cache remove all. */
-        RMV_ALL((byte)0x06),
+        RMV_ALL,
 
         /** Cache add (put only if not exists). */
-        ADD((byte)0x07),
+        ADD,
 
         /** Cache replace (put only if exists).  */
-        REPLACE((byte)0x08),
+        REPLACE,
 
         /** Cache compare and set. */
-        CAS((byte)0x09),
+        CAS,
 
         /** Cache metrics request. */
-        METRICS((byte)0x0A);
-
-        /** Operation code */
-        private byte opCode;
-
-        /**
-         * Creates enum value.
-         *
-         * @param opCode Operation code.
-         */
-        GridCacheOperation(byte opCode) {
-            this.opCode = opCode;
-        }
-
-        /**
-         * @return Operation code.
-         */
-        public byte opCode() {
-            return opCode;
-        }
-
-        /**
-         * Tries to find enum value by operation code.
-         *
-         * @param val Operation code value.
-         * @return Enum value.
-         */
-        public static GridCacheOperation findByOperationCode(int val) {
-            switch (val) {
-                case 1:
-                    return PUT;
-                case 2:
-                    return PUT_ALL;
-                case 3:
-                    return GET;
-                case 4:
-                    return GET_ALL;
-                case 5:
-                    return RMV;
-                case 6:
-                    return RMV_ALL;
-                case 7:
-                    return ADD;
-                case 8:
-                    return REPLACE;
-                case 9:
-                    return CAS;
-                case 10:
-                    return METRICS;
-                default:
-                    throw new IllegalArgumentException("Invalid value: " + val);
-            }
-        }
+        METRICS
     }
 
     /** Requested cache operation. */
@@ -122,6 +70,9 @@ public class GridClientCacheRequest<K, V> extends GridClientAbstractMessage {
 
     /** Keys and values for put all, get all, remove all operations. */
     private Map<K, V> vals;
+
+    /** Bit map of cache flags to be enabled on cache projection */
+    private int cacheFlagsOn;
 
     /**
      * Creates grid cache request.
@@ -223,20 +174,26 @@ public class GridClientCacheRequest<K, V> extends GridClientAbstractMessage {
             vals.put(k, null);
     }
 
+    /**
+     * Set cache flags bit map.
+     *
+     * @param cacheFlagsOn Bit representation of cache flags.
+     */
+    public void cacheFlagsOn(int cacheFlagsOn) {
+        this.cacheFlagsOn = cacheFlagsOn;
+    }
+
+    /**
+     * Get cache flags bit map.
+     * @return Bit representation of cache flags.
+     */
+    public int cacheFlagsOn() {
+        return cacheFlagsOn;
+    }
+
     /** {@inheritDoc} */
     @Override public String toString() {
-        return new StringBuilder().
-            append("GridClientCacheCASRequest [op=").
-            append(op).
-            append(", key=").
-            append(key).
-            append(", val=").
-            append(val).
-            append(", val2=").
-            append(val2).
-            append("vals=").
-            append(vals).
-            append("]").
-            toString();
+        return "GridClientCacheCASRequest [op=" + op + ", key=" + key + ", val=" + val + ", val2=" + val2 + ", vals=" +
+            vals + ", cacheFlagsOn=" + cacheFlagsOn + "]";
     }
 }

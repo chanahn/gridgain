@@ -12,12 +12,13 @@ package org.gridgain.grid.util;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.*;
+import java.security.*;
 
 /**
  * Provides handle on Unsafe class from SUN which cannot be instantiated directly.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridUnsafe {
     /**
@@ -32,14 +33,25 @@ public class GridUnsafe {
      */
     public static Unsafe unsafe() {
         try {
-            Field field = Unsafe.class.getDeclaredField("theUnsafe");
-
-            field.setAccessible(true);
-
-            return (Unsafe)field.get(null);
+            return Unsafe.getUnsafe();
         }
-        catch (Throwable e) {
-           throw new AssertionError(e);
+        catch (SecurityException ignored) {
+            try {
+                return AccessController.doPrivileged
+                    (new PrivilegedExceptionAction<Unsafe>() {
+                        @Override public Unsafe run() throws Exception {
+                            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+
+                            f.setAccessible(true);
+
+                            return (Unsafe)f.get(null);
+                        }
+                    });
+            }
+            catch (PrivilegedActionException e) {
+                throw new RuntimeException("Could not initialize intrinsics",
+                    e.getCause());
+            }
         }
     }
 }

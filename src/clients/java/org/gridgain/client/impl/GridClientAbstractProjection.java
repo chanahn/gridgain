@@ -18,7 +18,7 @@ import java.util.*;
  * Class contains common connection-error handling logic.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 abstract class GridClientAbstractProjection<T extends GridClientAbstractProjection> {
     /** List of nodes included in this projection. If null, all nodes in topology are included. */
@@ -256,12 +256,13 @@ abstract class GridClientAbstractProjection<T extends GridClientAbstractProjecti
      *      created projection is dynamic and will take nodes from topology.
      * @param filter Filter to be applied to nodes in projection.
      * @param balancer Balancer to use in projection.
+     * @param factory Factory to create new projection.
      * @return Created projection.
      * @throws GridClientException If resulting projection is empty. Note that this exception may
      *      only be thrown on case of static projections, i.e. where collection of nodes is not null.
      */
     protected T createProjection(Collection<GridClientNode> nodes, GridClientPredicate<GridClientNode> filter,
-        GridClientLoadBalancer balancer) throws GridClientException {
+        GridClientLoadBalancer balancer, ProjectionFactory<T> factory) throws GridClientException {
         if (nodes != null && nodes.isEmpty())
             throw new GridClientException("Failed to create projection: given nodes collection is empty.");
 
@@ -287,7 +288,7 @@ abstract class GridClientAbstractProjection<T extends GridClientAbstractProjecti
         if (balancer == null)
             balancer = this.balancer;
 
-        return createProjectionImpl(nodes, filter, balancer);
+        return factory.create(nodes, filter, balancer);
     }
 
     /**
@@ -314,15 +315,22 @@ abstract class GridClientAbstractProjection<T extends GridClientAbstractProjecti
     }
 
     /**
-     * Subclasses must implement this method and return concrete implementation of projection needed.
+     * Factory for new projection creation.
      *
-     * @param nodes Nodes that are included in projection.
-     * @param filter Filter to be applied.
-     * @param balancer Balancer to be used.
-     * @return Created projection.
+     * @param <X> Projection implementation.
      */
-    protected abstract T createProjectionImpl(Collection<GridClientNode> nodes,
-        GridClientPredicate<GridClientNode> filter, GridClientLoadBalancer balancer);
+    protected static interface ProjectionFactory<X extends GridClientAbstractProjection> {
+        /**
+         * Subclasses must implement this method and return concrete implementation of projection needed.
+         *
+         * @param nodes Nodes that are included in projection.
+         * @param filter Filter to be applied.
+         * @param balancer Balancer to be used.
+         * @return Created projection.
+         */
+        public X create(Collection<GridClientNode> nodes, GridClientPredicate<GridClientNode> filter,
+                        GridClientLoadBalancer balancer);
+    }
 
     /**
      * Closure to execute reconnect-handling code.

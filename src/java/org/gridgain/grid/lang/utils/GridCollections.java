@@ -19,7 +19,7 @@ import java.util.concurrent.locks.*;
  * should perform better as their analogous methods in {@code java.util.Collections} class.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public final class GridCollections {
     /**

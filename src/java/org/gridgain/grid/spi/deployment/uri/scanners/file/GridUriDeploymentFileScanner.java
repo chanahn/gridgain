@@ -27,7 +27,7 @@ import java.util.*;
  * about every change.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridUriDeploymentFileScanner extends GridUriDeploymentScanner {
     /** Scanning directory or file. */
@@ -120,7 +120,7 @@ public class GridUriDeploymentFileScanner extends GridUriDeploymentScanner {
         final Set<File> foundFiles = isFirstScan() ? new HashSet<File>() :
             new HashSet<File>(tstampCache.size());
 
-        GridDeploymentFileHandler handler = new GridDeploymentFileHandler() {
+        GridDeploymentFileHandler hnd = new GridDeploymentFileHandler() {
             /** {@inheritDoc} */
             @Override public void handle(File file) {
                 foundFiles.add(file);
@@ -130,7 +130,7 @@ public class GridUriDeploymentFileScanner extends GridUriDeploymentScanner {
         };
 
         // Scan directory for deploy units.
-        GridDeploymentFolderScannerHelper.scanFolder(scanDir, garFilter, handler);
+        GridDeploymentFolderScannerHelper.scanFolder(scanDir, garFilter, hnd);
 
         // Print warning if no GAR-units found first time.
         if (isFirstScan() && foundFiles.isEmpty())
@@ -196,27 +196,27 @@ public class GridUriDeploymentFileScanner extends GridUriDeploymentScanner {
             String fileName = file.getName();
 
             try {
-                File copyFile = createTempFile(fileName, getDeployDirectory());
+                File cpFile = createTempFile(fileName, getDeployDirectory());
 
                 // Delete file when JVM stopped.
-                copyFile.deleteOnExit();
+                cpFile.deleteOnExit();
 
                 if (file.isDirectory()) {
-                    copyFile = new File(copyFile.getParent(), "dir_" + copyFile.getName());
+                    cpFile = new File(cpFile.getParent(), "dir_" + cpFile.getName());
 
                     // Delete directory when JVM stopped.
-                    copyFile.deleteOnExit();
+                    cpFile.deleteOnExit();
                 }
 
                 // Copy file to deploy directory.
-                U.copy(file, copyFile, true);
+                U.copy(file, cpFile, true);
 
                 String fileUri = getFileUri(file.getAbsolutePath());
 
-                getListener().onNewOrUpdatedFile(copyFile, fileUri, lastMod);
+                getListener().onNewOrUpdatedFile(cpFile, fileUri, lastMod);
             }
             catch (IOException e) {
-                getLogger().error("Error saving file: " + fileName, e);
+                U.error(getLogger(), "Error saving file: " + fileName, e);
             }
         }
     }
@@ -255,7 +255,7 @@ public class GridUriDeploymentFileScanner extends GridUriDeploymentScanner {
         final Set<File> foundFiles = firstScan ? new HashSet<File>() :
             new HashSet<File>(clssTstampCache.size());
 
-        GridDeploymentFileHandler handler = new GridDeploymentFileHandler() {
+        GridDeploymentFileHandler hnd = new GridDeploymentFileHandler() {
             @Override public void handle(File file) {
                 foundFiles.add(file);
 
@@ -275,7 +275,7 @@ public class GridUriDeploymentFileScanner extends GridUriDeploymentScanner {
         };
 
         // Scan GAR-directory for changes.
-        GridDeploymentFolderScannerHelper.scanFolder(dir, garDirFilesFilter, handler);
+        GridDeploymentFolderScannerHelper.scanFolder(dir, garDirFilesFilter, hnd);
 
         // Clear cache for deleted files.
         if (!firstScan && clssTstampCache.keySet().retainAll(foundFiles)) {

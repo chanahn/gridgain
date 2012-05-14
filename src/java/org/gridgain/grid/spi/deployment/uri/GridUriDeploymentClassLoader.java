@@ -9,6 +9,7 @@
 
 package org.gridgain.grid.spi.deployment.uri;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
@@ -24,11 +25,11 @@ import java.util.concurrent.locks.*;
  * class/resource was not found scans all JAR files.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 class GridUriDeploymentClassLoader extends URLClassLoader {
     /** */
-    private final ConcurrentMap<String, Lock> locks = new ConcurrentHashMap<String, Lock>();
+    private final ConcurrentMap<String, Lock> locks = new GridConcurrentHashMap<String, Lock>();
 
     /**
      * Creates new instance of class loader.

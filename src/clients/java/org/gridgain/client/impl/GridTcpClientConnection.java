@@ -29,7 +29,7 @@ import static org.gridgain.client.message.GridClientCacheRequest.GridCacheOperat
  * provided.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 class GridTcpClientConnection extends GridClientConnection {
     /** Logger */
@@ -453,90 +453,63 @@ class GridTcpClientConnection extends GridClientConnection {
         lastPacketSndTime = System.currentTimeMillis();
     }
 
-    /**
-     *
-     * @param cacheName Cache name.
-     * @param entries Entries.
-     * @return {@code True} if map contained more then one entry or if put succeeded in case of one entry,
-     *      {@code false} otherwise
-     * @throws GridClientConnectionResetException In case of error.
-     */
-    @Override public <K, V> GridClientFuture<Boolean> cachePutAll(String cacheName, Map<K, V> entries)
-        throws GridClientConnectionResetException, GridClientClosedException {
+    /** {@inheritDoc} */
+    @Override public <K, V> GridClientFuture<Boolean> cachePutAll(String cacheName, Map<K, V> entries,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         assert entries != null;
 
         GridClientCacheRequest<K, V> req = new GridClientCacheRequest<K, V>(PUT_ALL);
 
         req.cacheName(cacheName);
         req.values(entries);
+        req.cacheFlagsOn(encodeCacheFlags(flags));
 
         return makeRequest(req);
     }
 
-    /**
-     *
-     * @param cacheName Cache name.
-     * @param keys Keys.
-     * @return Entries.
-     * @throws GridClientConnectionResetException In case of error.
-     */
-    @Override public <K, V> GridClientFuture<Map<K, V>> cacheGetAll(String cacheName, Collection<K> keys)
-        throws GridClientConnectionResetException, GridClientClosedException {
+    /** {@inheritDoc} */
+    @Override public <K, V> GridClientFuture<Map<K, V>> cacheGetAll(String cacheName, Collection<K> keys,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         assert keys != null;
 
         GridClientCacheRequest<K, V> req = new GridClientCacheRequest<K, V>(GET_ALL);
 
         req.cacheName(cacheName);
         req.keys(new HashSet<K>(keys));
+        req.cacheFlagsOn(encodeCacheFlags(flags));
 
         return makeRequest(req);
     }
 
-    /**
-     * @param cacheName Cache name.
-     * @param key Key.
-     * @return Whether entry was actually removed.
-     * @throws GridClientConnectionResetException In case of error.
-     */
-    @Override public <K> GridClientFuture<Boolean> cacheRemove(String cacheName, K key)
+    /** {@inheritDoc} */
+    @Override public <K> GridClientFuture<Boolean> cacheRemove(String cacheName, K key, Set<GridClientCacheFlag> flags)
         throws GridClientConnectionResetException, GridClientClosedException {
         GridClientCacheRequest<K, Object> req = new GridClientCacheRequest<K, Object>(RMV);
 
         req.cacheName(cacheName);
         req.key(key);
+        req.cacheFlagsOn(encodeCacheFlags(flags));
 
         return makeRequest(req);
     }
 
-    /**
-     *
-     * @param cacheName Cache name.
-     * @param keys Keys.
-     * @return Whether entries were actually removed
-     * @throws GridClientConnectionResetException In case of error.
-     */
-    @Override public <K> GridClientFuture<Boolean> cacheRemoveAll(String cacheName, Collection<K> keys)
-        throws GridClientConnectionResetException, GridClientClosedException {
+    /** {@inheritDoc} */
+    @Override public <K> GridClientFuture<Boolean> cacheRemoveAll(String cacheName, Collection<K> keys,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         assert keys != null;
 
         GridClientCacheRequest<K, Object> req = new GridClientCacheRequest<K, Object>(RMV_ALL);
 
         req.cacheName(cacheName);
         req.keys(new HashSet<K>(keys));
+        req.cacheFlagsOn(encodeCacheFlags(flags));
 
         return makeRequest(req);
     }
 
-    /**
-     *
-     * @param cacheName Cache name.
-     * @param key Key.
-     * @param val Value.
-     * @return Whether entry was added.
-     * @throws GridClientConnectionResetException In case of error.
-     */
-    @Override public <K, V> GridClientFuture<Boolean> cacheAdd(String cacheName, K key, V val)
-        throws GridClientConnectionResetException, GridClientClosedException {
+    /** {@inheritDoc} */
+    @Override public <K, V> GridClientFuture<Boolean> cacheAdd(String cacheName, K key, V val,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         assert key != null;
         assert val != null;
 
@@ -545,20 +518,14 @@ class GridTcpClientConnection extends GridClientConnection {
         add.cacheName(cacheName);
         add.key(key);
         add.value(val);
+        add.cacheFlagsOn(encodeCacheFlags(flags));
 
         return makeRequest(add);
     }
 
-    /**
-     *
-     * @param cacheName Cache name.
-     * @param key Key.
-     * @param val Value.
-     * @return Whether value was actually replaced.
-     * @throws GridClientConnectionResetException In case of error.
-     */
-    @Override public <K, V> GridClientFuture<Boolean> cacheReplace(String cacheName, K key, V val)
-        throws GridClientConnectionResetException, GridClientClosedException {
+    /** {@inheritDoc} */
+    @Override public <K, V> GridClientFuture<Boolean> cacheReplace(String cacheName, K key, V val,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         assert key != null;
         assert val != null;
 
@@ -567,29 +534,23 @@ class GridTcpClientConnection extends GridClientConnection {
         replace.cacheName(cacheName);
         replace.key(key);
         replace.value(val);
+        replace.cacheFlagsOn(encodeCacheFlags(flags));
 
         return makeRequest(replace);
     }
 
-    /**
-     *
-     * @param cacheName Cache name.
-     * @param key Key.
-     * @param val1 Value 1.
-     * @param val2 Value 2.
-     * @return Whether new value was actually set.
-     * @throws GridClientConnectionResetException In case of error.
-     */
-    @Override public <K, V> GridClientFuture<Boolean> cacheCompareAndSet(String cacheName, K key, V val1, V val2)
-        throws GridClientConnectionResetException, GridClientClosedException {
+    /** {@inheritDoc} */
+    @Override public <K, V> GridClientFuture<Boolean> cacheCompareAndSet(String cacheName, K key, V newVal, V oldVal,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         assert key != null;
 
         GridClientCacheRequest<K, V> msg = new GridClientCacheRequest<K, V>(CAS);
 
         msg.cacheName(cacheName);
         msg.key(key);
-        msg.value(val1);
-        msg.value2(val2);
+        msg.value(newVal);
+        msg.value2(oldVal);
+        msg.cacheFlagsOn(encodeCacheFlags(flags));
 
         return makeRequest(msg);
     }

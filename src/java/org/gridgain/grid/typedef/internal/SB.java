@@ -17,7 +17,7 @@ import org.gridgain.grid.util.*;
  * use only and meant to provide for more terse code when readability of code is not compromised.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class SB extends GridStringBuilder {
     /**
@@ -29,7 +29,7 @@ public class SB extends GridStringBuilder {
 
     /**
      *
-     * @param cap
+     * @param cap Capacity.
      * @see GridStringBuilder#GridStringBuilder(int)
      */
     public SB(int cap) {
@@ -38,7 +38,7 @@ public class SB extends GridStringBuilder {
 
     /**
      *
-     * @param str
+     * @param str String.
      * @see GridStringBuilder#GridStringBuilder(String)
      */
     public SB(String str) {
@@ -46,7 +46,7 @@ public class SB extends GridStringBuilder {
     }
 
     /**
-     * @param seq
+     * @param seq Sequence.
      * @see GridStringBuilder#GridStringBuilder(CharSequence)
      */
     public SB(CharSequence seq) {

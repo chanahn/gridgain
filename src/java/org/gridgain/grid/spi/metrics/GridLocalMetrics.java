@@ -15,7 +15,7 @@ import java.io.*;
  * This class represents runtime information available for current VM.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public interface GridLocalMetrics extends Serializable {
     /**
@@ -50,11 +50,6 @@ public interface GridLocalMetrics extends Serializable {
      * is set to {@code false} (default is {@code true}), then this method is equivalent to
      * {@code OperatingSystemMXBean.getSystemLoadAverage()} method. Otherwise,
      * for JDK 1.5 Hyperic Sigar monitoring will be used.
-     * <p>
-     * Note that Hyperic Sigar is licensed under GPL. If this license is not
-     * suitable for your business, remove hyperic libs from your classpath. In
-     * case if this method will not detect JDK 1.6 and will not find Hyperic Sigar
-     * libraries in the classpath, {@code -1} will be returned.
      *
      * @return The system load average; or a negative value if not available.
      */

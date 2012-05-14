@@ -27,7 +27,7 @@ import java.util.*;
  * needed for the example compiled and put to node classpath.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridCacheStoreExample {
     /** Global person ID to use across entire example. */
@@ -43,6 +43,7 @@ public class GridCacheStoreExample {
         // To start grid with desired configuration uncomment the appropriate line.
         G.start("examples/config/spring-cache-store-jdbc.xml");
         // G.start("examples/config/spring-cache-store-hibernate.xml");
+        // G.start("examples/config/spring-cache-store-hbase.xml");
 
         try {
             commitExample();

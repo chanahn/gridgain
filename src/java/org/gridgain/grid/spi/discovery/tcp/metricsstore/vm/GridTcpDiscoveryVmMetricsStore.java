@@ -10,13 +10,13 @@
 package org.gridgain.grid.spi.discovery.tcp.metricsstore.vm;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.spi.*;
 import org.gridgain.grid.spi.discovery.tcp.metricsstore.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 
 import java.util.*;
-import java.util.concurrent.*;
 
 /**
  * Local JVM-based metrics store.
@@ -29,11 +29,11 @@ import java.util.concurrent.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridTcpDiscoveryVmMetricsStore extends GridTcpDiscoveryMetricsStoreAdapter {
     /** Metrics. */
-    private final Map<UUID, GridNodeMetrics> metricsMap = new ConcurrentHashMap<UUID, GridNodeMetrics>();
+    private final Map<UUID, GridNodeMetrics> metricsMap = new GridConcurrentHashMap<UUID, GridNodeMetrics>();
 
     /** {@inheritDoc} */
     @Override public void updateLocalMetrics(UUID locNodeId, GridNodeMetrics metrics) throws GridSpiException {

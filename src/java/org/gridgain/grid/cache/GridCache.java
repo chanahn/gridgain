@@ -20,7 +20,7 @@ import java.util.*;
 
 /**
  * <img id="callout_img" src="{@docRoot}/img/callout_blue.gif"><span id="callout_blue">Start Here</span>&nbsp;
- * Main <b>Data Grid</b> APIs.
+ * Main <b>In-Memory Data Grid</b> APIs.
  * <h1 class="header">Rich API</h1>
  * This API extends {@link GridCacheProjection} API which contains vast majority of cache functionality
  * and documentation. In addition to {@link GridCacheProjection} functionality this API provides:
@@ -61,7 +61,7 @@ import java.util.*;
  * To do that, {@link GridSystemProperties#GG_NO_DISCO_ORDER} must be provided at startup.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @param <K> Cache key type.
  * @param <V> Cache value type.
  */

@@ -108,14 +108,14 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @see GridSwapSpaceSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.2c.12042012")
+    version = "4.0.3c.14052012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpaceSpi, GridFileSwapSpaceSpiMBean {
     /*
@@ -358,7 +358,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
     private final ReadWriteLock[] locks = new ReadWriteLock[LOCKS_CNT];
 
     /** Spaces. */
-    private final ConcurrentMap<String, Space> spaces = new ConcurrentHashMap<String, Space>();
+    private final ConcurrentMap<String, Space> spaces = new GridConcurrentHashMap<String, Space>();
 
     /** ID generator. */
     private final AtomicInteger sesIdGen = new AtomicInteger();
@@ -1721,7 +1721,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
         /** */
         private final ConcurrentMap<Integer, AtomicInteger> idxReservs =
-            new ConcurrentHashMap<Integer, AtomicInteger>();
+            new GridConcurrentHashMap<Integer, AtomicInteger>();
 
         /** */
         private final AtomicLong size = new AtomicLong();
@@ -3038,27 +3038,27 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
                         while (readCnt < idxReadBatchSize && randAccessFile.getFilePointer() < randAccessFile.length()) {
                             String s = randAccessFile.readLine();
-    
+
                             if (log.isDebugEnabled())
                                 log.debug("Read line from index [file=" + idx + ", s=" + s + ']');
-    
+
                             IndexEntry e = parseIndexEntry(s);
-    
+
                             if (e == null) {
                                 if (log.isDebugEnabled())
                                     log.debug("Failed to parse string: " + s);
-    
+
                                 continue;
                             }
-    
+
                             if (log.isDebugEnabled())
                                 log.debug("Parsed index entry: " + e);
-    
+
                             if (res == null)
                                 res = new LinkedList<IndexEntry>();
-    
+
                             res.add(e);
-    
+
                             readCnt++;
                         }
 
@@ -3068,7 +3068,7 @@ public class GridFileSwapSpaceSpi extends GridSpiAdapter implements GridSwapSpac
 
                         if (readLen > 0) {
                             startIdxFilePos = ptr;
-    
+
                             totalIdxSize.addAndGet(-readLen);
                         }
                     }

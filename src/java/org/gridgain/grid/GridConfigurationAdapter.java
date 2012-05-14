@@ -11,6 +11,7 @@ package org.gridgain.grid;
 
 import org.gridgain.client.ssl.GridSslContextFactory;
 import org.gridgain.grid.cache.GridCacheConfiguration;
+import org.gridgain.grid.kernal.managers.eventstorage.GridEventStorageManager;
 import org.gridgain.grid.lang.GridPredicate;
 import org.gridgain.grid.logger.GridLogger;
 import org.gridgain.grid.marshaller.GridMarshaller;
@@ -29,13 +30,13 @@ import org.gridgain.grid.spi.metrics.GridLocalMetricsSpi;
 import org.gridgain.grid.spi.securesession.GridSecureSessionSpi;
 import org.gridgain.grid.spi.swapspace.GridSwapSpaceSpi;
 import org.gridgain.grid.spi.topology.GridTopologySpi;
-import org.gridgain.grid.typedef.internal.*;
-import org.gridgain.grid.kernal.managers.eventstorage.*;
-import org.jetbrains.annotations.*;
+import org.gridgain.grid.typedef.internal.S;
+import org.jetbrains.annotations.Nullable;
 
-import javax.management.*;
-import java.util.*;
-import java.util.concurrent.*;
+import javax.management.MBeanServer;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Adapter for {@link GridConfiguration} interface. Use it to add custom configuration
@@ -43,7 +44,7 @@ import java.util.concurrent.*;
  * will automatically pick default values for all values that are not set.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridConfigurationAdapter implements GridConfiguration {
     /** Optional grid name. */

@@ -17,6 +17,7 @@ import org.gridgain.grid.marshaller.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.*;
 import org.gridgain.grid.util.tostring.*;
 import org.hibernate.*;
 import org.hibernate.cfg.*;
@@ -67,8 +68,9 @@ import java.util.concurrent.atomic.*;
  *
  * <h2>Spring Example (using Spring ORM)</h2>
  * <pre name="code" class="xml">
- *     ...
- *     &lt;bean id=&quot;cache.hibernate.store&quot; class=&quot;org.gridgain.grid.cache.store.hibernate.GridCacheHibernateBlobStore&quot;&gt;
+ *   ...
+ *   &lt;bean id=&quot;cache.hibernate.store&quot;
+ *       class=&quot;org.gridgain.grid.cache.store.hibernate.GridCacheHibernateBlobStore&quot;&gt;
  *       &lt;property name=&quot;sessionFactory&quot;&gt;
  *           &lt;bean class=&quot;org.springframework.orm.hibernate3.LocalSessionFactoryBean&quot;&gt;
  *               &lt;property name=&quot;hibernateProperties&quot;&gt;
@@ -92,10 +94,11 @@ import java.util.concurrent.atomic.*;
  *   ...
  * </pre>
  *
- * <h2>Spring Example ((using Spring ORM and persistent annotations)</h2>
+ * <h2>Spring Example (using Spring ORM and persistent annotations)</h2>
  * <pre name="code" class="xml">
  *     ...
- *     &lt;bean id=&quot;cache.hibernate.store1&quot; class=&quot;org.gridgain.grid.cache.store.hibernate.GridCacheHibernateBlobStore&quot;&gt;
+ *     &lt;bean id=&quot;cache.hibernate.store1&quot;
+ *         class=&quot;org.gridgain.grid.cache.store.hibernate.GridCacheHibernateBlobStore&quot;&gt;
  *         &lt;property name=&quot;sessionFactory&quot;&gt;
  *             &lt;bean class=&quot;org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean&quot;&gt;
  *                 &lt;property name=&quot;hibernateProperties&quot;&gt;
@@ -122,7 +125,8 @@ import java.util.concurrent.atomic.*;
  * <h2>Spring Example</h2>
  * <pre name="code" class="xml">
  *     ...
- *     &lt;bean id=&quot;cache.hibernate.store2&quot; class=&quot;org.gridgain.grid.cache.store.hibernate.GridCacheHibernateBlobStore&quot;&gt;
+ *     &lt;bean id=&quot;cache.hibernate.store2&quot;
+ *         class=&quot;org.gridgain.grid.cache.store.hibernate.GridCacheHibernateBlobStore&quot;&gt;
  *         &lt;property name=&quot;hibernateProperties&quot;&gt;
  *             &lt;props&gt;
  *                 &lt;prop key=&quot;connection.url&quot;&gt;jdbc:h2:mem:&lt;/prop&gt;
@@ -139,11 +143,15 @@ import java.util.concurrent.atomic.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
-    /** Default connection URL (value is <tt>jdbc:h2:mem:hibernateCacheStore;DB_CLOSE_DELAY=-1</tt>). */
-    public static final String DFLT_CONN_URL = "jdbc:h2:mem:hibernateCacheStore;DB_CLOSE_DELAY=-1";
+    /**
+     * Default connection URL
+     * (value is <tt>jdbc:h2:mem:hibernateCacheStore;DB_CLOSE_DELAY=-1;DEFAULT_LOCK_TIMEOUT=5000</tt>).
+     */
+    public static final String DFLT_CONN_URL = "jdbc:h2:mem:hibernateCacheStore;DB_CLOSE_DELAY=-1;" +
+        "DEFAULT_LOCK_TIMEOUT=5000";
 
     /** Default show SQL property value (value is <tt>true</tt>). */
     public static final String DFLT_SHOW_SQL = "true";
@@ -153,10 +161,6 @@ public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, 
 
     /** Session attribute name. */
     private static final String ATTR_SES = "HIBERNATE_STORE_SESSION";
-
-    /** Delete query. */
-    public static final String DELETE_QRY = "delete " + GridCacheHibernateBlobStoreEntry.class.getSimpleName() +
-        " where key = :key";
 
     /** Init guard. */
     @GridToStringExclude
@@ -197,13 +201,12 @@ public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, 
 
         try {
             GridCacheHibernateBlobStoreEntry entry = (GridCacheHibernateBlobStoreEntry)
-                ses.get(GridCacheHibernateBlobStoreEntry.class, toByteArray(key));
+                ses.get(GridCacheHibernateBlobStoreEntry.class, toBytes(key));
 
             if (entry == null)
                 return null;
 
-            return marsh.<V>unmarshal(new ByteArrayInputStream(entry.getValue()),
-                getClass().getClassLoader());
+            return fromBytes(entry.getValue());
         }
         catch (HibernateException e) {
             rollback(ses, tx);
@@ -232,8 +235,7 @@ public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, 
         Session ses = session(tx);
 
         try {
-            GridCacheHibernateBlobStoreEntry entry =
-                new GridCacheHibernateBlobStoreEntry(toByteArray(key), toByteArray(val));
+            GridCacheHibernateBlobStoreEntry entry = new GridCacheHibernateBlobStoreEntry(toBytes(key), toBytes(val));
 
             ses.saveOrUpdate(entry);
         }
@@ -258,8 +260,10 @@ public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, 
         Session ses = session(tx);
 
         try {
-            ses.createQuery(DELETE_QRY).setParameter("key", toByteArray(key))
-                .setFlushMode(FlushMode.ALWAYS).executeUpdate();
+            Object obj = ses.get(GridCacheHibernateBlobStoreEntry.class, toBytes(key));
+
+            if (obj != null)
+                ses.delete(obj);
         }
         catch (HibernateException e) {
             rollback(ses, tx);
@@ -346,7 +350,7 @@ public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, 
      * @param tx Cache transaction.
      * @return Session.
      */
-    private Session session(GridCacheTx tx) {
+    Session session(@Nullable GridCacheTx tx) {
         Session ses;
 
         if (tx != null) {
@@ -372,19 +376,6 @@ public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, 
         }
 
         return ses;
-    }
-
-    /**
-     * @param obj Object to convert to byte array.
-     * @return Byte array.
-     * @throws GridException If failed to convert.
-     */
-    private byte[] toByteArray(Object obj) throws GridException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-
-        marsh.marshal(obj, bos);
-
-        return bos.toByteArray();
     }
 
     /**
@@ -515,5 +506,35 @@ public class GridCacheHibernateBlobStore<K, V> extends GridCacheStoreAdapter<K, 
     /** {@inheritDoc} */
     @Override public String toString() {
         return S.toString(GridCacheHibernateBlobStore.class, this);
+    }
+
+    /**
+     * Serialize object to byte array using marshaller.
+     *
+     * @param obj Object to convert to byte array.
+     * @return Byte array.
+     * @throws GridException If failed to convert.
+     */
+    protected byte[] toBytes(Object obj) throws GridException {
+        GridByteArrayOutputStream bos = new GridByteArrayOutputStream();
+
+        marsh.marshal(obj, bos);
+
+        return bos.toByteArray();
+    }
+
+    /**
+     * Deserialize object from byte array using marshaller.
+     *
+     * @param bytes Bytes to deserialize.
+     * @param <X> Result object type.
+     * @return Deserialized object.
+     * @throws GridException If failed.
+     */
+    protected <X> X fromBytes(byte[] bytes) throws GridException {
+        if (bytes == null || bytes.length == 0)
+            return null;
+
+        return marsh.unmarshal(new GridByteArrayInputStream(bytes), getClass().getClassLoader());
     }
 }

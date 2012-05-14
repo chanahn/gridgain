@@ -23,8 +23,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
-import static org.gridgain.grid.GridEventType.*;
-
 /**
  * Affinity function for partitioned cache. This function supports the following
  * configuration:
@@ -51,7 +49,7 @@ import static org.gridgain.grid.GridEventType.*;
  * </ul>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
     /** Flag to enable/disable consistency check (for internal use only). */
@@ -124,11 +122,12 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
     };
 
     /** Optional primary filter. */
-    private final GridPredicate<UUID> primaryIdFilter = F.not(backupIdFilter);
+    private final GridPredicate<UUID> primaryIdFilter = F0.not0(backupIdFilter);
 
     /** Map of neighbors. */
     @SuppressWarnings("TransientFieldNotInitialized")
-    private transient ConcurrentMap<UUID, Collection<UUID>> neighbors = new ConcurrentHashMap<UUID, Collection<UUID>>();
+    private transient ConcurrentMap<UUID, Collection<UUID>> neighbors =
+        new GridConcurrentHashMap<UUID, Collection<UUID>>();
 
     /**
      * Empty constructor with all defaults.
@@ -493,24 +492,33 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
     /** {@inheritDoc} */
     @Override public void reset() {
         addedNodes = new GridConcurrentHashSet<UUID>();
-        neighbors = new ConcurrentHashMap<UUID, Collection<UUID>>();
+        neighbors = new GridConcurrentHashMap<UUID, Collection<UUID>>();
 
         initLatch = new CountDownLatch(1);
 
         init.set(false);
     }
 
+    /** {@inheritDoc}
+     * @param nodeId*/
+    @Override public void removeNode(UUID nodeId) {
+        for (Iterator<UUID> it = addedNodes.iterator(); it.hasNext(); ) {
+            UUID id = it.next();
+
+            if (id.equals(nodeId)) {
+                it.remove();
+
+                nodeHash.removeNode(id);
+
+                neighbors.clear();
+            }
+        }
+    }
+
     /** {@inheritDoc} */
     private void initialize() {
         if (init.compareAndSet(false, true)) {
             nodeHash = new GridConsistentHash<UUID>(hasher);
-
-            // Only listen to removals, adding happens on demand.
-            grid.addLocalEventListener(new GridLocalEventListener() {
-                @Override public void onEvent(GridEvent evt) {
-                    checkRemoved();
-                }
-            }, EVT_NODE_FAILED, EVT_NODE_LEFT);
 
             initLatch.countDown();
         }
@@ -560,27 +568,5 @@ public class GridCachePartitionedAffinity<K> implements GridCacheAffinity<K> {
         nodeHash.addNode(id, replicas);
 
         addedNodes.add(id);
-    }
-
-    /**
-     * Cleans up removed nodes.
-     */
-    private void checkRemoved() {
-        for (Iterator<UUID> it = addedNodes.iterator(); it.hasNext(); ) {
-            UUID id = it.next();
-
-            Grid grid = this.grid;
-
-            if (grid == null)
-                break;
-
-            if (grid.node(id) == null) {
-                it.remove();
-
-                nodeHash.removeNode(id);
-
-                neighbors.clear();
-            }
-        }
     }
 }

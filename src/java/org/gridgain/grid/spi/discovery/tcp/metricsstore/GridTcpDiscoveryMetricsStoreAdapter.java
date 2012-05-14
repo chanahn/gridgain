@@ -10,27 +10,27 @@
 package org.gridgain.grid.spi.discovery.tcp.metricsstore;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.spi.*;
 import org.gridgain.grid.typedef.*;
 
 import java.util.*;
-import java.util.concurrent.*;
 
 /**
  * Convenient metrics store adapter.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public abstract class GridTcpDiscoveryMetricsStoreAdapter implements GridTcpDiscoveryMetricsStore {
     /** Default metrics expire time in milliseconds (value is <tt>10000</tt>). */
     public static final int DFLT_METRICS_EXPIRE_TIME = 10 * 1000;
 
     /** Local metrics cache. */
-    private final Map<UUID, GridNodeMetrics> metricsMap = new ConcurrentHashMap<UUID, GridNodeMetrics>();
+    private final Map<UUID, GridNodeMetrics> metricsMap = new GridConcurrentHashMap<UUID, GridNodeMetrics>();
 
     /** Local metrics cache timestamps. */
-    private final Map<UUID, Long> tsMap = new ConcurrentHashMap<UUID, Long>();
+    private final Map<UUID, Long> tsMap = new GridConcurrentHashMap<UUID, Long>();
 
     /** Metrics expire time. */
     @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})

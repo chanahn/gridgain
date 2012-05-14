@@ -16,7 +16,7 @@ import java.util.*;
  * key in map or item in set is checked. It's ultimately up to the user to pass map with serializable keys.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 class GridOptimizedObjectOutput extends ObjectOutputStream {
     /** Whether or not to require an object to be serializable in order to be serialized. */

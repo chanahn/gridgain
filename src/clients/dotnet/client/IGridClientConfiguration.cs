@@ -13,7 +13,7 @@ namespace GridGain.Client {
     using GridGain.Client.Balancer;
     using GridGain.Client.Ssl;
 
-    /** <summary>Java client configuration.</summary> */
+    /** <summary>Client configuration.</summary> */
     public interface IGridClientConfiguration {
         /**
          * <summary>

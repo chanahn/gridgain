@@ -19,7 +19,7 @@ import java.util.*;
  * protocol implementation (TCP, HTTP) from client code.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public abstract class GridClientConnection {
     /** Topology */
@@ -42,16 +42,16 @@ public abstract class GridClientConnection {
      *
      * @param clientId Client identifier.
      * @param srvAddr Server address this connection connected to.
-     * @param ctx SSL context to use if SSL is enabled, {@code null} otherwise.
+     * @param sslCtx SSL context to use if SSL is enabled, {@code null} otherwise.
      * @param top Topology.
      * @param cred Client credentials.
      */
-    protected GridClientConnection(UUID clientId, InetSocketAddress srvAddr, SSLContext ctx, GridClientTopology top,
+    protected GridClientConnection(UUID clientId, InetSocketAddress srvAddr, SSLContext sslCtx, GridClientTopology top,
         Object cred) {
         this.clientId = clientId;
         this.srvAddr = srvAddr;
         this.top = top;
-        sslCtx = ctx;
+        this.sslCtx = sslCtx;
         this.cred = cred;
     }
 
@@ -84,28 +84,57 @@ public abstract class GridClientConnection {
     }
 
     /**
-     * @param cacheName Cache name.
-     * @param key Key.
-     * @param val Value.
-     * @return If value was actually put.
-     * @throws GridClientConnectionResetException In case of error.
-     * @throws GridClientClosedException If client was manually closed before request was sent over network.
+     * Encodes cache flags to bit map.
+     *
+     * @param flagSet Set of flags to be encoded.
+     * @return Bit map.
      */
-    public <K, V> GridClientFuture<Boolean> cachePut(String cacheName, K key, V val)
-        throws GridClientConnectionResetException, GridClientClosedException {
-        return cachePutAll(cacheName, Collections.singletonMap(key, val));
+    public static int encodeCacheFlags(Collection<GridClientCacheFlag> flagSet) {
+        int bits = 0;
+
+        if (flagSet.contains(GridClientCacheFlag.SKIP_STORE))
+            bits |= 1;
+
+        if (flagSet.contains(GridClientCacheFlag.SKIP_SWAP))
+            bits |= 1 << 1;
+
+        if (flagSet.contains(GridClientCacheFlag.SYNC_COMMIT))
+            bits |= 1 << 2;
+
+        if (flagSet.contains(GridClientCacheFlag.SYNC_ROLLBACK))
+            bits |= 1 << 3;
+
+        if (flagSet.contains(GridClientCacheFlag.INVALIDATE))
+            bits |= 1 << 4;
+
+        return bits;
     }
 
     /**
      * @param cacheName Cache name.
      * @param key Key.
+     * @param val Value.
+     * @param flags Cache flags to be enabled.
+     * @return If value was actually put.
+     * @throws GridClientConnectionResetException In case of error.
+     * @throws GridClientClosedException If client was manually closed before request was sent over network.
+     */
+    public <K, V> GridClientFuture<Boolean> cachePut(String cacheName, K key, V val, Set<GridClientCacheFlag> flags)
+        throws GridClientConnectionResetException, GridClientClosedException {
+        return cachePutAll(cacheName, Collections.singletonMap(key, val), flags);
+    }
+
+    /**
+     * @param cacheName Cache name.
+     * @param key Key.
+     * @param flags Cache flags to be enabled.
      * @return Value.
      * @throws GridClientConnectionResetException In case of error.
      * @throws GridClientClosedException If client was manually closed before request was sent over network.
      */
-    public <K, V> GridClientFuture<V> cacheGet(String cacheName, final K key)
+    public <K, V> GridClientFuture<V> cacheGet(String cacheName, final K key, Set<GridClientCacheFlag> flags)
         throws GridClientConnectionResetException, GridClientClosedException {
-        final GridClientFuture<Map<K, V>> res = cacheGetAll(cacheName, Collections.singleton(key));
+        final GridClientFuture<Map<K, V>> res = cacheGetAll(cacheName, Collections.singleton(key), flags);
 
         return new GridClientFutureAdapter<V>() {
             @Override public V get() throws GridClientException {
@@ -121,76 +150,91 @@ public abstract class GridClientConnection {
     /**
      * @param cacheName Cache name.
      * @param key Key.
+     * @param flags Cache flags to be enabled.
      * @return Whether entry was actually removed.
      * @throws GridClientConnectionResetException In case of error.
      * @throws GridClientClosedException If client was manually closed before request was sent over network.
      */
-    public abstract <K> GridClientFuture<Boolean> cacheRemove(String cacheName, K key)
-        throws GridClientConnectionResetException, GridClientClosedException;
+    public abstract <K> GridClientFuture<Boolean> cacheRemove(String cacheName, K key,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException;
 
     /**
      * @param cacheName Cache name.
      * @param entries Entries.
+     * @param flags Cache flags to be enabled.
      * @return {@code True} if map contained more then one entry or if put succeeded in case of one entry,
      *      {@code false} otherwise
      * @throws GridClientConnectionResetException In case of error.
      * @throws GridClientClosedException If client was manually closed before request was sent over network.
      */
-    public abstract <K, V> GridClientFuture<Boolean> cachePutAll(String cacheName, Map<K, V> entries)
-        throws GridClientConnectionResetException, GridClientClosedException;
+    public abstract <K, V> GridClientFuture<Boolean> cachePutAll(String cacheName, Map<K, V> entries,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException;
 
     /**
      * @param cacheName Cache name.
      * @param keys Keys.
+     * @param flags Cache flags to be enabled.
      * @return Entries.
      * @throws GridClientConnectionResetException In case of error.
      * @throws GridClientClosedException If client was manually closed before request was sent over network.
      */
-    public abstract <K, V> GridClientFuture<Map<K, V>> cacheGetAll(String cacheName, Collection<K> keys)
-        throws GridClientConnectionResetException, GridClientClosedException;
+    public abstract <K, V> GridClientFuture<Map<K, V>> cacheGetAll(String cacheName, Collection<K> keys,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException;
 
     /**
      * @param cacheName Cache name.
      * @param keys Keys.
+     * @param flags Cache flags to be enabled.
      * @return Whether entries were actually removed
      * @throws GridClientConnectionResetException In case of error.
      * @throws GridClientClosedException If client was manually closed before request was sent over network.
      */
-    public abstract <K> GridClientFuture<Boolean> cacheRemoveAll(String cacheName, Collection<K> keys)
-        throws GridClientConnectionResetException, GridClientClosedException;
+    public abstract <K> GridClientFuture<Boolean> cacheRemoveAll(String cacheName, Collection<K> keys,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException;
 
     /**
      * @param cacheName Cache name.
      * @param key Key.
      * @param val Value.
+     * @param flags Cache flags to be enabled.
      * @return Whether entry was added.
      * @throws GridClientConnectionResetException In case of error.
      * @throws GridClientClosedException If client was manually closed before request was sent over network.
      */
-    public abstract <K, V> GridClientFuture<Boolean> cacheAdd(String cacheName, K key, V val)
-        throws GridClientConnectionResetException, GridClientClosedException;
+    public abstract <K, V> GridClientFuture<Boolean> cacheAdd(String cacheName, K key, V val,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException;
 
     /**
      * @param cacheName Cache name.
      * @param key Key.
      * @param val Value.
+     * @param flags Cache flags to be enabled.
      * @return Whether value was actually replaced.
      * @throws GridClientConnectionResetException In case of error.
      * @throws GridClientClosedException If client was manually closed before request was sent over network.
      */
-    public abstract <K, V> GridClientFuture<Boolean> cacheReplace(String cacheName, K key, V val)
-        throws GridClientConnectionResetException, GridClientClosedException;
+    public abstract <K, V> GridClientFuture<Boolean> cacheReplace(String cacheName, K key, V val,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException;
     /**
+     * <table>
+     *     <tr><th>New value</th><th>Actual/old value</th><th>Behaviour</th></tr>
+     *     <tr><td>null     </td><td>null   </td><td>Remove entry for key.</td></tr>
+     *     <tr><td>newVal   </td><td>null   </td><td>Put newVal into cache if such key doesn't exist.</td></tr>
+     *     <tr><td>null     </td><td>oldVal </td><td>Remove if actual value oldVal is equals to value in cache.</td></tr>
+     *     <tr><td>newVal   </td><td>oldVal </td><td>Replace if actual value oldVal is equals to value in cache.</td></tr>
+     * </table>
+     *
      * @param cacheName Cache name.
      * @param key Key.
-     * @param val1 Value 1.
-     * @param val2 Value 2.
+     * @param newVal Value 1.
+     * @param oldVal Value 2.
+     * @param flags Cache flags to be enabled.
      * @return Whether new value was actually set.
      * @throws GridClientConnectionResetException In case of error.
      * @throws GridClientClosedException If client was manually closed before request was sent over network.
      */
-    public abstract <K, V> GridClientFuture<Boolean> cacheCompareAndSet(String cacheName, K key, V val1, V val2)
-        throws GridClientConnectionResetException, GridClientClosedException;
+    public abstract <K, V> GridClientFuture<Boolean> cacheCompareAndSet(String cacheName, K key, V newVal, V oldVal,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException;
 
     /**
      * @param cacheName Cache name.

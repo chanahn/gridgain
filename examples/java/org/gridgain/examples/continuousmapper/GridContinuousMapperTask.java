@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.*;
  * and therefore don't need to accumulate them be be processed at reduction step.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 @GridTaskNoResultCache
 public class GridContinuousMapperTask extends GridTaskAdapter<String, Integer> {
@@ -67,8 +67,10 @@ public class GridContinuousMapperTask extends GridTaskAdapter<String, Integer> {
         // Add result to total character count.
         totalChrCnt.addAndGet(res.<Integer>getData());
 
+        sendWord();
+
         // If next word was sent, keep waiting, otherwise work queue is empty and we reduce.
-        return sendWord() ? GridJobResultPolicy.WAIT : super.result(res, rcvd);
+        return GridJobResultPolicy.WAIT;
     }
 
     /** {@inheritDoc} */
@@ -82,7 +84,7 @@ public class GridContinuousMapperTask extends GridTaskAdapter<String, Integer> {
      * @return {@code True} if next word was sent, {@code false} if there are no more words to send.
      * @throws GridException If sending of a word failed.
      */
-    private boolean sendWord() throws GridException {
+    private void sendWord() throws GridException {
         // Remove first word from the queue.
         String word = words.poll();
 
@@ -106,11 +108,6 @@ public class GridContinuousMapperTask extends GridTaskAdapter<String, Integer> {
                     return cnt;
                 }
             });
-
-            return true;
         }
-
-        // No more words to map.
-        return false;
     }
 }

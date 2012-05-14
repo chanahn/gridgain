@@ -40,7 +40,7 @@ import static java.sql.Connection.*;
  * The database will contain 1 table which will hold IP addresses.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridTcpDiscoveryJdbcIpFinder extends GridTcpDiscoveryIpFinderAdapter {
     /** Query to get addresses. */

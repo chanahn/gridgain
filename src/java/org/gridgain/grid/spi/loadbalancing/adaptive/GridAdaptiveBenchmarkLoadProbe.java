@@ -57,7 +57,7 @@ import org.gridgain.grid.typedef.internal.*;
  * then you should disable trigonometry score.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridAdaptiveBenchmarkLoadProbe implements GridAdaptiveLoadProbe {
     /**

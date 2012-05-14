@@ -24,7 +24,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
  * Future that delegates to some other future.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridNioEmbeddedFuture<R> implements GridNioFuture<R> {
     /** Done flag. */

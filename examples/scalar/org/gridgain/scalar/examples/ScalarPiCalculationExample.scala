@@ -22,7 +22,7 @@ import org.gridgain.grid.Grid
   * or any explicit deployment.
   *
   * @author 2012 Copyright (C) GridGain Systems
-  * @version 4.0.2c.12042012
+  * @version 4.0.3c.14052012
   */
 object ScalarPiCalculationExample {
     /** Number of calculations per node. */

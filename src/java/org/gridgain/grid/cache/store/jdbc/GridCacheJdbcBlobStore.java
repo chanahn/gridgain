@@ -17,10 +17,10 @@ import org.gridgain.grid.marshaller.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
+import org.gridgain.grid.util.*;
 import org.gridgain.grid.util.tostring.*;
 import org.jetbrains.annotations.*;
 
-import java.io.*;
 import java.sql.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -64,9 +64,11 @@ import java.util.concurrent.atomic.*;
  * <h2>Spring Example</h2>
  * <pre name="code" class="xml">
  *     ...
- *     &lt;bean id=&quot;cache.jdbc.store1&quot; class=&quot;org.gridgain.grid.cache.store.jdbc.GridCacheJdbcBlobStore&quot;&gt;
+ *     &lt;bean id=&quot;cache.jdbc.store&quot;
+ *         class=&quot;org.gridgain.grid.cache.store.jdbc.GridCacheJdbcBlobStore&quot;&gt;
  *         &lt;property name=&quot;connectionUrl&quot; value=&quot;jdbc:h2:mem:&quot;/&gt;
- *         &lt;property name=&quot;createTableQuery&quot; value=&quot;create table if not exists ENTRIES (key other, val other)&quot;/&gt;
+ *         &lt;property name=&quot;createTableQuery&quot;
+ *             value=&quot;create table if not exists ENTRIES (key other, val other)&quot;/&gt;
  *     &lt;/bean&gt;
  *     ...
  * </pre>
@@ -76,14 +78,18 @@ import java.util.concurrent.atomic.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
     /** Default connection URL (value is <tt>jdbc:h2:mem:jdbcCacheStore;DB_CLOSE_DELAY=-1</tt>). */
     public static final String DFLT_CONN_URL = "jdbc:h2:mem:jdbcCacheStore;DB_CLOSE_DELAY=-1";
 
-    /** Default create table query (value is <tt>create table if not exists ENTRIES (key other, val other)</tt>). */
-    public static final String DFLT_CREATE_TBL_QRY = "create table if not exists ENTRIES (key other, val other)";
+    /**
+     * Default create table query
+     * (value is <tt>create table if not exists ENTRIES (key other primary key, val other)</tt>).
+     */
+    public static final String DFLT_CREATE_TBL_QRY = "create table if not exists ENTRIES " +
+        "(key other primary key, val other)";
 
     /** Default load entry query (value is <tt>select * from ENTRIES where key=?</tt>). */
     public static final String DFLT_LOAD_QRY = "select * from ENTRIES where key=?";
@@ -187,12 +193,12 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
 
             stmt = conn.prepareStatement(loadQry);
 
-            stmt.setObject(1, toByteArray(key));
+            stmt.setObject(1, toBytes(key));
 
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next())
-                return marsh.<V>unmarshal(new ByteArrayInputStream(rs.getBytes(2)), getClass().getClassLoader());
+                return fromBytes(rs.getBytes(2));
         }
         catch (SQLException e) {
             throw new GridException("Failed to load object: " + key, e);
@@ -220,16 +226,16 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
 
             stmt = conn.prepareStatement(updateQry);
 
-            stmt.setObject(1, toByteArray(val));
-            stmt.setObject(2, toByteArray(key));
+            stmt.setObject(1, toBytes(val));
+            stmt.setObject(2, toBytes(key));
 
             if (stmt.executeUpdate() == 0) {
                 stmt.close();
 
                 stmt = conn.prepareStatement(insertQry);
 
-                stmt.setObject(1, toByteArray(key));
-                stmt.setObject(2, toByteArray(val));
+                stmt.setObject(1, toBytes(key));
+                stmt.setObject(2, toBytes(val));
 
                 stmt.executeUpdate();
             }
@@ -244,6 +250,8 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
 
     /** {@inheritDoc} */
     @Override public void remove(@Nullable String cacheName, @Nullable GridCacheTx tx, K key) throws GridException {
+        init();
+
         if (log.isDebugEnabled())
             log.debug("Store remove [key=" + key + ", tx=" + tx + ']');
 
@@ -256,7 +264,7 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
 
             stmt = conn.prepareStatement(delQry);
 
-            stmt.setObject(1, toByteArray(key));
+            stmt.setObject(1, toBytes(key));
 
             stmt.executeUpdate();
         }
@@ -266,19 +274,6 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
         finally {
             end(tx, conn, stmt);
         }
-    }
-
-    /**
-     * @param obj Object to convert to byte array.
-     * @return Byte array.
-     * @throws GridException If failed to convert.
-     */
-    private byte[] toByteArray(Object obj) throws GridException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-
-        marsh.marshal(obj, bos);
-
-        return bos.toByteArray();
     }
 
     /**
@@ -464,5 +459,35 @@ public class GridCacheJdbcBlobStore<K, V> extends GridCacheStoreAdapter<K, V> {
     /** {@inheritDoc} */
     @Override public String toString() {
         return S.toString(GridCacheJdbcBlobStore.class, this, "passwd", passwd != null ? "*" : null);
+    }
+
+    /**
+     * Serialize object to byte array using marshaller.
+     *
+     * @param obj Object to convert to byte array.
+     * @return Byte array.
+     * @throws GridException If failed to convert.
+     */
+    protected byte[] toBytes(Object obj) throws GridException {
+        GridByteArrayOutputStream bos = new GridByteArrayOutputStream();
+
+        marsh.marshal(obj, bos);
+
+        return bos.toByteArray();
+    }
+
+    /**
+     * Deserialize object from byte array using marshaller.
+     *
+     * @param bytes Bytes to deserialize.
+     * @param <X> Result object type.
+     * @return Deserialized object.
+     * @throws GridException If failed.
+     */
+    protected <X> X fromBytes(byte[] bytes) throws GridException {
+        if (bytes == null || bytes.length == 0)
+            return null;
+
+        return marsh.unmarshal(new GridByteArrayInputStream(bytes), getClass().getClassLoader());
     }
 }

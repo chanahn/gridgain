@@ -17,7 +17,7 @@ import java.util.List;
  * Miscellaneous utility methods to facilitate {@link GridOptimizedMarshaller}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 class GridOptimizedUtils {
     /** UTF-8 character name. */

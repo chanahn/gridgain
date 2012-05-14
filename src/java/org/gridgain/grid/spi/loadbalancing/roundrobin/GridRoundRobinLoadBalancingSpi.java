@@ -18,8 +18,8 @@ import org.gridgain.grid.spi.*;
 import org.gridgain.grid.spi.loadbalancing.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
+
 import java.util.*;
-import java.util.concurrent.*;
 
 import static org.gridgain.grid.GridEventType.*;
 
@@ -149,13 +149,13 @@ import static org.gridgain.grid.GridEventType.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.2c.12042012")
+    version = "4.0.3c.14052012")
 @GridSpiMultipleInstancesSupport(true)
 public class GridRoundRobinLoadBalancingSpi extends GridSpiAdapter implements GridLoadBalancingSpi,
     GridRoundRobinLoadBalancingSpiMBean {
@@ -170,7 +170,7 @@ public class GridRoundRobinLoadBalancingSpi extends GridSpiAdapter implements Gr
 
     /** */
     private final Map<GridUuid, GridRoundRobinPerTaskLoadBalancer> perTaskBalancers =
-        new ConcurrentHashMap<GridUuid, GridRoundRobinPerTaskLoadBalancer>();
+        new GridConcurrentHashMap<GridUuid, GridRoundRobinPerTaskLoadBalancer>();
 
     /** Event listener. */
     private final GridLocalEventListener lsnr = new GridLocalEventListener() {

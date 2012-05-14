@@ -19,7 +19,7 @@ import org.gridgain.grid.thread.*;
  * properties and variables can be used to affect the behavior of GridGain.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @see GridTestVmParameters
  */
 public final class GridSystemProperties {
@@ -74,6 +74,12 @@ public final class GridSystemProperties {
      * available for download.
      */
     public static final String GG_UPDATE_NOTIFIER = "GRIDGAIN_UPDATE_NOTIFIER";
+
+    /**
+     * This system property defines interval in milliseconds in which GridGain will check
+     * thread pool state for starvation. Zero value will disable this checker.
+     */
+    public static final String GG_STARVATION_CHECK_INTERVAL = "GRIDGAIN_STARVATION_CHECK_INTERVAL";
 
     /**
      * If this system property is present (any value) - no ASCII logo will
@@ -334,6 +340,11 @@ public final class GridSystemProperties {
      * System property to override default reflection cache size. Default value is {@code 128}.
      */
     public static final String GG_REFLECTION_CACHE_SIZE = "GRIDGAIN_REFLECTION_CACHE_SIZE";
+
+    /**
+     * System property to hold optional configuration URL.
+     */
+    public static final String GG_CONFIG_URL = "GRIDGAIN_CONFIG_URL";
 
     /**
      * Enforces singleton.

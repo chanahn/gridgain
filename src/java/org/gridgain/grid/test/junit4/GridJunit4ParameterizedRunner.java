@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.*;
  * JUnit 4 parameterized runner.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 class GridJunit4ParameterizedRunner extends GridJunit4SuiteRunner {
     /**

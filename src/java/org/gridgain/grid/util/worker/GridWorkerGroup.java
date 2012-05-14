@@ -9,6 +9,7 @@
 
 package org.gridgain.grid.util.worker;
 
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.typedef.internal.*;
 import org.jetbrains.annotations.*;
 
@@ -20,20 +21,21 @@ import java.util.concurrent.*;
  * management functionality for workers.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public final class GridWorkerGroup {
     /** Value for {@code null} names. */
     private static final String NULL = UUID.randomUUID().toString();
 
     /** Singleton instance. */
-    private static final ConcurrentMap<String, GridWorkerGroup> grps = new ConcurrentHashMap<String, GridWorkerGroup>();
+    private static final ConcurrentMap<String, GridWorkerGroup> grps =
+        new GridConcurrentHashMap<String, GridWorkerGroup>();
 
     /** Grid name (only for {@link #toString()} method). */
     private final String gridName;
 
     /** Map of runnables concurrently executing. */
-    private final Map<Thread, GridWorker> activeWorkers = new ConcurrentHashMap<Thread, GridWorker>(100, 0.75f, 64);
+    private final Map<Thread, GridWorker> activeWorkers = new GridConcurrentHashMap<Thread, GridWorker>(128);
 
     /**
      * Create a group for specified grid.

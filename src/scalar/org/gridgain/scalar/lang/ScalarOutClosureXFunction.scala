@@ -17,7 +17,7 @@ import org.gridgain.grid.lang._
  * Wrapping Scala function for `GridOutClosureX`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 class ScalarOutClosureXFunction[R](val inner: GridOutClosureX[R]) extends (() => R) {
     assert(inner != null)

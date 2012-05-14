@@ -23,13 +23,16 @@ import static java.util.concurrent.Executors.*;
 import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
 
 /**
- * Real time popular words counter. In order to run this example, you must start
- * at least one data grid nodes using command {@code 'ggstart.sh examples/config/spring-cache-popularwords.xml'}.
+ * Real time popular words counter.
+ *
+ * Remote nodes should always be started with configuration which includes cache
+ * using following command: {@code 'ggstart.sh examples/config/spring-cache-popularwords.xml'}.
+ *
  * The counts are kept in cache on all remote nodes. Top {@code 10} counts from each node are then grabbed to produce
  * an overall top {@code 10} list within the grid.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridPopularWordsRealTimeExample {
     /** Number of most popular words to retrieve from grid. */
@@ -60,22 +63,35 @@ public class GridPopularWordsRealTimeExample {
 
         Timer popularWordsQryTimer = new Timer("words-query-worker");
 
-        try {
-            // Start grid.
-            Grid g = G.start("examples/config/spring-cache-popularwords.xml");
+        // Start grid.
+        final Grid g = G.start("examples/config/spring-cache-popularwords.xml");
 
+        try {
             TimerTask task = scheduleQuery(g, popularWordsQryTimer, POPULAR_WORDS_CNT);
 
             realTimePopulate(g, new ExecutorCompletionService<Object>(threadPool), inputDir);
 
             // Force one more run to get final counts.
             task.run();
-        }
-        finally {
+
             popularWordsQryTimer.cancel();
 
             threadPool.shutdownNow();
 
+            // Clean up caches on all nodes after run.
+            g.run(GridClosureCallMode.BROADCAST, new Runnable() {
+                @Override public void run() {
+                    if (g.cache() == null)
+                        X.error("Default cache not found (is spring-cache-popularwords.xml configuration used on all nodes?)");
+                    else {
+                        X.println("Clearing keys from cache: " + g.cache().keySize());
+
+                        g.cache().clearAll();
+                    }
+                }
+            });
+        }
+        finally {
             G.stop(true, true);
         }
     }
@@ -103,6 +119,7 @@ public class GridPopularWordsRealTimeExample {
 
         // Set larger per-node buffer size since our state is relatively small.
         ldr.perNodeBufferSize(300);
+        //ldr.perNodeBufferSize(30);
 
         for (final String name : books) {
             // Read text files from multiple threads and cache individual words with their counts.
@@ -131,18 +148,19 @@ public class GridPopularWordsRealTimeExample {
             });
         }
 
-        int idx = 0;
+        try {
+            int idx = 0;
 
-        while (++idx <= books.length) {
-            try {
+            while (++idx <= books.length)
                 threadPool.take().get();
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
 
-        ldr.close(false);
+            ldr.close(false); // Pass 'false' to wait for loader to complete gracefully.
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+
+            ldr.close(true); // Pass 'true' to cancel outstanding loading jobs in case of error.
+        }
     }
 
     /**

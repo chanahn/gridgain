@@ -15,7 +15,7 @@ import org.jetbrains.annotations.*;
  * This exception is used to indicate error with grid topology (e.g., crashed node, etc.).
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridTopologyException extends GridException {
     /**

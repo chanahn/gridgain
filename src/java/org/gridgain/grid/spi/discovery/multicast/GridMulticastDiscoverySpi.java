@@ -101,14 +101,14 @@ import static org.gridgain.grid.spi.discovery.multicast.GridMulticastDiscoveryNo
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @see GridDiscoverySpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.2c.12042012")
+    version = "4.0.3c.14052012")
 @GridSpiMultipleInstancesSupport(true)
 @GridSpiConsistencyChecked(optional = false)
 public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDiscoverySpi,
@@ -779,6 +779,14 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
             if (isCheckMcastEnabled && !isMcastEnabled.await(beatFreq * maxMissedBeats, TimeUnit.MILLISECONDS))
                 throw new GridSpiException("Multicast is not enabled on this node. Check you firewall " +
                     "settings or contact network administrator if Windows group policy is used.");
+
+            GridDiscoverySpiListener lsnr = this.lsnr;
+
+            if (lsnr != null) {
+                Collection<GridNode> snapshot = F.concat(true, locNode, getRemoteNodes());
+
+                lsnr.onDiscovery(EVT_NODE_JOINED, locNode.order(), locNode, snapshot);
+            }
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -1053,7 +1061,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * to leave grid it sends corresponded message with leaving state.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.2c.12042012
+     * @version 4.0.3c.14052012
      */
     private class MulticastHeartbeatSender extends GridSpiThread {
         /** Heartbeat message helper. */
@@ -1179,7 +1187,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * that comes from the others.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.2c.12042012
+     * @version 4.0.3c.14052012
      */
     private class MulticastHeartbeatReceiver extends GridSpiThread {
         /** Multicast socket message is read from. */
@@ -1438,7 +1446,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * Tcp handshake sender.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.2c.12042012
+     * @version 4.0.3c.14052012
      */
     private class TcpHandshakeSender extends GridSpiThread {
         /** Heartbeat. */
@@ -1645,7 +1653,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * Listener that processes TCP messages.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.2c.12042012
+     * @version 4.0.3c.14052012
      */
     private class TcpHandshakeListener extends GridSpiThread {
         /** Socket TCP listener is set to. */
@@ -1865,7 +1873,7 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      * milliseconds.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.2c.12042012
+     * @version 4.0.3c.14052012
      */
     private class NodeSweeper extends GridSpiThread {
         /**
@@ -2088,8 +2096,8 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
      */
     private class ListenersNotifier extends GridSpiThread {
         /** Queue of the notifications to sent to listener. */
-        private final BlockingQueue<GridTuple2<Integer, GridMulticastDiscoveryNode>> q =
-            new LinkedBlockingQueue<GridTuple2<Integer, GridMulticastDiscoveryNode>>();
+        private final BlockingQueue<GridTuple3<Integer, GridMulticastDiscoveryNode, Collection<GridNode>>> q =
+            new LinkedBlockingQueue<GridTuple3<Integer, GridMulticastDiscoveryNode, Collection<GridNode>>>();
 
         /**
          * Constructs notifications sender.
@@ -2109,21 +2117,23 @@ public class GridMulticastDiscoverySpi extends GridSpiAdapter implements GridDis
             assert type > 0;
             assert node != null;
 
-            q.add(F.t(type, node));
+            Collection<GridNode> snapshot = F.concat(true, locNode, getRemoteNodes());
+
+            q.add(F.t(type, node, snapshot));
         }
 
         /** {@inheritDoc} */
         @Override protected void body() throws InterruptedException {
             while (!isInterrupted()) {
                 // Block and take the next notification in the queue.
-                GridTuple2<Integer, GridMulticastDiscoveryNode> t = q.take();
+                GridTuple3<Integer, GridMulticastDiscoveryNode, Collection<GridNode>> t = q.take();
 
                 GridDiscoverySpiListener lsnr = GridMulticastDiscoverySpi.this.lsnr;
 
                 if (lsnr != null && t.get2().getState() != NEW) {
                     try {
                         // Notify discovery SPI listener with new notification event.
-                        lsnr.onDiscovery(t.get1(), 0, t.get2());
+                        lsnr.onDiscovery(t.get1(), 0, t.get2(), t.get3());
                     }
                     catch (Throwable e) {
                         U.error(log, "Failed to notify discovery listener.", e);

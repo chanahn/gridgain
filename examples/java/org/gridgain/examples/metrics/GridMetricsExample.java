@@ -18,7 +18,7 @@ import org.gridgain.grid.typedef.*;
  * processor and idle time percentage of node idle time more 50%.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public final class GridMetricsExample {
     /**

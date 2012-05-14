@@ -19,7 +19,7 @@ import java.util.*;
  * then sent by coordinator across the ring.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 @GridTcpDiscoveryEnsureDelivery
 public class GridTcpDiscoveryNodeLeftMessage extends GridTcpDiscoveryAbstractMessage {

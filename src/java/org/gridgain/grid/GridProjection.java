@@ -40,7 +40,7 @@ import java.util.concurrent.*;
  * in {@link NullPointerException} and may be harder to catch.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAware {
     /**
@@ -4057,37 +4057,78 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * On Windows use standard way to set environment properties.
      *
      * @param file File with host specifications.
-     * @param dfltUname Default username (used if specification doesn't contain username).
-     * @param dfltPasswd Default password (used if specification doesn't contain password).
-     * @param key Private key file. Define it if server requires key authentication.
-     * @param nodes Expected number of nodes on the host. If some nodes are started
-     *      already, then only remaining nodes will be started. If current count of
-     *      nodes is equal to this number, and {@code restart} flag is {@code false},
-     *      then nothing will happen.
-     * @param ggHome Path to GridGain installation folder. If {@code null}, global
-     *      GRIDGAIN_HOME environment variable must be set on remote hosts.
-     * @param cfg Path to configuration file (optional).
-     * @param script Path to start script (optional).
-     * @param log Path to log file (optional).
-     * @param restart Whether to stop existing nodes. If {@code true}, all existing
-     *      nodes on the host will be stopped before starting new ones. If {@code false},
-     *      nodes will be started only if there are less nodes on the host than expected.
+     * @param params Optional parameters map. The following parameters are supported:
+     *      <table class="doctable">
+     *          <tr>
+     *               <th>Name</th>
+     *               <th>Type</th>
+     *               <th>Description</th>
+     *          </tr>
+     *          <tr>
+     *               <td><b>dfltUname</b></td>
+     *               <td>String</td>
+     *               <td>Default username (used if specification doesn't contain username).</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>dfltPasswd</b></td>
+     *               <td>String</td>
+     *               <td>Default password (used if specification doesn't contain password).</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>key</b></td>
+     *               <td>File</td>
+     *               <td>Private key file. Define it if server requires key authentication.</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>nodes</b></td>
+     *               <td>Integer</td>
+     *               <td>
+     *                   Expected number of nodes on the host. If some nodes are started
+     *                   already, then only remaining nodes will be started. If current count of
+     *                   nodes is equal to this number, and <tt>restart</tt> flag is <tt>false</tt>,
+     *                   then nothing will happen.
+     *               </td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>ggHome</b></td>
+     *               <td>String</td>
+     *               <td>
+     *                   Path to GridGain installation folder. If <tt>null</tt>, global
+     *                   GRIDGAIN_HOME environment variable must be set on remote hosts.
+     *               </td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>cfg</b></td>
+     *               <td>String</td>
+     *               <td>Path to configuration file.</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>script</b></td>
+     *               <td>String</td>
+     *               <td>Path to startup script.</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>logDir</b></td>
+     *               <td>String</td>
+     *               <td>Path to folder where to save log files.</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>restart</b></td>
+     *               <td>Boolean</td>
+     *               <td>
+     *                   Whether to stop existing nodes. If <tt>true</tt>, all existing
+     *                   nodes on the host will be stopped before starting new ones. If
+     *                   <tt>false</tt>, nodes will be started only if there are less
+     *                   nodes on the host than expected.
+     *               </td>
+     *          </tr>
+     *      </table>
      * @return Collection of tuples, each contains host name, result (success of failure)
      *      and error message (if any).
      * @throws GridException In case of error.
      */
-    public Collection<GridTuple3<String, Boolean, String>> startNodes(
-        File file,
-        @Nullable String dfltUname,
-        @Nullable String dfltPasswd,
-        @Nullable File key,
-        int nodes,
-        @Nullable String ggHome,
-        @Nullable String cfg,
-        @Nullable String script,
-        @Nullable String log,
-        boolean restart
-    ) throws GridException;
+    public Collection<GridTuple3<String, Boolean, String>> startNodes(File file,
+        @Nullable Map<String, Object> params) throws GridException;
 
     /**
      * Starts one or more nodes on remote host(s) defined by collection of host specifications.
@@ -4127,37 +4168,78 @@ public interface GridProjection extends Iterable<GridRichNode>, GridMetadataAwar
      * On Windows use standard way to set environment properties.
      *
      * @param hostSpecs Collection of host specifications.
-     * @param dfltUname Default username (used if specification doesn't contain username).
-     * @param dfltPasswd Default password (used if specification doesn't contain password).
-     * @param key Private key file. Define it if server requires key authentication.
-     * @param nodes Expected number of nodes on the host. If some nodes are started
-     *      already, then only remaining nodes will be started. If current count of
-     *      nodes is equal to this number, and {@code restart} flag is {@code false},
-     *      then nothing will happen.
-     * @param ggHome Path to GridGain installation folder. If {@code null}, global
-     *      GRIDGAIN_HOME environment variable must be set on remote hosts.
-     * @param cfg Path to configuration file (optional).
-     * @param script Path to start script (optional).
-     * @param log Path to log file (optional).
-     * @param restart Whether to stop existing nodes. If {@code true}, all existing
-     *      nodes on the host will be stopped before starting new ones. If {@code false},
-     *      nodes will be started only if there are less nodes on the host than expected.
+     * @param params Optional parameters map. The following parameters are supported:
+     *      <table class="doctable">
+     *          <tr>
+     *               <th>Name</th>
+     *               <th>Type</th>
+     *               <th>Description</th>
+     *          </tr>
+     *          <tr>
+     *               <td><b>dfltUname</b></td>
+     *               <td>String</td>
+     *               <td>Default username (used if specification doesn't contain username).</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>dfltPasswd</b></td>
+     *               <td>String</td>
+     *               <td>Default password (used if specification doesn't contain password).</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>key</b></td>
+     *               <td>File</td>
+     *               <td>Private key file. Define it if server requires key authentication.</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>nodes</b></td>
+     *               <td>Integer</td>
+     *               <td>
+     *                   Expected number of nodes on the host. If some nodes are started
+     *                   already, then only remaining nodes will be started. If current count of
+     *                   nodes is equal to this number, and <tt>restart</tt> flag is <tt>false</tt>,
+     *                   then nothing will happen.
+     *               </td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>ggHome</b></td>
+     *               <td>String</td>
+     *               <td>
+     *                   Path to GridGain installation folder. If <tt>null</tt>, global
+     *                   GRIDGAIN_HOME environment variable must be set on remote hosts.
+     *               </td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>cfg</b></td>
+     *               <td>String</td>
+     *               <td>Path to configuration file.</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>script</b></td>
+     *               <td>String</td>
+     *               <td>Path to startup script.</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>logDir</b></td>
+     *               <td>String</td>
+     *               <td>Path to folder where to save log files.</td>
+     *          </tr>
+     *          <tr>
+     *               <td><b>restart</b></td>
+     *               <td>Boolean</td>
+     *               <td>
+     *                   Whether to stop existing nodes. If <tt>true</tt>, all existing
+     *                   nodes on the host will be stopped before starting new ones. If
+     *                   <tt>false</tt>, nodes will be started only if there are less
+     *                   nodes on the host than expected.
+     *               </td>
+     *          </tr>
+     *      </table>
      * @return Collection of tuples, each contains host name, result (success of failure)
      *      and error message (if any).
      * @throws GridException In case of error.
      */
-    public Collection<GridTuple3<String, Boolean, String>> startNodes(
-        Collection<String> hostSpecs,
-        @Nullable String dfltUname,
-        @Nullable String dfltPasswd,
-        @Nullable File key,
-        int nodes,
-        @Nullable String ggHome,
-        @Nullable String cfg,
-        @Nullable String script,
-        @Nullable String log,
-        boolean restart
-    ) throws GridException;
+    public Collection<GridTuple3<String, Boolean, String>> startNodes(Collection<String> hostSpecs,
+        @Nullable Map<String, Object> params) throws GridException;
 
     /**
      * Stops nodes satisfying optional set of predicates.

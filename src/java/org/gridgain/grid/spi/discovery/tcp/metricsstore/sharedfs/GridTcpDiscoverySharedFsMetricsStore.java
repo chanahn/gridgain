@@ -11,7 +11,7 @@
 package org.gridgain.grid.spi.discovery.tcp.metricsstore.sharedfs;
 
 import org.gridgain.grid.*;
-import org.gridgain.grid.editions.*;
+import org.gridgain.grid.lang.utils.*;
 import org.gridgain.grid.logger.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.spi.*;
@@ -49,7 +49,7 @@ import java.util.concurrent.locks.*;
  * 94816A59-EB51-44EE-BB67-8B24B9C10A09.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridTcpDiscoverySharedFsMetricsStore extends GridTcpDiscoveryMetricsStoreAdapter {
     /** Default path for local testing only. */
@@ -79,7 +79,7 @@ public class GridTcpDiscoverySharedFsMetricsStore extends GridTcpDiscoveryMetric
     private final CountDownLatch initLatch = new CountDownLatch(1);
 
     /** Locks to synchronize within single JVM. */
-    private final ConcurrentMap<UUID, Lock> locks = new ConcurrentHashMap<UUID, Lock>();
+    private final ConcurrentMap<UUID, Lock> locks = new GridConcurrentHashMap<UUID, Lock>();
 
     /**
      * Gets path.

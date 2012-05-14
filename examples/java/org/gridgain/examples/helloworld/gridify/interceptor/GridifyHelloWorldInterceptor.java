@@ -35,7 +35,7 @@ import java.lang.management.*;
  * </pre>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridifyHelloWorldInterceptor implements GridifyInterceptor {
     /**

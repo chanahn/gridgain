@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.*;
  * typedef.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridFunc {
     /** */
@@ -229,7 +229,7 @@ public class GridFunc {
     /** */
     private static final GridOutClosure<?> CONCURRENT_MAP_FACTORY = new CO<ConcurrentMap>() {
         @Override public ConcurrentMap apply() {
-            return new ConcurrentHashMap();
+            return new GridConcurrentHashMap();
         }
 
         @Override public String toString() {
@@ -2003,7 +2003,7 @@ public class GridFunc {
         @Nullable Collection<T0> filter) {
         A.notNull(c, "c");
 
-        return lose(c, cp, in(filter));
+        return lose(c, cp, in0(filter));
     }
 
     /**
@@ -2528,7 +2528,7 @@ public class GridFunc {
         @Nullable Collection<? extends T0> filter) {
         A.notNull(c, "c");
 
-        return retain(c, cp, in(filter));
+        return retain(c, cp, in0(filter));
     }
 
     /**
@@ -5585,6 +5585,26 @@ public class GridFunc {
     }
 
     /**
+     * Gets predicate (not peer-deployable) that returns {@code true} if its free variable is contained
+     * in given collection.
+     *
+     * @param c Collection to check for containment.
+     * @param <T> Type of the free variable for the predicate and type of the
+     *      collection elements.
+     * @return Predicate (not peer-deployable) that returns {@code true} if its free variable is
+     *      contained in given collection.
+     */
+    private static <T> GridPredicate<T> in0(@Nullable final Collection<? extends T> c) {
+        return isEmpty(c) ? GridFunc.<T>alwaysFalse() : new P1<T>() {
+            @Override public boolean apply(T t) {
+                assert c != null;
+
+                return c.contains(t);
+            }
+        };
+    }
+
+    /**
      * Gets predicate that returns {@code true} if its free variable is not
      * contained in given collection.
      *
@@ -5600,26 +5620,6 @@ public class GridFunc {
                 peerDeployLike(U.peerDeployAware0(c));
             }
 
-            @Override public boolean apply(T t) {
-                assert c != null;
-
-                return !c.contains(t);
-            }
-        };
-    }
-
-    /**
-     * Gets predicate (not peer-deployable) that returns {@code true} if its free variable
-     * is not contained in given collection.
-     *
-     * @param c Collection to check for containment.
-     * @param <T> Type of the free variable for the predicate and type of the
-     *      collection elements.
-     * @return Predicate (not peer-deployable) that returns {@code true} if its free variable is not
-     *      contained in given collection.
-     */
-    public static <T> GridPredicate<T> notIn0(@Nullable final Collection<? extends T> c) {
-        return isEmpty(c) ? GridFunc.<T>alwaysTrue() : new P1<T>() {
             @Override public boolean apply(T t) {
                 assert c != null;
 
@@ -8837,8 +8837,7 @@ public class GridFunc {
      * @return Predicate which returns {@code true} if cache entry subgrid is a subset
      *      of given nodes.
      */
-    public static <K, V> GridPredicate<GridCacheEntry<K, V>> cacheNodes(@Nullable
-        GridRichNode... nodes) {
+    public static <K, V> GridPredicate<GridCacheEntry<K, V>> cacheNodes(@Nullable GridRichNode... nodes) {
         if (isEmpty(nodes)) {
             return alwaysFalse();
         }
@@ -8857,8 +8856,7 @@ public class GridFunc {
      * @return Predicate which returns {@code true} if cache entry subgrid is a subset
      *      of given nodes (specified by ids).
      */
-    public static <K, V> GridPredicate<GridCacheEntry<K, V>> cacheNodeIds(
-        @Nullable final Collection<UUID> nodeIds) {
+    public static <K, V> GridPredicate<GridCacheEntry<K, V>> cacheNodeIds(@Nullable final Collection<UUID> nodeIds) {
         return isEmpty(nodeIds) ? F.<GridCacheEntry<K, V>>alwaysFalse() :
             new GridPredicate<GridCacheEntry<K, V>>() {
 

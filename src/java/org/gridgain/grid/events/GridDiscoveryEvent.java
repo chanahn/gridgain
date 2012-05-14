@@ -58,7 +58,7 @@ import java.util.*;
  * event storage SPI if they are disabled in GridGain configuration.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @see GridEventType#EVT_NODE_METRICS_UPDATED
  * @see GridEventType#EVT_NODE_FAILED
  * @see GridEventType#EVT_NODE_JOINED
@@ -75,8 +75,11 @@ public class GridDiscoveryEvent extends GridEventAdapter {
     /** */
     private GridNodeShadow shadow;
 
-    /** */
+    /** Topology version. */
     private long topVer;
+
+    /** Collection of node shadows corresponding to topology version. */
+    private Collection<GridNodeShadow> topSnapshot;
 
     /** {@inheritDoc} */
     @Override public String shortDisplay() {
@@ -157,15 +160,6 @@ public class GridDiscoveryEvent extends GridEventAdapter {
     }
 
     /**
-     * Sets topology version.
-     *
-     * @param topVer Topology version.
-     */
-    public void topologyVersion(long topVer) {
-        this.topVer = topVer;
-    }
-
-    /**
      * Gets topology version if this event is raised on
      * topology change and configured discovery SPI implementation
      * supports topology versioning.
@@ -175,6 +169,26 @@ public class GridDiscoveryEvent extends GridEventAdapter {
      */
     public long topologyVersion() {
         return topVer;
+    }
+
+    /**
+     * Gets topology nodes from topology snapshot. If SPI implementation does not support
+     * versioning, the best effort snapshot will be captured.
+     *
+     * @return Topology snapshot.
+     */
+    public Collection<GridNodeShadow> topologyNodes() {
+        return topSnapshot;
+    }
+
+    /**
+     * Sets the topology snapshot.
+     *
+     * @param topSnapshot Topology snapshot.
+     */
+    public void topologySnapshot(long topVer, Collection<GridNodeShadow> topSnapshot) {
+        this.topVer = topVer;
+        this.topSnapshot = topSnapshot;
     }
 
     /** {@inheritDoc} */

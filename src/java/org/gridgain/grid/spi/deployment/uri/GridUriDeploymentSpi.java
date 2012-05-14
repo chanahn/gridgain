@@ -295,14 +295,14 @@ import java.util.Map.*;
  * For information about Spring framework visit <a href="http://www.springframework.org/">www.springframework.org</a>
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @see GridDeploymentSpi
  */
 @GridSpiInfo(
     author = "GridGain Systems",
     url = "www.gridgain.com",
     email = "support@gridgain.com",
-    version = "4.0.2c.12042012")
+    version = "4.0.3c.14052012")
 @GridSpiMultipleInstancesSupport(true)
 @GridSpiConsistencyChecked(optional = false)
 @SuppressWarnings({"FieldAccessedSynchronizedAndUnsynchronized"})
@@ -350,7 +350,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
 
     /** */
     @SuppressWarnings({"TypeMayBeWeakened"})
-    private final LastTimeUnitDescriptorComparator unitComparator = new LastTimeUnitDescriptorComparator();
+    private final LastTimeUnitDescriptorComparator unitComp = new LastTimeUnitDescriptorComparator();
 
     /** List of scanners. Every URI has it's own scanner. */
     private final Collection<GridUriDeploymentScanner> scanners = new ArrayList<GridUriDeploymentScanner>();
@@ -370,6 +370,10 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
     /** */
     @GridLoggerResource
     private GridLogger log;
+
+    /** NOTE: flag for test purposes only. */
+    @SuppressWarnings("UnusedDeclaration")
+    private boolean delayOnNewOrUpdatedFile;
 
     /**
      * Sets absolute path to temporary directory which will be used by
@@ -497,6 +501,20 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
                 if (log.isInfoEnabled())
                     log.info("Found new or updated GAR units [uri=" + U.hidePassword(uri) +
                         ", file=" + file.getAbsolutePath() + ", tstamp=" + tstamp + ']');
+
+                if (delayOnNewOrUpdatedFile) {
+                    U.warn(log, "Delaying onNewOrUpdatedFile() by 10000 ms since 'delayOnNewOrUpdatedFile' " +
+                        "is set to true (is this intentional?).");
+
+                    try {
+                        Thread.sleep(10000);
+                    }
+                    catch (InterruptedException ignored) {
+                        Thread.currentThread().interrupt();
+                    }
+
+                    U.warn(log, "Delay finished.");
+                }
 
                 try {
                     GridUriDeploymentFileProcessorResult fileRes = GridUriDeploymentFileProcessor.processFile(file, uri,
@@ -688,7 +706,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
 
         long tstamp = System.currentTimeMillis();
 
-        Collection<ClassLoader> removedClsLdrs = new ArrayList<ClassLoader>();
+        Collection<ClassLoader> rmvClsLdrs = new ArrayList<ClassLoader>();
 
         Map<String, String> newRsrcs;
 
@@ -707,7 +725,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
                 desc = new GridUriDeploymentUnitDescriptor(tstamp, ldr);
 
                 // New unit has largest timestamp.
-                assert unitLoaders.size() <= 0 || unitComparator.compare(desc, unitLoaders.getFirst()) <= 0;
+                assert unitLoaders.size() <= 0 || unitComp.compare(desc, unitLoaders.getFirst()) <= 0;
 
                 unitLoaders.addFirst(desc);
             }
@@ -715,10 +733,10 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
             newRsrcs = addResources(ldr, desc.getResources(), new Class<?>[]{rsrc});
 
             if (!F.isEmpty(newRsrcs))
-                removeResources(ldr, newRsrcs, removedClsLdrs);
+                removeResources(ldr, newRsrcs, rmvClsLdrs);
         }
 
-        for (ClassLoader cldLdr : removedClsLdrs)
+        for (ClassLoader cldLdr : rmvClsLdrs)
             onUnitReleased(cldLdr);
 
         return !F.isEmpty(newRsrcs);
@@ -728,22 +746,22 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
     @Override public boolean unregister(String rsrcName) {
         assert rsrcName != null;
 
-        Collection<ClassLoader> removedClsLdrs = new ArrayList<ClassLoader>();
+        Collection<ClassLoader> rmvClsLdrs = new ArrayList<ClassLoader>();
 
-        boolean removed;
+        boolean rmv;
 
         synchronized (mux) {
             Map<String, String> rsrcs = new HashMap<String, String>(1);
 
             rsrcs.put(rsrcName, rsrcName);
 
-            removed = removeResources(null, rsrcs, removedClsLdrs);
+            rmv = removeResources(null, rsrcs, rmvClsLdrs);
         }
 
-        for (ClassLoader cldLdr : removedClsLdrs)
+        for (ClassLoader cldLdr : rmvClsLdrs)
             onUnitReleased(cldLdr);
 
-        return removed;
+        return rmv;
     }
 
     /**
@@ -832,11 +850,11 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
      *
      * @param ignoreClsLdr Ignored class loader or {@code null} to remove for all class loaders.
      * @param rsrcs Resources that should be used in search for class loader to remove.
-     * @param removedClsLdrs Class loaders to remove.
+     * @param rmvClsLdrs Class loaders to remove.
      * @return {@code True} if resource was removed.
      */
     private boolean removeResources(@Nullable ClassLoader ignoreClsLdr, Map<String, String> rsrcs,
-        Collection<ClassLoader> removedClsLdrs) {
+        Collection<ClassLoader> rmvClsLdrs) {
         assert Thread.holdsLock(mux);
         assert rsrcs != null;
 
@@ -851,7 +869,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
 
                 assert clsLdrRsrcs != null;
 
-                boolean isRemoved = false;
+                boolean isRmv = false;
 
                 // Check class loader's registered resources.
                 for (String rsrcName : rsrcs.keySet()) {
@@ -860,16 +878,16 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
                         iter.remove();
 
                         // Add class loaders in collection to notify listener outside synchronization block.
-                        removedClsLdrs.add(ldr);
+                        rmvClsLdrs.add(ldr);
 
-                        isRemoved = true;
+                        isRmv = true;
                         res = true;
 
                         break;
                     }
                 }
 
-                if (isRemoved)
+                if (isRmv)
                     continue;
 
                 // Check is possible to load resources with classloader.
@@ -880,7 +898,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
                         iter.remove();
 
                         // Add class loaders in collection to notify listener outside synchronization block.
-                        removedClsLdrs.add(ldr);
+                        rmvClsLdrs.add(ldr);
 
                         res = true;
 
@@ -1074,7 +1092,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
             }
         }
 
-        Collection<ClassLoader> removedClsLdrs = new ArrayList<ClassLoader>();
+        Collection<ClassLoader> rmvClsLdrs = new ArrayList<ClassLoader>();
 
         synchronized (mux) {
             boolean isAdded = false;
@@ -1094,7 +1112,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
                     iter.remove();
 
                     // Add class loaders in collection to notify listener outside synchronization block.
-                    removedClsLdrs.add(desc.getClassLoader());
+                    rmvClsLdrs.add(desc.getClassLoader());
 
                     // Last descriptor.
                     if (!iter.hasNext())
@@ -1107,14 +1125,14 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
                 if (!isAdded) {
                     // Unit with largest timestamp win.
                     // Insert it before current element.
-                    if (unitComparator.compare(newDesc, desc) <= 0) {
+                    if (unitComp.compare(newDesc, desc) <= 0) {
                         // Remove current class loader if found collisions.
                         if (checkUnitCollision(desc, newDesc)) {
                             iter.remove();
                             iter.add(newDesc);
 
                             // Add class loaders in collection to notify listener outside synchronization block.
-                            removedClsLdrs.add(desc.getClassLoader());
+                            rmvClsLdrs.add(desc.getClassLoader());
                         }
                         // Or add new class loader before current class loader.
                         else {
@@ -1135,7 +1153,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
                     iter.remove();
 
                     // Add class loaders in collection to notify listener outside synchronization block.
-                    removedClsLdrs.add(desc.getClassLoader());
+                    rmvClsLdrs.add(desc.getClassLoader());
                 }
             }
 
@@ -1151,7 +1169,7 @@ public class GridUriDeploymentSpi extends GridSpiAdapter implements GridDeployme
             }
         }
 
-        for (ClassLoader cldLdr : removedClsLdrs)
+        for (ClassLoader cldLdr : rmvClsLdrs)
             onUnitReleased(cldLdr);
     }
 

@@ -25,7 +25,7 @@ import static org.gridgain.client.message.protobuf.ClientMessagesProtocols.Objec
  * Client messages marshaller based on protocol buffers compiled code.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 @SuppressWarnings({"unchecked", "UnnecessaryFullyQualifiedName"})
 public class GridClientProtobufMarshaller implements GridClientMarshaller {
@@ -93,7 +93,7 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
 
                 ProtoCacheRequest.Builder builder = ProtoCacheRequest.newBuilder();
 
-                builder.setOperation(ProtoCacheRequest.GridCacheOperation.valueOf(req.operation().opCode()));
+                builder.setOperation(cacheOpToProtobuf(req.operation()));
 
                 if (req.cacheName() != null)
                     builder.setCacheName(req.cacheName());
@@ -109,6 +109,9 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
 
                 if (req.values() != null && !req.values().isEmpty())
                     builder.setValues(wrapMap(req.values()));
+
+                if (req.cacheFlagsOn() != 0)
+                    builder.addAllCacheFlagsOn(Collections.singleton(req.cacheFlagsOn()));
 
                 reqBuilder.setBody(builder.build().toByteString());
 
@@ -172,6 +175,72 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
         return res.build().toByteArray();
     }
 
+    /**
+     * Convert from protobuf cache operation.
+     *
+     * @param val Protobuf cache operation value.
+     * @return GridGain cache operation value.
+     */
+    private static GridClientCacheRequest.GridCacheOperation cacheOpFromProtobuf(ProtoCacheRequest.GridCacheOperation val) {
+        switch (val) {
+            case PUT:
+                return GridClientCacheRequest.GridCacheOperation.PUT;
+            case PUT_ALL:
+                return GridClientCacheRequest.GridCacheOperation.PUT_ALL;
+            case GET:
+                return GridClientCacheRequest.GridCacheOperation.GET;
+            case GET_ALL:
+                return GridClientCacheRequest.GridCacheOperation.GET_ALL;
+            case RMV:
+                return GridClientCacheRequest.GridCacheOperation.RMV;
+            case RMV_ALL:
+                return GridClientCacheRequest.GridCacheOperation.RMV_ALL;
+            case ADD:
+                return GridClientCacheRequest.GridCacheOperation.ADD;
+            case REPLACE:
+                return GridClientCacheRequest.GridCacheOperation.REPLACE;
+            case CAS:
+                return GridClientCacheRequest.GridCacheOperation.CAS;
+            case METRICS:
+                return GridClientCacheRequest.GridCacheOperation.METRICS;
+            default:
+                throw new IllegalArgumentException("Invalid value: " + val);
+        }
+    }
+
+    /**
+     * Convert to protobuf cache operation.
+     *
+     * @param val Operation code value.
+     * @return Enum value.
+     */
+    private static ProtoCacheRequest.GridCacheOperation cacheOpToProtobuf(GridClientCacheRequest.GridCacheOperation val) {
+        switch (val) {
+            case PUT:
+                return ProtoCacheRequest.GridCacheOperation.PUT;
+            case PUT_ALL:
+                return ProtoCacheRequest.GridCacheOperation.PUT_ALL;
+            case GET:
+                return ProtoCacheRequest.GridCacheOperation.GET;
+            case GET_ALL:
+                return ProtoCacheRequest.GridCacheOperation.GET_ALL;
+            case RMV:
+                return ProtoCacheRequest.GridCacheOperation.RMV;
+            case RMV_ALL:
+                return ProtoCacheRequest.GridCacheOperation.RMV_ALL;
+            case ADD:
+                return ProtoCacheRequest.GridCacheOperation.ADD;
+            case REPLACE:
+                return ProtoCacheRequest.GridCacheOperation.REPLACE;
+            case CAS:
+                return ProtoCacheRequest.GridCacheOperation.CAS;
+            case METRICS:
+                return ProtoCacheRequest.GridCacheOperation.METRICS;
+            default:
+                throw new IllegalArgumentException("Invalid value: " + val);
+        }
+    }
+
     /** {@inheritDoc} */
     @Override public <T> T unmarshal(byte[] bytes) throws IOException {
         ObjectWrapper msg = ObjectWrapper.parseFrom(bytes);
@@ -182,8 +251,7 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
 
                 ProtoCacheRequest reqBean = ProtoCacheRequest.parseFrom(req.getBody());
 
-                GridClientCacheRequest res = new GridClientCacheRequest(GridClientCacheRequest.GridCacheOperation.
-                    findByOperationCode(reqBean.getOperation().getNumber()));
+                GridClientCacheRequest res = new GridClientCacheRequest(cacheOpFromProtobuf(reqBean.getOperation()));
 
                 fillClientMessage(res, req);
 
@@ -198,6 +266,9 @@ public class GridClientProtobufMarshaller implements GridClientMarshaller {
 
                 if (reqBean.hasValue2())
                     res.value2(unwrapObject(reqBean.getValue2()));
+
+                if (reqBean.getCacheFlagsOnCount() != 0)
+                    res.cacheFlagsOn(reqBean.getCacheFlagsOnList().get(0));
 
                 res.values(unwrapMap(reqBean.getValues()));
 

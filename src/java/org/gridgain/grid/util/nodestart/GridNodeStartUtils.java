@@ -19,7 +19,7 @@ import java.util.*;
  * Util methods for {@code GridProjection.startNodes(..)} methods.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridNodeStartUtils {
     /** String that specifies range of IPs. */
@@ -45,12 +45,12 @@ public class GridNodeStartUtils {
      * @return Set of {@code Host} instances.
      * @throws GridException In case of error.
      */
-    public static Collection<GridHost> mkHosts(String hostSpec, @Nullable String dfltUname,
+    public static Collection<GridRemoteStartSpec> parseSpecs(String hostSpec, @Nullable String dfltUname,
         @Nullable String dfltPasswd, int nodes, boolean hasKey) throws GridException {
         assert hostSpec != null;
         assert nodes > 0;
 
-        Collection<GridHost> hosts = new HashSet<GridHost>();
+        Collection<GridRemoteStartSpec> specs = new HashSet<GridRemoteStartSpec>();
 
         String[] arr = hostSpec.split("#");
 
@@ -79,7 +79,7 @@ public class GridNodeStartUtils {
                 throw new GridException("Password for " + hostSpec + " is not set.");
 
             for (String host : t.get1()) {
-                hosts.add(new GridHost(host, t.get2(), uname, passwd, nodes));
+                specs.add(new GridRemoteStartSpec(host, t.get2(), uname, passwd, nodes));
             }
         }
         else if (arr.length == 2) {
@@ -100,13 +100,13 @@ public class GridNodeStartUtils {
                 throw new GridException("Password for " + hostSpec + " is not set.");
 
             for (String host : t.get1()) {
-                hosts.add(new GridHost(host, t.get2(), uname, passwd, nodes));
+                specs.add(new GridRemoteStartSpec(host, t.get2(), uname, passwd, nodes));
             }
         }
         else
             throw new GridException("Invalid host string: " + hostSpec);
 
-        return hosts;
+        return specs;
     }
 
     /**

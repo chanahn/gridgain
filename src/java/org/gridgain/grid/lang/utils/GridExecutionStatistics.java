@@ -20,17 +20,17 @@ import java.util.concurrent.atomic.*;
  * Accumulates execution statistics for named pieces of code.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridExecutionStatistics {
     /** */
     private String name;
 
     /** Map of execution counters. */
-    private ConcurrentMap<String, AtomicInteger> cntMap = new ConcurrentHashMap<String, AtomicInteger>();
+    private ConcurrentMap<String, AtomicInteger> cntMap = new GridConcurrentHashMap<String, AtomicInteger>();
 
     /** Map of execution durations. */
-    private ConcurrentMap<String, AtomicLong> durationMap = new ConcurrentHashMap<String, AtomicLong>();
+    private ConcurrentMap<String, AtomicLong> durationMap = new GridConcurrentHashMap<String, AtomicLong>();
 
     /** Execution start time for the current thread. */
     private ThreadLocal<GridTuple2<String, Long>> startTime = new ThreadLocal<GridTuple2<String, Long>>() {

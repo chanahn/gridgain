@@ -19,7 +19,7 @@ import java.io.*;
  * Sent to random node during SPI start. Then forwarded directly to coordinator.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridTcpDiscoveryJoinRequestMessage extends GridTcpDiscoveryAbstractMessage {
     /** New node that wants to join the topology. */

@@ -200,6 +200,7 @@ namespace GridGain.Client.Impl {
                         ", while received [key=" + pair.Key + ", value=" + pair.Value + "]");
 
             foreach (KeyValuePair<String, Object> e in args)
+                // todo: key & value should be URL-encoded.
                 builder.Append(e.Key).Append('=').Append((String)e.Value).Append('&');
 
             return new Uri(builder.Remove(builder.Length - 1, 1).ToString());

@@ -72,7 +72,7 @@ import static org.gridgain.grid.kernal.GridNodeAttributes.*;
  * Collection of utility methods used throughout the system.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName"})
 public abstract class GridUtils {
@@ -114,7 +114,7 @@ public abstract class GridUtils {
 
     /** Cache for {@link GridPeerDeployAware} fields to speed up reflection. */
     private static final ConcurrentMap<String, GridTuple2<Class<?>, Collection<Field>>> p2pFields =
-        new ConcurrentHashMap<String, GridTuple2<Class<?>, Collection<Field>>>();
+        new GridConcurrentHashMap<String, GridTuple2<Class<?>, Collection<Field>>>();
 
     /** Secure socket protocol to use. */
     private static final String HTTPS_PROTOCOL = "TLS";
@@ -1564,7 +1564,7 @@ public abstract class GridUtils {
      * Verifier always returns successful result for any host.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.2c.12042012
+     * @version 4.0.3c.14052012
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
         // Remote host trusted by default.
@@ -6129,5 +6129,54 @@ public abstract class GridUtils {
         assert ses != null;
 
         return ses.getTaskName().startsWith("visor-");
+    }
+
+    /**
+     * Adds no-op logger to remove no-appender warning.
+     *
+     * @return Tuple with root log and null appender instances.
+     * @throws GridException In case of failure to add no-op logger for Log4j.
+     */
+    public static GridTuple2<Object, Object> addLog4jNoOpLogger() throws GridException {
+        Object rootLog;
+        Object nullApp;
+
+        try {
+            // Add no-op logger to remove no-appender warning.
+            Class logCls = Class.forName("org.apache.log4j.Logger");
+
+            rootLog = logCls.getMethod("getRootLogger").invoke(logCls);
+
+            nullApp = Class.forName("org.apache.log4j.varia.NullAppender").newInstance();
+
+            Class appCls = Class.forName("org.apache.log4j.Appender");
+
+            rootLog.getClass().getMethod("addAppender", appCls).invoke(rootLog, nullApp);
+        }
+        catch (Exception e) {
+            throw new GridException("Failed to add no-op logger for Log4j.", e);
+        }
+
+        return new GridTuple2<Object, Object>(rootLog, nullApp);
+    }
+
+    /**
+     * Removes previously added no-op logger via method {@link #addLog4jNoOpLogger}.
+     *
+     * @param t Tuple with root log and null appender instances.
+     * @throws GridException In case of failure to remove previously added no-op logger for Log4j.
+     */
+    public static void removeLog4jNoOpLogger(GridTuple2<Object, Object> t) throws GridException {
+        Object rootLog = t.get1();
+        Object nullApp = t.get2();
+
+        try {
+            Class appenderCls = Class.forName("org.apache.log4j.Appender");
+
+            rootLog.getClass().getMethod("removeAppender", appenderCls).invoke(rootLog, nullApp);
+        }
+        catch (Exception e) {
+            throw new GridException("Failed to remove previously added no-op logger for Log4j.", e);
+        }
     }
 }

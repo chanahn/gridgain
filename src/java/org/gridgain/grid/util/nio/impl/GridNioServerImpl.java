@@ -32,7 +32,7 @@ import java.util.concurrent.*;
  * Supports sending data to remote clients.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridNioServerImpl<T> implements GridNioServer<T> {
     /** Time, which server will wait before retry operation. */
@@ -79,7 +79,7 @@ public class GridNioServerImpl<T> implements GridNioServer<T> {
 
     /** Currently opened sessions. */
     private ConcurrentMap<InetSocketAddress, GridNioSession> sessions =
-        new ConcurrentHashMap<InetSocketAddress, GridNioSession>();
+        new GridConcurrentHashMap<InetSocketAddress, GridNioSession>();
 
     /** Tcp no delay flag. */
     private boolean tcpNoDelay;

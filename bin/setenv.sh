@@ -7,7 +7,7 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 4.0.2c.12042012
+# Version: 4.0.3c.14052012
 #
 
 #
@@ -45,10 +45,6 @@ esac
 
 # The following libraries are required for GridGain.
 GRIDGAIN_LIBS="${USER_LIBS}${SEP}${GRIDGAIN_HOME}/config/userversion${SEP}${GRIDGAIN_HOME}/libs/*"
-
-# Comment these jars if you do not wish to use Hyperic SIGAR licensed under GPL
-# Note that starting with GridGain 3.0 - Community Edition is licensed under GPLv3.
-GRIDGAIN_LIBS="${GRIDGAIN_LIBS}${SEP}${GRIDGAIN_HOME}"/libs/sigar.jar
 
 # Uncomment if using JBoss.
 # JBOSS_HOME must point to JBoss installation folder.

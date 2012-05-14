@@ -19,7 +19,7 @@ import java.util.concurrent.*;
  * Concurrent set implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridConcurrentHashSet<E> extends GridSetWrapper<E> {
     /**
@@ -27,7 +27,7 @@ public class GridConcurrentHashSet<E> extends GridSetWrapper<E> {
      * load factor, and concurrencyLevel.
      */
     public GridConcurrentHashSet() {
-        super(new ConcurrentHashMap<E, E>());
+        super(new GridConcurrentHashMap<E, E>());
     }
 
     /**
@@ -40,7 +40,7 @@ public class GridConcurrentHashSet<E> extends GridSetWrapper<E> {
      *      elements is negative.
      */
     public GridConcurrentHashSet(int initCap) {
-        super(new ConcurrentHashMap<E, E>(initCap));
+        super(new GridConcurrentHashMap<E, E>(initCap));
     }
 
     /**
@@ -60,7 +60,7 @@ public class GridConcurrentHashSet<E> extends GridSetWrapper<E> {
      *      non-positive.
      */
     public GridConcurrentHashSet(int initCap, float loadFactor, int conLevel) {
-        super(new ConcurrentHashMap<E, E>(initCap, loadFactor, conLevel));
+        super(new GridConcurrentHashMap<E, E>(initCap, loadFactor, conLevel));
     }
 
     /**
@@ -72,7 +72,7 @@ public class GridConcurrentHashSet<E> extends GridSetWrapper<E> {
      * @param c Collection to add.
      */
     public GridConcurrentHashSet(Collection<E> c) {
-        super(new ConcurrentHashMap<E, E>(c.size()));
+        super(new GridConcurrentHashMap<E, E>(c.size()));
 
         addAll(c);
     }

@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.*;
  * Note that this finder is shared by default (see {@link GridTcpDiscoveryIpFinder#isShared()}.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridTcpDiscoverySharedFsIpFinder extends GridTcpDiscoveryIpFinderAdapter {
     /** Default path for local testing only. */

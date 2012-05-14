@@ -16,7 +16,7 @@ import org.gridgain.grid.typedef.internal.*;
  * Helper class to serialize and deserialize node metrics.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public final class GridDiscoveryMetricsHelper {
     /** Size of serialized node metrics. */

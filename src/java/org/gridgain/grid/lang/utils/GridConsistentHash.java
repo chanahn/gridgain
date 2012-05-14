@@ -28,7 +28,7 @@ import java.util.concurrent.locks.*;
  * <a href="http://weblogs.java.net/blog/tomwhite/archive/2007/11/consistent_hash.html">Tom White's Blog</a>.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridConsistentHash<N> implements Serializable {
     /**
@@ -235,7 +235,7 @@ public class GridConsistentHash<N> implements Serializable {
     private static final Random RAND = new Random();
 
     /** Null value. */
-    private static final String NULL = UUID.randomUUID().toString();
+    private static final String NULL = "";
 
     /** Affinity seed. */
     private final Object affSeed;

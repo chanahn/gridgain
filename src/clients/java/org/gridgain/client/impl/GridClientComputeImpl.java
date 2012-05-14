@@ -18,11 +18,14 @@ import java.util.*;
  * Compute projection implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
-@SuppressWarnings("NullableProblems")
 public class GridClientComputeImpl extends GridClientAbstractProjection<GridClientComputeImpl>
     implements GridClientCompute {
+    /** Projection factory. */
+    @SuppressWarnings("TypeMayBeWeakened")
+    private final GridClientComputeFactory prjFactory = new GridClientComputeFactory();
+
     /**
      * Creates a new compute projection.
      *
@@ -38,30 +41,30 @@ public class GridClientComputeImpl extends GridClientAbstractProjection<GridClie
 
     /** {@inheritDoc} */
     @Override public GridClientCompute projection(GridClientNode node) throws GridClientException {
-        return createProjection(Collections.singletonList(node), null, null);
+        return createProjection(Collections.singletonList(node), null, null, prjFactory);
     }
 
     /** {@inheritDoc} */
     @Override public GridClientCompute projection(GridClientPredicate<GridClientNode> filter)
         throws GridClientException {
-        return createProjection(null, filter, null);
+        return createProjection(null, filter, null, prjFactory);
     }
 
     /** {@inheritDoc} */
     @Override public GridClientCompute projection(Collection<GridClientNode> nodes) throws GridClientException {
-        return createProjection(nodes, null, null);
+        return createProjection(nodes, null, null, prjFactory);
     }
 
     /** {@inheritDoc} */
     @Override public GridClientCompute projection(GridClientPredicate<GridClientNode> filter,
         GridClientLoadBalancer balancer) throws GridClientException {
-        return createProjection(null, filter, balancer);
+        return createProjection(null, filter, balancer, prjFactory);
     }
 
     /** {@inheritDoc} */
     @Override public GridClientCompute projection(Collection<GridClientNode> nodes, GridClientLoadBalancer balancer)
         throws GridClientException {
-        return createProjection(nodes, null, balancer);
+        return createProjection(nodes, null, balancer, prjFactory);
     }
 
     /** {@inheritDoc} */
@@ -174,7 +177,7 @@ public class GridClientComputeImpl extends GridClientAbstractProjection<GridClie
             @Override public GridClientFuture<List<GridClientNode>> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException,
                 GridClientClosedException {
-                return conn.topology(includeAttrs, false);
+                return conn.topology(includeAttrs, includeMetrics);
             }
         });
     }
@@ -212,8 +215,11 @@ public class GridClientComputeImpl extends GridClientAbstractProjection<GridClie
     }
 
     /** {@inheritDoc} */
-    @Override protected GridClientComputeImpl createProjectionImpl(Collection<GridClientNode> nodes,
-        GridClientPredicate<GridClientNode> filter, GridClientLoadBalancer balancer) {
-        return new GridClientComputeImpl(client, nodes, filter, balancer);
+    private class GridClientComputeFactory implements ProjectionFactory<GridClientComputeImpl> {
+        /** {@inheritDoc} */
+        @Override public GridClientComputeImpl create(Collection<GridClientNode> nodes,
+            GridClientPredicate<GridClientNode> filter, GridClientLoadBalancer balancer) {
+            return new GridClientComputeImpl(client, nodes, filter, balancer);
+        }
     }
 }

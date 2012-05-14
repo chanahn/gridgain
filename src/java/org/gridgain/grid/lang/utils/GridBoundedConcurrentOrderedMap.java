@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.*;
  * are not supported for this kind of map.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridBoundedConcurrentOrderedMap<K, V> extends ConcurrentSkipListMap<K, V> {
     /** Element count. */

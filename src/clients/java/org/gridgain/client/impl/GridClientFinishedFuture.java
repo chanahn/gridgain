@@ -14,7 +14,7 @@ import org.gridgain.client.*;
  * Represents a future that already have a result and will never wait.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridClientFinishedFuture<R> implements GridClientFuture<R> {
     /** Future result. */

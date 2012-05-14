@@ -26,7 +26,7 @@ import java.util.logging.*;
  * Java client implementation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridHttpClientConnection extends GridClientConnection {
     /** Logger. */
@@ -141,12 +141,18 @@ public class GridHttpClientConnection extends GridClientConnection {
      * Creates new future and passes it to the makeJettyRequest.
      *
      * @param params Request parameters.
+     * @param flags Cache flags to be enabled.
      * @return Future.
      * @throws GridClientClosedException If client was manually closed.
      * @throws GridClientConnectionResetException If connection could not be established.
      */
-    private <R> GridClientFuture<R> makeJettyRequest(Map<String, Object> params)
+    private <R> GridClientFuture<R> makeJettyRequest(Map<String, Object> params, Collection<GridClientCacheFlag> flags)
         throws GridClientClosedException, GridClientConnectionResetException {
+        int flagsBitMap = encodeCacheFlags(flags);
+
+        if (flagsBitMap != 0)
+            params.put("cacheFlags", Integer.toString(flagsBitMap));
+
         return makeJettyRequest(params, new GridClientFutureAdapter<R>());
     }
 
@@ -214,8 +220,14 @@ public class GridHttpClientConnection extends GridClientConnection {
                                 fut.onDone(new GridClientException("Unsupported server response status code" +
                                     ": " + successStatus));
                             }
-                            else
-                                fut.onDone(json.get("response"));
+                            else {
+                                Object result = json.get("response");
+
+                                if (JSONNull.getInstance().equals(result))
+                                    result = null;
+
+                                fut.onDone(result);
+                            }
                         }
                         catch (Throwable e) {
                             fut.onDone(e);
@@ -277,6 +289,7 @@ public class GridHttpClientConnection extends GridClientConnection {
 
         try {
             for (Map.Entry<String, Object> e : params.entrySet())
+                // todo: key should be URL-encoded.
                 builder.append(e.getKey()).append('=')
                     .append(URLEncoder.encode((String)e.getValue(), "UTF-8"))
                     .append('&');
@@ -331,8 +344,8 @@ public class GridHttpClientConnection extends GridClientConnection {
     }
 
     /** {@inheritDoc} */
-    @Override public <K, V> GridClientFuture<Boolean> cachePutAll(String cacheName, Map<K, V> entries)
-        throws GridClientConnectionResetException, GridClientClosedException {
+    @Override public <K, V> GridClientFuture<Boolean> cachePutAll(String cacheName, Map<K, V> entries,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         assert entries != null;
 
         Map<String, Object> params = new HashMap<String, Object>();
@@ -351,11 +364,11 @@ public class GridHttpClientConnection extends GridClientConnection {
             i++;
         }
 
-        return makeJettyRequest(params);
+        return makeJettyRequest(params, flags);
     }
 
     /** {@inheritDoc} */
-    @Override public <K, V> GridClientFuture<V> cacheGet(String cacheName, K key)
+    @Override public <K, V> GridClientFuture<V> cacheGet(String cacheName, K key, Set<GridClientCacheFlag> flags)
         throws GridClientConnectionResetException, GridClientClosedException {
         Map<String, Object> params = new HashMap<String, Object>();
 
@@ -366,12 +379,12 @@ public class GridHttpClientConnection extends GridClientConnection {
 
         params.put("key", key);
 
-        return makeJettyRequest(params);
+        return makeJettyRequest(params, flags);
     }
 
     /** {@inheritDoc} */
-    @Override public <K, V> GridClientFuture<Map<K, V>> cacheGetAll(final String cacheName, final Collection<K> keys)
-        throws GridClientConnectionResetException, GridClientClosedException {
+    @Override public <K, V> GridClientFuture<Map<K, V>> cacheGetAll(final String cacheName, final Collection<K> keys,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         assert keys != null;
 
         Map<String, Object> params = new HashMap<String, Object>();
@@ -389,12 +402,12 @@ public class GridHttpClientConnection extends GridClientConnection {
             i++;
         }
 
-        return makeJettyRequest(params);
+        return makeJettyRequest(params, flags);
     }
 
     /** {@inheritDoc} */
-    @Override public <K> GridClientFuture<Boolean> cacheRemove(final String cacheName, final K key)
-        throws GridClientConnectionResetException, GridClientClosedException {
+    @Override public <K> GridClientFuture<Boolean> cacheRemove(final String cacheName, final K key,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         assert key != null;
 
         Map<String, Object> params = new HashMap<String, Object>();
@@ -406,12 +419,12 @@ public class GridHttpClientConnection extends GridClientConnection {
 
         params.put("key", key);
 
-        return makeJettyRequest(params);
+        return makeJettyRequest(params, flags);
     }
 
     /** {@inheritDoc} */
-    @Override public <K> GridClientFuture<Boolean> cacheRemoveAll(final String cacheName, final Collection<K> keys)
-        throws GridClientClosedException, GridClientConnectionResetException {
+    @Override public <K> GridClientFuture<Boolean> cacheRemoveAll(final String cacheName, final Collection<K> keys,
+        Set<GridClientCacheFlag> flags) throws GridClientClosedException, GridClientConnectionResetException {
         assert keys != null;
 
         Map<String, Object> params = new HashMap<String, Object>();
@@ -429,12 +442,12 @@ public class GridHttpClientConnection extends GridClientConnection {
             i++;
         }
 
-        return makeJettyRequest(params);
+        return makeJettyRequest(params, flags);
     }
 
     /** {@inheritDoc} */
-    @Override public <K, V> GridClientFuture<Boolean> cacheAdd(String cacheName, K key, V val)
-        throws GridClientConnectionResetException, GridClientClosedException {
+    @Override public <K, V> GridClientFuture<Boolean> cacheAdd(String cacheName, K key, V val,
+        Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         Map<String, Object> params = new HashMap<String, Object>();
 
         params.put("cmd", "add");
@@ -446,12 +459,12 @@ public class GridHttpClientConnection extends GridClientConnection {
         if (cacheName != null)
             params.put("cacheName", cacheName);
 
-        return makeJettyRequest(params);
+        return makeJettyRequest(params, flags);
     }
 
     /** {@inheritDoc} */
-    @Override public <K, V> GridClientFuture<Boolean> cacheReplace(final String cacheName, final K key, final V val)
-        throws GridClientClosedException, GridClientConnectionResetException {
+    @Override public <K, V> GridClientFuture<Boolean> cacheReplace(final String cacheName, final K key, final V val,
+        Set<GridClientCacheFlag> flags) throws GridClientClosedException, GridClientConnectionResetException {
         assert key != null;
         assert val != null;
 
@@ -466,12 +479,12 @@ public class GridHttpClientConnection extends GridClientConnection {
         if (cacheName != null)
             params.put("cacheName", cacheName);
 
-        return makeJettyRequest(params);
+        return makeJettyRequest(params, flags);
     }
 
     /** {@inheritDoc} */
-    @Override public <K, V> GridClientFuture<Boolean> cacheCompareAndSet(final String cacheName, final K key, final V val1,
-        final V val2) throws GridClientConnectionResetException, GridClientClosedException {
+    @Override public <K, V> GridClientFuture<Boolean> cacheCompareAndSet(String cacheName, K key, V newVal,
+        V oldVal, Set<GridClientCacheFlag> flags) throws GridClientConnectionResetException, GridClientClosedException {
         assert key != null;
 
         Map<String, Object> params = new HashMap<String, Object>();
@@ -479,16 +492,16 @@ public class GridHttpClientConnection extends GridClientConnection {
         params.put("cmd", "cas");
         params.put("key", key);
 
-        if (val1 != null)
-            params.put("val1", val1);
+        if (newVal != null)
+            params.put("val1", newVal);
 
-        if (val2 != null)
-            params.put("val2", val2);
+        if (oldVal != null)
+            params.put("val2", oldVal);
 
         if (cacheName != null)
             params.put("cacheName", cacheName);
 
-        return makeJettyRequest(params);
+        return makeJettyRequest(params, flags);
     }
 
     /** {@inheritDoc} */

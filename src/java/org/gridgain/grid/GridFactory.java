@@ -134,7 +134,7 @@ import static org.gridgain.grid.segmentation.GridSegmentationPolicy.*;
  * For more information refer to {@link GridSpringBean} documentation.
 
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridFactory {
     /**
@@ -560,7 +560,7 @@ public class GridFactory {
 
         U.warn(null, "Default Spring XML file not found (is GRIDGAIN_HOME set?): " + DFLT_CFG);
 
-        return start0(new GridConfigurationAdapter(), springCtx).grid();
+        return start0(new GridStartContext(new GridConfigurationAdapter(), null, springCtx)).grid();
     }
 
     /**
@@ -591,7 +591,7 @@ public class GridFactory {
     public static Grid start(GridConfiguration cfg, @Nullable ApplicationContext springCtx) throws GridException {
         A.notNull(cfg, "cfg");
 
-        return start0(cfg, springCtx).grid();
+        return start0(new GridStartContext(cfg, null, springCtx)).grid();
     }
 
     /**
@@ -967,28 +967,13 @@ public class GridFactory {
     public static Grid start(URL springCfgUrl, @Nullable ApplicationContext ctx) throws GridException {
         A.notNull(springCfgUrl, "springCfgUrl");
 
-        boolean isLog4jUsed = GridFactory.class.getClassLoader().getResource("org/apache/log4j/Appender.class") != null;
+        boolean isLog4jUsed = GridFactory.class.getClassLoader().
+                getResource("org/apache/log4j/Appender.class") != null;
 
-        Object rootLog = null;
-
-        Object nullApp = null;
+        GridTuple2<Object, Object> t = null;
 
         if (isLog4jUsed)
-            try {
-                // Add no-op logger to remove no-appender warning.
-                Class logCls = Class.forName("org.apache.log4j.Logger");
-
-                rootLog = logCls.getMethod("getRootLogger").invoke(logCls);
-
-                nullApp = Class.forName("org.apache.log4j.varia.NullAppender").newInstance();
-
-                Class appCls = Class.forName("org.apache.log4j.Appender");
-
-                rootLog.getClass().getMethod("addAppender", appCls).invoke(rootLog, nullApp);
-            }
-            catch (Exception e) {
-                throw new GridException("Failed to add no-op logger for Log4j.", e);
-            }
+            t = U.addLog4jNoOpLogger();
 
         GenericApplicationContext springCtx;
 
@@ -1000,6 +985,9 @@ public class GridFactory {
             springCtx.refresh();
         }
         catch (BeansException e) {
+            if (isLog4jUsed && t != null)
+                U.removeLog4jNoOpLogger(t);
+
             throw new GridException("Failed to instantiate Spring XML application context [springUrl=" +
                 springCfgUrl + ", err=" + e.getMessage() + ']', e);
         }
@@ -1013,21 +1001,13 @@ public class GridFactory {
             throw new GridException("Failed to instantiate bean [type=" + GridConfiguration.class + ", err=" +
                 e.getMessage() + ']', e);
         }
+        finally {
+            if (isLog4jUsed && t != null)
+                U.removeLog4jNoOpLogger(t);
+        }
 
         if (cfgMap == null)
             throw new GridException("Failed to find a single grid factory configuration in: " + springCfgUrl);
-
-        if (isLog4jUsed) {
-            try {
-                // Remove previously added no-op logger.
-                Class appenderCls = Class.forName("org.apache.log4j.Appender");
-
-                rootLog.getClass().getMethod("removeAppender", appenderCls).invoke(rootLog, nullApp);
-            }
-            catch (Exception e) {
-                throw new GridException("Failed to remove previously added no-op logger for Log4j.", e);
-            }
-        }
 
         if (cfgMap.isEmpty())
             throw new GridException("Can't find grid factory configuration in: " + springCfgUrl);
@@ -1039,7 +1019,9 @@ public class GridFactory {
                 assert cfg != null;
 
                 // Use either user defined context or our one.
-                GridNamedInstance grid = start0(cfg, ctx == null ? springCtx : ctx);
+                GridNamedInstance grid = start0(
+                    new GridStartContext(cfg, springCfgUrl, ctx == null ? springCtx : ctx)
+                );
 
                 // Add it if it was not stopped during startup.
                 if (grid != null)
@@ -1069,16 +1051,15 @@ public class GridFactory {
     /**
      * Starts grid with given configuration.
      *
-     * @param cfg Grid configuration.
-     * @param ctx Optional Spring application context.
+     * @param startCtx Start context.
      * @return Started grid.
      * @throws GridException If grid could not be started.
      */
-    private static GridNamedInstance start0(GridConfiguration cfg, @Nullable ApplicationContext ctx)
+    private static GridNamedInstance start0(GridStartContext startCtx)
         throws GridException {
-        assert cfg != null;
+        assert startCtx != null;
 
-        String name = cfg.getGridName();
+        String name = startCtx.config().getGridName();
 
         GridNamedInstance grid;
 
@@ -1107,10 +1088,12 @@ public class GridFactory {
             single = (grids.size() == 1 && dfltGrid == null) || (grids.isEmpty() && dfltGrid != null);
         }
 
+        startCtx.single(single);
+
         boolean success = false;
 
         try {
-            grid.start(cfg, single, ctx);
+            grid.start(startCtx);
 
             notifyStateChange(name, STARTED);
 
@@ -1130,7 +1113,7 @@ public class GridFactory {
         }
 
         if (grid == null)
-            throw new GridException("Failed to start grid with configuration: " + cfg);
+            throw new GridException("Failed to start grid with provided configuration.");
 
         return grid;
     }
@@ -1299,10 +1282,108 @@ public class GridFactory {
     }
 
     /**
+     * Start context encapsulates all starting parameters.
+     *
+     * @author 2012 Copyright (C) GridGain Systems
+     * @version 4.0.3c.14052012
+     */
+    private static final class GridStartContext {
+        /** User-defined configuration. */
+        private GridConfiguration cfg;
+
+        /** Optional configuration path. */
+        private URL cfgUrl;
+
+        /** Optional Spring application context. */
+        private ApplicationContext springCtx;
+
+        /** Whether or not this is a single grid instance in current VM. */
+        private boolean single;
+
+        /**
+         *
+         * @param cfg User-defined configuration.
+         * @param cfgUrl Optional configuration path.
+         * @param springCtx Optional Spring application context.
+         */
+        GridStartContext(GridConfiguration cfg, @Nullable URL cfgUrl, @Nullable ApplicationContext springCtx) {
+            assert(cfg != null);
+
+            this.cfg = cfg;
+            this.cfgUrl = cfgUrl;
+            this.springCtx = springCtx;
+        }
+
+        /**
+         *
+         * @return Whether or not this is a single grid instance in current VM.
+         */
+        public boolean single() {
+            return single;
+        }
+
+        /**
+         *
+         * @param single Whether or not this is a single grid instance in current VM.
+         */
+        public void single(boolean single) {
+            this.single = single;
+        }
+
+        /**
+         *
+         * @return User-defined configuration.
+         */
+        GridConfiguration config() {
+            return cfg;
+        }
+
+        /**
+         *
+         * @param cfg User-defined configuration.
+         */
+        void config(GridConfiguration cfg) {
+            this.cfg = cfg;
+        }
+
+        /**
+         *
+         * @return Optional configuration path.
+         */
+        URL configUrl() {
+            return cfgUrl;
+        }
+
+        /**
+         *
+         * @param cfgUrl Optional configuration path.
+         */
+        void configUrl(URL cfgUrl) {
+            this.cfgUrl = cfgUrl;
+        }
+
+        /**
+         *
+         * @return Optional Spring application context.
+         */
+        ApplicationContext springContext() {
+            return springCtx;
+        }
+
+        /**
+         *
+         * @param springCtx Optional Spring application context.
+         */
+        void springContext(ApplicationContext springCtx) {
+            this.springCtx = springCtx;
+        }
+    }
+
+    /**
      * Grid data container.
      *
      * @author 2012 Copyright (C) GridGain Systems
-     * @version 4.0.2c.12042012
+     * @version 4.0.3c.14052012
      */
     private static final class GridNamedInstance {
         /** Map of registered MBeans. */
@@ -1437,18 +1518,16 @@ public class GridFactory {
         /**
          * Starts grid with given configuration.
          *
-         * @param cfg Grid configuration (possibly {@code null}).
-         * @param single Whether or not this is a single grid instance in current VM.
-         * @param ctx Optional Spring application context.
+         * @param startCtx Starting context.
          * @throws GridException If start failed.
          */
-        synchronized void start(GridConfiguration cfg, boolean single, @Nullable ApplicationContext ctx)
+        synchronized void start(GridStartContext startCtx)
             throws GridException {
             if (startGuard.compareAndSet(false, true)) {
                 try {
                     starterThread = Thread.currentThread();
 
-                    start0(cfg, single, ctx);
+                    start0(startCtx);
                 }
                 finally {
                     startLatch.countDown();
@@ -1459,14 +1538,14 @@ public class GridFactory {
         }
 
         /**
-         * @param cfg Grid configuration (possibly {@code null}).
-         * @param single Whether or not this is a single grid instance in current VM.
-         * @param ctx Optional Spring application context.
+         * @param startCtx Starting context.
          * @throws GridException If start failed.
          */
         @SuppressWarnings("deprecation")
-        private void start0(GridConfiguration cfg, boolean single, ApplicationContext ctx) throws GridException {
+        private void start0(GridStartContext startCtx) throws GridException {
             assert grid == null : "Grid is already started: " + name;
+
+            GridConfiguration cfg = startCtx.config();
 
             if (cfg == null)
                 cfg = new GridConfigurationAdapter();
@@ -1481,6 +1560,10 @@ public class GridFactory {
             // It's a bit dirty - but this is a result of late refactoring
             // and I don't want to reshuffle a lot of code.
             assert F.eq(name, cfg.getGridName());
+
+            // Set configuration URL, if any, into system property.
+            if (startCtx.configUrl() != null)
+                System.setProperty(GridSystemProperties.GG_CONFIG_URL, startCtx.configUrl().toString());
 
             myCfg.setGridName(cfg.getGridName());
 
@@ -1878,7 +1961,7 @@ public class GridFactory {
             }
 
             // Ensure that SPIs support multiple grid instances, if required.
-            if (!single) {
+            if (!startCtx.single()) {
                 ensureMultiInstanceSupport(deploySpi);
                 ensureMultiInstanceSupport(commSpi);
                 ensureMultiInstanceSupport(discoSpi);
@@ -1913,7 +1996,7 @@ public class GridFactory {
             boolean started = false;
 
             try {
-                GridKernal grid0 = new GridKernal(ctx);
+                GridKernal grid0 = new GridKernal(startCtx.springContext());
 
                 // Init here to make grid available to lifecycle listeners.
                 grid = grid0;
@@ -2227,7 +2310,7 @@ public class GridFactory {
          * Contains necessary data for selected MBeanServer.
          *
          * @author 2012 Copyright (C) GridGain Systems
-         * @version 4.0.2c.12042012
+         * @version 4.0.3c.14052012
          */
         private static class GridMBeanServerData {
             /** Set of grid names for selected MBeanServer. */

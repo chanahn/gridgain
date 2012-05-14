@@ -39,7 +39,7 @@ import java.util.*;
  * {@link GridCacheAffinityMapped @GridCacheAffinityMapped} documentation.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  * @see GridCacheAffinityMapped
  * @see GridCacheAffinityMapper
  */
@@ -84,9 +84,17 @@ public interface GridCacheAffinity<K> extends Serializable {
      * list should contain only the primary and back up nodes with primary node being
      * always first.
      *
-     * @param partition Partition to get nodes for.
+     * @param part Partition to get nodes for.
      * @param nodes Nodes to choose from.
      * @return Affinity nodes for the given partition.
      */
-    public Collection<GridRichNode> nodes(int partition, Collection<GridRichNode> nodes);
+    public Collection<GridRichNode> nodes(int part, Collection<GridRichNode> nodes);
+
+    /**
+     * Removes node from affinity. This method is called when it is safe to remove left node from
+     * affinity mapping.
+     *
+     * @param nodeId ID of node to remove.
+     */
+    public void removeNode(UUID nodeId);
 }

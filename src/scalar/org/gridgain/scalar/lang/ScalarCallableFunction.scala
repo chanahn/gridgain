@@ -17,7 +17,7 @@ import java.util.concurrent.Callable
  * Wrapping Scala function for `Callable`.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 class ScalarCallableFunction[R](val inner: Callable[R]) extends (() => R) {
     assert(inner != null)

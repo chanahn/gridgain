@@ -15,7 +15,7 @@ import java.util.*;
  * A data projection of grid client. Contains various methods for cache operations ant metrics retrieval.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public interface GridClientData {
     /**
@@ -135,6 +135,31 @@ public interface GridClientData {
      * @throws GridClientException In case of error.
      */
     public <K> boolean remove(K key) throws GridClientException;
+
+    /**
+     * Gets cache flags enabled on this data projection.
+     *
+     * @return Flags for this data projection (empty set if no flags have been set).
+     */
+    public Set<GridClientCacheFlag> flags();
+
+    /**
+     * Creates new client data object with enabled cache flags.
+     *
+     * @param flags Cache flags to be enabled.
+     * @return New client data object.
+     * @throws GridClientException In case of error.
+     */
+    public GridClientData flagsOn(GridClientCacheFlag... flags) throws GridClientException;
+
+    /**
+     * Creates new client data object with disabled cache flags.
+     *
+     * @param flags Cache flags to be disabled.
+     * @return New client data object.
+     * @throws GridClientException In case of error.
+     */
+    public GridClientData flagsOff(GridClientCacheFlag... flags) throws GridClientException;
 
     /**
      * Asynchronously removes value from default cache.

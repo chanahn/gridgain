@@ -15,7 +15,7 @@ namespace GridGain.Client.Hasher {
     public interface IGridClientConsistentHashObject {
         /**
          * <summary>
-         * Get object hash code to parcitipate in the consistent hash generation.</summary>
+         * Get object hash code to participate in the consistent hash generation.</summary>
          *
          * <returns>A hash code for the object.</returns>
          */

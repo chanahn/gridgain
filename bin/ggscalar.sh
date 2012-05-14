@@ -7,7 +7,7 @@
 #  / /_/ /  _  /    _  /  / /_/ /  / /_/ /  / /_/ / _  /  _  / / /
 #  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 #
-# Version: 4.0.2c.12042012
+# Version: 4.0.3c.14052012
 #
 
 #
@@ -51,7 +51,7 @@ fi
 #
 # Set property JAR name during the Ant build.
 #
-ANT_AUGMENTED_GGJAR=gridgain-4.0.2c.jar
+ANT_AUGMENTED_GGJAR=gridgain-4.0.3c.jar
 
 osname=`uname`
 
@@ -73,18 +73,26 @@ if [ "${GRIDGAIN_HOME}" = "" ]; then
     echo $0", WARN: GRIDGAIN_HOME environment variable is not found."
 
     export GRIDGAIN_HOME=${GRIDGAIN_HOME_TMP}
-elif [ "${GRIDGAIN_HOME}" != "${GRIDGAIN_HOME_TMP}" ] && [ "${GRIDGAIN_HOME}/bin/.." != "${GRIDGAIN_HOME_TMP}" ]; then
-    echo $0", WARN: GRIDGAIN_HOME environment variable may be pointing to wrong folder: $GRIDGAIN_HOME"
 fi
 
 #
-# Check GRIDGAIN_HOME
+# Check GRIDGAIN_HOME is valid.
 #
 if [ ! -d "${GRIDGAIN_HOME}/config" ]; then
     echo $0", ERROR: GRIDGAIN_HOME environment variable is not found or is not valid."
     echo $0", ERROR: GRIDGAIN_HOME variable must point to GridGain installation folder."
 
     exit 1
+fi
+
+#
+# Check GRIDGAIN_HOME points to current installation.
+#
+if [ "${GRIDGAIN_HOME}" != "${GRIDGAIN_HOME_TMP}" ] &&
+   [ "${GRIDGAIN_HOME}" != "${GRIDGAIN_HOME_TMP}/" ] &&
+   [ "${GRIDGAIN_HOME}/bin/.." != "${GRIDGAIN_HOME_TMP}" ] &&
+   [ "${GRIDGAIN_HOME}bin/.." != "${GRIDGAIN_HOME_TMP}" ]; then
+    echo $0", WARN: GRIDGAIN_HOME environment variable may be pointing to wrong folder: $GRIDGAIN_HOME"
 fi
 
 #

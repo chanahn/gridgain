@@ -18,11 +18,14 @@ import java.util.*;
  * Data projection that serves one cache instance and handles communication errors.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public class GridClientDataImpl extends GridClientAbstractProjection<GridClientDataImpl> implements GridClientData {
     /** Cache name. */
     private String cacheName;
+
+    /** Cache flags to be enabled. */
+    private final Set<GridClientCacheFlag> flags;
 
     /**
      * Creates a data projection.
@@ -32,12 +35,14 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
      * @param nodes Pinned nodes.
      * @param filter Node filter.
      * @param balancer Pinned node balancer.
+     * @param flags Cache flags to be enabled.
      */
     public GridClientDataImpl(String cacheName, GridClientImpl client, Collection<GridClientNode> nodes,
-        GridClientPredicate<GridClientNode> filter, GridClientLoadBalancer balancer) {
+        GridClientPredicate<GridClientNode> filter, GridClientLoadBalancer balancer, Set<GridClientCacheFlag> flags) {
         super(client, nodes, filter, balancer);
 
         this.cacheName = cacheName;
+        this.flags = flags == null ? Collections.<GridClientCacheFlag>emptySet() : Collections.unmodifiableSet(flags);
     }
 
     /** {@inheritDoc} */
@@ -52,7 +57,7 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
         n.add(node);
         n.addAll(Arrays.asList(nodes));
 
-        return createProjection(n, null, null);
+        return createProjection(n, null, null, new GridClientDataFactory(flags));
     }
 
     /** {@inheritDoc} */
@@ -72,7 +77,7 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
             @Override
             public GridClientFuture<Boolean> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
-                return conn.cachePut(cacheName, key, val);
+                return conn.cachePut(cacheName, key, val, flags);
             }
         }, cacheName, key);
     }
@@ -93,7 +98,7 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
         return withReconnectHandling(new ClientProjectionClosure<Boolean>() {
             @Override public GridClientFuture<Boolean> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
-                return conn.cachePutAll(cacheName, entries);
+                return conn.cachePutAll(cacheName, entries, flags);
             }
         }, cacheName, key);
     }
@@ -110,7 +115,7 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
             @Override
             public GridClientFuture<V> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
-                return conn.cacheGet(cacheName, key);
+                return conn.cacheGet(cacheName, key, flags);
             }
         }, cacheName, key);
     }
@@ -132,7 +137,7 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
             @Override
             public GridClientFuture<Map<K, V>> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
-                return conn.cacheGetAll(cacheName, keys);
+                return conn.cacheGetAll(cacheName, keys, flags);
             }
         }, cacheName, key);
     }
@@ -149,7 +154,7 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
             @Override
             public GridClientFuture<Boolean> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
-                return conn.cacheRemove(cacheName, key);
+                return conn.cacheRemove(cacheName, key, flags);
             }
         }, cacheName, key);
     }
@@ -170,7 +175,7 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
         return withReconnectHandling(new ClientProjectionClosure<Boolean>() {
             @Override public GridClientFuture<Boolean> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
-                return conn.cacheRemoveAll(cacheName, keys);
+                return conn.cacheRemoveAll(cacheName, keys, flags);
             }
         }, cacheName, key);
     }
@@ -187,7 +192,7 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
             @Override
             public GridClientFuture<Boolean> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
-                return conn.cacheReplace(cacheName, key, val);
+                return conn.cacheReplace(cacheName, key, val, flags);
             }
         }, cacheName, key);
     }
@@ -204,7 +209,7 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
             @Override
             public GridClientFuture<Boolean> apply(GridClientConnection conn)
                 throws GridClientConnectionResetException, GridClientClosedException {
-                return conn.cacheCompareAndSet(cacheName, key, val1, val2);
+                return conn.cacheCompareAndSet(cacheName, key, val1, val2, flags);
             }
         }, cacheName, key);
     }
@@ -263,8 +268,53 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
     }
 
     /** {@inheritDoc} */
-    @Override protected GridClientDataImpl createProjectionImpl(Collection<GridClientNode> nodes,
-        GridClientPredicate<GridClientNode> filter, GridClientLoadBalancer balancer) {
-        return new GridClientDataImpl(cacheName, client, nodes, filter, balancer);
+    @Override public Set<GridClientCacheFlag> flags() {
+        return flags;
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridClientData flagsOn(GridClientCacheFlag... flags) throws GridClientException {
+        if (flags == null || flags.length == 0)
+            return this;
+
+        EnumSet<GridClientCacheFlag> flagSet = this.flags == null || this.flags.isEmpty() ?
+            EnumSet.noneOf(GridClientCacheFlag.class) : EnumSet.copyOf(this.flags);
+
+        flagSet.addAll(Arrays.asList(flags));
+
+        return createProjection(nodes, filter, balancer, new GridClientDataFactory(flagSet));
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridClientData flagsOff(GridClientCacheFlag... flags) throws GridClientException {
+        if (flags == null || flags.length == 0 || this.flags == null || this.flags.isEmpty())
+            return this;
+
+        EnumSet<GridClientCacheFlag> flagSet = EnumSet.copyOf(this.flags);
+
+        flagSet.removeAll(Arrays.asList(flags));
+
+        return createProjection(nodes,  filter, balancer, new GridClientDataFactory(flagSet));
+    }
+
+    /** {@inheritDoc} */
+    private class GridClientDataFactory implements ProjectionFactory<GridClientDataImpl> {
+        /** */
+        private Set<GridClientCacheFlag> flags;
+
+        /**
+         * Factory which creates projections with given flags.
+         *
+         * @param flags Flags to create projection with.
+         */
+        GridClientDataFactory(Set<GridClientCacheFlag> flags) {
+            this.flags = flags;
+        }
+
+        /** {@inheritDoc} */
+        @Override public GridClientDataImpl create(Collection<GridClientNode> nodes,
+            GridClientPredicate<GridClientNode> filter, GridClientLoadBalancer balancer) {
+            return new GridClientDataImpl(cacheName, client, nodes, filter, balancer, flags);
+        }
     }
 }

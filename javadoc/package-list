@@ -23,6 +23,7 @@ org.gridgain.grid.cache.jta.jndi
 org.gridgain.grid.cache.jta.reflect
 org.gridgain.grid.cache.query
 org.gridgain.grid.cache.store
+org.gridgain.grid.cache.store.hbase
 org.gridgain.grid.cache.store.hibernate
 org.gridgain.grid.cache.store.jdbc
 org.gridgain.grid.editions
@@ -76,6 +77,7 @@ org.gridgain.grid.spi.discovery.tcp.ipfinder.jdbc
 org.gridgain.grid.spi.discovery.tcp.ipfinder.s3
 org.gridgain.grid.spi.discovery.tcp.ipfinder.sharedfs
 org.gridgain.grid.spi.discovery.tcp.ipfinder.vm
+org.gridgain.grid.spi.discovery.tcp.ipfinder.zookeeper
 org.gridgain.grid.spi.discovery.tcp.metricsstore
 org.gridgain.grid.spi.discovery.tcp.metricsstore.jdbc
 org.gridgain.grid.spi.discovery.tcp.metricsstore.s3

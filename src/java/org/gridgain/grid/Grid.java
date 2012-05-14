@@ -23,7 +23,7 @@ import java.util.concurrent.*;
 
 /**
  * <img id="callout_img" src="{@docRoot}/img/callout_blue.gif"><span id="callout_blue">Start Here</span>&nbsp;
- * Main <b>Compute Grid</b> APIs.
+ * Main <b>In-Memory Compute Grid</b> APIs.
  * <p>
  * You can obtain an instance of {@code Grid} through {@link GridFactory#grid()},
  * or for named grids you can use {@link GridFactory#grid(String)}. Note that you
@@ -43,7 +43,7 @@ import java.util.concurrent.*;
  * on Wiki.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 public interface Grid extends GridProjection {
     /**

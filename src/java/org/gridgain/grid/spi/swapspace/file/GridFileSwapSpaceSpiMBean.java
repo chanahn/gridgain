@@ -20,7 +20,7 @@ import java.util.*;
  * on file-based swapspace SPI.
  *
  * @author 2012 Copyright (C) GridGain Systems
- * @version 4.0.2c.12042012
+ * @version 4.0.3c.14052012
  */
 @GridMBeanDescription("MBean that provides administrative and configuration information on file-based swapspace SPI.")
 public interface GridFileSwapSpaceSpiMBean extends GridSpiManagementMBean {

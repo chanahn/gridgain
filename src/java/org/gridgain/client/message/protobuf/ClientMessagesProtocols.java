@@ -3291,6 +3291,11 @@ public final class ClientMessagesProtocols {
     boolean hasValues();
     org.gridgain.client.message.protobuf.ClientMessagesProtocols.Map getValues();
     org.gridgain.client.message.protobuf.ClientMessagesProtocols.MapOrBuilder getValuesOrBuilder();
+    
+    // repeated int32 cacheFlagsOn = 9;
+    java.util.List<java.lang.Integer> getCacheFlagsOnList();
+    int getCacheFlagsOnCount();
+    int getCacheFlagsOn(int index);
   }
   public static final class ProtoCacheRequest extends
       com.google.protobuf.GeneratedMessage
@@ -3508,6 +3513,20 @@ public final class ClientMessagesProtocols {
       return values_;
     }
     
+    // repeated int32 cacheFlagsOn = 9;
+    public static final int CACHEFLAGSON_FIELD_NUMBER = 9;
+    private java.util.List<java.lang.Integer> cacheFlagsOn_;
+    public java.util.List<java.lang.Integer>
+        getCacheFlagsOnList() {
+      return cacheFlagsOn_;
+    }
+    public int getCacheFlagsOnCount() {
+      return cacheFlagsOn_.size();
+    }
+    public int getCacheFlagsOn(int index) {
+      return cacheFlagsOn_.get(index);
+    }
+    
     private void initFields() {
       operation_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ProtoCacheRequest.GridCacheOperation.PUT;
       cacheName_ = "";
@@ -3515,6 +3534,7 @@ public final class ClientMessagesProtocols {
       value_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.getDefaultInstance();
       value2_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.ObjectWrapper.getDefaultInstance();
       values_ = org.gridgain.client.message.protobuf.ClientMessagesProtocols.Map.getDefaultInstance();
+      cacheFlagsOn_ = java.util.Collections.emptyList();;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -3574,6 +3594,9 @@ public final class ClientMessagesProtocols {
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
         output.writeMessage(8, values_);
       }
+      for (int i = 0; i < cacheFlagsOn_.size(); i++) {
+        output.writeInt32(9, cacheFlagsOn_.get(i));
+      }
       getUnknownFields().writeTo(output);
     }
     
@@ -3606,6 +3629,15 @@ public final class ClientMessagesProtocols {
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(8, values_);
+      }
+      {
+        int dataSize = 0;
+        for (int i = 0; i < cacheFlagsOn_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeInt32SizeNoTag(cacheFlagsOn_.get(i));
+        }
+        size += dataSize;
+        size += 1 * getCacheFlagsOnList().size();
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -3763,6 +3795,8 @@ public final class ClientMessagesProtocols {
           valuesBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000020);
+        cacheFlagsOn_ = java.util.Collections.emptyList();;
+        bitField0_ = (bitField0_ & ~0x00000040);
         return this;
       }
       
@@ -3841,6 +3875,11 @@ public final class ClientMessagesProtocols {
         } else {
           result.values_ = valuesBuilder_.build();
         }
+        if (((bitField0_ & 0x00000040) == 0x00000040)) {
+          cacheFlagsOn_ = java.util.Collections.unmodifiableList(cacheFlagsOn_);
+          bitField0_ = (bitField0_ & ~0x00000040);
+        }
+        result.cacheFlagsOn_ = cacheFlagsOn_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -3874,6 +3913,16 @@ public final class ClientMessagesProtocols {
         }
         if (other.hasValues()) {
           mergeValues(other.getValues());
+        }
+        if (!other.cacheFlagsOn_.isEmpty()) {
+          if (cacheFlagsOn_.isEmpty()) {
+            cacheFlagsOn_ = other.cacheFlagsOn_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+          } else {
+            ensureCacheFlagsOnIsMutable();
+            cacheFlagsOn_.addAll(other.cacheFlagsOn_);
+          }
+          onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -3984,6 +4033,20 @@ public final class ClientMessagesProtocols {
               }
               input.readMessage(subBuilder, extensionRegistry);
               setValues(subBuilder.buildPartial());
+              break;
+            }
+            case 72: {
+              ensureCacheFlagsOnIsMutable();
+              cacheFlagsOn_.add(input.readInt32());
+              break;
+            }
+            case 74: {
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              while (input.getBytesUntilLimit() > 0) {
+                addCacheFlagsOn(input.readInt32());
+              }
+              input.popLimit(limit);
               break;
             }
           }
@@ -4410,6 +4473,51 @@ public final class ClientMessagesProtocols {
           values_ = null;
         }
         return valuesBuilder_;
+      }
+      
+      // repeated int32 cacheFlagsOn = 9;
+      private java.util.List<java.lang.Integer> cacheFlagsOn_ = java.util.Collections.emptyList();;
+      private void ensureCacheFlagsOnIsMutable() {
+        if (!((bitField0_ & 0x00000040) == 0x00000040)) {
+          cacheFlagsOn_ = new java.util.ArrayList<java.lang.Integer>(cacheFlagsOn_);
+          bitField0_ |= 0x00000040;
+         }
+      }
+      public java.util.List<java.lang.Integer>
+          getCacheFlagsOnList() {
+        return java.util.Collections.unmodifiableList(cacheFlagsOn_);
+      }
+      public int getCacheFlagsOnCount() {
+        return cacheFlagsOn_.size();
+      }
+      public int getCacheFlagsOn(int index) {
+        return cacheFlagsOn_.get(index);
+      }
+      public Builder setCacheFlagsOn(
+          int index, int value) {
+        ensureCacheFlagsOnIsMutable();
+        cacheFlagsOn_.set(index, value);
+        onChanged();
+        return this;
+      }
+      public Builder addCacheFlagsOn(int value) {
+        ensureCacheFlagsOnIsMutable();
+        cacheFlagsOn_.add(value);
+        onChanged();
+        return this;
+      }
+      public Builder addAllCacheFlagsOn(
+          java.lang.Iterable<? extends java.lang.Integer> values) {
+        ensureCacheFlagsOnIsMutable();
+        super.addAll(values, cacheFlagsOn_);
+        onChanged();
+        return this;
+      }
+      public Builder clearCacheFlagsOn() {
+        cacheFlagsOn_ = java.util.Collections.emptyList();;
+        bitField0_ = (bitField0_ & ~0x00000040);
+        onChanged();
+        return this;
       }
       
       // @@protoc_insertion_point(builder_scope:org.gridgain.client.message.ProtoCacheRequest)
@@ -12107,7 +12215,7 @@ public final class ClientMessagesProtocols {
       "(\003\022\020\n\010clientId\030\002 \002(\014\022\024\n\014sessionToken\030\003 \001" +
       "(\014\022\014\n\004body\030\004 \002(\014\"]\n\032ProtoAuthenticationR" +
       "equest\022?\n\013credentials\030\001 \002(\0132*.org.gridga" +
-      "in.client.message.ObjectWrapper\"\343\003\n\021Prot" +
+      "in.client.message.ObjectWrapper\"\371\003\n\021Prot" +
       "oCacheRequest\022T\n\toperation\030\003 \002(\0162A.org.g" +
       "ridgain.client.message.ProtoCacheRequest" +
       ".GridCacheOperation\022\021\n\tcacheName\030\004 \001(\t\0227" +
@@ -12116,78 +12224,78 @@ public final class ClientMessagesProtocols {
       "dgain.client.message.ObjectWrapper\022:\n\006va" +
       "lue2\030\007 \001(\0132*.org.gridgain.client.message" +
       ".ObjectWrapper\0220\n\006values\030\010 \001(\0132 .org.gri" +
-      "dgain.client.message.Map\"\202\001\n\022GridCacheOp" +
-      "eration\022\007\n\003PUT\020\001\022\013\n\007PUT_ALL\020\002\022\007\n\003GET\020\003\022\013" +
-      "\n\007GET_ALL\020\004\022\007\n\003RMV\020\005\022\013\n\007RMV_ALL\020\006\022\007\n\003ADD" +
-      "\020\007\022\013\n\007REPLACE\020\010\022\007\n\003CAS\020\t\022\013\n\007METRICS\020\n\"9\n" +
-      "\017ProtoLogRequest\022\014\n\004path\030\003 \001(\t\022\014\n\004from\030\004" +
-      " \001(\005\022\n\n\002to\030\005 \001(\005\"b\n\020ProtoTaskRequest\022\020\n\010" +
-      "taskName\030\003 \002(\t\022<\n\010argument\030\004 \002(\0132*.org.g",
-      "ridgain.client.message.ObjectWrapper\"i\n\024" +
-      "ProtoTopologyRequest\022\031\n\021includeAttribute" +
-      "s\030\003 \002(\010\022\026\n\016includeMetrics\030\004 \002(\010\022\016\n\006nodeI" +
-      "d\030\005 \001(\t\022\016\n\006nodeIp\030\006 \001(\t\"\254\001\n\rProtoRespons" +
-      "e\022\021\n\trequestId\030\001 \002(\003\022\020\n\010clientId\030\002 \002(\014\022\016" +
-      "\n\006status\030\003 \002(\005\022\024\n\014errorMessage\030\004 \001(\t\022:\n\006" +
-      "result\030\005 \001(\0132*.org.gridgain.client.messa" +
-      "ge.ObjectWrapper\022\024\n\014sessionToken\030\006 \001(\014\"x" +
-      "\n\rProtoTaskBean\022\n\n\002id\030\002 \002(\t\022\020\n\010finished\030" +
-      "\003 \002(\010\022:\n\006result\030\004 \001(\0132*.org.gridgain.cli",
-      "ent.message.ObjectWrapper\022\r\n\005error\030\005 \001(\t" +
-      "\"\304\013\n\024ProtoNodeMetricsBean\022\032\n\016lastUpdateT" +
-      "ime\030\001 \002(\003:\002-1\022\035\n\021maximumActiveJobs\030\002 \002(\005" +
-      ":\002-1\022\035\n\021currentActiveJobs\030\003 \002(\005:\002-1\022\035\n\021a" +
-      "verageActiveJobs\030\004 \002(\002:\002-1\022\036\n\022maximumWai" +
-      "tingJobs\030\005 \002(\005:\002-1\022\036\n\022currentWaitingJobs" +
-      "\030\006 \002(\005:\002-1\022\036\n\022averageWaitingJobs\030\007 \002(\002:\002" +
-      "-1\022\037\n\023maximumRejectedJobs\030\010 \002(\005:\002-1\022\037\n\023c" +
-      "urrentRejectedJobs\030\t \002(\005:\002-1\022\037\n\023averageR" +
-      "ejectedJobs\030\n \002(\002:\002-1\022 \n\024maximumCancelle",
-      "dJobs\030\013 \002(\005:\002-1\022 \n\024currentCancelledJobs\030" +
-      "\014 \002(\005:\002-1\022 \n\024averageCancelledJobs\030\r \002(\002:" +
-      "\002-1\022\035\n\021totalRejectedJobs\030\016 \002(\005:\002-1\022\036\n\022to" +
-      "talCancelledJobs\030\017 \002(\005:\002-1\022\035\n\021totalExecu" +
-      "tedJobs\030\020 \002(\005:\002-1\022\036\n\022maximumJobWaitTime\030" +
-      "\021 \002(\003:\002-1\022\036\n\022currentJobWaitTime\030\022 \002(\003:\002-" +
-      "1\022\036\n\022averageJobWaitTime\030\023 \002(\001:\002-1\022!\n\025max" +
-      "imumJobExecuteTime\030\024 \002(\003:\002-1\022!\n\025currentJ" +
-      "obExecuteTime\030\025 \002(\003:\002-1\022!\n\025averageJobExe" +
-      "cuteTime\030\026 \002(\001:\002-1\022\031\n\rtotalIdleTime\030\027 \002(",
-      "\003:\002-1\022\033\n\017currentIdleTime\030\030 \002(\003:\002-1\022\025\n\tto" +
-      "talCpus\030\031 \002(\005:\002-1\022\032\n\016currentCpuLoad\030\032 \002(" +
-      "\001:\002-1\022\032\n\016averageCpuLoad\030\033 \002(\001:\002-1\022!\n\025hea" +
-      "pMemoryInitialized\030\034 \002(\003:\002-1\022\032\n\016heapMemo" +
-      "ryUsed\030\035 \002(\003:\002-1\022\037\n\023heapMemoryCommitted\030" +
-      "\036 \002(\003:\002-1\022\035\n\021heapMemoryMaximum\030\037 \002(\003:\002-1" +
-      "\022$\n\030nonHeapMemoryInitialized\030  \002(\003:\002-1\022\035" +
-      "\n\021nonHeapMemoryUsed\030! \002(\003:\002-1\022\"\n\026nonHeap" +
-      "MemoryCommitted\030\" \002(\003:\002-1\022 \n\024nonHeapMemo" +
-      "ryMaximum\030# \002(\003:\002-1\022\022\n\006upTime\030$ \002(\003:\002-1\022",
-      "\025\n\tstartTime\030% \002(\003:\002-1\022\031\n\rnodeStartTime\030" +
-      "& \002(\003:\002-1\022\036\n\022currentThreadCount\030\' \002(\005:\002-" +
-      "1\022\036\n\022maximumThreadCount\030( \002(\005:\002-1\022#\n\027tot" +
-      "alStartedThreadCount\030) \002(\003:\002-1\022$\n\030curren" +
-      "tDaemonThreadCount\030* \002(\005:\002-1\022\037\n\023fileSyst" +
-      "emFreeSpace\030+ \002(\003:\002-1\022 \n\024fileSystemTotal" +
-      "Space\030, \002(\003:\002-1\022!\n\025fileSystemUsableSpace" +
-      "\030- \002(\003:\002-1\022\033\n\017lastDataVersion\030. \002(\003:\002-1\"" +
-      "\241\002\n\rProtoNodeBean\022\016\n\006nodeId\030\001 \002(\t\022\027\n\017int" +
-      "ernalAddress\030\002 \003(\t\022\027\n\017externalAddress\030\003 ",
-      "\003(\t\022\017\n\007tcpPort\030\004 \002(\005\022\021\n\tjettyPort\030\005 \002(\005\022" +
-      "B\n\007metrics\030\006 \001(\01321.org.gridgain.client.m" +
-      "essage.ProtoNodeMetricsBean\0224\n\nattribute" +
-      "s\030\007 \001(\0132 .org.gridgain.client.message.Ma" +
-      "p\0220\n\006caches\030\t \001(\0132 .org.gridgain.client." +
-      "message.Map*\243\002\n\021ObjectWrapperType\022\010\n\004NON" +
-      "E\020\000\022\010\n\004BOOL\020\001\022\010\n\004BYTE\020\002\022\t\n\005SHORT\020\003\022\t\n\005IN" +
-      "T32\020\004\022\t\n\005INT64\020\005\022\t\n\005FLOAT\020\006\022\n\n\006DOUBLE\020\007\022" +
-      "\t\n\005BYTES\020\010\022\n\n\006STRING\020\t\022\016\n\nCOLLECTION\020\n\022\007" +
-      "\n\003MAP\020\013\022\021\n\rCACHE_REQUEST\020\024\022\020\n\014TASK_REQUE",
-      "ST\020\025\022\017\n\013LOG_REQUEST\020\026\022\024\n\020TOPOLOGY_REQUES" +
-      "T\020\027\022\020\n\014AUTH_REQUEST\020\030\022\014\n\010RESPONSE\020(\022\r\n\tN" +
-      "ODE_BEAN\020<\022\r\n\tTASK_BEAN\020=B?\n$org.gridgai" +
-      "n.client.message.protobufB\027ClientMessage" +
-      "sProtocols"
+      "dgain.client.message.Map\022\024\n\014cacheFlagsOn" +
+      "\030\t \003(\005\"\202\001\n\022GridCacheOperation\022\007\n\003PUT\020\001\022\013" +
+      "\n\007PUT_ALL\020\002\022\007\n\003GET\020\003\022\013\n\007GET_ALL\020\004\022\007\n\003RMV" +
+      "\020\005\022\013\n\007RMV_ALL\020\006\022\007\n\003ADD\020\007\022\013\n\007REPLACE\020\010\022\007\n" +
+      "\003CAS\020\t\022\013\n\007METRICS\020\n\"9\n\017ProtoLogRequest\022\014" +
+      "\n\004path\030\003 \001(\t\022\014\n\004from\030\004 \001(\005\022\n\n\002to\030\005 \001(\005\"b" +
+      "\n\020ProtoTaskRequest\022\020\n\010taskName\030\003 \002(\t\022<\n\010",
+      "argument\030\004 \002(\0132*.org.gridgain.client.mes" +
+      "sage.ObjectWrapper\"i\n\024ProtoTopologyReque" +
+      "st\022\031\n\021includeAttributes\030\003 \002(\010\022\026\n\016include" +
+      "Metrics\030\004 \002(\010\022\016\n\006nodeId\030\005 \001(\t\022\016\n\006nodeIp\030" +
+      "\006 \001(\t\"\254\001\n\rProtoResponse\022\021\n\trequestId\030\001 \002" +
+      "(\003\022\020\n\010clientId\030\002 \002(\014\022\016\n\006status\030\003 \002(\005\022\024\n\014" +
+      "errorMessage\030\004 \001(\t\022:\n\006result\030\005 \001(\0132*.org" +
+      ".gridgain.client.message.ObjectWrapper\022\024" +
+      "\n\014sessionToken\030\006 \001(\014\"x\n\rProtoTaskBean\022\n\n" +
+      "\002id\030\002 \002(\t\022\020\n\010finished\030\003 \002(\010\022:\n\006result\030\004 ",
+      "\001(\0132*.org.gridgain.client.message.Object" +
+      "Wrapper\022\r\n\005error\030\005 \001(\t\"\304\013\n\024ProtoNodeMetr" +
+      "icsBean\022\032\n\016lastUpdateTime\030\001 \002(\003:\002-1\022\035\n\021m" +
+      "aximumActiveJobs\030\002 \002(\005:\002-1\022\035\n\021currentAct" +
+      "iveJobs\030\003 \002(\005:\002-1\022\035\n\021averageActiveJobs\030\004" +
+      " \002(\002:\002-1\022\036\n\022maximumWaitingJobs\030\005 \002(\005:\002-1" +
+      "\022\036\n\022currentWaitingJobs\030\006 \002(\005:\002-1\022\036\n\022aver" +
+      "ageWaitingJobs\030\007 \002(\002:\002-1\022\037\n\023maximumRejec" +
+      "tedJobs\030\010 \002(\005:\002-1\022\037\n\023currentRejectedJobs" +
+      "\030\t \002(\005:\002-1\022\037\n\023averageRejectedJobs\030\n \002(\002:",
+      "\002-1\022 \n\024maximumCancelledJobs\030\013 \002(\005:\002-1\022 \n" +
+      "\024currentCancelledJobs\030\014 \002(\005:\002-1\022 \n\024avera" +
+      "geCancelledJobs\030\r \002(\002:\002-1\022\035\n\021totalReject" +
+      "edJobs\030\016 \002(\005:\002-1\022\036\n\022totalCancelledJobs\030\017" +
+      " \002(\005:\002-1\022\035\n\021totalExecutedJobs\030\020 \002(\005:\002-1\022" +
+      "\036\n\022maximumJobWaitTime\030\021 \002(\003:\002-1\022\036\n\022curre" +
+      "ntJobWaitTime\030\022 \002(\003:\002-1\022\036\n\022averageJobWai" +
+      "tTime\030\023 \002(\001:\002-1\022!\n\025maximumJobExecuteTime" +
+      "\030\024 \002(\003:\002-1\022!\n\025currentJobExecuteTime\030\025 \002(" +
+      "\003:\002-1\022!\n\025averageJobExecuteTime\030\026 \002(\001:\002-1",
+      "\022\031\n\rtotalIdleTime\030\027 \002(\003:\002-1\022\033\n\017currentId" +
+      "leTime\030\030 \002(\003:\002-1\022\025\n\ttotalCpus\030\031 \002(\005:\002-1\022" +
+      "\032\n\016currentCpuLoad\030\032 \002(\001:\002-1\022\032\n\016averageCp" +
+      "uLoad\030\033 \002(\001:\002-1\022!\n\025heapMemoryInitialized" +
+      "\030\034 \002(\003:\002-1\022\032\n\016heapMemoryUsed\030\035 \002(\003:\002-1\022\037" +
+      "\n\023heapMemoryCommitted\030\036 \002(\003:\002-1\022\035\n\021heapM" +
+      "emoryMaximum\030\037 \002(\003:\002-1\022$\n\030nonHeapMemoryI" +
+      "nitialized\030  \002(\003:\002-1\022\035\n\021nonHeapMemoryUse" +
+      "d\030! \002(\003:\002-1\022\"\n\026nonHeapMemoryCommitted\030\" " +
+      "\002(\003:\002-1\022 \n\024nonHeapMemoryMaximum\030# \002(\003:\002-",
+      "1\022\022\n\006upTime\030$ \002(\003:\002-1\022\025\n\tstartTime\030% \002(\003" +
+      ":\002-1\022\031\n\rnodeStartTime\030& \002(\003:\002-1\022\036\n\022curre" +
+      "ntThreadCount\030\' \002(\005:\002-1\022\036\n\022maximumThread" +
+      "Count\030( \002(\005:\002-1\022#\n\027totalStartedThreadCou" +
+      "nt\030) \002(\003:\002-1\022$\n\030currentDaemonThreadCount" +
+      "\030* \002(\005:\002-1\022\037\n\023fileSystemFreeSpace\030+ \002(\003:" +
+      "\002-1\022 \n\024fileSystemTotalSpace\030, \002(\003:\002-1\022!\n" +
+      "\025fileSystemUsableSpace\030- \002(\003:\002-1\022\033\n\017last" +
+      "DataVersion\030. \002(\003:\002-1\"\241\002\n\rProtoNodeBean\022" +
+      "\016\n\006nodeId\030\001 \002(\t\022\027\n\017internalAddress\030\002 \003(\t",
+      "\022\027\n\017externalAddress\030\003 \003(\t\022\017\n\007tcpPort\030\004 \002" +
+      "(\005\022\021\n\tjettyPort\030\005 \002(\005\022B\n\007metrics\030\006 \001(\01321" +
+      ".org.gridgain.client.message.ProtoNodeMe" +
+      "tricsBean\0224\n\nattributes\030\007 \001(\0132 .org.grid" +
+      "gain.client.message.Map\0220\n\006caches\030\t \001(\0132" +
+      " .org.gridgain.client.message.Map*\243\002\n\021Ob" +
+      "jectWrapperType\022\010\n\004NONE\020\000\022\010\n\004BOOL\020\001\022\010\n\004B" +
+      "YTE\020\002\022\t\n\005SHORT\020\003\022\t\n\005INT32\020\004\022\t\n\005INT64\020\005\022\t" +
+      "\n\005FLOAT\020\006\022\n\n\006DOUBLE\020\007\022\t\n\005BYTES\020\010\022\n\n\006STRI" +
+      "NG\020\t\022\016\n\nCOLLECTION\020\n\022\007\n\003MAP\020\013\022\021\n\rCACHE_R",
+      "EQUEST\020\024\022\020\n\014TASK_REQUEST\020\025\022\017\n\013LOG_REQUES" +
+      "T\020\026\022\024\n\020TOPOLOGY_REQUEST\020\027\022\020\n\014AUTH_REQUES" +
+      "T\020\030\022\014\n\010RESPONSE\020(\022\r\n\tNODE_BEAN\020<\022\r\n\tTASK" +
+      "_BEAN\020=B?\n$org.gridgain.client.message.p" +
+      "rotobufB\027ClientMessagesProtocols"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -12247,7 +12355,7 @@ public final class ClientMessagesProtocols {
           internal_static_org_gridgain_client_message_ProtoCacheRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_org_gridgain_client_message_ProtoCacheRequest_descriptor,
-              new java.lang.String[] { "Operation", "CacheName", "Key", "Value", "Value2", "Values", },
+              new java.lang.String[] { "Operation", "CacheName", "Key", "Value", "Value2", "Values", "CacheFlagsOn", },
               org.gridgain.client.message.protobuf.ClientMessagesProtocols.ProtoCacheRequest.class,
               org.gridgain.client.message.protobuf.ClientMessagesProtocols.ProtoCacheRequest.Builder.class);
           internal_static_org_gridgain_client_message_ProtoLogRequest_descriptor =

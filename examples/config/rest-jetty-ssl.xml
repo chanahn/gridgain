@@ -8,7 +8,7 @@
     \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
 
     Copyright (C) GridGain Systems Licensed under GPLv3, http://www.gnu.org/licenses/gpl.html
-    Version: 4.0.2c.12042012
+    Version: 4.0.3c.14052012
 -->
 
 <!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
@@ -28,10 +28,12 @@
             <New class="org.eclipse.jetty.server.ssl.SslSocketConnector">
                 <Set name="host"><Property name="GRIDGAIN_JETTY_HOST"/></Set>
                 <Set name="port"><Property name="GRIDGAIN_JETTY_PORT" default="8080"/></Set>
-                <Set name="keystore">examples/keystore/server.store</Set>
+                <Set name="keystore"><SystemProperty
+                        name="GRIDGAIN_HOME" default="${GRIDGAIN_HOME}"/>/examples/keystore/server.store</Set>
                 <Set name="password">123456</Set>
                 <Set name="keyPassword">123456</Set>
-                <Set name="truststore">examples/keystore/trust.store</Set>
+                <Set name="truststore"><SystemProperty
+                        name="GRIDGAIN_HOME" default="${GRIDGAIN_HOME}"/>/examples/keystore/trust.store</Set>
                 <Set name="trustPassword">123456</Set>
                 <Set name="maxIdleTime">30000</Set>
             </New>
