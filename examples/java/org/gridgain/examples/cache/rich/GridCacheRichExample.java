@@ -104,7 +104,7 @@ public class GridCacheRichExample {
                     EVT_CACHE_OBJECT_PUT,
                     EVT_CACHE_OBJECT_READ,
                     EVT_CACHE_OBJECT_REMOVED);
-             }
+            }
         });
     }
 
