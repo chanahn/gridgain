@@ -14,6 +14,7 @@ import org.gridgain.examples.cache.*;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.datastructures.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.typedef.*;
 
 import java.io.*;
@@ -26,33 +27,34 @@ import java.net.*;
  * REST is enabled on the node.
  * <p>
  * If you want to test this example with remote node, please don't start remote
- * node from command line but start {@link GridCacheDefaultNodeStartup} from IDE
+ * node from command line but start {@link GridCacheClientDefaultNodeStartup} from IDE
  * instead because this example requires that some classes are present in classpath
  * on all nodes.
  *
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridMemcacheRestExample {
+    /** Hostname for client connection. */
+    private static final String host = "localhost";
+
+    /** Port number for client connection. */
+    private static final int port = 11211;
+
     /**
      * @param args Command line arguments.
      * @throws GridException In case of error.
      */
     public static void main(String[] args) throws Exception {
-        Grid grid = G.start("examples/config/spring-cache-default.xml");
+        Grid grid = G.start("examples/config/spring-cache-client-default.xml");
 
         MemcachedClient client = null;
 
         try {
             GridCache<String, Object> cache = grid.cache();
 
-            String host = grid.configuration().getRestTcpHost();
-            int port = grid.configuration().getRestTcpPort();
-
-            if (host == null)
-                host = "localhost";
-
-            client = startClient(host, port);
+            client = startMemcachedClient(host, port);
 
             // Put string value to cache using Memcache binary protocol.
             if (client.add("strKey", 0, "strVal").get())
@@ -111,19 +113,19 @@ public class GridMemcacheRestExample {
             // Create atomic long.
             GridCacheAtomicLong l = cache.atomicLong("atomicLong", 10, false);
 
-            // Increment atomic long using Memcache client.
+            // Increment atomic long by 5 using Memcache client.
             if (client.incr("atomicLong", 5, 0) == 15)
                 X.println(">>> Successfully incremented atomic long by 5.");
 
-            // Check that atomic long value is correct.
-            X.println(">>> Current atomic long value: " + l.get() + " (expected: 15).");
+            // Increment atomic long using GridGain API and check that value is correct.
+            X.println(">>> New atomic long value: " + l.incrementAndGet() + " (expected: 16).");
 
-            // Decrement atomic long using Memcache client.
-            if (client.decr("atomicLong", 3, 0) == 12)
-                X.println(">>> Successfully decremented atomic long by 2.");
+            // Decrement atomic long by 3 using Memcache client.
+            if (client.decr("atomicLong", 3, 0) == 13)
+                X.println(">>> Successfully decremented atomic long by 3.");
 
-            // Check that atomic long value is correct.
-            X.println(">>> Current atomic long value: " + l.get() + " (expected: 12).");
+            // Decrement atomic long using GridGain API and check that value is correct.
+            X.println(">>> New atomic long value: " + l.decrementAndGet() + " (expected: 12).");
         }
         finally {
             if (client != null)
@@ -141,7 +143,7 @@ public class GridMemcacheRestExample {
      * @return Client.
      * @throws IOException If connection failed.
      */
-    private static MemcachedClient startClient(String host, int port) throws IOException {
+    private static MemcachedClient startMemcachedClient(String host, int port) throws IOException {
         assert host != null;
         assert port > 0;
 

@@ -7,7 +7,7 @@
  *  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
  */
 
-package org.gridgain.examples.popularwords;
+package org.gridgain.examples.realtime;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
@@ -24,12 +24,12 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
 
 /**
  * Real time popular words counter.
- *
+ * <p>
  * Remote nodes should always be started with configuration which includes cache
- * using following command: {@code 'ggstart.sh examples/config/spring-cache-popularwords.xml'}.
- *
- * The counts are kept in cache on all remote nodes. Top {@code 10} counts from each node are then grabbed to produce
- * an overall top {@code 10} list within the grid.
+ * using following command: {@code 'ggstart.sh examples/config/spring-cache-popularcounts.xml'}.
+ * <p>
+ * The counts are kept in cache on all remote nodes. Top {@code 10} counts from each node are
+ * then grabbed to produce an overall top {@code 10} list within the grid.
  *
  * @author @java.author
  * @version @java.version
@@ -39,9 +39,9 @@ public class GridPopularWordsRealTimeExample {
     private static final int POPULAR_WORDS_CNT = 10;
 
     /**
-     * Start counting words.
+     * Starts counting words.
      *
-     * @param args Command line arguments.
+     * @param args Command line arguments. None required.
      * @throws Exception If failed.
      */
     public static void main(String[] args) throws Exception {
@@ -49,7 +49,7 @@ public class GridPopularWordsRealTimeExample {
 
         assert ggHome != null : "GRIDGAIN_HOME must be set to the GridGain installation root.";
 
-        final File inputDir = new File(ggHome, "examples/java/org/gridgain/examples/popularwords/books");
+        final File inputDir = new File(ggHome, "examples/java/org/gridgain/examples/realtime/books");
 
         if (!inputDir.exists()) {
             X.error("Input directory does not exist: " + inputDir.getAbsolutePath());
@@ -64,7 +64,7 @@ public class GridPopularWordsRealTimeExample {
         Timer popularWordsQryTimer = new Timer("words-query-worker");
 
         // Start grid.
-        final Grid g = G.start("examples/config/spring-cache-popularwords.xml");
+        final Grid g = G.start("examples/config/spring-cache-popularcounts.xml");
 
         try {
             TimerTask task = scheduleQuery(g, popularWordsQryTimer, POPULAR_WORDS_CNT);
@@ -82,7 +82,8 @@ public class GridPopularWordsRealTimeExample {
             g.run(GridClosureCallMode.BROADCAST, new Runnable() {
                 @Override public void run() {
                 if (g.cache() == null)
-                    X.error("Default cache not found (is spring-cache-popularwords.xml configuration used on all nodes?)");
+                    X.error("Default cache not found (is spring-cache-popularcounts.xml " +
+                        "configuration used on all nodes?)");
                 else {
                     X.println("Clearing keys from cache: " + g.cache().keySize());
 
@@ -97,7 +98,7 @@ public class GridPopularWordsRealTimeExample {
     }
 
     /**
-     * Populate cache in real time with words and keep count for every word.
+     * Populates cache in real time with words and keeps count for every word.
      *
      * @param g Grid.
      * @param threadPool Thread pool.
@@ -118,11 +119,14 @@ public class GridPopularWordsRealTimeExample {
         final GridDataLoader<String, Integer> ldr = g.dataLoader(null);
 
         // Set larger per-node buffer size since our state is relatively small.
-        ldr.perNodeBufferSize(1000);
+        ldr.perNodeBufferSize(2048);
 
         // Reduce parallel operations since we running
         // the whole grid locally under heavy load.
-        ldr.perNodeParallelLoadOperations(2);
+        ldr.perNodeParallelLoadOperations(8);
+
+        // Set max keys count per TX.
+        ldr.perTxKeysCount(128);
 
         for (final String name : books) {
             // Read text files from multiple threads and cache individual words with their counts.
@@ -167,7 +171,7 @@ public class GridPopularWordsRealTimeExample {
     }
 
     /**
-     * Schedule our popular words query to run every 3 seconds.
+     * Schedules our popular words query to run every 3 seconds.
      *
      * @param g Grid.
      * @param timer Timer.
@@ -176,71 +180,33 @@ public class GridPopularWordsRealTimeExample {
      */
     private static TimerTask scheduleQuery(final Grid g, Timer timer, final int cnt) {
         TimerTask task = new TimerTask() {
-            private GridCacheReduceQuery<String, Integer, Map.Entry<String, Integer>, Object> qry;
+            private GridCacheQuery<String, Integer> qry;
 
             @Override public void run() {
                 try {
                     // Get reference to cache.
                     GridCache<String, Integer> cache = g.cache();
 
-                    if (qry == null) {
+                    if (qry == null)
                         // Don't select words shorter than 3 letters.
-                        qry = cache.createReduceQuery(
-                            SQL,
-                            Integer.class,
-                            "length(_key) > 3 order by _val desc limit " + cnt // Standard SQL.
-                        );
+                        qry = cache.createQuery(SQL, Integer.class, "length(_key) > 3 order by _val desc limit " + cnt);
 
-                        // This step is done locally (not on remote nodes).
-                        qry.localReducer(new GridClosure<Object[], GridReducer<Map.Entry<String, Integer>, Object>>() {
-                            @Override public GridReducer<Map.Entry<String, Integer>, Object> apply(Object[] o) {
-                                return new GridReducer<Map.Entry<String, Integer>, Object>() {
-                                    // Sorted map keyed by word counts.
-                                    private NavigableMap<Integer, Collection<String>> words =
-                                        new TreeMap<Integer, Collection<String>>();
+                    List<Map.Entry<String, Integer>> results =
+                        new ArrayList<Map.Entry<String, Integer>>(qry.execute(g).get());
 
-                                    @Override public boolean collect(Map.Entry<String, Integer> entry) {
-                                        // Get collection of words for given count.
-                                        Collection<String> ws = words.get(entry.getValue());
+                    Collections.sort(results, new Comparator<Map.Entry<String, Integer>>() {
+                        @Override public int compare(Map.Entry<String, Integer> e1, Map.Entry<String, Integer> e2) {
+                            return e1.getValue() < e2.getValue() ? 1 : e1.getValue() > e2.getValue() ? -1 : 0;
+                        }
+                    });
 
-                                        if (ws == null)
-                                            words.put(entry.getValue(), ws = new LinkedList<String>());
+                    for (int i = 0; i < cnt; i++) {
+                        Map.Entry<String, Integer> e = results.get(i);
 
-                                        // Add word to collection of words for given count.
-                                        ws.add(entry.getKey());
-
-                                        return true;
-                                    }
-
-                                    @Override public Object apply() {
-                                        int idx = 0;
-
-                                        // Print out 10 most popular words.
-                                        for (Map.Entry<Integer, Collection<String>> e : words.descendingMap().entrySet()) {
-                                            for (String w : e.getValue()) {
-                                                X.println(">>> " + e.getKey() + '=' + w);
-
-                                                if (++idx == cnt)
-                                                    break;
-                                            }
-
-                                            if (idx == cnt)
-                                                break;
-                                        }
-
-                                        X.println("------------");
-
-                                        return null;
-                                    }
-                                };
-                            }
-                        });
+                        X.println(">>> " + e.getKey() + '=' + e.getValue());
                     }
 
-                    // Get projection of grid nodes that have cache
-                    // without name (null name) running and execute
-                    // our query on it.
-                    qry.reduce(g.projectionForCaches(null)).get();
+                    X.println("------------");
                 }
                 catch (GridException e) {
                     e.printStackTrace();

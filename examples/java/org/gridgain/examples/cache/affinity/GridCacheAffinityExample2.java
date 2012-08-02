@@ -12,6 +12,7 @@ package org.gridgain.examples.cache.affinity;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.affinity.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.typedef.*;
 
 import java.util.*;
@@ -33,6 +34,7 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridCacheAffinityExample2 {
     /**
      * Configuration file name.

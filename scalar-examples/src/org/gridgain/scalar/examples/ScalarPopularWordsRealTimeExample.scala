@@ -88,11 +88,14 @@ object ScalarPopularWordsRealTimeExample {
         val ldr: GridDataLoader[String, JInt] = grid$.dataLoader(null)
 
         // Set larger per-node buffer size since our state is relatively small.
-        ldr.perNodeBufferSize(1000)
+        ldr.perNodeBufferSize(2048)
 
         // Reduce parallel operations since we running
         // the whole grid locally under heavy load.
-        ldr.perNodeParallelLoadOperations(2)
+        ldr.perNodeParallelLoadOperations(8)
+
+        // Set max keys count per TX.
+        ldr.perTxKeysCount(128)
 
         // For every book, start a new thread and start populating cache
         // with words and their counts.

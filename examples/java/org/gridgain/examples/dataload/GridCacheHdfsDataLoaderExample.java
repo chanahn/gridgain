@@ -34,6 +34,11 @@ import static java.util.concurrent.TimeUnit.*;
  * This example does not require distributed HDFS setup and can run with local file system.
  * If HDFS cluster is available, add HDFS config files to example classpath.
  * <p>
+ * In order to run this example on Windows, Cygwin should be installed. Make sure that
+ * path to Cygwin binaries is the first entry of {@code PATH} environment variable, as Cygwin
+ * binaries may conflict with some other applications components (e.g. Git).
+ * For information on Cygwin please visit <a href="http://cygwin.com/">http://cygwin.com/</a>
+ * <p>
  * When starting remote nodes, make sure to use the same configuration file as follows:
  * <pre>
  *     GRIDGAIN_HOME/bin/ggstart.sh examples/config/spring-cache.xml

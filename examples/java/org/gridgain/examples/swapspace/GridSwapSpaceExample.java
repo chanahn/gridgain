@@ -11,10 +11,16 @@ package org.gridgain.examples.swapspace;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.spi.swapspace.*;
+import org.gridgain.grid.spi.swapspace.leveldb.*;
 import org.gridgain.grid.typedef.*;
 
 /**
  * Example that shows using of {@link GridSwapSpaceSpi}.
+ * <p>
+ * <b>
+ * NOTE: On Windows platforms {@code Microsoft Visual C++ Redistributable Package} must be installed
+ * in order to use this SPI.
+ * </b>
  */
 public final class GridSwapSpaceExample {
     /**
@@ -34,13 +40,24 @@ public final class GridSwapSpaceExample {
         // CA -> GridAbsClosure
         // F -> GridFunc
 
-        G.in(args.length == 0 ? null : args[0], new CIX1<Grid>() {
-            @Override public void applyx(Grid g) throws GridException {
-                String testData = "TestSwapSpaceData";
+        GridConfigurationAdapter cfg = new GridConfigurationAdapter();
 
-                // Execute SwapSpace task.
-                g.execute(GridSwapSpaceTask.class, testData).get();
-            }
-        });
+        // -----
+        // NOTE:
+        // GridLevelDbSwapSpaceSpi requires Microsoft Visual C++ Redistributable Package on Windows.
+        // -----
+        cfg.setSwapSpaceSpi(new GridLevelDbSwapSpaceSpi());
+
+        Grid g = G.start(cfg);
+
+        try {
+            String testData = "TestSwapSpaceData";
+
+            // Execute SwapSpace task.
+            g.execute(GridSwapSpaceTask.class, testData).get();
+        }
+        finally {
+            G.stop(true);
+        }
     }
 }

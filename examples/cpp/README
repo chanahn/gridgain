@@ -1,0 +1,54 @@
+C++ client examples README
+
+BUILD THE CLIENT LIBRARY
+=========================
+
+Follow the instructions in clients/cpp/README file for how to build the client library.
+
+RUNNING
+========
+
+* Configuring log
+
+You can control the client's log level by setting the GRIDGAIN_CPP_CLIENT_LOG_LEVEL environment
+variable to one of the following values:
+1 (error),
+2 (warning),
+3 (info), and
+4 (debug).
+
+By default, the log level is 3. The client sends all its log messages to stdout.
+
+
+* Running the client examples
+
+First, build the examples by going into the examples/cpp directory and executing the following
+commands:
+
+> ./configure
+> make
+
+On Windows you can use the provided Visual Studio solution (in the vsproject/ directory) to
+compile the examples code.
+
+Before you can run the examples, you must ensure that the org.gridgain.examples.client
+package are available on the GridGain node's classpath. One way to achieve that is to build
+the jar containing the examples code and drop it to the $GRIDGAIN_HOME/libs/ext directory.
+When the ggstart script runs it automatically picks up the jars from that directory.
+
+Now you can start a GridGain node as follows:
+
+> $GRIDGAIN_HOME/./bin/ggstart.{sh,bat} examples/config/spring-cache.xml
+
+Alternatively you can run an instance of <c>GridClientExampleNodeStartup</c> java class which
+will start up a GridGain node with proper configuration.
+
+Once the GridGain node is up and running you can run the examples:
+
+> ./gridgain-example
+
+If you just compiled the client library make sure that you ran 'ldconfig' to update library cache
+before running the example.
+
+Feel free to modify the example source code to change communication protocol from TCP
+(default) to HTTP and try other options.

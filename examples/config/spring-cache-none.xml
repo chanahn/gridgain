@@ -47,14 +47,6 @@
         <property name="deploymentMode" value="SHARED"/>
 
         <!--
-            In order to make sure that no cache instance gets started,
-            we provide an empty list here.
-        -->
-        <property name="cacheConfiguration">
-            <list/>
-        </property>
-
-        <!--
             Uncomment this to provide TCP discovery SPI (Amazon EC2).
         -->
         <!--

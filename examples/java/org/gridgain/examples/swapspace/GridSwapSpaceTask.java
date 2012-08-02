@@ -37,7 +37,7 @@ public class GridSwapSpaceTask extends GridTaskSplitAdapter<String, String> {
     /** {@inheritDoc} */
     @Override public Collection<? extends GridJob> split(int gridSize, String arg) throws GridException {
         // Writes data to swap space (global scope).
-        g.writeToSwap(null, "example", arg, classLoader());
+        g.swapWrite(null, "example", arg, classLoader());
 
         Collection<GridJob> jobs = new ArrayList<GridJob>(gridSize);
 
@@ -52,7 +52,7 @@ public class GridSwapSpaceTask extends GridTaskSplitAdapter<String, String> {
         }
 
         // Reads data from swap space (global scope).
-        String val = (String)g.readFromSwap(null, "example", classLoader());
+        String val = (String)g.swapRead(null, "example", classLoader());
 
         X.println("Loaded data from swap space: " + val);
 
@@ -65,6 +65,6 @@ public class GridSwapSpaceTask extends GridTaskSplitAdapter<String, String> {
         // we have no returned data to reduce.
         // For the purpose of this example, we
         // return data stored in swap space.
-        return g.readFromSwap(null, "example", classLoader());
+        return g.swapRead(null, "example", classLoader());
     }
 }

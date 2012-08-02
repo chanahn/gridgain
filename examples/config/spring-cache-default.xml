@@ -12,9 +12,7 @@
 -->
 
 <!--
-    GridGain Spring configuration file to startup grid cache.
-
-    When TCP discovery is used, default replicated cache is started.
+    GridGain Spring configuration file to startup grid cache with all defaults.
 -->
 <beans xmlns="http://www.springframework.org/schema/beans"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -36,6 +34,12 @@
 
         <!-- Set to local host address just for examples. -->
         <property name="localHost" value="127.0.0.1"/>
+
+        <!-- Configure cache. -->
+        <property name="cacheConfiguration">
+            <!-- Start cache with all defaults. -->
+            <bean class="org.gridgain.grid.cache.GridCacheConfigurationAdapter"/>
+        </property>
 
         <!--
             Uncomment this to provide TCP discovery SPI (Amazon EC2).

@@ -29,13 +29,14 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * {@code 'ggstart.sh examples/config/spring-authentication-passcode.xml'}.
  */
 public final class GridAuthenticationExample {
+    /** Change this property to start example in SSL mode. */
+    private static final boolean USE_SSL = GridAuthenticationNodeStartup.USE_SSL;
+
     /**
      * Executes <tt>Authentication</tt> example on the grid and sends broadcast message
      * to all nodes in the grid.
      *
-     * @param args Command line arguments, none required but if provided
-     *      first one should point to the Spring XML configuration file. See
-     *      {@code "examples/config/"} for configuration file examples.
+     * @param args Command line arguments, none required.
      */
     public static void main(String[] args) {
         // Typedefs:
@@ -49,7 +50,8 @@ public final class GridAuthenticationExample {
         // so if you see topology change events, it means that authentication succeeded.
 
         try {
-            G.in(args.length == 0 ? "examples/config/spring-authentication-passcode.xml" : args[0], new CIX1<Grid>() {
+            G.in(USE_SSL ? "examples/config/spring-cache-ssl.xml" :
+                "examples/config/spring-cache-authentication-passcode.xml", new CIX1<Grid>() {
                 @Override public void applyx(Grid g) throws GridException {
                     String title = "GridGain started at " + new Date();
                     String msg = "Press OK to send broadcast message, cancel to exit.";

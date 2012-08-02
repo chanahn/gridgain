@@ -8,6 +8,7 @@ import org.gridgain.examples.cache.*;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.store.*;
+import org.gridgain.grid.editions.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
@@ -30,12 +31,10 @@ import java.util.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridCacheHBasePersonStore extends GridCacheStoreAdapter<UUID, Person> {
     /** Default config path. */
     private static final String DFLT_CONFIG_PATH = "org/gridgain/examples/cache/store/hbase/hbase-site.xml";
-
-    /** Local TX delta key. */
-    private static final String TX_DELTA = "HBASE_TX_DELTA_PERSON";
 
     /** Table name. */
     private static final String TABLE_NAME = "persons";
@@ -57,6 +56,8 @@ public class GridCacheHBasePersonStore extends GridCacheStoreAdapter<UUID, Perso
 
     /**
      * Constructor.
+     *
+     * @throws Exception If failed.
      */
     public GridCacheHBasePersonStore() throws Exception {
         prepareDb();
@@ -158,12 +159,6 @@ public class GridCacheHBasePersonStore extends GridCacheStoreAdapter<UUID, Perso
     /** {@inheritDoc} */
     @Override public void put(@Nullable String cacheName, @Nullable GridCacheTx tx, UUID key, @Nullable Person val)
         throws GridException {
-        if (tx != null) {
-            delta(tx).put(key, val);
-
-            return;
-        }
-
         HTableInterface t = tblPool.getTable(TABLE_NAME);
 
         try {
@@ -182,12 +177,6 @@ public class GridCacheHBasePersonStore extends GridCacheStoreAdapter<UUID, Perso
 
     /** {@inheritDoc} */
     @Override public void remove(@Nullable String cacheName, @Nullable GridCacheTx tx, UUID key) throws GridException {
-        if (tx != null) {
-            delta(tx).put(key, null);
-
-            return;
-        }
-
         HTableInterface t = tblPool.getTable(TABLE_NAME);
 
         try {
@@ -198,21 +187,6 @@ public class GridCacheHBasePersonStore extends GridCacheStoreAdapter<UUID, Perso
         }
         finally {
             close(t);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override public void txEnd(@Nullable String cacheName, GridCacheTx tx, boolean commit) throws GridException {
-        Map<UUID, Person> m = tx.removeMeta(TX_DELTA);
-
-        if (m == null || !commit)
-            return;
-
-        for (Map.Entry<UUID, Person> e : m.entrySet()) {
-            if (e.getValue() == null)
-                remove(cacheName, null, e.getKey());
-            else
-                put(cacheName, null, e.getKey(), e.getValue());
         }
     }
 
@@ -230,23 +204,5 @@ public class GridCacheHBasePersonStore extends GridCacheStoreAdapter<UUID, Perso
                 // No-op.
             }
         }
-    }
-
-    /**
-     * Local delta for given transaction.
-     *
-     * @param tx Transaction.
-     * @return Local delta.
-     */
-    private Map<UUID, Person> delta(GridCacheTx tx) {
-        Map<UUID, Person> m = tx.meta(TX_DELTA);
-
-        if (m == null) {
-            m = new HashMap<UUID, Person>();
-
-            tx.addMeta(TX_DELTA, m);
-        }
-
-        return m;
     }
 }

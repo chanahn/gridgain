@@ -11,6 +11,7 @@ package org.gridgain.examples.cache.putget;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.resources.*;
@@ -34,6 +35,7 @@ import static org.gridgain.grid.GridEventType.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridCachePutGetExample {
     /** Cache name. */
     private static final String CACHE_NAME = "partitioned";
@@ -107,7 +109,7 @@ public class GridCachePutGetExample {
 
             if (!rmts.isEmpty()) {
                 // Peek and get on remote nodes (comment it out if output gets too crowded).
-                g.remoteProjection().run(BROADCAST, new GridAbsClosureX() {
+                rmts.run(BROADCAST, new GridAbsClosureX() {
                     @GridInstanceResource
                     private Grid g;
 

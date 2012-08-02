@@ -9,8 +9,10 @@
 
 package org.gridgain.examples.cache;
 
+import org.gridgain.grid.*;
 import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.cache.query.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.typedef.internal.*;
 
 import java.io.*;
@@ -22,9 +24,10 @@ import java.util.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class Person implements Serializable {
     /** Person ID (create unique SQL index for this field). */
-    @GridCacheQuerySqlField
+    @GridCacheQuerySqlField(unique = true)
     private UUID id;
 
     /** Organization ID (create non-unique SQL index for this field). */
@@ -32,13 +35,15 @@ public class Person implements Serializable {
     private UUID orgId;
 
     /** First name (not-indexed). */
+    @GridCacheQuerySqlField(index = false)
     private String firstName;
 
     /** Last name (not indexed). */
+    @GridCacheQuerySqlField(index = false)
     private String lastName;
 
     /** Resume text (create LUCENE-based TEXT index for this field). */
-    @GridCacheQueryLuceneField
+    @GridCacheQueryTextField
     private String resume;
 
     /** Salary (create non-unique SQL index for this field). */

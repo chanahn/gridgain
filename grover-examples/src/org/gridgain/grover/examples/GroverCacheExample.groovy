@@ -20,6 +20,10 @@ import static org.gridgain.grover.Grover.*
 
 /**
  * Demonstrates basic Data Grid (a.k.a cache) operations with Grover.
+ * <p>
+ * Remote nodes should always be started with configuration file which includes
+ * cache: 'ggstart.sh examples/config/spring-cache.xml'. Local node can
+ * be started with or without cache.
  *
  * @author @java.author
  * @version @java.version

@@ -29,13 +29,15 @@
                 <Set name="host"><Property name="GRIDGAIN_JETTY_HOST"/></Set>
                 <Set name="port"><Property name="GRIDGAIN_JETTY_PORT" default="8080"/></Set>
                 <Set name="keystore"><SystemProperty
-                        name="GRIDGAIN_HOME" default="${GRIDGAIN_HOME}"/>/examples/keystore/server.store</Set>
+                        name="GRIDGAIN_HOME" default="${GRIDGAIN_HOME}"/>/examples/keystore/server.jks</Set>
                 <Set name="password">123456</Set>
                 <Set name="keyPassword">123456</Set>
                 <Set name="truststore"><SystemProperty
-                        name="GRIDGAIN_HOME" default="${GRIDGAIN_HOME}"/>/examples/keystore/trust.store</Set>
+                        name="GRIDGAIN_HOME" default="${GRIDGAIN_HOME}"/>/examples/keystore/trust.jks</Set>
                 <Set name="trustPassword">123456</Set>
                 <Set name="maxIdleTime">30000</Set>
+                <Set name="wantClientAuth">true</Set>
+                <Set name="needClientAuth">true</Set>
             </New>
         </Arg>
     </Call>

@@ -47,6 +47,17 @@
         <!-- Set to local host address just for examples. -->
         <property name="localHost" value="127.0.0.1"/>
 
+        <!--
+            Allow indexing SPI to index primitive values.
+        -->
+        <property name="indexingSpi">
+            <list>
+                <bean class="org.gridgain.grid.spi.indexing.h2.GridH2IndexingSpi">
+                    <property name="defaultIndexPrimitiveKey" value="true"/>
+                </bean>
+            </list>
+        </property>
+
         <property name="cacheConfiguration">
             <!--
                 Specify list of cache configurations here. Any property from
@@ -66,11 +77,6 @@
                     <property name="startSize" value="10"/>
 
                     <!--
-                        Set to false because text queries are not supported for in-memory indexes.
-                    -->
-                    <property name="indexMemoryOnly" value="false"/>
-
-                    <!--
                         Setting this to true will cause local node to wait for remote commits.
                         However, it's important to set it to true in the examples as we assert on
                         conditions that usually assume full completion of transactions on all nodes.
@@ -82,7 +88,7 @@
                     -->
                     <property name="evictionPolicy">
                         <bean class="org.gridgain.grid.cache.eviction.lru.GridCacheLruEvictionPolicy">
-                            <property name="maxSize" value="100"/>
+                            <property name="maxSize" value="1000"/>
                         </bean>
                     </property>
 
@@ -92,24 +98,12 @@
                     -->
                     <property name="affinity">
                         <bean class="org.gridgain.grid.cache.affinity.partitioned.GridCachePartitionedAffinity">
-                            <constructor-arg value="1"/>
+                            <property name="keyBackups" value="1"/>
                         </bean>
                     </property>
 
                     <!-- Set synchronous preloading (default is asynchronous). -->
                     <property name="preloadMode" value="SYNC"/>
-
-                    <!--
-                        Allow to index key-value pairs where key type may be associated with different
-                        value types, and vice versa, value type may be associated with different key types.
-                    -->
-                    <property name="indexFixedTyping" value="false" />
-
-                    <!--
-                        Turn on the auto-indexing of primitive types for SQL queries.
-                        Turn it off for to improve performance.
-                    -->
-                    <property name="autoIndexQueryTypes" value="SQL"/>
                 </bean>
 
                 <!--
@@ -129,28 +123,11 @@
                     <!-- REPLICATED cache mode. -->
                     <property name="cacheMode" value="REPLICATED"/>
 
-                    <!--
-                        Set to false because text queries are not supported for in-memory indexes.
-                    -->
-                    <property name="indexMemoryOnly" value="false"/>
-
                     <!-- Set synchronous preloading (default is asynchronous). -->
                     <property name="preloadMode" value="SYNC"/>
 
                     <!-- Initial cache size. -->
                     <property name="startSize" value="20"/>
-
-                    <!--
-                        Allow to index key-value pairs where key type may be associated with different
-                        value types, and vice versa, value type may be associated with different key types.
-                    -->
-                    <property name="indexFixedTyping" value="false" />
-
-                    <!--
-                        Turn on the auto-indexing of primitive types for SQL queries.
-                        Turn it off for to improve performance.
-                    -->
-                    <property name="autoIndexQueryTypes" value="SQL"/>
                 </bean>
 
                 <!--
@@ -163,32 +140,40 @@
                     <!-- LOCAL cache mode. -->
                     <property name="cacheMode" value="LOCAL"/>
 
-                    <!--
-                        Set to false because text queries are not supported for in-memory indexes.
-                    -->
-                    <property name="indexMemoryOnly" value="false"/>
-
                     <!-- Initial cache size. -->
                     <property name="startSize" value="20"/>
-
-                    <!--
-                        Allow to index key-value pairs where key type may be associated with different
-                        value types, and vice versa, value type may be associated with different key types.
-                    -->
-                    <property name="indexFixedTyping" value="false" />
-
-                    <!--
-                        Turn on the auto-indexing of primitive types for SQL queries.
-                        Turn it off for to improve performance.
-                    -->
-                    <property name="autoIndexQueryTypes" value="SQL"/>
                 </bean>
             </list>
         </property>
 
+        <!-- Enable REST over HTTP. -->
+        <property name="restEnabled" value="true"/>
+        <property name="restJettyPort" value="8080"/>
+        <property name="restJettyPath" value="examples/config/rest-jetty-ssl.xml"/>
+
         <property name="restTcpSslEnabled" value="true"/>
 
+        <!-- Require TLS client authentication. -->
         <property name="restTcpSslClientAuth" value="true"/>
+
+        <!-- Require passcode-based authentication -->
+        <!--
+        <property name="authenticationSpi">
+            <bean class="org.gridgain.grid.spi.authentication.passcode.GridPasscodeAuthenticationSpi">
+                <property name="passcodes">
+                    <map>
+                        <entry key="REMOTE_NODE" value="s3cret"/>
+                        <entry key="REMOTE_CLIENT" value="s3cret"/>
+                    </map>
+                </property>
+            </bean>
+        </property>
+        <property name="secureSessionSpi">
+            <bean class="org.gridgain.grid.spi.securesession.rememberme.GridRememberMeSecureSessionSpi">
+                <property name="ttl" value="3600000"/>
+            </bean>
+        </property>
+        -->
 
         <!--
             Both keystore and truststore in this example are in JKS format which is default
@@ -196,9 +181,9 @@
         -->
         <property name="restTcpSslContextFactory">
             <bean class="org.gridgain.client.ssl.GridSslBasicContextFactory">
-                <property name="keyStoreFilePath" value="${GRIDGAIN_HOME}/examples/keystore/server.store"/>
+                <property name="keyStoreFilePath" value="${GRIDGAIN_HOME}/examples/keystore/server.jks"/>
                 <property name="keyStorePassword" value="123456"/>
-                <property name="trustStoreFilePath" value="${GRIDGAIN_HOME}/examples/keystore/trust.store"/>
+                <property name="trustStoreFilePath" value="${GRIDGAIN_HOME}/examples/keystore/trust.jks"/>
                 <property name="trustStorePassword" value="123456"/>
             </bean>
         </property>

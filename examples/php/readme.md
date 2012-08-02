@@ -1,7 +1,6 @@
 ![GridGain Logo](http://www.gridgain.com/images/logo/logo_mid.png "GridGain Logo")
 
-GridGain is JVM-based open source middleware for **in-memory big data processing** that scales to terabytes of data and thousands of machines. It uniquely integrates world's fastest MapReduce implementation with fully transactional In-Memory Data Grid.
-
+GridGain is JVM-based middleware for **in-memory big data processing** that allows you to process terabytes of data, on thousands of nodes in under a second. It uniquely integrates world's fastest In-Memory MapReduce implementation with fully transactional In-Memory Data Grid.
 
 ## GridGain Examples
 This folder contains all examples shipped with GridGain including examples for Java, Scala, Groovy, PHP with REST access as well as configuration and other miscellaneous files.
@@ -13,6 +12,3 @@ This folder contains all examples shipped with GridGain including examples for J
 
 ### 'php' folder
 This folder contains PHP example of accessing GridGain via REST APIs as well as using `memcached` protocol for accessing GridGain's In-Memory Data Grid.
-
-
-

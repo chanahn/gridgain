@@ -12,6 +12,7 @@ package org.gridgain.examples.cache.rich;
 import org.gridgain.examples.cache.*;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.typedef.*;
 
@@ -31,6 +32,7 @@ import static org.gridgain.grid.GridEventType.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridCacheRichExample {
     /**
      * Put data to cache and then query it.
@@ -129,6 +131,7 @@ public class GridCacheRichExample {
         final Person p1 = new Person(org1, "Jon", "Doe", 1000, "I have a 'Master Degree'");
         Person p2 = new Person(org2, "Jane", "Doe", 2000, "I have a 'Master Degree'");
         Person p3 = new Person(org1, "Jon", "Smith", 3000, "I have a 'Bachelor Degree'");
+        Person p4 = new Person(org1, "Tom", "White", 4000, "I have a 'Bachelor Degree'");
 
         /*
          * Convenience projections for type-safe cache views.
@@ -181,13 +184,13 @@ public class GridCacheRichExample {
          * Replace operations.
          */
 
-        // Replace p1 with p2 only if p1 is present in cache.
-        Person p = peopleCache.replace(p1.getId(), p2);
+        // Replace p1 with p2 only if p4 is present in cache.
+        Person p = peopleCache.replace(p1.getId(), p4);
 
         assert p!= null && p.equals(p1);
 
         // Put p1 back.
-        ok = peopleCache.replace(p1.getId(), p2, p1);
+        ok = peopleCache.replace(p1.getId(), p4, p1);
 
         assert ok;
 

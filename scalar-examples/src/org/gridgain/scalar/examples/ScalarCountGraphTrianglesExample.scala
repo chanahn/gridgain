@@ -104,7 +104,7 @@ object ScalarCountGraphTrianglesExample {
         // Existence of the edge means existence of triangle.
         val counts = grid.affinityCall$(CACHE_NAME, vertices, new CO[Int] {
             @GridJobContextResource
-            private val ctx: GridJobContext = null;
+            private val ctx: GridJobContext = null
 
             override def apply(): Int = {
                 // Get currently processed vertex from job context.

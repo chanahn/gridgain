@@ -11,6 +11,7 @@ package org.gridgain.examples.cache.affinity;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.typedef.*;
 
 /**
@@ -30,6 +31,7 @@ import org.gridgain.grid.typedef.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public final class GridCacheAffinitySimpleExample {
     /** Number of keys. */
     private static final int KEY_CNT = 20;
@@ -51,6 +53,12 @@ public final class GridCacheAffinitySimpleExample {
 
         try {
             GridCache<Integer, String> cache = g.cache("partitioned");
+
+            if (cache == null) {
+                System.err.println("Cache with name 'partitioned' not found (is configuration correct?)");
+
+                return;
+            }
 
             // If you run this example multiple times - make sure
             // to comment this call in order not to re-populate twice.

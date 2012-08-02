@@ -12,6 +12,7 @@ package org.gridgain.examples.cache.affinity;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.affinity.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.typedef.*;
 import org.jetbrains.annotations.*;
@@ -34,6 +35,7 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridCacheAffinityExample1 {
     /**
      * Configuration file name.
@@ -50,7 +52,7 @@ public class GridCacheAffinityExample1 {
      * Note that in case of {@code LOCAL} configuration,
      * since there is no distribution, values may come back as {@code nulls}.
      *
-     * @param args Command line arguments
+     * @param args Command line arguments.
      * @throws Exception If failed.
      */
     public static void main(String[] args) throws Exception {
@@ -70,7 +72,7 @@ public class GridCacheAffinityExample1 {
 
                 // Bring computations to the nodes where the data resides (i.e. collocation).
                 for (final String key : keys) {
-                    String result = g.call(
+                    String res = g.call(
                         BALANCE,
                         new GridCallable<String>() {
                             // This annotation allows to route job to the node
@@ -106,7 +108,7 @@ public class GridCacheAffinityExample1 {
                         }
                     );
 
-                    results.put(key, result);
+                    results.put(key, res);
                 }
 
                 // Print out results.

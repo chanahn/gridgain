@@ -14,6 +14,7 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.cache.query.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.typedef.*;
 
@@ -25,12 +26,43 @@ import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
  * Grid cache queries example. This example demonstrates SQL, TEXT, and FULL SCAN
  * queries over cache.
  * <p>
+ * Example also demonstrates usage of fields queries that return only required
+ * fields instead of whole key-value pairs. When fields queries are distributed
+ * across several nodes, they may not work as expected. Keep in mind following
+ * limitations (not applied if data is queried from one node only):
+ * <ul>
+ *     <li>
+ *         {@code Group by} and {@code sort by} statements are applied separately
+ *         on each node, so result set will likely be incorrectly grouped or sorted
+ *         after results from multiple remote nodes are grouped together.
+ *     </li>
+ *     <li>
+ *         Aggregation functions like {@code sum}, {@code max}, {@code avg}, etc.
+ *         are also applied on each node. Therefore you will get several results
+ *         containing aggregated values, one for each node.
+ *     </li>
+ *     <li>
+ *         Joins will work correctly only if joined objects are stored in
+ *         collocated mode. Refer to
+ *         {@link org.gridgain.grid.cache.affinity.GridCacheAffinityKey}
+ *         javadoc for more details.
+ *     </li>
+ *     <li>
+ *         Note that if you created query on to local or replicated cache, all data will
+ *         be queried only on one node, not depending on what caches participate in
+ *         the query (some data from partitioned cache can be lost). And visa versa,
+ *         if you created it on partitioned cache, data from replicated caches
+ *         will be duplicated.
+ *     </li>
+ * </ul>
+ * <p>
  * Remote nodes should always be started with configuration file which includes
  * cache: {@code 'ggstart.sh examples/config/spring-cache.xml'}.
  *
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridCacheQueryExample {
     /** Cache name. */
     private static final String CACHE_NAME = "partitioned";
@@ -74,10 +106,14 @@ public class GridCacheQueryExample {
             // that only required data without any overhead is returned to caller.
             queryEmployeeNames(p);
 
+            // Example for SQL-based fields queries that return only required
+            // fields instead of whole key-value pairs.
+            queryFields(p);
+
             print("Query example finished.");
         }
         finally {
-            GridFactory.stop(true);
+            //GridFactory.stop(true);
         }
     }
 
@@ -145,11 +181,11 @@ public class GridCacheQueryExample {
 
         //  Query for all people with "Master Degree" in their resumes.
         GridCacheQuery<GridCacheAffinityKey<UUID>, Person> masters =
-            cache.createQuery(LUCENE, Person.class, "Master");
+            cache.createQuery(TEXT, Person.class, "Master");
 
         // Query for all people with "Bachelor Degree"in their resumes.
         GridCacheQuery<GridCacheAffinityKey<UUID>, Person> bachelors =
-            cache.createQuery(LUCENE, Person.class, "Bachelor");
+            cache.createQuery(TEXT, Person.class, "Bachelor");
 
         print("Following people have 'Master Degree' in their resumes: ", masters.execute(p));
 
@@ -265,6 +301,37 @@ public class GridCacheQueryExample {
         // Query all nodes for names of all GridGain employees.
         print("Names of all 'GridGain' employees: " +
             qry.queryArguments("GridGain").execute(p).get());
+    }
+
+    /**
+     * Example for SQL-based fields queries that return only required
+     * fields instead of whole key-value pairs.
+     *
+     * @param p Grid projection to run query on.
+     * @throws GridException In case of error.
+     */
+    private static void queryFields(GridProjection p) throws GridException {
+        GridCache<?, ?> cache = grid.cache(CACHE_NAME);
+
+        // Create query to get names of all employees.
+        GridCacheFieldsQuery qry1 = cache.createFieldsQuery(
+            "select concat(firstName, ' ', lastName) from Person");
+
+        // Execute query to get collection of rows. In this particular
+        // case each row will have one element with full name of an employees.
+        Collection<List<Object>> res = qry1.execute(p).get();
+
+        // Print names.
+        print("Names of all employees:", F.flat(res).iterator());
+
+        // Create query that gets employee by name and returns his salary.
+        GridCacheFieldsQuery qry2 = cache.createFieldsQuery(
+            "select salary from Person where concat(firstName, ' ', lastName) = ?");
+
+        // Only one row with one field is expected in result of this query,
+        // so you can use convenient 'executeSingleField' method here.
+        print("Salary of John Doe: " + qry2.queryArguments("John Doe").executeSingleField(p).get());
+        print("Salary of John Smith: " + qry2.queryArguments("John Smith").executeSingleField(p).get());
     }
 
     /**

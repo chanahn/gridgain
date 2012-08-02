@@ -37,9 +37,13 @@ import org.springframework.context.support.*;
  * To try this example you have to start two remote grid instances.
  * One should be started with configuration {@code nodeA.xml} that can be found
  * in the same package where example is. Another node should be started
- * with {@code nodeB.xml} configuration file. Here is an example of
+ * with {@code nodeB.xml} configuration file. Please use {@link GridNodeAStartup}
+ * and {@link GridNodeBStartup} classes to start remote nodes.
+ * <p>
+ * You can also startup remote nodes from shell. Here is an example of
  * starting node with {@code nodeA.xml} configuration file.
  * <pre class="snippet">{GRIDGAIN_HOME}/bin/ggstart.{bat|sh} /path_to_configuration/nodeA.xml</pre>
+ * <p>
  * Once remote instances are started, you can execute this example from
  * Eclipse, IntelliJ IDEA, or NetBeans (and any other Java IDE) by simply hitting run
  * button. You will see that all nodes discover each other and

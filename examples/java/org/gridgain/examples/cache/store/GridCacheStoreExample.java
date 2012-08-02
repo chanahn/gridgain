@@ -12,6 +12,7 @@ package org.gridgain.examples.cache.store;
 import org.gridgain.examples.cache.*;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.typedef.*;
 
 import java.util.*;
@@ -38,6 +39,7 @@ import java.util.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridCacheStoreExample {
     /** Global person ID to use across entire example. */
     private static final UUID PERSON_ID = UUID.randomUUID();
@@ -50,7 +52,8 @@ public class GridCacheStoreExample {
      */
     public static void main(String[] args) throws GridException {
         // To start grid with desired configuration uncomment the appropriate line.
-        G.start("examples/config/spring-cache-store-jdbc.xml");
+        G.start("examples/config/spring-cache-store-swapspace.xml");
+        // G.start("examples/config/spring-cache-store-jdbc.xml");
         // G.start("examples/config/spring-cache-store-hibernate.xml");
         // G.start("examples/config/spring-cache-store-hbase.xml");
 

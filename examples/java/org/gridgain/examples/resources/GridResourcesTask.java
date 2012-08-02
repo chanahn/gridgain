@@ -36,7 +36,6 @@ public class GridResourcesTask extends GridTaskSplitAdapter<String, Integer> {
      * @return Created grid jobs for remote execution.
      * @throws GridException If split failed.
      */
-    @SuppressWarnings("unused")
     @Override public Collection<? extends GridJob> split(int gridSize, String phrase) throws GridException {
         // Split the passed in phrase into multiple words separated by spaces.
         String[] words = phrase.split(" ");

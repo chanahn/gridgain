@@ -92,7 +92,7 @@ public final class GridContinuationExample {
                 final UUID exampleNodeId = g.localNode().id();
 
                 // Filter to exclude this node from execution.
-                final GridPredicate<GridRichNode> p = new PN() {
+                final GridPredicate<GridRichNode> nodeFilter = new PN() {
                     @Override public boolean apply(GridRichNode n) {
                         // Give preference to remote nodes.
                         return g.remoteNodes().isEmpty() || !n.id().equals(exampleNodeId);
@@ -101,76 +101,7 @@ public final class GridContinuationExample {
 
                 long start = System.currentTimeMillis();
 
-                BigInteger fib = g.call(UNICAST, new CX1<Long, BigInteger>() {
-                    // These fields must be **transient** so they do not get
-                    // serialized and sent to remote nodes.
-                    // However, these fields will be preserved locally while
-                    // this closure is being "held", i.e. while it is suspended
-                    // and is waiting to be continued.
-                    private transient GridFuture<BigInteger> fut1, fut2;
-
-                    // Auto-inject job context.
-                    @GridJobContextResource
-                    private GridJobContext jobCtx;
-
-                    @Nullable @Override public BigInteger applyx(Long n) throws GridException {
-                        if (fut1 == null || fut2 == null) {
-                            X.println(">>> Starting fibonacci execution for number: " + n);
-
-                            // Make sure n is not negative.
-                            n = Math.abs(n);
-
-                            if (n <= 2) {
-                                return n == 0 ? BigInteger.ZERO : BigInteger.ONE;
-                            }
-
-                            // Node-local storage.
-                            GridNodeLocal<Long, GridFuture<BigInteger>> store = g.nodeLocal();
-
-                            // Check if value is cached in node-local store first.
-                            fut1 = store.get(n - 1);
-                            fut2 = store.get(n - 2);
-
-                            // If future is not cached in node-local store, cache it.
-                            // Recursive grid execution.
-                            if (fut1 == null) {
-                                fut1 = store.addIfAbsent(n - 1, g.callAsync(UNICAST, this, n - 1, p));
-                            }
-
-                            // If future is not cached in node-local store, cache it.
-                            if (fut2 == null) {
-                                fut2 = store.addIfAbsent(n - 2, g.callAsync(UNICAST, this, n - 2, p));
-                            }
-
-                            // If futures are not done, then wait asynchronously for the result
-                            if (!fut1.isDone() || !fut2.isDone()) {
-                                GridInClosure<GridFuture<BigInteger>> lsnr = new CI1<GridFuture<BigInteger>>() {
-                                    @Override public void apply(GridFuture<BigInteger> f) {
-                                        // If both futures are done, resume the continuation.
-                                        if (fut1.isDone() && fut2.isDone()) {
-                                            // Resume suspended job execution.
-                                            jobCtx.callcc();
-                                        }
-                                    }
-                                };
-
-                                // Attach the same listener to both futures.
-                                fut1.listenAsync(lsnr);
-                                fut2.listenAsync(lsnr);
-
-                                // Hold (suspend) job execution.
-                                // It will be resumed in listener above via 'callcc()' call
-                                // once both futures are done.
-                                return jobCtx.holdcc();
-                            }
-                        }
-
-                        assert fut1.isDone() && fut2.isDone();
-
-                        // Return cached results.
-                        return fut1.get().add(fut2.get());
-                    }
-                }, N, p);
+                BigInteger fib = g.call(UNICAST, new Closure(nodeFilter), N, nodeFilter);
 
                 long duration = System.currentTimeMillis() - start;
 
@@ -184,5 +115,84 @@ public final class GridContinuationExample {
                 X.println(">>>");
             }
         });
+    }
+
+    /**
+     * Closure to execute.
+     */
+    private static class Closure extends GridClosureX<Long, BigInteger> {
+        /** Futures for spawned tasks. */
+        private GridFuture<BigInteger> fut1, fut2;
+
+        /** Auto-inject job context. */
+        @GridJobContextResource
+        private GridJobContext jobCtx;
+
+        /** Grid. */
+        @GridInstanceResource
+        private Grid g;
+
+        /** Predicate. */
+        private final GridPredicate<GridRichNode> nodeFilter;
+
+        /**
+         * @param nodeFilter Predicate to filter nodes.
+         */
+        Closure(GridPredicate<GridRichNode> nodeFilter) {
+            this.nodeFilter = nodeFilter;
+        }
+
+        @Nullable @Override public BigInteger applyx(Long n) throws GridException {
+            if (fut1 == null || fut2 == null) {
+                X.println(">>> Starting fibonacci execution for number: " + n);
+
+                // Make sure n is not negative.
+                n = Math.abs(n);
+
+                if (n <= 2)
+                    return n == 0 ? BigInteger.ZERO : BigInteger.ONE;
+
+                // Node-local storage.
+                GridNodeLocal<Long, GridFuture<BigInteger>> store = g.nodeLocal();
+
+                // Check if value is cached in node-local store first.
+                fut1 = store.get(n - 1);
+                fut2 = store.get(n - 2);
+
+                // If future is not cached in node-local store, cache it.
+                // Recursive grid execution.
+                if (fut1 == null)
+                    fut1 = store.addIfAbsent(n - 1, g.callAsync(UNICAST, new Closure(nodeFilter), n - 1, nodeFilter));
+
+                // If future is not cached in node-local store, cache it.
+                if (fut2 == null)
+                    fut2 = store.addIfAbsent(n - 2, g.callAsync(UNICAST, new Closure(nodeFilter), n - 2, nodeFilter));
+
+                // If futures are not done, then wait asynchronously for the result
+                if (!fut1.isDone() || !fut2.isDone()) {
+                    GridInClosure<GridFuture<BigInteger>> lsnr = new CI1<GridFuture<BigInteger>>() {
+                        @Override public void apply(GridFuture<BigInteger> f) {
+                            // If both futures are done, resume the continuation.
+                            if (fut1.isDone() && fut2.isDone())
+                                jobCtx.callcc(); // Resume suspended job execution.
+                        }
+                    };
+
+                    // Attach the same listener to both futures.
+                    fut1.listenAsync(lsnr);
+                    fut2.listenAsync(lsnr);
+
+                    // Hold (suspend) job execution.
+                    // It will be resumed in listener above via 'callcc()' call
+                    // once both futures are done.
+                    return jobCtx.holdcc();
+                }
+            }
+
+            assert fut1.isDone() && fut2.isDone();
+
+            // Return cached results.
+            return fut1.get().add(fut2.get());
+        }
     }
 }

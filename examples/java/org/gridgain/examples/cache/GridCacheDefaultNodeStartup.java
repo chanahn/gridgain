@@ -10,6 +10,7 @@
 package org.gridgain.examples.cache;
 
 import org.gridgain.grid.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.typedef.*;
 
 import javax.swing.*;
@@ -26,6 +27,7 @@ import javax.swing.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridCacheDefaultNodeStartup {
     /**
      * Start up an empty node with specified cache configuration.

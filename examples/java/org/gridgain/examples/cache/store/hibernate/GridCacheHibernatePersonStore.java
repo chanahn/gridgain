@@ -13,6 +13,7 @@ import org.gridgain.examples.cache.*;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.*;
 import org.gridgain.grid.cache.store.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.typedef.*;
 import org.hibernate.*;
 import org.hibernate.cfg.*;
@@ -27,6 +28,7 @@ import java.util.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridCacheHibernatePersonStore extends GridCacheStoreAdapter<UUID, Person> {
     /** Default hibernate configuration resource path. */
     private static final String DFLT_HIBERNATE_CFG = "/org/gridgain/examples/cache/store/hibernate/hibernate.cfg.xml";

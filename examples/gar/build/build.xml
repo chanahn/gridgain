@@ -16,9 +16,9 @@
         GridGain GAR build script.
     </description>
 
-    <fail unless="GG_HOME" message="Missing Ant property GG_HOME."/>
+    <fail unless="GRIDGAIN_HOME" message="Missing Ant property GRIDGAIN_HOME."/>
 
-    <property name="base.dir" value="${GG_HOME}"/>
+    <property name="base.dir" value="${GRIDGAIN_HOME}"/>
     <property name="examples.gar.dir" value="${base.dir}/examples/gar"/>
     <property name="examples.gar.src.dir" value="${examples.gar.dir}/src"/>
     <property name="examples.gar.deploy.dir" value="${examples.gar.dir}/deploy"/>

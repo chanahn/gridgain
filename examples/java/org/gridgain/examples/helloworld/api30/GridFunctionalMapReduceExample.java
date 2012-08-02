@@ -50,6 +50,9 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * @version @java.version
  */
 public class GridFunctionalMapReduceExample {
+    /** Default phrase. */
+    private static final String DFLT_PHRASE = "GridGain Really Rocks";
+
     /**
      * Counts non-whitespace character in the input string on the grid.
      *
@@ -57,23 +60,27 @@ public class GridFunctionalMapReduceExample {
      * @throws GridException Thrown in case of any grid errors.
      */
     public static void main(final String[] args) throws GridException {
-        if (args.length == 1 && !args[0].isEmpty())
-            G.in(new GridInClosureX<Grid>() {
-                @Override public void applyx(Grid g) throws GridException {
-                    X.println("Length of input argument is " + g.reduce(
-                        SPREAD,
-                        new GridClosure<String, Integer>() {
-                            @Override public Integer apply(String s) {
-                                System.out.println("Calculating for: " + s);
+        G.in(new GridInClosureX<Grid>() {
+            @Override public void applyx(Grid g) throws GridException {
+                String phrase = DFLT_PHRASE;
 
-                                return s.length();
-                            }
-                        },
-                        //F.<String, Integer>cInvoke("length"),
-                        Arrays.asList(args[0].split(" ")),
-                        F.sumIntReducer()
-                    ));
-                }
-            });
+                if (args.length == 1 && !args[0].isEmpty())
+                    phrase = args[0];
+
+                System.out.println("Length of input argument is " + g.reduce(
+                    SPREAD,
+                    new GridClosure<String, Integer>() {
+                        @Override public Integer apply(String s) {
+                            System.out.println("Calculating for: " + s);
+
+                            return s.length();
+                        }
+                    },
+                    //F.<String, Integer>cInvoke("length"),
+                    Arrays.asList(phrase.split(" ")),
+                    F.sumIntReducer()
+                ));
+            }
+        });
     }
 }

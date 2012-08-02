@@ -19,10 +19,13 @@
 
     When starting GridGain from Java IDE, pass path to this file into GridFactory:
     GridFactory.start("path-to-this-file/spring-benchmark.xml");
+
+    This configuration uses special log4j logger, which creates necessary log files
+    for client logging API.
 -->
 <beans xmlns="http://www.springframework.org/schema/beans"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
     <!--
         Optional description.
@@ -32,17 +35,28 @@
     </description>
 
     <!--
-        Configuration below demonstrates how to setup a collision and failover SPI's
-        to enable work stealing from overloaded nodes to underloaded nodes.
-
-        Note that for job stealing to work, you must always use both,
-        GridJobStealingCollisionSpi and GridJobStealingFailoverSPI.
+        Configuration below demonstrates how to setup caches within grid nodes.
     -->
     <bean id="grid.cfg" class="org.gridgain.grid.GridConfigurationAdapter" scope="singleton">
         <property name="deploymentMode" value="SHARED"/>
 
         <!-- Set to local host address just for examples. -->
         <property name="localHost" value="127.0.0.1"/>
+
+        <!--
+            Allow indexing SPI to index primitive values.
+        -->
+        <property name="indexingSpi">
+            <list>
+                <bean class="org.gridgain.grid.spi.indexing.h2.GridH2IndexingSpi">
+                    <!-- Index primitives. -->
+                    <property name="defaultIndexPrimitiveKey" value="true"/>
+
+                    <!-- Allow different key types for one value type. -->
+                    <property name="defaultIndexFixedTyping" value="false"/>
+                </bean>
+            </list>
+        </property>
 
         <property name="cacheConfiguration">
             <!--
@@ -55,99 +69,108 @@
                     Partitioned cache example configuration.
                 -->
                 <bean class="org.gridgain.grid.cache.GridCacheConfigurationAdapter">
+                    <property name="name" value="partitioned"/>
+
                     <property name="cacheMode" value="PARTITIONED"/>
 
-                    <!-- Initial cache size (just to avoid internal resizing). -->
-                    <property name="startSize" value="1024"/>
+                    <!-- Initial cache size. -->
+                    <property name="startSize" value="10"/>
 
                     <!--
                         Setting this to true will cause local node to wait for remote commits.
                         However, it's important to set it to true in the examples as we assert on
                         conditions that usually assume full completion of transactions on all nodes.
                     -->
-                    <property name="synchronousCommit" value="false"/>
+                    <property name="synchronousCommit" value="true"/>
 
                     <!--
-                        Optional eviction policy (GridCacheLirsEvictionPolicy is used by default).
+                        Optional eviction policy.
                     -->
                     <property name="evictionPolicy">
-                        <bean class="org.gridgain.grid.cache.eviction.never.GridCacheNeverEvictionPolicy"/>
-                        <!--<bean class="org.gridgain.grid.cache.eviction.lru.GridCacheLruEvictionPolicy">-->
-                            <!--<property name="maxSize" value="1024"/>-->
-                        <!--</bean>-->
+                        <bean class="org.gridgain.grid.cache.eviction.lru.GridCacheLruEvictionPolicy">
+                            <property name="maxSize" value="1000"/>
+                        </bean>
                     </property>
 
                     <!--
                         This shows how to configure number of backups. The below configuration
-                        sets the number of backups to 0 .
+                        sets the number of backups to 1 (which is default).
                     -->
                     <property name="affinity">
                         <bean class="org.gridgain.grid.cache.affinity.partitioned.GridCachePartitionedAffinity">
-                            <constructor-arg value="0"/>
+                            <property name="keyBackups" value="1"/>
                         </bean>
                     </property>
 
                     <!-- Set synchronous preloading (default is asynchronous). -->
-                    <property name="preloadMode" value="ASYNC"/>
+                    <property name="preloadMode" value="SYNC"/>
 
                     <!--
-                        In our example keys are always strings and values are always integers.
-                        Since key class is always associated with the same value class we
-                        set this value to true to allow for internal optimizations.
+                        Turn on per-entry metrics calculation.
                     -->
-                    <property name="indexFixedTyping" value="true"/>
+                    <property name="perEntryMetricsEnabled" value="true"/>
+                </bean>
 
-                    <!-- Automatically index primitive and boxed types. -->
-                    <property name="autoIndexQueryTypes" value="SQL"/>
-
-                    <!-- Don't hold the whole index in memory as it grows very large. -->
-                    <property name="indexMemoryOnly" value="true"/>
+                <!--
+                    Replicated cache example configuration.
+                -->
+                <bean class="org.gridgain.grid.cache.GridCacheConfigurationAdapter">
+                    <!-- Cache name is 'replicated'. -->
+                    <property name="name" value="replicated"/>
 
                     <!--
-                        Set default transaction concurrency and isolation.
+                        Setting this to true will cause local node to wait for remote commits.
+                        However, it's important to set it to true in the examples as we assert on
+                        conditions that usually assume full completion of transactions on all nodes.
                     -->
-                    <property name="defaultTxConcurrency" value="PESSIMISTIC"/>
-                    <property name="defaultTxIsolation" value="REPEATABLE_READ"/>
+                    <property name="synchronousCommit" value="true"/>
 
-                    <!-- Disable near cache as we don't need it for this example. -->
-                    <property name="nearEnabled" value="false"/>
+                    <!-- REPLICATED cache mode. -->
+                    <property name="cacheMode" value="REPLICATED"/>
+
+                    <!-- Set synchronous preloading (default is asynchronous). -->
+                    <property name="preloadMode" value="SYNC"/>
+
+                    <!-- Initial cache size. -->
+                    <property name="startSize" value="20"/>
+
+                    <!--
+                        Turn on per-entry metrics calculation.
+                    -->
+                    <property name="perEntryMetricsEnabled" value="true"/>
+                </bean>
+
+                <!--
+                    Local cache example configuration.
+                -->
+                <bean class="org.gridgain.grid.cache.GridCacheConfigurationAdapter">
+                    <!-- Cache name is 'local'. -->
+                    <property name="name" value="local"/>
+
+                    <!-- LOCAL cache mode. -->
+                    <property name="cacheMode" value="LOCAL"/>
+
+                    <!-- Initial cache size. -->
+                    <property name="startSize" value="20"/>
+
+                    <!--
+                        Turn on per-entry metrics calculation.
+                    -->
+                    <property name="perEntryMetricsEnabled" value="true"/>
                 </bean>
             </list>
         </property>
 
         <!--
-            Configure pools.
-
-            If data loader is configured with significant 'perNodeParallelOperations' value,
-            you may need to increase pools sizes.
+            Logger to use. By default 'config/default-log4j.xml' logger file will
+            be used. If such file is not found, then default GridGain configuration
+            for logging will be used.
         -->
-        <!--
-        <property name="executorService">
-            <bean class="org.gridgain.grid.thread.GridThreadPoolExecutor">
-                <constructor-arg type="int" value="200"/>
-                <constructor-arg type="int" value="200"/>
-                <constructor-arg type="long">
-                    <util:constant static-field="java.lang.Long.MAX_VALUE"/>
-                </constructor-arg>
-                <constructor-arg type="java.util.concurrent.BlockingQueue">
-                    <bean class="java.util.concurrent.LinkedBlockingQueue"/>
-                </constructor-arg>
+        <property name="gridLogger">
+            <bean class="org.gridgain.grid.logger.log4j.GridLog4jLogger">
+                <constructor-arg type="java.lang.String" value="examples/config/grid-client-log4j.xml"/>
             </bean>
         </property>
-
-        <property name="systemExecutorService">
-            <bean class="org.gridgain.grid.thread.GridThreadPoolExecutor">
-                <constructor-arg type="int" value="200"/>
-                <constructor-arg type="int" value="200"/>
-                <constructor-arg type="long">
-                    <util:constant static-field="java.lang.Long.MAX_VALUE"/>
-                </constructor-arg>
-                <constructor-arg type="java.util.concurrent.BlockingQueue">
-                    <bean class="java.util.concurrent.LinkedBlockingQueue"/>
-                </constructor-arg>
-            </bean>
-        </property>
-        -->
 
         <!--
             Uncomment this to provide TCP discovery SPI (Amazon EC2).

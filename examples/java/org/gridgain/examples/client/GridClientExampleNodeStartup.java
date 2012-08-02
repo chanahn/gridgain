@@ -32,7 +32,10 @@ public class GridClientExampleNodeStartup {
      * @throws Exception In case of any exception.
      */
     public static void main(String[] args) throws Exception {
-        G.start("examples/config/spring-cache.xml");
+        // Setting system properties to enable full logging.
+        System.setProperty("GRIDGAIN_QUIET", "false");
+
+        G.start("examples/config/spring-cache-client.xml");
 
         try {
             // Wait until Ok is pressed.

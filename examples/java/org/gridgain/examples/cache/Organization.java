@@ -9,7 +9,9 @@
 
 package org.gridgain.examples.cache;
 
+import org.gridgain.grid.*;
 import org.gridgain.grid.cache.query.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.typedef.internal.*;
 
 import java.io.*;
@@ -19,8 +21,9 @@ import java.util.*;
  * Organization record used for query examples.
  *
  * @author @java.author
- * @version @java.version 
+ * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class Organization implements Serializable {
     /** Organization ID (create unique SQL-based index for this field). */
     @GridCacheQuerySqlField(unique = true)

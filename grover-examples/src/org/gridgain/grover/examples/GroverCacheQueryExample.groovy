@@ -21,6 +21,10 @@ import org.gridgain.grover.lang.*
 
 /**
  * Demonstrates cache ad-hoc queries with Grover.
+ * <p>
+ * Remote nodes should always be started with configuration file which includes
+ * cache: 'ggstart.sh examples/config/spring-cache.xml'. Local node can
+ * be started with or without cache.
  *
  * @author @java.author
  * @version @java.version
@@ -191,7 +195,7 @@ class GroverCacheQueryExample {
         final String firstName
         final String lastName
         @GridCacheQuerySqlField final Double salary
-        @GridCacheQueryLuceneField final String resume
+        @GridCacheQueryTextField final String resume
         final UUID id
         @GridCacheQuerySqlField final UUID orgId
         final GridCacheAffinityKey<UUID> key

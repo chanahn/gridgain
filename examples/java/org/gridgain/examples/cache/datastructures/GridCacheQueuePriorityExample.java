@@ -11,6 +11,7 @@ package org.gridgain.examples.cache.datastructures;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.datastructures.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.typedef.*;
 import org.gridgain.grid.typedef.internal.*;
 
@@ -30,6 +31,7 @@ import static org.gridgain.grid.cache.datastructures.GridCacheQueueType.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public class GridCacheQueuePriorityExample {
     /** Cache name. */
     //private static final String CACHE_NAME = "replicated";

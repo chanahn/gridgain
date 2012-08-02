@@ -12,8 +12,7 @@
 -->
 
 <!--
-    GridGain Spring configuration file to startup grid cache. This configuration is identical to
-    spring-cache.xml except that this configuration explicitly specifies different TCP REST port.
+    GridGain Spring configuration file to startup grid cache.
 
     When starting a standalone GridGain node, you need to execute the following command:
     {GRIDGAIN_HOME}/bin/ggstart.{bat|sh} path-to-this-file/spring-cache.xml
@@ -22,8 +21,8 @@
     GridFactory.start("path-to-this-file/spring-benchmark.xml");
 -->
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
     <!--
         Optional description.
@@ -45,8 +44,16 @@
         <!-- Set to local host address just for examples. -->
         <property name="localHost" value="127.0.0.1"/>
 
-        <!-- Set to port different from default -->
-        <property name="restTcpPort" value="11212"/>
+        <!--
+            Allow indexing SPI to index primitive values.
+        -->
+        <property name="indexingSpi">
+            <list>
+                <bean class="org.gridgain.grid.spi.indexing.h2.GridH2IndexingSpi">
+                    <property name="defaultIndexPrimitiveKey" value="true"/>
+                </bean>
+            </list>
+        </property>
 
         <property name="cacheConfiguration">
             <!--
@@ -59,41 +66,36 @@
                     Partitioned cache example configuration.
                 -->
                 <bean class="org.gridgain.grid.cache.GridCacheConfigurationAdapter">
-                    <property name="name" value="partitioned"/>
-
                     <property name="cacheMode" value="PARTITIONED"/>
 
-                    <!-- Initial cache size. -->
-                    <property name="startSize" value="10"/>
-
-                    <!--
-                        Set to false because text queries are not supported for in-memory indexes.
-                    -->
-                    <property name="indexMemoryOnly" value="false"/>
+                    <!-- Initial cache size (just to avoid internal resizing). -->
+                    <property name="startSize" value="1024"/>
 
                     <!--
                         Setting this to true will cause local node to wait for remote commits.
                         However, it's important to set it to true in the examples as we assert on
                         conditions that usually assume full completion of transactions on all nodes.
                     -->
-                    <property name="synchronousCommit" value="true"/>
+                    <property name="synchronousCommit" value="false"/>
 
                     <!--
                         Optional eviction policy (GridCacheLirsEvictionPolicy is used by default).
                     -->
                     <property name="evictionPolicy">
-                        <bean class="org.gridgain.grid.cache.eviction.lru.GridCacheLruEvictionPolicy">
-                            <property name="maxSize" value="100"/>
-                        </bean>
+                        <bean class="org.gridgain.grid.cache.eviction.never.GridCacheNeverEvictionPolicy"/>
+                        <!--<bean class="org.gridgain.grid.cache.eviction.lru.GridCacheLruEvictionPolicy">-->
+                            <!--<property name="maxSize" value="1024"/>-->
+                        <!--</bean>-->
                     </property>
 
                     <!--
                         This shows how to configure number of backups. The below configuration
-                        sets the number of backups to 1 (which is default).
+                        sets the number of backups to 0 .
                     -->
                     <property name="affinity">
                         <bean class="org.gridgain.grid.cache.affinity.partitioned.GridCachePartitionedAffinity">
-                            <constructor-arg value="1"/>
+                            <!-- We don't need backups for this example. -->
+                            <property name="keyBackups" value="1"/>
                         </bean>
                     </property>
 
@@ -101,91 +103,50 @@
                     <property name="preloadMode" value="SYNC"/>
 
                     <!--
-                        Allow to index key-value pairs where key type may be associated with different
-                        value types, and vice versa, value type may be associated with different key types.
+                        Set default transaction concurrency and isolation.
                     -->
-                    <property name="indexFixedTyping" value="false" />
+                    <property name="defaultTxConcurrency" value="PESSIMISTIC"/>
+                    <property name="defaultTxIsolation" value="REPEATABLE_READ"/>
 
-                    <!--
-                        Turn on the auto-indexing of primitive types for SQL queries.
-                        Turn it off for to improve performance.
-                    -->
-                    <property name="autoIndexQueryTypes" value="SQL"/>
-                </bean>
-
-                <!--
-                    Replicated cache example configuration.
-                -->
-                <bean class="org.gridgain.grid.cache.GridCacheConfigurationAdapter">
-                    <!-- Cache name is 'replicated'. -->
-                    <property name="name" value="replicated"/>
-
-                    <!--
-                        Setting this to true will cause local node to wait for remote commits.
-                        However, it's important to set it to true in the examples as we assert on
-                        conditions that usually assume full completion of transactions on all nodes.
-                    -->
-                    <property name="synchronousCommit" value="true"/>
-
-                    <!-- REPLICATED cache mode. -->
-                    <property name="cacheMode" value="REPLICATED"/>
-
-                    <!--
-                        Set to false because text queries are not supported for in-memory indexes.
-                    -->
-                    <property name="indexMemoryOnly" value="false"/>
-
-                    <!-- Set synchronous preloading (default is asynchronous). -->
-                    <property name="preloadMode" value="SYNC"/>
-
-                    <!-- Initial cache size. -->
-                    <property name="startSize" value="20"/>
-
-                    <!--
-                        Allow to index key-value pairs where key type may be associated with different
-                        value types, and vice versa, value type may be associated with different key types.
-                    -->
-                    <property name="indexFixedTyping" value="false" />
-
-                    <!--
-                        Turn on the auto-indexing of primitive types for SQL queries.
-                        Turn it off for to improve performance.
-                    -->
-                    <property name="autoIndexQueryTypes" value="SQL"/>
-                </bean>
-
-                <!--
-                    Local cache example configuration.
-                -->
-                <bean class="org.gridgain.grid.cache.GridCacheConfigurationAdapter">
-                    <!-- Cache name is 'local'. -->
-                    <property name="name" value="local"/>
-
-                    <!-- LOCAL cache mode. -->
-                    <property name="cacheMode" value="LOCAL"/>
-
-                    <!--
-                        Set to false because text queries are not supported for in-memory indexes.
-                    -->
-                    <property name="indexMemoryOnly" value="false"/>
-
-                    <!-- Initial cache size. -->
-                    <property name="startSize" value="20"/>
-
-                    <!--
-                        Allow to index key-value pairs where key type may be associated with different
-                        value types, and vice versa, value type may be associated with different key types.
-                    -->
-                    <property name="indexFixedTyping" value="false" />
-
-                    <!--
-                        Turn on the auto-indexing of primitive types for SQL queries.
-                        Turn it off for to improve performance.
-                    -->
-                    <property name="autoIndexQueryTypes" value="SQL"/>
+                    <!-- Disable near cache as we don't need it for this example. -->
+                    <property name="nearEnabled" value="false"/>
                 </bean>
             </list>
         </property>
+
+        <!--
+            Configure pools.
+
+            If data loader is configured with significant 'perNodeParallelOperations' value,
+            you may need to increase pools sizes.
+        -->
+        <!--
+        <property name="executorService">
+            <bean class="org.gridgain.grid.thread.GridThreadPoolExecutor">
+                <constructor-arg type="int" value="200"/>
+                <constructor-arg type="int" value="200"/>
+                <constructor-arg type="long">
+                    <util:constant static-field="java.lang.Long.MAX_VALUE"/>
+                </constructor-arg>
+                <constructor-arg type="java.util.concurrent.BlockingQueue">
+                    <bean class="java.util.concurrent.LinkedBlockingQueue"/>
+                </constructor-arg>
+            </bean>
+        </property>
+
+        <property name="systemExecutorService">
+            <bean class="org.gridgain.grid.thread.GridThreadPoolExecutor">
+                <constructor-arg type="int" value="200"/>
+                <constructor-arg type="int" value="200"/>
+                <constructor-arg type="long">
+                    <util:constant static-field="java.lang.Long.MAX_VALUE"/>
+                </constructor-arg>
+                <constructor-arg type="java.util.concurrent.BlockingQueue">
+                    <bean class="java.util.concurrent.LinkedBlockingQueue"/>
+                </constructor-arg>
+            </bean>
+        </property>
+        -->
 
         <!--
             Uncomment this to provide TCP discovery SPI (Amazon EC2).

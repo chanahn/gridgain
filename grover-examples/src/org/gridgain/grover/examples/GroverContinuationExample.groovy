@@ -61,16 +61,8 @@ import org.jetbrains.annotations.*
  */
 @Typed
 class GroverContinuationExample {
-    /** Closure. */
-    private static final FibonacciClosure c = new FibonacciClosure()
-
     /** Node predicate. */
     private static GridPredicate<GridRichNode> p
-
-    /** Ensure singleton. */
-    private GridContinuationExample() {
-        /* No-op. */
-    }
 
     /**
      * @param args Command line arguments,
@@ -90,7 +82,7 @@ class GroverContinuationExample {
 
             def start = System.currentTimeMillis()
 
-            def fib = g.call(UNICAST, c, N, p)
+            def fib = g.call(UNICAST, new FibonacciClosure(), N, p)
 
             def duration = System.currentTimeMillis() - start
 
@@ -148,14 +140,14 @@ class GroverContinuationExample {
                 // If future is not cached in node-local store, cache it.
                 // Recursive grid execution.
                 if (fut1 == null) {
-                    fut1 = g.callAsync(UNICAST, c, n - 1, p)
+                    fut1 = g.callAsync(UNICAST, new FibonacciClosure(), n - 1, p)
 
                     store.put(n - 1, fut1)
                 }
 
                 // If future is not cached in node-local store, cache it.
                 if (fut2 == null) {
-                    fut2 = g.callAsync(UNICAST, c, n - 2, p)
+                    fut2 = g.callAsync(UNICAST, new FibonacciClosure(), n - 2, p)
 
                     store.put(n - 2, fut2)
                 }

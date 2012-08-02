@@ -37,7 +37,10 @@
         Note that all nodes in grid should be configured with the same SPI configuration.
     -->
     <bean id="grid.cfg" class="org.gridgain.grid.GridConfigurationAdapter" scope="singleton">
+        <!-- Set to local host address just for examples. -->
         <property name="localHost" value="127.0.0.1"/>
+
+        <!-- Require passcode-based authentication -->
         <property name="authenticationSpi">
             <bean class="org.gridgain.grid.spi.authentication.passcode.GridPasscodeAuthenticationSpi">
                 <property name="passcodes">
@@ -51,6 +54,34 @@
         <property name="secureSessionSpi">
             <bean class="org.gridgain.grid.spi.securesession.rememberme.GridRememberMeSecureSessionSpi">
                 <property name="ttl" value="3600000"/>
+            </bean>
+        </property>
+
+        <property name="discoverySpi">
+            <bean class="org.gridgain.grid.spi.discovery.tcp.GridTcpDiscoverySpi">
+                <property name="ipFinder">
+                    <bean class="org.gridgain.grid.spi.discovery.tcp.ipfinder.vm.GridTcpDiscoveryVmIpFinder">
+                        <property name="addresses">
+                            <list>
+                                <!--
+                                    List all IP/port configurations that potentially
+                                    can be started first in examples. We are assuming
+                                    grid of size 10 or less.
+                                -->
+                                <value>127.0.0.1:47500</value>
+                                <value>127.0.0.1:47501</value>
+                                <value>127.0.0.1:47502</value>
+                                <value>127.0.0.1:47503</value>
+                                <value>127.0.0.1:47504</value>
+                                <value>127.0.0.1:47505</value>
+                                <value>127.0.0.1:47506</value>
+                                <value>127.0.0.1:47507</value>
+                                <value>127.0.0.1:47508</value>
+                                <value>127.0.0.1:47509</value>
+                            </list>
+                        </property>
+                    </bean>
+                </property>
             </bean>
         </property>
     </bean>

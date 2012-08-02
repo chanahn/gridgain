@@ -26,16 +26,18 @@ import static javax.swing.JOptionPane.*;
  * @version @java.version
  */
 public class GridAuthenticationNodeStartup {
+    /** Change this property to start node in SSL mode. */
+    static final boolean USE_SSL = false;
+
     /**
      * Start up an empty node with specified authentication configuration.
      *
-     * @param args Command line arguments, none required but if provided
-     *      first one should point to the Spring XML configuration file. See
-     *      {@code "examples/config/"} for configuration file examples.
+     * @param args Command line arguments, none required.
      */
     public static void main(String[] args) {
         try {
-            G.start(args.length == 0 ? "examples/config/spring-authentication-passcode.xml" : args[0]);
+            G.start(USE_SSL ? "examples/config/spring-cache-ssl.xml" :
+                "examples/config/spring-cache-authentication-passcode.xml");
 
             // Wait until Ok is pressed.
             JOptionPane.showMessageDialog(
@@ -49,11 +51,7 @@ public class GridAuthenticationNodeStartup {
             );
         }
         catch (GridException e) {
-            if (e.hasCause(ClassNotFoundException.class))
-                X.println("Failed to create grid " +
-                        "('security' is enterprise feature, are you using community edition?): " + e.getMessage());
-            else
-                X.println("Failed to create grid: " + e.getMessage());
+            X.println("Failed to create grid: " + e.getMessage());
         }
         finally {
             G.stop(true);

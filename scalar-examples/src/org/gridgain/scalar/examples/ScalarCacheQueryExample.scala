@@ -20,6 +20,10 @@ import java.util._
 
 /**
  * Demonstrates cache ad-hoc queries with Scalar.
+ * <p>
+ * Remote nodes should always be started with configuration file which includes
+ * cache: `'ggstart.sh examples/config/spring-cache.xml'`. Local node can
+ * be started with or without cache.
  *
  * @author @java.author
  * @version @java.version
@@ -60,7 +64,7 @@ object ScalarCacheQueryExample {
 
         // Example for TEXT-based querying for a given string in people resumes.
         // Gets all persons with 'Bachelor' degree.
-        print("People with Bachelor degree: ", cache.lucene(prj, "Bachelor").map(_._2))
+        print("People with Bachelor degree: ", cache.text(prj, "Bachelor").map(_._2))
 
         // Example for SQL-based querying with custom remote transformer to make sure
         // that only required data without any overhead is returned to caller.
@@ -78,7 +82,7 @@ object ScalarCacheQueryExample {
         // to calculate average salary among all employees within a company.
         // Gets average salary of persons with 'Master' degree.
         print("Average salary of people with Master degree: ",
-            cache.luceneReduce(
+            cache.textReduce(
                 prj,
                 "Master",
                 (e: Iterable[(GridCacheAffinityKey[UUID], Person)]) => (e.map(_._2.salary).sum, e.size),
@@ -174,7 +178,7 @@ private case class Person(
     lastName: String,
     @ScalarCacheQuerySqlField
     salary: Double,
-    @ScalarCacheQueryLuceneField
+    @ScalarCacheQueryTextField
     resume: String
 ) {
     /** Person ID. */

@@ -11,6 +11,7 @@ package org.gridgain.examples.cache.datastructures;
 
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.datastructures.*;
+import org.gridgain.grid.editions.*;
 import org.gridgain.grid.typedef.*;
 
 import java.util.*;
@@ -26,6 +27,7 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  * @author @java.author
  * @version @java.version
  */
+@GridNotAvailableIn(GridEdition.COMPUTE_GRID)
 public final class GridCacheAtomicReferenceExample {
     /** Cache name. */
     // private static final String CACHE_NAME = "replicated";
@@ -46,14 +48,14 @@ public final class GridCacheAtomicReferenceExample {
             print("Starting atomic reference example on nodes: " + grid.nodes().size());
 
             // Make name of atomic reference.
-            final String referenceName = UUID.randomUUID().toString();
+            final String refName = UUID.randomUUID().toString();
 
             // Make value of atomic reference.
-            String value = UUID.randomUUID().toString();
+            String val = UUID.randomUUID().toString();
 
             // Initialize atomic reference in grid.
             GridCacheAtomicReference<String> ref = grid.cache(CACHE_NAME).
-                atomicReference(referenceName, value, false);
+                atomicReference(refName, val, false);
 
             print("Atomic reference initial value : " + ref.get() + '.');
 
@@ -61,7 +63,7 @@ public final class GridCacheAtomicReferenceExample {
             Runnable c = new CAX() {
                 @Override public void applyx() throws GridException {
                     GridCacheAtomicReference<String> ref = G.grid().cache(CACHE_NAME).
-                        atomicReference(referenceName);
+                        atomicReference(refName);
 
                     print("Atomic reference value is " + ref.get() + '.');
                 }
@@ -71,11 +73,11 @@ public final class GridCacheAtomicReferenceExample {
             grid.run(BROADCAST, c);
 
             // Make new value of atomic reference.
-            String newValue = UUID.randomUUID().toString();
+            String newVal = UUID.randomUUID().toString();
 
             print("Try to change value of atomic reference with wrong expected value.");
 
-            ref.compareAndSet("WRONG EXPECTED VALUE", newValue); // Won't change.
+            ref.compareAndSet("WRONG EXPECTED VALUE", newVal); // Won't change.
 
             // Check atomic reference on all grid nodes.
             // Atomic reference value shouldn't be changed.
@@ -83,7 +85,7 @@ public final class GridCacheAtomicReferenceExample {
 
             print("Try to change value of atomic reference with correct expected value.");
 
-            ref.compareAndSet(value, newValue);
+            ref.compareAndSet(val, newVal);
 
             // Check atomic reference on all grid nodes.
             // Atomic reference value should be changed.
