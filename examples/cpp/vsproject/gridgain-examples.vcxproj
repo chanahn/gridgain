@@ -125,7 +125,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\..\clients\cpp\main\include;$(BOOST_HOME)\include\boost-1_49;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\clients\cpp\main\include;$(BOOST_HOME)\include\boost-1_49;$(BOOST_HOME)\include\boost-1_51;$(BOOST_HOME)\include\boost-1_52;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

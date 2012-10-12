@@ -21,7 +21,7 @@ import static org.gridgain.grid.GridClosureCallMode.*;
  */
 public final class GridPiCalculationExample {
     /** Number of calculation per node. */
-    private static final int N = 1000;
+    private static final int N = 10000;
 
     /**
      * Calculates Pi part for a given range.
@@ -32,10 +32,11 @@ public final class GridPiCalculationExample {
     private static double calcPi(int start) {
         X.println("Calculating PI from: " + start);
 
-        double acc = 0.0;
+        double acc = start == 0 ? 3 : 0;
 
-        for (int i = start; i < start + N; i++)
-            acc += 4.0 * (1 - (i % 2) * 2) / (2 * i + 1);
+        for (int i = Math.max(start, 1); i < start + N; i++)
+            // Nilakantha algorithm.
+            acc += 4.0 * (2 * (i % 2) - 1) / (2 * i) / (2 * i + 1) / (2 * i + 2);
 
         return acc;
     }

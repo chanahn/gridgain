@@ -24,21 +24,16 @@ import GridClosureCallMode._
  * @author @java.author
  * @version @java.version
  */
-object ScalarScheduleRunnableExample {
-    /**
-     * Example entry point. No arguments required.
-     */
-    def main(args: Array[String]) {
-        scalar { g: Grid =>
-            // Schedule output message every minute.
-            g.scheduleLocalRun(
-                () => g *< (BROADCAST, () => println("Howdy! :)")),
-                "{5, 10} * * * * *" // Cron expression.
-            )
+object ScalarScheduleRunnableExample extends App {
+    scalar { g: Grid =>
+        // Schedule output message every minute.
+        g.scheduleLocalRun(
+            () => g.bcastRun(() => println("Howdy! :)")),
+            "{5, 10} * * * * *" // Cron expression.
+        )
 
-            Thread.sleep(1000 * 60 * 2)
+        Thread.sleep(1000 * 60 * 2)
 
-            println(">>>>> Check all nodes for hello message output.")
-        }
+        println(">>>>> Check all nodes for hello message output.")
     }
 }

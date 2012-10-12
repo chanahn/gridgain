@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{93C19D37-D5A4-41D0-8E10-F214B1F61213}</ProjectGuid>
+    <ProjectGuid>{BDF562FE-8845-4FCB-92C8-C249E9B04DF2}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>GridGain</RootNamespace>

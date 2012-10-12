@@ -17,9 +17,7 @@ import org.gridgain.grid.typedef.*;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.*;
 
-import static java.util.concurrent.Executors.*;
 import static org.gridgain.grid.cache.query.GridCacheQueryType.*;
 
 /**
@@ -57,10 +55,6 @@ public class GridPopularWordsRealTimeExample {
             return;
         }
 
-        String[] books = inputDir.list();
-
-        ExecutorService threadPool = newFixedThreadPool(books.length);
-
         Timer popularWordsQryTimer = new Timer("words-query-worker");
 
         // Start grid.
@@ -69,14 +63,12 @@ public class GridPopularWordsRealTimeExample {
         try {
             TimerTask task = scheduleQuery(g, popularWordsQryTimer, POPULAR_WORDS_CNT);
 
-            realTimePopulate(g, new ExecutorCompletionService<Object>(threadPool), inputDir);
+            realTimePopulate(g, inputDir);
 
             // Force one more run to get final counts.
             task.run();
 
             popularWordsQryTimer.cancel();
-
-            threadPool.shutdownNow();
 
             // Clean up caches on all nodes after run.
             g.run(GridClosureCallMode.BROADCAST, new Runnable() {
@@ -101,22 +93,20 @@ public class GridPopularWordsRealTimeExample {
      * Populates cache in real time with words and keeps count for every word.
      *
      * @param g Grid.
-     * @param threadPool Thread pool.
      * @param inputDir Input folder.
      * @throws Exception If failed.
      */
-    private static void realTimePopulate(final Grid g, CompletionService<Object> threadPool, final File inputDir)
-        throws Exception {
+    private static void realTimePopulate(final Grid g, final File inputDir) throws Exception {
         String[] books = inputDir.list();
 
         // Count closure which increments a count for a word on remote node.
-        final GridClosure<Integer, Integer> cntClo = new GridClosure<Integer, Integer>() {
+        GridClosure<Integer, Integer> cntClo = new GridClosure<Integer, Integer>() {
             @Override public Integer apply(Integer cnt) {
                 return cnt == null ? 1 : cnt + 1;
             }
         };
 
-        final GridDataLoader<String, Integer> ldr = g.dataLoader(null);
+        GridDataLoader<String, Integer> ldr = g.dataLoader(null);
 
         // Set larger per-node buffer size since our state is relatively small.
         ldr.perNodeBufferSize(2048);
@@ -128,45 +118,29 @@ public class GridPopularWordsRealTimeExample {
         // Set max keys count per TX.
         ldr.perTxKeysCount(128);
 
-        for (final String name : books) {
-            // Read text files from multiple threads and cache individual words with their counts.
-            threadPool.submit(new Callable<Object>() {
-                @Override public Object call() throws Exception {
-                    X.println(">>> Storing all words from book in data grid: " + name);
-
-                    BufferedReader in = new BufferedReader(new FileReader(new File(inputDir, name)));
-
-                    try {
-                        for (String line = in.readLine(); line != null; line = in.readLine())
-                            for (final String w : line.split("[^a-zA-Z0-9]"))
-                                if (!w.isEmpty())
-                                    // Note that we are loading our closure which
-                                    // will then calculate proper value on remote node.
-                                    ldr.addData(w, cntClo);
-                    }
-                    finally {
-                        in.close();
-                    }
-
-                    X.println(">>> Finished storing all words from book in data grid: " + name);
-
-                    return null;
-                }
-            });
-        }
-
         try {
-            int idx = 0;
+            for (String name : books) {
+                X.println(">>> Storing all words from book in data grid: " + name);
 
-            while (++idx <= books.length)
-                threadPool.take().get();
+                BufferedReader in = new BufferedReader(new FileReader(new File(inputDir, name)));
 
-            ldr.close(false); // Pass 'false' to wait for loader to complete gracefully.
+                try {
+                    for (String line = in.readLine(); line != null; line = in.readLine())
+                        for (final String w : line.split("[^a-zA-Z0-9]"))
+                            if (!w.isEmpty())
+                                // Note that we are loading our closure which
+                                // will then calculate proper value on remote node.
+                                ldr.addData(w, cntClo);
+                }
+                finally {
+                    in.close();
+                }
+
+                X.println(">>> Finished storing all words from book in data grid: " + name);
+            }
         }
-        catch (Exception e) {
-            e.printStackTrace();
-
-            ldr.close(true); // Pass 'true' to cancel outstanding loading jobs in case of error.
+        finally {
+            ldr.close(false);
         }
     }
 

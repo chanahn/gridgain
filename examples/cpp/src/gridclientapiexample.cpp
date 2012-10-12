@@ -7,8 +7,29 @@
  *  \____/   /_/     /_/   \_,__/   \____/   \__,_/  /_/   /_/ /_/
  */
 
-// To run this example start a node from IDE:
-// run org.gridgain.examples.client.GridClientExampleNodeStartup
+/**
+ * <summary>
+ * This example demonstrates use of GridGain C++ remote client API. To compile this example
+ * you first need to compile the API, located in GRIDGAIN_HOME/clients/cpp (see README
+ * file for compilation instructions).
+ * <para/>
+ * To execute this example you should start an instance of <c>GridClientExampleNodeStartup</c>
+ * Java class which will start up a GridGain node with proper configuration (you can compile
+ * and run this class from your favourite IDE).
+ * <para/>
+ * You can also start a stand-alone GridGain instance by passing the path
+ * to configuration file to <c>ggstart.{sh|bat}</c> script, like so:
+ * <c>ggstart.sh examples/config/spring-cache.xml'</c>, but some examples (like compute
+ * example) may not work.
+ * <para/>
+ * After node has been started this example creates a client and performs several cache
+ * puts and executes a test task.
+ * <para/>
+ * Note that different nodes cannot share the same port for rest services. If you want
+ * to start more than one node on the same physical machine you must provide different
+ * configurations for each node. Otherwise, this example would not work.
+ * </summary>
+ */
 
 #include <vector>
 #include <string>
@@ -308,10 +329,6 @@ void clientCacheExample(TGridClientPtr client) {
     GridClientDataMetrics metrics = rmtCache->metrics();
     cout << ">>> Cache metrics : " << metrics << endl;
 
-    // Cache metrics may be retrieved for individual keys.
-    metrics = rmtCache->metrics(key0);
-    cout << ">>> Cache metrics for a key : " << metrics << endl;
-
     TGridClientFutureDataMetrics futMetrics = rmtCache->metricsAsync();
 
     futMetrics->get();
@@ -320,8 +337,6 @@ void clientCacheExample(TGridClientPtr client) {
        cout << ">>> Cache asynchronous metrics: " << futMetrics->result() << endl;
     else
        cout << ">>> Cache asynchronous metrics failed. " << endl;
-
-    futMetrics = rmtCache->metricsAsync(key0);
 
     futMetrics->get();
 

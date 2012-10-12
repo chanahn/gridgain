@@ -90,7 +90,7 @@ public class GridPopularNumbersRealTimeExample {
      * @throws GridException If failed.
      */
     private static void realTimePopulate(final Grid g) throws GridException {
-        final GridDataLoader<Integer, Integer> ldr = g.dataLoader(null);
+        final GridDataLoader<Integer, Long> ldr = g.dataLoader(null);
 
         try {
             // Set larger per-node buffer size since our state is relatively small.
@@ -104,8 +104,8 @@ public class GridPopularNumbersRealTimeExample {
             ldr.perTxKeysCount(128);
 
             // Count closure which increments a count for a word on remote node.
-            final GridClosure<Integer, Integer> cntClo = new GridClosure<Integer, Integer>() {
-                @Override public Integer apply(Integer cnt) {
+            final GridClosure<Long, Long> cntClo = new GridClosure<Long, Long>() {
+                @Override public Long apply(Long cnt) {
                     return cnt == null ? 1 : cnt + 1;
                 }
             };
@@ -132,18 +132,18 @@ public class GridPopularNumbersRealTimeExample {
 
             @Override public void run() {
                 // Get reference to cache.
-                GridCache<Integer, Integer> cache = g.cache();
+                GridCache<Integer, Long> cache = g.cache();
 
                 if (qry == null)
-                    qry = cache.createFieldsQuery("select _key, _val from Integer order by _val desc limit " + cnt);
+                    qry = cache.createFieldsQuery("select _key, _val from Long order by _val desc limit " + cnt);
 
                 try {
                     List<List<Object>> results = new ArrayList<List<Object>>(qry.execute(g).get());
 
                     Collections.sort(results, new Comparator<List<Object>>() {
                         @Override public int compare(List<Object> r1, List<Object> r2) {
-                            int cnt1 = (Integer)r1.get(1);
-                            int cnt2 = (Integer)r2.get(1);
+                            long cnt1 = (Long)r1.get(1);
+                            long cnt2 = (Long)r2.get(1);
 
                             return cnt1 < cnt2 ? 1 : cnt1 > cnt2 ? -1 : 0;
                         }

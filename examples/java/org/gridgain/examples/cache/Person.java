@@ -10,10 +10,8 @@
 package org.gridgain.examples.cache;
 
 import org.gridgain.grid.*;
-import org.gridgain.grid.cache.affinity.*;
 import org.gridgain.grid.cache.query.*;
 import org.gridgain.grid.editions.*;
-import org.gridgain.grid.typedef.internal.*;
 
 import java.io.*;
 import java.util.*;
@@ -49,9 +47,6 @@ public class Person implements Serializable {
     /** Salary (create non-unique SQL index for this field). */
     @GridCacheQuerySqlField
     private double salary;
-
-    /** Custom cache key to guarantee that person is always collocated with its organization. */
-    private transient GridCacheAffinityKey<UUID> key;
 
     /**
      * Constructs person with generated ID.
@@ -108,18 +103,7 @@ public class Person implements Serializable {
         this.salary = salary;
     }
 
-    /**
-     * Gets cache affinity key. Since in some examples person needs to be collocated with organization, we create
-     * custom affinity key to guarantee this collocation.
-     *
-     * @return Custom affinity key to guarantee that person is always collocated with organization.
-     */
-    public GridCacheAffinityKey<UUID> key() {
-        if (key == null)
-            key = new GridCacheAffinityKey<UUID>(id, orgId);
 
-        return key;
-    }
 
     /**
      * @return Person id.
@@ -217,6 +201,17 @@ public class Person implements Serializable {
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(Person.class, this);
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Person ");
+        sb.append("[firstName=").append(firstName);
+        sb.append(", id=").append(id);
+        sb.append(", orgId=").append(orgId);
+        sb.append(", lastName=").append(lastName);
+        sb.append(", resume=").append(resume);
+        sb.append(", salary=").append(salary);
+        sb.append(']');
+
+        return sb.toString();
     }
 }

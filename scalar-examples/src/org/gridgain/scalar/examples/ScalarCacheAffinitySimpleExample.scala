@@ -32,23 +32,22 @@ import org.gridgain.grid.cache.GridCache
  * @author @java.author
  * @version @java.version
  */
-object ScalarCacheAffinitySimpleExample {
+object ScalarCacheAffinitySimpleExample extends App {
     /** Number of keys. */
     private val KEY_CNT = 20
 
-    /**
-     * Example entry point. No arguments required.
-     *
+    /** Type alias. */
+    type Cache = GridCache[Int, String]
+
+    /*
      * Note that in case of `LOCAL` configuration,
      * since there is no distribution, values may come back as `nulls`.
      */
-    def main(args: Array[String]) {
-        scalar("examples/config/spring-cache.xml") {
-            val c = grid$.cache[Int, String]("partitioned")
+    scalar("examples/config/spring-cache.xml") {
+        val c = grid$.cache[Int, String]("partitioned")
 
-            populate(c)
-            visit(c)
-        }
+        populate(c)
+        visit(c)
     }
 
     /**
@@ -57,7 +56,7 @@ object ScalarCacheAffinitySimpleExample {
      *
      * @param c Cache to use.
      */
-    private def visit(c: GridCache[Int, String]) {
+    private def visit(c: Cache) {
         (0 until KEY_CNT).foreach(i =>
             grid$.affinityRun("partitioned", i,
                 () => println("Co-located [key= " + i + ", value=" + c.peek(i) + ']'))
@@ -69,7 +68,7 @@ object ScalarCacheAffinitySimpleExample {
      *
      * @param c Cache to populate.
      */
-    private def populate(c: GridCache[Int, String]) {
+    private def populate(c: Cache) {
         (0 until KEY_CNT).foreach(i => c += (i -> i.toString))
     }
 }

@@ -25,16 +25,9 @@ import collection.JavaConversions._
  * @author @java.author
  * @version @java.version
  */
-object ScalarTaskExample {
-    /**
-     * Main entry point to application. No arguments required.
-     *
-     * @param args Command like argument (not used).
-     */
-    def main(args: Array[String]){
-        scalar {
-            grid$.execute(classOf[GridHelloWorld], "Hello Cloud World!").get
-        }
+object ScalarTaskExample extends App {
+    scalar {
+        grid$.execute(classOf[GridHelloWorld], "Hello Cloud World!").get
     }
 
     /**

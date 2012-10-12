@@ -12,7 +12,6 @@ package org.gridgain.examples.cache;
 import org.gridgain.grid.*;
 import org.gridgain.grid.cache.query.*;
 import org.gridgain.grid.editions.*;
-import org.gridgain.grid.typedef.internal.*;
 
 import java.io.*;
 import java.util.*;
@@ -101,6 +100,13 @@ public class Organization implements Serializable {
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(Organization.class, this);
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Organization ");
+        sb.append("[id=").append(id);
+        sb.append(", name=").append(name);
+        sb.append(']');
+
+        return sb.toString();
     }
 }

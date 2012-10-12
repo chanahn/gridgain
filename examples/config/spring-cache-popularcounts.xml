@@ -69,7 +69,7 @@
                     <property name="cacheMode" value="PARTITIONED"/>
 
                     <!-- Initial cache size (just to avoid internal resizing). -->
-                    <property name="startSize" value="1024"/>
+                    <property name="startSize" value="700000"/>
 
                     <!--
                         Setting this to true will cause local node to wait for remote commits.
@@ -94,13 +94,13 @@
                     -->
                     <property name="affinity">
                         <bean class="org.gridgain.grid.cache.affinity.partitioned.GridCachePartitionedAffinity">
-                            <!-- We don't need backups for this example. -->
+                            <!--
+                                You can change this value to 0 as
+                                we don't really need backups for this example.
+                            -->
                             <property name="keyBackups" value="1"/>
                         </bean>
                     </property>
-
-                    <!-- Set synchronous preloading (default is asynchronous). -->
-                    <property name="preloadMode" value="SYNC"/>
 
                     <!--
                         Set default transaction concurrency and isolation.
@@ -109,7 +109,11 @@
                     <property name="defaultTxIsolation" value="REPEATABLE_READ"/>
 
                     <!-- Disable near cache as we don't need it for this example. -->
+                    <property name="evictionEnabled" value="false"/>
                     <property name="nearEnabled" value="false"/>
+
+                    <!-- Delay preloading by default. -->
+                    <property name="preloadPartitionedDelay" value="-1"/>
                 </bean>
             </list>
         </property>
@@ -156,10 +160,16 @@
             <bean class="org.gridgain.grid.spi.discovery.tcp.GridTcpDiscoverySpi">
                 <property name="ipFinder">
                     <bean class="org.gridgain.grid.spi.discovery.tcp.ipfinder.s3.GridTcpDiscoveryS3IpFinder">
-                        <property name="accessKeyId" value="<YOUR EC2 ACCESS KEY>"/>
-                        <property name="secretAccessKey" value="<YOUR EC2 SECRET KEY>"/>
+                        <property name="awsCredentials">
+                            <bean class="com.amazonaws.auth.BasicAWSCredentials">
+                                <constructor-arg value="YOUR_ACCESS_KEY_ID" />
+                                <constructor-arg value="YOUR_SECRET_ACCESS_KEY" />
+                            </bean>
+                        </property>
+                        <property name="bucketName" value="YOUR_BUCKET_NAME_IP_FINDER"/>
                     </bean>
                 </property>
+                <property name="heartbeatFrequency" value="2000"/>
             </bean>
         </property>
         -->

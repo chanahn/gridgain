@@ -26,8 +26,8 @@
     <Call name="addConnector">
         <Arg>
             <New class="org.eclipse.jetty.server.ssl.SslSocketConnector">
-                <Set name="host"><Property name="GRIDGAIN_JETTY_HOST"/></Set>
-                <Set name="port"><Property name="GRIDGAIN_JETTY_PORT" default="8080"/></Set>
+                <Set name="host"><SystemProperty name="GRIDGAIN_JETTY_HOST" default="localhost"/></Set>
+                <Set name="port"><SystemProperty name="GRIDGAIN_JETTY_PORT" default="8080"/></Set>
                 <Set name="keystore"><SystemProperty
                         name="GRIDGAIN_HOME" default="${GRIDGAIN_HOME}"/>/examples/keystore/server.jks</Set>
                 <Set name="password">123456</Set>
@@ -38,6 +38,7 @@
                 <Set name="maxIdleTime">30000</Set>
                 <Set name="wantClientAuth">true</Set>
                 <Set name="needClientAuth">true</Set>
+                <Set name="reuseAddress">false</Set>
             </New>
         </Arg>
     </Call>
@@ -46,7 +47,8 @@
     <Call name="addConnector">
         <Arg>
             <New class="org.eclipse.jetty.server.bio.SocketConnector">
-                <Set name="port">8081</Set>
+                <Set name="host"><SystemProperty name="GRIDGAIN_JETTY_HOST"/></Set>
+                <Set name="port"><SystemProperty name="GRIDGAIN_JETTY_PORT" default="8080"/></Set>
                 <Set name="maxIdleTime">50000</Set>
                 <Set name="lowResourceMaxIdleTime">1500</Set>
             </New>

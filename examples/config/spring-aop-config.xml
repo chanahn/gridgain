@@ -14,8 +14,10 @@
 <!--
     GridGain Spring configuration file to startup grid for Spring AOP example.
 
-    When starting a standalone GridGain node, you need to execute the following command:
-    {GRIDGAIN_HOME}/bin/ggstart.{bat|sh} path-to-this-file/spring-aop-config.xml
+    When starting a standalone GridGain node, you need to provide classpath with compiled example classes:
+    > export USER_LIBS={GRIDGAIN_HOME}/out/production/examples/
+    and execute the following command:
+    > {GRIDGAIN_HOME}/bin/ggstart.{bat|sh} path-to-this-file/spring-aop-config.xml
 
     When starting GridGain from Java IDE, pass path to this file into GridFactory:
     GridFactory.start("path-to-this-file/spring-aop-config.xml");
@@ -54,7 +56,8 @@
     </aop:config>
 
     <!-- Annotated bean for Spring AOP configuration example. -->
-    <bean id="springMathematics" class="org.gridgain.examples.gridify.GridifySpringAnnotatedMathematics" scope="singleton"/>
+    <bean id="springMathematics" class="org.gridgain.examples.aop.mathematics.GridifySpringAnnotatedMathematics"
+          scope="singleton"/>
 
     <!-- Grid configuration bean. -->
     <bean id="grid.cfg" class="org.gridgain.grid.GridConfigurationAdapter" scope="singleton"/>

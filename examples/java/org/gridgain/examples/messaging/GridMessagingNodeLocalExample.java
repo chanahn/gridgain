@@ -12,6 +12,8 @@ package org.gridgain.examples.messaging;
 import org.gridgain.grid.*;
 import org.gridgain.grid.resources.*;
 import org.gridgain.grid.typedef.*;
+
+import java.nio.charset.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.zip.*;
@@ -51,6 +53,9 @@ import java.util.zip.*;
  * @version @java.version
  */
 public class GridMessagingNodeLocalExample {
+    /** UTF-8 charset. */
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
+
     /**
      * This example demonstrates a bit contrived but useful example of how to
      * combine node locals and closure for powerful distributed processing pattern.
@@ -126,7 +131,7 @@ public class GridMessagingNodeLocalExample {
                         @Override protected void receive(UUID nodeId, String recvMsg) throws Throwable {
                             X.println("Calculating for: " + recvMsg);
 
-                            crc32.update(recvMsg.getBytes());
+                            crc32.update(recvMsg.getBytes(UTF_8));
 
                             if (++cnt == MSG_NUM) {
                                 stop();

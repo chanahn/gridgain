@@ -76,7 +76,7 @@ object ScalarCacheAffinityExample2 {
                             // job was not routed by affinity.
                             if (!cache.isDefined)
                                 println(">>> Cache not found [nodeId=" + grid$.localNode().id() +
-                                    ", cacheName=" + NAME + ']') ^^
+                                    ", cacheName=" + NAME + ']').^^
 
                             // Check cache without loading the value.
                             mappedKeys.foreach(key => println(">>> Peeked at: " + cache.get.peek(key)))
@@ -104,8 +104,7 @@ object ScalarCacheAffinityExample2 {
 
         // Populate cache on some node (possibly this node)
         // which has cache with given name started.
-        prj.run$(
-            UNICAST,
+        prj.ucastRun(
             () => {
                 println(">>> Storing keys in cache: " + keys)
 

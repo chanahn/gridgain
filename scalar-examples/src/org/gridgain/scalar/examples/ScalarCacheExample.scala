@@ -29,17 +29,12 @@ import collection.JavaConversions._
  * @author @java.author
  * @version @java.version
  */
-object ScalarCacheExample {
-    /**
-     * Example entry point. No arguments required.
-     */
-    def main(args: Array[String]) {
-        scalar("examples/config/spring-cache.xml") {
-            registerListener()
+object ScalarCacheExample extends App {
+    scalar("examples/config/spring-cache.xml") {
+        registerListener()
 
-            basicOperations()
-            twoViewsOneCache()
-        }
+        basicOperations()
+        twoViewsOneCache()
     }
 
     /**
@@ -47,41 +42,41 @@ object ScalarCacheExample {
      */
     def basicOperations() {
         // Create cache predicate-based projection (all values > 30).
-        val c = cache$("partitioned").get.viewByType(classOf[Int], classOf[Int]).
-            viewByKv((k: Int, v: Int) => v < 30)
+        val c = cache$("partitioned").get.viewByType(classOf[String], classOf[Int]).
+            viewByKv((k: String, v: Int) => v < 30)
 
         // Add few values.
-        c += (1 -> 1)
-        c += (2 -> 2)
+        c += (1.toString -> 1)
+        c += (2.toString -> 2)
 
         // Update values.
-        c += (1 -> 11)
-        c += (2 -> 22)
+        c += (1.toString -> 11)
+        c += (2.toString -> 22)
 
         // These should be filtered out by projection.
-        c += (1 -> 31)
-        c += (2 -> 32)
-        c += ((2, 32))
+        c += (1.toString -> 31)
+        c += (2.toString -> 32)
+        c += ((2.toString, 32))
 
         // Remove couple of keys (if any).
-        c -= (11, 22)
+        c -= (11.toString, 22.toString)
 
         // Put one more value.
-        c += (3 -> 11)
+        c += (3.toString -> 11)
 
-        val gt10 = (e: GridCacheEntry[Int, Int]) => e.peek() > 10
+        val gt10 = (e: GridCacheEntry[String, Int]) => e.peek() > 10
 
         // These should pass the predicate.
         // Note that the predicate checks current state of entry, not the new value.
-        c += (3 -> 9, gt10)
+        c += (3.toString -> 9, gt10)
 
         // These should not pass the predicate
         // because value less then 10 was put on previous step.
-        c += (3 -> 8, gt10)
-        c += (3 -> 12, gt10)
+        c += (3.toString -> 8, gt10)
+        c += (3.toString -> 12, gt10)
 
         // Get with option...
-        c.opt(44) match {
+        c.opt(44.toString) match {
             case Some(v) => sys.error("Should never happen.")
             case None => println("Correct")
         }

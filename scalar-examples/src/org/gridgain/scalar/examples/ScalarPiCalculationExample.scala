@@ -13,36 +13,24 @@ package org.gridgain.scalar.examples
 
 import org.gridgain.scalar._
 import scalar._
-import org.gridgain.grid.GridClosureCallMode._
-import org.gridgain.grid.Grid
+import scala.math._
 
 /**
-  * This example calculates Pi number in parallel on the grid. Note that these few
-  * lines of code work on one node, two nodes or hundreds of nodes without any changes
-  * or any explicit deployment.
-  *
-  * @author @java.author
-  * @version @java.version
-  */
+ * This example calculates Pi number in parallel on the grid. Note that these few
+ * lines of code work on one node, two nodes or hundreds of nodes without any changes
+ * or any explicit deployment.
+ *
+ * @author @java.author
+ * @version @java.version
+ */
 object ScalarPiCalculationExample {
-    /** Number of calculations per node. */
+    /** Number of iterations per node. */
     private val N = 10000
 
-    /**
-      * Starts examples and calculates Pi number on the grid.
-      *
-      * @param args Command line arguments - none required.
-      */
     def main(args: Array[String]) {
         scalar {
-            g: Grid =>
-                println("Pi estimate: " +
-                    g.@<[Double, Double](SPREAD, for (i <- 0 until g.size()) yield () => calcPi(i * N), _.sum)
-
-                    // Just another way w/o for-expression.
-                    // Note that map's parameter type inference doesn't work in 2.9.0.
-                    // g.@<[Double, Double](SPREAD, 0 until g.size() map ((i: Int) => () => calcPi(i * N)), _.sum)
-                )
+            println("Pi estimate: " +
+                grid$.spreadReduce(for (i <- 0 until grid$.size()) yield () => calcPi(i * N))(_.sum))
         }
     }
 
@@ -53,5 +41,7 @@ object ScalarPiCalculationExample {
       * @return Range calculation.
       */
     def calcPi(start: Int): Double =
-        ((start until (start + N)) map (i => 4.0 * (1 - (i % 2) * 2) / (2 * i + 1))).sum
+        // Nilakantha algorithm.
+        ((max(start, 1) until (start + N)) map (i => 4.0 * (2 * (i % 2) - 1) / (2 * i) / (2 * i + 1) / (2 * i + 2)))
+            .sum + (if (start == 0) 3 else 0)
 }

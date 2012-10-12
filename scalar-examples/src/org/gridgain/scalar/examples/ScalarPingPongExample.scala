@@ -25,12 +25,10 @@ import GridClosureCallMode._
  * @author @java.author
  * @version @java.version
  */
-object ScalarPingPongExample {
-    def main(args: Array[String]) {
-        scalar {
-            pingPong()
-            //pingPong2()
-        }
+object ScalarPingPongExample extends App {
+    scalar {
+        pingPong()
+        //pingPong2()
     }
 
     /**
@@ -130,7 +128,7 @@ object ScalarPingPongExample {
             // 1. Sets latch into node local storage so that local actor could use it.
             // 2. Sends first 'PING' to 'n1'.
             // 3. Waits until all messages are exchanged between two remote nodes.
-            n2 *< (UNICAST, () => {
+            n2.ucastRun(() => {
                 val latch = new CountDownLatch(10)
 
                 g.nodeLocal[String, CountDownLatch].put("latch", latch)

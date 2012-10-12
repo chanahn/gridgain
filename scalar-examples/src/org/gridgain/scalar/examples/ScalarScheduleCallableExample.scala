@@ -24,34 +24,29 @@ import java.util.Date
  * @author @java.author
  * @version @java.version
  */
-object ScalarScheduleCallableExample {
-    /**
-     * Example entry point. No arguments required.
-     */
-    def main(args: Array[String]) {
-        scalar { g: Grid =>
-            var cnt = 0
+object ScalarScheduleCallableExample extends App {
+    scalar { g: Grid =>
+        var cnt = 0
 
-            // Schedule callable that returns incremented value each time.
-            val fut = g.scheduleLocalCall(
-                () => {
-                    cnt += 1
+        // Schedule callable that returns incremented value each time.
+        val fut = g.scheduleLocalCall(
+            () => {
+                cnt += 1
 
-                    cnt
-                },
-                "{1, 3} * * * * *" // Cron expression.
-            )
+                cnt
+            },
+            "{1, 3} * * * * *" // Cron expression.
+        )
 
-            println(">>> Started scheduling callable execution at " + new Date + ". " +
-                "Wait for 3 minutes and check the output.")
+        println(">>> Started scheduling callable execution at " + new Date + ". " +
+            "Wait for 3 minutes and check the output.")
 
-            println(">>> First execution result: " + fut.get + ", time: " + new Date)
-            println(">>> Second execution result: " + fut.get + ", time: " + new Date)
-            println(">>> Third execution result: " + fut.get + ", time: " + new Date)
+        println(">>> First execution result: " + fut.get + ", time: " + new Date)
+        println(">>> Second execution result: " + fut.get + ", time: " + new Date)
+        println(">>> Third execution result: " + fut.get + ", time: " + new Date)
 
-            println(">>> Execution scheduling stopped after 3 executions.")
+        println(">>> Execution scheduling stopped after 3 executions.")
 
-            println(">>> Check local node for output.")
-        }
+        println(">>> Check local node for output.")
     }
 }

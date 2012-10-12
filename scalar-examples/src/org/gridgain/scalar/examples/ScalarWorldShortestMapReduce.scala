@@ -13,7 +13,6 @@ package org.gridgain.scalar.examples
 
 import org.gridgain.scalar.scalar
 import scalar._
-import org.gridgain.grid.GridClosureCallMode._
 
 /**
  * Shows the world's shortest MapReduce application that calculates non-space
@@ -23,19 +22,12 @@ import org.gridgain.grid.GridClosureCallMode._
  * @author @java.author
  * @version @java.version
  */
-object ScalarWorldShortestMapReduce {
-    /**
-     * Entry point.
-     *
-     * @param args Command line arguments, none required.
-     */
-    def main(args: Array[String]) {
-        scalar {
-            val input = "World shortest mapreduce application"
+object ScalarWorldShortestMapReduce extends App {
+    scalar {
+        val input = "World shortest mapreduce application"
 
-            println("Non-space characters count: " +
-                grid$ @<(SPREAD, for (w <- input.split(" ")) yield (() => w.length), (s: Seq[Int]) => s.sum)
-            )
-        }
+        println("Non-space characters count: " +
+            grid$.spreadReduce(for (w <- input.split(" ")) yield () => w.length)(_.sum)
+        )
     }
 }

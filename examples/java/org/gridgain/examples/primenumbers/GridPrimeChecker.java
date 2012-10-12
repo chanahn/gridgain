@@ -9,10 +9,7 @@
 
 package org.gridgain.examples.primenumbers;
 
-import org.gridgain.examples.primenumbers.api20.*;
-import org.gridgain.examples.primenumbers.gridify.*;
-import org.gridgain.grid.gridify.*;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.*;
 
 /**
  * Simple prime checkers. The implementation of this class iterates
@@ -24,20 +21,14 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class GridPrimeChecker {
     /**
-     * This method is used by both, {@link GridPrimeExample} and {@link GridifyPrimeExample},
-     * examples. Whenever invoked from {@link GridifyPrimeExample}, this method will
-     * be executed on the grid by the virtue of {@link Gridify @Gridify} annotation
-     * attached to it. Note that we specify in the annotation that {@link GridifyPrimeTask}
-     * should be used for grid-enabled execution.
+     * Checks if given value is a prime number.
      *
      * @param val Value to check for prime.
      * @param minRage Lower boundary of divisors range.
      * @param maxRange Upper boundary of divisors range.
      * @return First divisor found or {@code null} if no divisor was found.
      */
-    @Nullable
-    @Gridify(taskClass = GridifyPrimeTask.class)
-    public static Long checkPrime(long val, long minRage, long maxRange) {
+    @Nullable public static Long checkPrime(long val, long minRage, long maxRange) {
         // Loop through all divisors in the range and check if the value passed
         // in is divisible by any of these divisors.
         // Note that we also check for thread interruption which may happen

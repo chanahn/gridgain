@@ -89,19 +89,19 @@ public class GridCachePutGetExample {
                 }
             });
 
-            GridCacheProjection<Integer, String> cache = g.cache(CACHE_NAME).
-                projection(Integer.class, String.class);
+            GridCacheProjection<String, String> cache = g.cache(CACHE_NAME).
+                projection(String.class, String.class);
 
             final int keyCnt = 20;
 
             // Store keys in cache.
             for (int i = 0; i < keyCnt; i++)
-                cache.putx(i, Integer.toString(i));
+                cache.putx(Integer.toString(i), Integer.toString(i));
 
             // Peek and get on local node.
             for (int i = 0; i < keyCnt; i++) {
-                X.println("Peeked [key=" + i + ", val=" + cache.peek(i) + ']');
-                X.println("Got [key=" + i + ", val=" + cache.get(i) + ']');
+                X.println("Peeked [key=" + i + ", val=" + cache.peek(Integer.toString(i)) + ']');
+                X.println("Got [key=" + i + ", val=" + cache.get(Integer.toString(i)) + ']');
             }
 
             // Projection (view) for remote nodes.
@@ -114,8 +114,8 @@ public class GridCachePutGetExample {
                     private Grid g;
 
                     @Override public void applyx() throws GridException {
-                        GridCacheProjection<Integer, String> cache = g.cache(CACHE_NAME).
-                            projection(Integer.class, String.class);
+                        GridCacheProjection<String, String> cache = g.cache(CACHE_NAME).
+                            projection(String.class, String.class);
 
                         if (cache == null) {
                             X.println("Cache was not found [locNodeId=" + g.localNode().id() + ", cacheName=" +
@@ -125,12 +125,29 @@ public class GridCachePutGetExample {
                         }
 
                         for (int i = 0; i < keyCnt; i++) {
-                            X.println("Peeked [key=" + i + ", val=" + cache.peek(i) + ']');
-                            X.println("Got [key=" + i + ", val=" + cache.get(i) + ']');
+                            X.println("Peeked [key=" + i + ", val=" + cache.peek(Integer.toString(i)) + ']');
+                            X.println("Got [key=" + i + ", val=" + cache.get(Integer.toString(i)) + ']');
                         }
                     }
                 });
             }
+
+            // Unsubscribe from events listening on every node.
+            g.run(BROADCAST, new CA() {
+                @GridInstanceResource
+                private Grid g;
+
+                @Override public void apply() {
+                    GridNodeLocal<String, GridLocalEventListener> loc = g.nodeLocal();
+
+                    GridLocalEventListener prev = loc.remove("lsnr");
+
+                    // If there is a listener subscribed from previous runs, unsubscribe it.
+                    if (prev != null)
+                        g.removeLocalEventListener(prev);
+                }
+            });
+
         }
         finally {
             G.stop(true);

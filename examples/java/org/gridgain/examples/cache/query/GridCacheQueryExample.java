@@ -113,7 +113,7 @@ public class GridCacheQueryExample {
             print("Query example finished.");
         }
         finally {
-            //GridFactory.stop(true);
+            GridFactory.stop(true);
         }
     }
 
@@ -132,11 +132,11 @@ public class GridCacheQueryExample {
      * @param p Grid projection to run query on.
      */
     private static void querySalaries(GridProjection p) {
-        GridCacheProjection<GridCacheAffinityKey<UUID>, Person> cache = cache();
+        GridCacheProjection<GridCacheAffinityKey<UUID>, AffinityPerson> cache = cache();
 
         // Create query which selects salaries based on range.
-        GridCacheQuery<GridCacheAffinityKey<UUID>, Person> qry =
-            cache.createQuery(SQL, Person.class, "salary > ? and salary <= ?");
+        GridCacheQuery<GridCacheAffinityKey<UUID>, AffinityPerson> qry =
+            cache.createQuery(SQL, AffinityPerson.class, "salary > ? and salary <= ?");
 
         // Execute queries for salary ranges.
         print("People with salaries between 0 and 1000: ",
@@ -155,13 +155,13 @@ public class GridCacheQueryExample {
      * @param p Grid projection to run query on.
      */
     private static void queryEmployees(GridProjection p) {
-        GridCacheProjection<GridCacheAffinityKey<UUID>, Person> cache = cache();
+        GridCacheProjection<GridCacheAffinityKey<UUID>, AffinityPerson> cache = cache();
 
         // Create query which joins on 2 types to select people for a specific organization.
-        GridCacheQuery<GridCacheAffinityKey<UUID>, Person> qry =
-            cache.createQuery(SQL, Person.class,
-                "from Person, Organization " +
-                    "where Person.orgId = Organization.id and lower(Organization.name) = lower(?)");
+        GridCacheQuery<GridCacheAffinityKey<UUID>, AffinityPerson> qry =
+            cache.createQuery(SQL, AffinityPerson.class,
+                "from AffinityPerson, Organization " +
+                    "where AffinityPerson.orgId = Organization.id and lower(Organization.name) = lower(?)");
 
         // Execute queries for find employees for different organizations.
         print("Following people are 'GridGain' employees: ",
@@ -177,15 +177,15 @@ public class GridCacheQueryExample {
      * @param p Grid projection to run query on.
      */
     private static void queryDegree(GridProjection p) {
-        GridCacheProjection<GridCacheAffinityKey<UUID>, Person> cache = cache();
+        GridCacheProjection<GridCacheAffinityKey<UUID>, AffinityPerson> cache = cache();
 
         //  Query for all people with "Master Degree" in their resumes.
-        GridCacheQuery<GridCacheAffinityKey<UUID>, Person> masters =
-            cache.createQuery(TEXT, Person.class, "Master");
+        GridCacheQuery<GridCacheAffinityKey<UUID>, AffinityPerson> masters =
+            cache.createQuery(TEXT, AffinityPerson.class, "Master");
 
         // Query for all people with "Bachelor Degree"in their resumes.
-        GridCacheQuery<GridCacheAffinityKey<UUID>, Person> bachelors =
-            cache.createQuery(TEXT, Person.class, "Bachelor");
+        GridCacheQuery<GridCacheAffinityKey<UUID>, AffinityPerson> bachelors =
+            cache.createQuery(TEXT, AffinityPerson.class, "Bachelor");
 
         print("Following people have 'Master Degree' in their resumes: ", masters.execute(p));
 
@@ -200,37 +200,38 @@ public class GridCacheQueryExample {
      * @throws GridException In case of error.
      */
     private static void queryAverageSalary(GridProjection p) throws GridException {
-        GridCacheProjection<GridCacheAffinityKey<UUID>, Person> cache = cache();
+        GridCacheProjection<GridCacheAffinityKey<UUID>, AffinityPerson> cache = cache();
 
         // Calculate average of salary of all persons in GridGain.
-        GridCacheReduceQuery<GridCacheAffinityKey<UUID>, Person, GridTuple2<Double, Integer>, Double> qry =
-            cache.createReduceQuery(SQL, Person.class,
-                "from Person, Organization " +
-                    "where Person.orgId = Organization.id and lower(Organization.name) = lower(?)");
+        GridCacheReduceQuery<GridCacheAffinityKey<UUID>, AffinityPerson, GridTuple2<Double, Integer>, Double> qry =
+            cache.createReduceQuery(SQL, AffinityPerson.class,
+                "from AffinityPerson, Organization " +
+                    "where AffinityPerson.orgId = Organization.id and lower(Organization.name) = lower(?)");
 
         // Calculate sum of salaries and employee count on remote nodes.
-        qry.remoteReducer(new C1<Object[], GridReducer<Map.Entry<GridCacheAffinityKey<UUID>, Person>,
+        qry.remoteReducer(new C1<Object[], GridReducer<Map.Entry<GridCacheAffinityKey<UUID>, AffinityPerson>,
             GridTuple2<Double, Integer>>>() {
-            private GridReducer<Map.Entry<GridCacheAffinityKey<UUID>, Person>, GridTuple2<Double, Integer>> rdc =
-                new GridReducer<Map.Entry<GridCacheAffinityKey<UUID>, Person>, GridTuple2<Double, Integer>>() {
-                    private double sum;
-                    private int cnt;
+                private final GridReducer<Map.Entry<GridCacheAffinityKey<UUID>, AffinityPerson>, GridTuple2<Double, Integer>> rdc =
+                    new GridReducer<Map.Entry<GridCacheAffinityKey<UUID>, AffinityPerson>, GridTuple2<Double, Integer>>() {
+                        private double sum;
 
-                    @Override public boolean collect(Map.Entry<GridCacheAffinityKey<UUID>, Person> e) {
-                        sum += e.getValue().getSalary();
+                        private int cnt;
 
-                        cnt++;
+                        @Override public boolean collect(Map.Entry<GridCacheAffinityKey<UUID>, AffinityPerson> e) {
+                            sum += e.getValue().getSalary();
 
-                        // Continue collecting.
-                        return true;
-                    }
+                            cnt++;
 
-                    @Override public GridTuple2<Double, Integer> apply() {
-                        return F.t(sum, cnt);
-                    }
-                };
+                            // Continue collecting.
+                            return true;
+                        }
 
-                @Override public GridReducer<Map.Entry<GridCacheAffinityKey<UUID>, Person>,
+                        @Override public GridTuple2<Double, Integer> apply() {
+                            return F.t(sum, cnt);
+                        }
+                    };
+
+                @Override public GridReducer<Map.Entry<GridCacheAffinityKey<UUID>, AffinityPerson>,
                     GridTuple2<Double, Integer>> apply(Object[] args) {
                     return rdc;
                 }
@@ -238,28 +239,35 @@ public class GridCacheQueryExample {
 
         // Reduce totals from remote nodes into overall average.
         qry.localReducer(new C1<Object[], GridReducer<GridTuple2<Double, Integer>, Double>>() {
-            private GridReducer<GridTuple2<Double, Integer>, Double> rdc =
+            private final GridReducer<GridTuple2<Double, Integer>, Double> rdc =
                 new GridReducer<GridTuple2<Double, Integer>, Double>() {
                     private double sum;
+
                     private int cnt;
 
-                    @Override public boolean collect(GridTuple2<Double, Integer> e) {
-                        sum += e.get1();
-                        cnt += e.get2();
+                    @Override public boolean collect(GridTuple2<Double, Integer> t) {
+                        sum += t.get1();
+                        cnt += t.get2();
 
                         // Continue collecting.
                         return true;
                     }
 
                     @Override public Double apply() {
-                        return cnt == 0 ? 0 : sum / cnt;
+                        double avg = cnt == 0 ? 0 : sum / cnt;
+
+                        // Reset reducer state to correctly execute query several times.
+                        sum = 0;
+                        cnt = 0;
+
+                        return avg;
                     }
                 };
 
-                @Override public GridReducer<GridTuple2<Double, Integer>, Double> apply(Object[] args) {
-                    return rdc;
-                }
-            });
+            @Override public GridReducer<GridTuple2<Double, Integer>, Double> apply(Object[] args) {
+                return rdc;
+            }
+        });
 
         // Calculate average salary for a specific organization.
         print("Average salary for 'GridGain' employees: " +
@@ -277,21 +285,21 @@ public class GridCacheQueryExample {
      * @throws GridException In case of error.
      */
     private static void queryEmployeeNames(GridProjection p) throws GridException {
-        GridCacheProjection<GridCacheAffinityKey<UUID>, Person> cache = cache();
+        GridCacheProjection<GridCacheAffinityKey<UUID>, AffinityPerson> cache = cache();
 
         // Create query to get names of all employees working for some company.
-        GridCacheTransformQuery<GridCacheAffinityKey<UUID>, Person, String> qry =
-            cache.createTransformQuery(SQL, Person.class,
-                "from Person, Organization " +
-                    "where Person.orgId = Organization.id and lower(Organization.name) = lower(?)");
+        GridCacheTransformQuery<GridCacheAffinityKey<UUID>, AffinityPerson, String> qry =
+            cache.createTransformQuery(SQL, AffinityPerson.class,
+                "from AffinityPerson, Organization " +
+                    "where AffinityPerson.orgId = Organization.id and lower(Organization.name) = lower(?)");
 
         // Transformer to convert Person objects to String.
         // Since caller only needs employee names, we only
         // send names back.
-        qry.remoteTransformer(new C1<Object[], GridClosure<Person, String>>() {
-            @Override public GridClosure<Person, String> apply(Object[] args) {
-                return new C1<Person, String>() {
-                    @Override public String apply(Person p) {
+        qry.remoteTransformer(new C1<Object[], GridClosure<AffinityPerson, String>>() {
+            @Override public GridClosure<AffinityPerson, String> apply(Object[] args) {
+                return new C1<AffinityPerson, String>() {
+                    @Override public String apply(AffinityPerson p) {
                         return p.getLastName();
                     }
                 };
@@ -315,7 +323,7 @@ public class GridCacheQueryExample {
 
         // Create query to get names of all employees.
         GridCacheFieldsQuery qry1 = cache.createFieldsQuery(
-            "select concat(firstName, ' ', lastName) from Person");
+            "select concat(firstName, ' ', lastName) from AffinityPerson");
 
         // Execute query to get collection of rows. In this particular
         // case each row will have one element with full name of an employees.
@@ -326,7 +334,7 @@ public class GridCacheQueryExample {
 
         // Create query that gets employee by name and returns his salary.
         GridCacheFieldsQuery qry2 = cache.createFieldsQuery(
-            "select salary from Person where concat(firstName, ' ', lastName) = ?");
+            "select salary from AffinityPerson where concat(firstName, ' ', lastName) = ?");
 
         // Only one row with one field is expected in result of this query,
         // so you can use convenient 'executeSingleField' method here.
@@ -341,24 +349,24 @@ public class GridCacheQueryExample {
      * @throws InterruptedException In case of error.
      */
     private static void initialize() throws GridException, InterruptedException {
-        GridCacheProjection<GridCacheAffinityKey<UUID>, Person> cache = cache();
+        GridCacheProjection<GridCacheAffinityKey<UUID>, AffinityPerson> cache = cache();
 
         // Organization projection.
         GridCacheProjection<UUID, Organization> orgCache = cache.projection(UUID.class, Organization.class);
 
         // Person projection.
-        GridCacheProjection<GridCacheAffinityKey<UUID>, Person> personCache =
-            cache.projection(GridCacheAffinityKey.class, Person.class);
+        GridCacheProjection<GridCacheAffinityKey<UUID>, AffinityPerson> personCache =
+            cache.projection(GridCacheAffinityKey.class, AffinityPerson.class);
 
         // Organizations.
         Organization org1 = new Organization("GridGain");
         Organization org2 = new Organization("Other");
 
         // People.
-        Person p1 = new Person(org1, "John", "Doe", 2000, "John Doe has Master Degree.");
-        Person p2 = new Person(org1, "Jane", "Doe", 1000, "Jane Doe has Bachelor Degree.");
-        Person p3 = new Person(org2, "John", "Smith", 1000, "John Smith has Bachelor Degree.");
-        Person p4 = new Person(org2, "Jane", "Smith", 2000, "Jane Smith has Master Degree.");
+        AffinityPerson p1 = new AffinityPerson(org1, "John", "Doe", 2000, "John Doe has Master Degree.");
+        AffinityPerson p2 = new AffinityPerson(org1, "Jane", "Doe", 1000, "Jane Doe has Bachelor Degree.");
+        AffinityPerson p3 = new AffinityPerson(org2, "John", "Smith", 1000, "John Smith has Bachelor Degree.");
+        AffinityPerson p4 = new AffinityPerson(org2, "Jane", "Smith", 2000, "Jane Smith has Master Degree.");
 
         orgCache.put(org1.getId(), org1);
         orgCache.put(org2.getId(), org2);

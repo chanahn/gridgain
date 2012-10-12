@@ -50,8 +50,9 @@ class GroverPiCalculationExample {
      * @return Range calculation.
      */
     private static double calcPi(int start) {
-        (start ..< (start + N)).inject(0) { double sum, int i ->
-            sum + (4.0 * (1 - (i % 2) * 2) / (2 * i + 1))
+        (Math.max(start, 1) ..< (start + N)).inject(start == 0 ? 3 : 0) { double sum, int i ->
+            // Nilakantha algorithm.
+            sum + (4.0 * (2 * (i % 2) - 1) / (2 * i) / (2 * i + 1) / (2 * i + 2))
         }
     }
 }

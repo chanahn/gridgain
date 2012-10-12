@@ -54,10 +54,16 @@
             <bean class="org.gridgain.grid.spi.discovery.tcp.GridTcpDiscoverySpi">
                 <property name="ipFinder">
                     <bean class="org.gridgain.grid.spi.discovery.tcp.ipfinder.s3.GridTcpDiscoveryS3IpFinder">
-                        <property name="accessKeyId" value="<YOUR EC2 ACCESS KEY>"/>
-                        <property name="secretAccessKey" value="<YOUR EC2 SECRET KEY>"/>
+                        <property name="awsCredentials">
+                            <bean class="com.amazonaws.auth.BasicAWSCredentials">
+                                <constructor-arg value="YOUR_ACCESS_KEY_ID" />
+                                <constructor-arg value="YOUR_SECRET_ACCESS_KEY" />
+                            </bean>
+                        </property>
+                        <property name="bucketName" value="YOUR_BUCKET_NAME_IP_FINDER"/>
                     </bean>
                 </property>
+                <property name="heartbeatFrequency" value="2000"/>
             </bean>
         </property>
         -->

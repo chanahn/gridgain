@@ -21,7 +21,7 @@ import java.io.*;
 import java.sql.*;
 import java.util.*;
 
-import static org.gridgain.jdbc.GridJdbcDriver.*;
+import static org.gridgain.grid.cache.GridCacheMode.*;
 
 /**
  * This example shows how to use GridGain JDBC driver. It populates cache with
@@ -86,14 +86,24 @@ public class GridCacheJdbcExample {
         Connection conn = null;
 
         try {
+            // Get cache by name.
+            GridCache<Object, Object> cache = grid.cache(CACHE_NAME);
+
             // Populate cache with data.
-            populate(grid.cache(CACHE_NAME));
+            populate(cache);
 
             // Register JDBC driver.
             Class.forName("org.gridgain.jdbc.GridJdbcDriver");
 
+            String url = "jdbc:gridgain://localhost/" + CACHE_NAME;
+
+            // Append local node ID as an URL parameter when querying local cache,
+            // as we should not include remote nodes when working with local caches.
+            if (cache.configuration().getCacheMode() == LOCAL)
+                url += "?nodeId=" + grid.localNode().id();
+
             // Open JDBC connection.
-            conn = DriverManager.getConnection("jdbc:gridgain://localhost/" + CACHE_NAME, configuration());
+            conn = DriverManager.getConnection(url, configuration());
 
             X.println(">>>");
 
@@ -137,41 +147,67 @@ public class GridCacheJdbcExample {
         // local caches with same name in topology and want to specify which of them to connect.
         //
         // Uncomment line below and provide correct ID if needed.
-//        cfg.setProperty(CONF_NODE_ID, "E0869485-512C-41F9-866D-BE906B591BEA");
+        // cfg.setProperty("gg.jdbc.nodeId", "E0869485-512C-41F9-866D-BE906B591BEA");
 
         // Communication protocol (TCP or HTTP). Default is TCP.
-        cfg.setProperty(CONF_PROTO, "TCP");
+        cfg.setProperty("gg.client.protocol", "TCP");
 
         // Socket timeout. Default is 0 which means infinite timeout.
-        cfg.setProperty(CONF_TIMEOUT, "0");
+        cfg.setProperty("gg.client.connectTimeout", "0");
 
         // Flag indicating whether TCP_NODELAY flag should be enabled for outgoing
         // connections. Default is true.
-        cfg.setProperty(CONF_TCP_NO_DELAY, "true");
+        cfg.setProperty("gg.client.tcp.noDelay", "true");
 
         // Flag indicating that SSL is needed for connection. Default is false.
-        cfg.setProperty(CONF_SSL_ENABLED, "false");
+        // cfg.setProperty("gg.client.ssl.enabled", "false");
 
-        // SSL context factory class name. Class must extend org.gridgain.client.ssl.GridSslContextFactory
-        // interface, have default constructor and be available on classpath.
-        // Ignored if SSL is disabled.
-        cfg.setProperty(CONF_SSL_FACTORY, "org.gridgain.client.ssl.GridSslBasicContextFactory");
-
-        // SSL pass-phrase.
+        // SSL protocol.
         // Ignored is SSL is disabled.
-        cfg.setProperty(CONF_CREDS, "s3cr3t");
+        // cfg.setProperty("gg.client.ssl.protocol", "TLS");
+
+        // Key manager algorithm.
+        // Ignored is SSL is disabled.
+        // cfg.setProperty("gg.client.ssl.key.algorithm", "SunX509");
+
+        // Key store to be used by client to connect with GridGain topology.
+        // Ignored is SSL is disabled.
+        // cfg.setProperty("gg.client.ssl.keystore.location", "/path/to/keystore");
+
+        // Key store password.
+        // Ignored is SSL is disabled.
+        // cfg.setProperty("gg.client.ssl.keystore.password", "s3cr3t");
+
+        // Key store type.
+        // Ignored is SSL is disabled.
+        // cfg.setProperty("gg.client.ssl.keystore.type", "jks");
+
+        // Trusty store to be used by client to connect with GridGain topology.
+        // Ignored is SSL is disabled.
+        // cfg.setProperty("gg.client.ssl.truststore.location", "/path/to/truststore");
+
+        // Trust store password.
+        // Ignored is SSL is disabled.
+        // cfg.setProperty("gg.client.ssl.truststore.password", "s3cr3t");
+
+        // Trust store type.
+        // Ignored is SSL is disabled.
+        // cfg.setProperty("gg.client.ssl.truststore.type", "jks");
+
+        // Client credentials used in authentication process.
+        // cfg.setProperty("gg.client.credentials", "s3cr3t");
 
         // Flag indicating that topology is cached internally. Cache will be refreshed
         // in the background with interval defined by CONF_TOP_REFRESH_FREQ property
         // (see below). Default is false.
-        cfg.setProperty(CONF_TOP_CACHE_ENABLED, "false");
+        cfg.setProperty("gg.client.cacheTop", "false");
 
         // Topology cache refresh frequency. Default is 2000 ms.
-        cfg.setProperty(CONF_TOP_REFRESH_FREQ, "2000");
+        cfg.setProperty("gg.client.topology.refresh", "2000");
 
         // Maximum amount of time that connection can be idle before it is closed.
         // Default is 30000 ms.
-        cfg.setProperty(CONF_MAX_IDLE_TIME, "30000");
+        cfg.setProperty("gg.client.idleTimeout", "30000");
 
         return cfg;
     }
@@ -232,7 +268,7 @@ public class GridCacheJdbcExample {
     /**
      * Queries persons working in provided organization.
      *
-     * @param conn JDBC
+     * @param conn JDBC connection.
      * @param orgName Organization name.
      * @throws SQLException In case of SQL error.
      */

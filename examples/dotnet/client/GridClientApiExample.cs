@@ -263,17 +263,10 @@ namespace GridGain.Client {
                 // It's possible to obtain cache metrics using data client API.
                 X.WriteLine(">>> Cache metrics : " + rmtCache.Metrics());
 
-                // Cache metrics may be retrieved for individual keys.
-                X.WriteLine(">>> Cache metrics for a key : " + rmtCache.Metrics("" + 0));
-
                 // Global and per key metrics retrieval can be asynchronous, too.
                 IGridClientFuture<IGridClientDataMetrics> futMetrics = rmtCache.MetricsAsync();
 
                 X.WriteLine(">>> Cache asynchronous metrics : " + futMetrics.Result);
-
-                futMetrics = rmtCache.MetricsAsync("" + 0);
-
-                X.WriteLine(">>> Cache asynchronous metrics for a key : " + futMetrics.Result);
             }
             finally {
                 GridClientFactory.StopAll();
@@ -423,22 +416,22 @@ namespace GridGain.Client {
                     // Client can be used to query logs.
                     ICollection<String> log = prj.Log(0, 1);
 
-                    X.WriteLine(">>> First log lines : " + log);
+                    X.WriteLine(">>> First log lines : " + ToString(log));
 
                     // Log entries may be fetched asynchronously.
                     IGridClientFuture<IList<String>> futLog = prj.LogAsync(1, 2);
 
-                    X.WriteLine(">>> First log lines fetched asynchronously : " + futLog.Result);
+                    X.WriteLine(">>> First log lines fetched asynchronously : " + ToString(futLog.Result));
 
                     // Log file name can also be specified explicitly.
                     log = prj.Log("work/log/gridgain.log", 0, 1);
 
-                    X.WriteLine(">>> First log lines from log file work/log/gridgain.log : " + log);
+                    X.WriteLine(">>> First log lines from log file work/log/gridgain.log : " + ToString(log));
 
                     // Asynchronous version supported as well.
                     futLog = prj.LogAsync("work/log/gridgain.log", 1, 2);
 
-                    X.WriteLine(">>> First log lines fetched asynchronously : " + futLog.Result);
+                    X.WriteLine(">>> First log lines fetched asynchronously : " + ToString(futLog.Result));
                 }
                 catch (GridClientException e) {
                     X.WriteLine("Log file was not found: " + e.Message);

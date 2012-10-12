@@ -52,7 +52,7 @@ public final class GridCacheAffinitySimpleExample {
         g = G.start("examples/config/spring-cache.xml");
 
         try {
-            GridCache<Integer, String> cache = g.cache("partitioned");
+            GridCache<String, String> cache = g.cache("partitioned");
 
             if (cache == null) {
                 System.err.println("Cache with name 'partitioned' not found (is configuration correct?)");
@@ -79,10 +79,10 @@ public final class GridCacheAffinitySimpleExample {
      * @param c Cache to use.
      * @throws GridException Thrown in case of any cache error.
      */
-    private static void visit(final GridCache<Integer, String> c) throws GridException {
+    private static void visit(final GridCache<String, String> c) throws GridException {
         for (int i = 0; i < KEY_CNT; i++) {
             // Affinity key is cache key for this example.
-            final int key = i;
+            final String key = Integer.toString(i);
 
             g.affinityRun("partitioned", key, new CA() {
                 // This closure will execute on the remote node where
@@ -103,8 +103,8 @@ public final class GridCacheAffinitySimpleExample {
      * @param c Cache to populate.
      * @throws GridException Thrown in case of any cache error.
      */
-    private static void populate(GridCache<Integer, String> c) throws GridException {
+    private static void populate(GridCache<String, String> c) throws GridException {
         for (int i = 0; i < KEY_CNT; i++)
-            c.put(i, Integer.toString(i));
+            c.put(Integer.toString(i), Integer.toString(i));
     }
 }

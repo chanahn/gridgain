@@ -14,9 +14,8 @@ package org.gridgain.scalar.examples
 import org.gridgain.scalar.scalar
 import scalar._
 import org.gridgain.grid._
-import GridClosureCallMode._
-import java.util.Arrays
 import scala.util.control.Breaks._
+import java.util
 
 /**
  * Prime Number calculation example based on Scalar.
@@ -43,7 +42,7 @@ import scala.util.control.Breaks._
  * try out different configurations you should pass a path to Spring
  * configuration file as 1st command line argument into this example.
  *
- * The path can be relative to `GRIDGAIN_HOME environment variable.
+ * The path can be relative to `GRIDGAIN_HOME` environment variable.
  * You should also pass the same configuration file to all other
  * grid nodes by executing startup script as follows (you will need
  * to change the actual file name):
@@ -53,7 +52,7 @@ import scala.util.control.Breaks._
  * All configuration files are located under `GRIDGAIN_HOME/examples/config`
  * folder.
  *
- * @author @java.author
+ @author @java.author
  * @version @java.version
  */
 object ScalarPrimeExample {
@@ -70,11 +69,10 @@ object ScalarPrimeExample {
             val checkVals = Array(32452841L, 32452843L, 32452847L, 32452849L, 236887699L, 217645199L)
 
             println(">>>")
-            println(">>> Starting to check the following numbers for primes: " + Arrays.toString(checkVals))
+            println(">>> Starting to check the following numbers for primes: " + util.Arrays.toString(checkVals))
 
             checkVals.foreach(checkVal => {
-                val divisor = g @< (SPREAD, closures(g.size(), checkVal),
-                    (s: Seq[Option[Long]]) => s.find(p => p.isDefined))
+                val divisor = g.spreadReduce(closures(g.size(), checkVal))(_.find(_.isDefined))
 
                 if (!divisor.isDefined)
                     println(">>> Value '" + checkVal + "' is a prime number")
@@ -98,7 +96,7 @@ object ScalarPrimeExample {
      * the divisors in the range.
      *
      * @param gridSize Size of the grid.
-     * @param val Value to check.
+     * @param checkVal Value to check.
      * @return Collection of closures.
      */
     private def closures(gridSize: Int, checkVal: Long): Seq[() => Option[Long]] = {

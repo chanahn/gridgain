@@ -9,7 +9,7 @@
 
 package org.gridgain.examples.messaging;
 
-import org.gridgain.examples.helloworld.gridify.session.*;
+import org.gridgain.examples.session.*;
 import org.gridgain.grid.*;
 import org.gridgain.grid.typedef.*;
 import java.util.*;
@@ -23,7 +23,7 @@ import java.util.*;
  * Note that in most cases you will usually have to exchange state within
  * task execution scope, between task and the jobs it spawned. In such case
  * you would use {@link GridTaskSession} to distribute state. See
- * {@link GridifyHelloWorldSessionExample} for example on how to use
+ * {@link GridSessionExample} for example on how to use
  * task session.
  *
  * @author @java.author

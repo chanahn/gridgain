@@ -9,9 +9,8 @@
 
 package org.gridgain.examples.montecarlo;
 
-import org.gridgain.examples.montecarlo.api20.*;
-import org.gridgain.grid.gridify.*;
 import org.gridgain.grid.typedef.*;
+
 import java.util.*;
 
 /**
@@ -55,7 +54,6 @@ public class GridCreditRiskManager {
      * @return Credit risk value, i.e. the minimal amount that creditor has to
      *      have available to cover possible defaults.
      */
-    @Gridify(taskClass = GridCreditRiskGridTask.class)
     public double calculateCreditRiskMonteCarlo(GridCredit[] portfolio, int horizon, int num, double percentile) {
         X.println(">>> Calculating credit risk for portfolio [size=" + portfolio.length + ", horizon=" +
             horizon + ", percentile=" + percentile + ", iterations=" + num + "] <<<");

@@ -21,7 +21,9 @@ import java.util.*;
  * This example demonstrates JDBC and Hibernate-based implementations
  * of persistent store functionality in cache.
  * <p>
- * You can execute this example with or without remote nodes.
+ * You can execute this example with or without remote nodes. If you start remote nodes make
+ * sure you use the same config file as in example and all necessary classes are available
+ * on classpath. You may use {@link GridCacheNodeStartup} to start remote nodes.
  * <p>
  * If you run this example from IDE, use support classes {@link GridCacheJdbcNodeStartup}
  * and {@link GridCacheHibernateNodeStartup} to start remote nodes - you'll have all classes

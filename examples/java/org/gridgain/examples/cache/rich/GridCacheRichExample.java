@@ -46,7 +46,7 @@ public class GridCacheRichExample {
         try {
             print("Cache rich API example started.");
 
-            // Register remote event handler.
+            // Register remote event handlers.
             registerEvents();
 
             // Uncomment any configured cache instance to observe
@@ -63,6 +63,9 @@ public class GridCacheRichExample {
 
             // Demonstrates iterations over cached collections.
             collections(cache);
+
+            // Remove remote event handlers.
+            unregisterEvents();
 
             print("Cache rich API example finished.");
         }
@@ -85,7 +88,8 @@ public class GridCacheRichExample {
                 // can visualize what happens on remote nodes.
                 GridLocalEventListener lsnr = new GridLocalEventListener() {
                     @Override public void onEvent(GridEvent e) {
-                        print(e.shortDisplay());
+                        // Make sure not to use any other classes that should be p2p-loaded.
+                        System.out.println(e.shortDisplay());
                     }
                 };
 
@@ -106,6 +110,30 @@ public class GridCacheRichExample {
                     EVT_CACHE_OBJECT_PUT,
                     EVT_CACHE_OBJECT_READ,
                     EVT_CACHE_OBJECT_REMOVED);
+            }
+        });
+    }
+
+    /**
+     * This method will unregister listener for cache events on all nodes. We must do this
+     * because in SHARED deployment mode classes will be undeployed when all master nodes
+     * leave grid, and listener notification may cause undefined behaviour.
+     *
+     * @throws GridException If failed.
+     */
+    private static void unregisterEvents() throws  GridException {
+        // Execute this runnable on all grid nodes, local and remote.
+        G.grid().run(BROADCAST, new Runnable() {
+            @Override public void run() {
+                // Local node store.
+                ConcurrentMap<String, GridLocalEventListener> nodeLoc = G.grid().nodeLocal();
+
+                // GridNodeLocal is a ConcurrentMap attached to every grid node.
+                GridLocalEventListener prev = nodeLoc.remove("lsnr");
+
+                // Unsubscribe the old listener.
+                if (prev != null)
+                    G.grid().removeLocalEventListener(prev);
             }
         });
     }

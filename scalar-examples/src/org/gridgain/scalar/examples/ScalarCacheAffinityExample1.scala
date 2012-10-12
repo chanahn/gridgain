@@ -59,8 +59,7 @@ object ScalarCacheAffinityExample1 {
             var results = Map.empty[String, String]
 
             keys.foreach(key => {
-                val result = grid$.call(
-                    BALANCE,
+                val res = grid$.call(BALANCE,
                     new GridCallable[String] {
                         @GridCacheAffinityMapped
                         def affinityKey(): String = key
@@ -85,7 +84,7 @@ object ScalarCacheAffinityExample1 {
                     }
                 )
 
-                results += (key -> result)
+                results += (key -> res.head.toString)
             })
 
             results.foreach(e => println(">>> Affinity job result for key '" + e._1 + "': " + e._2))
@@ -108,16 +107,12 @@ object ScalarCacheAffinityExample1 {
             prj = g.localNode
 
         // Populate cache on some node (possibly this node) which has cache with given name started.
-        prj.run(
-            UNICAST,
-            (keys: Seq[String]) => {
-                println(">>> Storing keys in cache: " + keys)
+        prj.ucastRun(() => {
+            println(">>> Storing keys in cache: " + keys)
 
-                val c = cache$[String, String](NAME).get
+            val c = cache$[String, String](NAME).get
 
-                keys.foreach(key => c += (key -> key.toLowerCase))
-            },
-            keys
-        )
+            keys.foreach(key => c += (key -> key.toLowerCase))
+        })
     }
 }

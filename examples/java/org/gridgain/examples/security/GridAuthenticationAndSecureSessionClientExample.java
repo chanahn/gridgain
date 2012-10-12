@@ -118,8 +118,6 @@ public class GridAuthenticationAndSecureSessionClientExample {
 
         // If we use ssl, set appropriate key- and trust-store.
         if (USE_SSL) {
-            cc.setSslEnabled(true);
-
             GridSslBasicContextFactory factory = new GridSslBasicContextFactory();
 
             factory.setKeyStoreFilePath(ggHome + "/examples/keystore/client.jks");
