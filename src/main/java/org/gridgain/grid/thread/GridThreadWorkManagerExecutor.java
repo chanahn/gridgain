@@ -104,7 +104,7 @@ public class GridThreadWorkManagerExecutor extends AbstractExecutorService {
                 }
             }
         }
-        catch (WorkException e) {
+        catch (Exception e) {
             // Unfortunately RejectedExecutionException is the closest thing we have
             // as proper RuntimeException.
             throw new RejectedExecutionException(e);

@@ -13,7 +13,6 @@ import org.gridgain.grid.*;
 import org.gridgain.grid.spi.*;
 import org.gridgain.grid.spi.loadbalancing.adaptive.*;
 import org.gridgain.grid.spi.loadbalancing.affinity.*;
-import org.gridgain.grid.spi.loadbalancing.coherence.*;
 import org.gridgain.grid.spi.loadbalancing.roundrobin.*;
 import org.gridgain.grid.spi.loadbalancing.weightedrandom.*;
 import java.util.*;

@@ -12,7 +12,6 @@ package org.gridgain.grid.spi.discovery;
 import org.gridgain.grid.*;
 import org.gridgain.grid.events.*;
 import org.gridgain.grid.spi.*;
-import org.gridgain.grid.spi.discovery.coherence.*;
 import org.gridgain.grid.spi.discovery.jms.*;
 import org.gridgain.grid.spi.discovery.mail.*;
 import org.gridgain.grid.spi.discovery.multicast.*;

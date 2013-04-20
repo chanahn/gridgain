@@ -12,7 +12,6 @@ package org.gridgain.grid.spi.checkpoint;
 import org.gridgain.grid.*;
 import org.gridgain.grid.spi.*;
 import org.gridgain.grid.spi.checkpoint.cache.*;
-import org.gridgain.grid.spi.checkpoint.coherence.*;
 import org.gridgain.grid.spi.checkpoint.jdbc.*;
 import org.gridgain.grid.spi.checkpoint.s3.*;
 import org.gridgain.grid.spi.checkpoint.sharedfs.*;

@@ -9,6 +9,8 @@
 
 package org.gridgain.grid;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Distribution modes for one or more closures executed on the cloud via {@code Grid.call(...)} methods.
  * In other words, given a set of jobs (closures) and set of grid nodes this enumeration provides

@@ -57,7 +57,7 @@ class GridUriDeploymentSpringDocument {
             if (tasks == null) {
                 tasks = new ArrayList<Class<? extends GridTask<?, ?>>>();
 
-                Map<String, List<String>> beans = factory.getBeansOfType(List.class);
+                Map<String, List> beans = factory.getBeansOfType(List.class);
 
                 if (beans.size() > 0) {
                     for (List<String> list : beans.values()) {

@@ -12,7 +12,6 @@ package org.gridgain.grid.spi.communication;
 import org.gridgain.grid.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.spi.*;
-import org.gridgain.grid.spi.communication.coherence.*;
 import org.gridgain.grid.spi.communication.jms.*;
 import org.gridgain.grid.spi.communication.mail.*;
 import org.gridgain.grid.spi.communication.tcp.*;

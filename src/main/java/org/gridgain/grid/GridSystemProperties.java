@@ -12,7 +12,6 @@ package org.gridgain.grid;
 import org.gridgain.grid.editions.*;
 import org.gridgain.grid.lang.*;
 import org.gridgain.grid.spi.discovery.*;
-import org.gridgain.grid.test.*;
 
 /**
  * Contains constants for all system properties and environmental variables in GridGain. These
