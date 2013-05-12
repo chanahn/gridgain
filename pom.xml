@@ -2,22 +2,23 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
+<!--    <parent>
         <artifactId>majulah-m-parent</artifactId>
         <groupId>com.fiftyeightandeight</groupId>
         <version>1.0</version>
-    </parent>
+    </parent>-->
   
     <groupId>org.gridgain</groupId>
     <artifactId>gridgain</artifactId>
-    <version>3.1.1c</version>
-    <packaging>nbm</packaging>
+    <version>3.1.1c-8</version>
+    <packaging>jar</packaging>
 
     <name>gridgain</name>
     <url>http://maven.apache.org</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <org.springframework.version>2.5.6</org.springframework.version>
     </properties>
     
     <repositories>
@@ -33,11 +34,6 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>        
-        <repository>
-            <url>http://download.java.net/maven/2/</url>
-            <id>java.net</id>
-            <layout>default</layout>
         </repository>
         <repository>
             <url>http://repo1.maven.org/maven2/</url>
@@ -71,6 +67,7 @@
             <artifactId>annotations</artifactId>
             <version>9.0</version>
             <type>jar</type>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>commons-beanutils</groupId>
@@ -78,12 +75,6 @@
             <version>1.8.3</version>
             <type>jar</type>
         </dependency>
-        <!--        <dependency>
-            <groupId>net.sf.json-lib</groupId>
-            <artifactId>json-lib</artifactId>
-            <version>2.4</version>
-            <type>jar</type>
-        </dependency>-->
         <dependency>
             <groupId>org.kohsuke.stapler</groupId>
             <artifactId>json-lib</artifactId>
@@ -100,288 +91,289 @@
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
             <version>1.6.8</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
             <version>1.6.8</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>commons-cli</groupId>
             <artifactId>commons-cli</artifactId>
             <version>1.2</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
             <version>1.6</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>commons-collections</groupId>
             <artifactId>commons-collections</artifactId>
             <version>3.2.1</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-jexl</artifactId>
             <version>2.1.1</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>commons-logging</groupId>
             <artifactId>commons-logging</artifactId>
             <version>1.1.1</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>commons-net</groupId>
             <artifactId>commons-net</artifactId>
             <version>3.0.1</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.1.2</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient-cache</artifactId>
             <version>4.1.2</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpcore</artifactId>
             <version>4.1.2</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpmime</artifactId>
             <version>4.1.2</version>
-            <optional>false</optional>
+            
         </dependency>
         <dependency>
             <groupId>org.hibernate.javax.persistence</groupId>
             <artifactId>hibernate-jpa-2.0-api</artifactId>
             <version>1.0.1.Final</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate</artifactId>
             <version>3.2.7.ga</version>
-            <optional>false</optional>
+            
         </dependency>                                
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-continuation</artifactId>
             <version>7.2.2.v20101205</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-http</artifactId>
             <version>7.2.2.v20101205</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-io</artifactId>
             <version>7.2.2.v20101205</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
             <version>7.2.2.v20101205</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-util</artifactId>
             <version>7.2.2.v20101205</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-xml</artifactId>
             <version>7.2.2.v20101205</version>
-            <optional>false</optional>
+            
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.6.4</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
             <version>1.6.4</version>
-            <optional>false</optional>
-        </dependency>
+            <!--<scope>runtime</scope>-->
+        </dependency>              
+        
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-aop</artifactId>
-            <version>3.1.0.RELEASE</version>
-            <optional>false</optional>
+            <version>${org.springframework.version}</version>
+            
         </dependency>
 
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
-            <version>3.1.0.RELEASE</version>
-            <optional>false</optional>
+            <version>${org.springframework.version}</version>
+            
         </dependency>
 
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>3.1.0.RELEASE</version>
-            <optional>false</optional>
+            <version>${org.springframework.version}</version>
+            
         </dependency>
 
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
-            <version>3.1.0.RELEASE</version>
-            <optional>false</optional>
+            <version>${org.springframework.version}</version>
+            
         </dependency>
 
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
-            <version>3.1.0.RELEASE</version>
-            <optional>false</optional>
+            <version>${org.springframework.version}</version>
+            
         </dependency>
 
-        <dependency>
+<!--        <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-asm</artifactId>
-            <version>3.1.0.RELEASE</version>
-            <optional>false</optional>
+            <version>${org.springframework.version}</version>
+            
         </dependency>
 
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-expression</artifactId>
-            <version>3.1.0.RELEASE</version>
-            <optional>false</optional>
-        </dependency>
+            <version>${org.springframework.version}</version>
+            
+        </dependency>-->
         <dependency>
             <groupId>stax</groupId>
             <artifactId>stax</artifactId>
             <version>1.2.0</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>stax</groupId>
             <artifactId>stax-api</artifactId>
             <version>1.0.1</version>
-            <optional>false</optional>
+            
         </dependency>
         <dependency>
             <groupId>javax.activation</groupId>
             <artifactId>activation</artifactId>
             <version>1.1.1</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>com.intellij</groupId>
             <artifactId>annotations</artifactId>
             <version>9.0.4</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>antlr</groupId>
             <artifactId>antlr</artifactId>
             <version>2.7.7</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>aopalliance</groupId>
             <artifactId>aopalliance</artifactId>
             <version>1.0</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>asm</groupId>
             <artifactId>asm</artifactId>
             <version>3.3.1</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk</artifactId>
             <version>1.2.15</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>bcel</groupId>
             <artifactId>bcel</artifactId>
             <version>5.1</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>cglib</groupId>
             <artifactId>cglib-nodep</artifactId>
             <version>2.2.2</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>concurrent</groupId>
             <artifactId>concurrent</artifactId>
             <version>1.3.4</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>net.sf.cron4j</groupId>
             <artifactId>cron4j</artifactId>
             <version>2.2.5</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>dom4j</groupId>
             <artifactId>dom4j</artifactId>
             <version>1.6.1</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
@@ -394,77 +386,77 @@
             <groupId>net.sf.ezmorph</groupId>
             <artifactId>ezmorph</artifactId>
             <version>1.0.6</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-utils</artifactId>
             <version>1.9.43</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>1.3.162</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>javassist</groupId>
             <artifactId>javassist</artifactId>
             <version>3.12.1.GA</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>jboss</groupId>
             <artifactId>jboss-serialization</artifactId>
             <version>4.2.2.GA</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
-            <version>2.0</version>
-            <optional>false</optional>
+            <version>2.1</version>
+            
         </dependency>
 
         <dependency>
             <groupId>com.jcraft</groupId>
             <artifactId>jsch</artifactId>
             <version>0.1.45</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <!--        <dependency>
             <groupId>net.sf.json-lib</groupId>
             <artifactId>json-lib</artifactId>
             <version>2.4</version>
-            <optional>false</optional>
+            
         </dependency>-->
 
         <dependency>
             <groupId>javax.transaction</groupId>
             <artifactId>jta</artifactId>
             <version>1.1</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>net.sf.jtidy</groupId>
             <artifactId>jtidy</artifactId>
             <version>r938</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.16</version>
-            <optional>false</optional>
+            
             <exclusions>
                 <exclusion>
                     <groupId>com.sun.jdmk</groupId>
@@ -481,42 +473,42 @@
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
             <version>3.5.0</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>javax.mail</groupId>
             <artifactId>mail</artifactId>
             <version>1.4.4</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>oro</groupId>
             <artifactId>oro</artifactId>
             <version>2.0.8</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
             <version>2.5</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>org.hyperic</groupId>
             <artifactId>sigar</artifactId>
             <version>1.6.5.132</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>trove</groupId>
             <artifactId>trove</artifactId>
             <version>1.0.2</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
@@ -529,14 +521,14 @@
             <groupId>xpp3</groupId>
             <artifactId>xpp3_min</artifactId>
             <version>1.1.4c</version>
-            <optional>false</optional>
+            
         </dependency>
 
         <dependency>
             <groupId>com.thoughtworks.xstream</groupId>
             <artifactId>xstream</artifactId>
             <version>1.4.2</version>
-            <optional>false</optional>
+            
         </dependency> 
         <dependency>
             <groupId>javax.jms</groupId>
@@ -553,26 +545,16 @@
             <artifactId>jansi</artifactId>
             <version>1.10</version>
         </dependency>
-        <dependency>
+        <!--        <dependency>
             <groupId>org.jboss.jbossas</groupId>
             <artifactId>jboss-as-aspects</artifactId>
             <version>6.1.0.Final</version>
-        </dependency>      
+        </dependency>      -->
         <dependency>
             <groupId>org.apache.tomcat.extras</groupId>
             <artifactId>tomcat-extras-juli</artifactId>
             <version>7.0.39</version>
         </dependency>
-        <!--<dependency>
-            <groupId>org.codehaus.fabric3.api</groupId>
-            <artifactId>commonj</artifactId>
-            <version>1.1.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.main.core</groupId>
-            <artifactId>glassfish</artifactId>
-            <version>4.0-b72</version>
-        </dependency>                                      -->
         <dependency>
             <groupId>apache-tomcat</groupId>
             <artifactId>catalina</artifactId>
@@ -603,25 +585,30 @@
             <type>jar</type>
             <version>1.3.04</version>
         </dependency>
+        <dependency>
+            <artifactId>ant</artifactId>
+            <groupId>org.apache.ant</groupId>
+            <type>jar</type>
+            <version>1.8.0</version>
+        </dependency>
     </dependencies>   
 
     <build>
         <plugins>
-            <plugin>
+<!--            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>nbm-maven-plugin</artifactId>
-                <version>3.7</version>
+                <version>3.8.1</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <useOSGiDependencies>false</useOSGiDependencies>
                     <publicPackages>
                         <publicPackage>org.gridgain.*</publicPackage>
                     </publicPackages>
                 </configuration>
             </plugin>
 
+-->            
             <plugin>
-                <!-- NetBeans 6.9+ requires JDK 6 -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>2.3.2</version>
@@ -631,15 +618,38 @@
                 </configuration>
             </plugin>
 
-            <plugin>
+<!--            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>2.3.1</version>
                 <configuration>
-                    <!-- to have the jar plugin pickup the nbm generated manifest -->
+                     to have the jar plugin pickup the nbm generated manifest 
                     <useDefaultManifestFile>true</useDefaultManifestFile>
                 </configuration>
-            </plugin>
+            </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.2-beta-4</version>
+                <executions>
+                    <execution>
+                        <id>assembly:package</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+<!--                            <descriptorRefs>
+                                <descriptorRef>src</descriptorRef>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>-->
+                            <descriptors>
+                                <descriptor>src/main/resources/custom-assembly.xml</descriptor>
+                            </descriptors>                            
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>            
         </plugins>
     </build>          
 </project>
